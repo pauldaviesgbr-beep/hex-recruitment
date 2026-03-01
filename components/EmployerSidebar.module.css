@@ -1,0 +1,318 @@
+/* ================================
+   Employer Sidebar — clean & simple
+   ================================ */
+
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  background: var(--dark-gray);
+  display: flex;
+  flex-direction: column;
+  z-index: 999;
+  transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Spacer pushes content below the navbar */
+.navSpacer {
+  flex-shrink: 0;
+  height: var(--navbar-h, 0px);
+}
+
+.collapsed { width: 60px; overflow: visible; }
+.expanded  { width: 220px; overflow: hidden; }
+
+/* ---------- Header row ---------- */
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 46px;
+  padding: 0 14px;
+  flex-shrink: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.menuLabel {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #fff;
+  white-space: nowrap;
+  opacity: 1;
+  transition: opacity 0.15s;
+}
+
+.collapsed .menuLabel {
+  opacity: 0;
+  width: 0;
+  overflow: hidden;
+}
+
+/* When collapsed, center the chevron */
+.collapsed .header {
+  justify-content: center;
+  padding: 0;
+}
+
+/* ---------- Toggle button ---------- */
+
+.toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.4);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: color 0.15s, background 0.15s;
+  padding: 0;
+}
+
+.toggle:hover {
+  color: var(--primary-yellow);
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.toggle svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* ---------- Nav items area ---------- */
+
+.items {
+  display: flex;
+  flex-direction: column;
+  padding: 4px 0;
+}
+
+/* ---------- Single nav item ---------- */
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 38px;
+  padding: 0 18px;
+  color: rgba(255, 255, 255, 0.65);
+  text-decoration: none;
+  font-size: 0.825rem;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: background 0.12s, color 0.12s;
+  flex-shrink: 0;
+}
+
+.item:hover {
+  background: rgba(255, 255, 255, 0.07);
+  color: #fff;
+}
+
+.item.active {
+  background: rgba(255, 229, 0, 0.1);
+  color: var(--primary-yellow);
+}
+
+.item.active .icon svg {
+  stroke: var(--primary-yellow);
+}
+
+/* ---------- Icon ---------- */
+
+.icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* ---------- Label ---------- */
+
+.label {
+  opacity: 1;
+  transition: opacity 0.15s;
+}
+
+.collapsed .label {
+  opacity: 0;
+  width: 0;
+  overflow: hidden;
+}
+
+/* ---------- Collapsed: center icons ---------- */
+
+.collapsed .item {
+  justify-content: center;
+  padding: 0;
+}
+
+/* ---------- Badge ---------- */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: var(--primary-yellow);
+  color: var(--dark-gray);
+  font-size: 0.6rem;
+  font-weight: 700;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.collapsed .badge {
+  position: absolute;
+  top: 2px;
+  right: 4px;
+  margin-left: 0;
+}
+
+.collapsed .item {
+  position: relative;
+}
+
+/* ---------- Collapsed tooltips ---------- */
+
+.collapsed .item::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  left: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  margin-left: 8px;
+  background: var(--black, #1e293b);
+  color: white;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.1s ease;
+  z-index: 1000;
+}
+
+.collapsed .item:hover::after {
+  opacity: 1;
+}
+
+/* ---------- Bottom section ---------- */
+
+.bottom {
+  flex-shrink: 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 4px 0;
+}
+
+/* ---------- Mobile ---------- */
+
+.mobileToggle {
+  display: none;
+  position: fixed;
+  top: 0.7rem;
+  left: 0.75rem;
+  z-index: 1001;
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 8px;
+  background: var(--dark-gray);
+  color: var(--white);
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.mobileToggle svg {
+  width: 22px;
+  height: 22px;
+}
+
+.overlay {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .sidebar {
+    transform: translateX(-100%);
+    width: 220px !important;
+  }
+
+  .sidebar.mobileOpen {
+    transform: translateX(0);
+  }
+
+  .mobileToggle {
+    display: flex;
+  }
+
+  .overlay {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 998;
+  }
+
+  /* Always show labels on mobile */
+  .collapsed .label {
+    opacity: 1;
+    width: auto;
+    overflow: visible;
+  }
+
+  .collapsed .item {
+    justify-content: flex-start;
+    padding: 0 18px;
+  }
+
+  .toggle {
+    display: none;
+  }
+
+  /* Show menu label on mobile (sidebar is always expanded) */
+  .collapsed .menuLabel {
+    opacity: 1;
+    width: auto;
+    overflow: visible;
+  }
+
+  .collapsed .header {
+    justify-content: space-between;
+    padding: 0 14px;
+  }
+
+  /* Hide CSS tooltips on mobile (labels are always visible) */
+  .collapsed .item::after {
+    display: none;
+  }
+}
+
+/* ---------- Print ---------- */
+
+@media print {
+  .sidebar,
+  .mobileToggle {
+    display: none !important;
+  }
+}

@@ -1,0 +1,70 @@
+.main {
+  min-height: 100vh;
+  background: var(--light-gray);
+}
+
+.container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 2rem 1rem 4rem;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.title {
+  font-size: 2rem;
+  font-weight: 900;
+  color: var(--black);
+  margin: 0 0 0.5rem 0;
+}
+
+.subtitle {
+  color: var(--text-gray);
+  font-size: 1.1rem;
+  margin: 0;
+  max-width: 500px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.loginLink {
+  text-align: center;
+  margin-top: 2rem;
+  padding: 1.5rem;
+  background: var(--white);
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.loginLink p {
+  color: var(--text-gray);
+  margin: 0 0 0.5rem 0;
+}
+
+.loginLink a {
+  color: var(--black);
+  font-weight: 700;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.loginLink a:hover {
+  color: var(--primary-yellow);
+}
+
+@media (max-width: 640px) {
+  .container {
+    padding: 1rem;
+  }
+
+  .title {
+    font-size: 1.5rem;
+  }
+
+  .subtitle {
+    font-size: 1rem;
+  }
+}

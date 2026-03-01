@@ -1,0 +1,418 @@
+.container {
+  max-width: 650px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+}
+
+.loading {
+  text-align: center;
+  padding: 3rem;
+  color: #666;
+}
+
+/* Back Link */
+.backLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #666;
+  text-decoration: none;
+  font-size: 0.9rem;
+  margin-bottom: 1.5rem;
+  transition: color 0.2s;
+}
+
+.backLink:hover {
+  color: #333;
+}
+
+.backArrow {
+  font-size: 1.2rem;
+}
+
+/* Header */
+.header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.headerIcon {
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fffef5;
+  border-radius: 12px;
+  font-size: 1.75rem;
+}
+
+.title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0 0 0.25rem 0;
+}
+
+.subtitle {
+  color: #666;
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+/* Form */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Section Card */
+.section {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 1.5rem;
+}
+
+.sectionTitle {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin: 0 0 1.25rem 0;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+/* Form Groups */
+.formGroup {
+  margin-bottom: 1rem;
+}
+
+.formGroup:last-child {
+  margin-bottom: 0;
+}
+
+.formGroup label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 0.375rem;
+}
+
+.formGroup input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  color: #1a1a1a;
+  transition: border-color 0.2s;
+  background: white;
+  box-sizing: border-box;
+}
+
+.formGroup input:focus {
+  outline: none;
+  border-color: var(--primary-yellow);
+}
+
+.formGroup input::placeholder {
+  color: #9ca3af;
+}
+
+.inputError {
+  border-color: #dc2626 !important;
+}
+
+.errorText {
+  color: #dc2626;
+  font-size: 0.8rem;
+  margin-top: 0.375rem;
+  display: block;
+}
+
+/* Form Row (side-by-side fields) */
+.formRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+/* Card Number with Icons */
+.cardNumberWrapper {
+  position: relative;
+}
+
+.cardNumberInput {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  padding-right: 140px;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-family: 'Courier New', Courier, monospace;
+  letter-spacing: 0.05em;
+  color: #1a1a1a;
+  transition: border-color 0.2s;
+  background: white;
+  box-sizing: border-box;
+}
+
+.cardNumberInput:focus {
+  outline: none;
+  border-color: var(--primary-yellow);
+}
+
+.cardNumberInput::placeholder {
+  color: #9ca3af;
+  font-family: 'Courier New', Courier, monospace;
+}
+
+.cardIcons {
+  position: absolute;
+  right: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.cardIcon {
+  display: flex;
+  align-items: center;
+  opacity: 0.35;
+  transition: opacity 0.2s;
+}
+
+.cardIconActive {
+  opacity: 1;
+}
+
+/* CVV */
+.cvvWrapper {
+  position: relative;
+}
+
+.cvvWrapper input {
+  font-family: 'Courier New', Courier, monospace;
+  letter-spacing: 0.15em;
+}
+
+.cvvHint {
+  display: block;
+  font-size: 0.75rem;
+  color: #9ca3af;
+  margin-top: 0.25rem;
+}
+
+/* Postcode - half width */
+.postcodeGroup {
+  max-width: 240px;
+}
+
+/* Address Fields (shown after postcode lookup) */
+.addressFields {
+  margin-top: 1.25rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid #e5e7eb;
+  animation: slideIn 0.2s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Security Note */
+.securityNote {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+}
+
+.lockIcon {
+  font-size: 1.15rem;
+  flex-shrink: 0;
+  margin-top: 0.0625rem;
+}
+
+.securityNote p {
+  font-size: 0.85rem;
+  color: #6b7280;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* Actions */
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.saveBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.875rem 2rem;
+  background: var(--primary-yellow);
+  color: var(--dark-gray);
+  border: none;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-width: 200px;
+}
+
+.saveBtn:hover:not(:disabled) {
+  background: var(--hover-yellow);
+  transform: translateY(-1px);
+}
+
+.saveBtn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.cancelLink {
+  color: #666;
+  text-decoration: none;
+  font-size: 0.95rem;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+
+.cancelLink:hover {
+  color: #333;
+}
+
+/* Spinner */
+.spinner {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(45, 55, 72, 0.2);
+  border-top: 2px solid var(--dark-gray);
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Success Card */
+.successCard {
+  text-align: center;
+  padding: 3rem 2rem;
+  max-width: 450px;
+  margin: 3rem auto;
+}
+
+.successIcon {
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #d1fae5;
+  color: #065f46;
+  border-radius: 50%;
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin: 0 auto 1.25rem;
+}
+
+.successTitle {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0 0 0.75rem 0;
+}
+
+.successText {
+  font-size: 1rem;
+  color: #6b7280;
+  margin: 0 0 1.5rem 0;
+  line-height: 1.5;
+}
+
+.successLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  color: var(--dark-gray);
+  font-weight: 600;
+  text-decoration: none;
+  font-size: 0.95rem;
+  transition: color 0.2s;
+}
+
+.successLink:hover {
+  color: #000;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .container {
+    padding: 1rem;
+  }
+
+  .header {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .title {
+    font-size: 1.3rem;
+  }
+
+  .formRow {
+    grid-template-columns: 1fr;
+  }
+
+  .cardNumberInput {
+    padding-right: 1rem;
+    font-size: 0.9rem;
+  }
+
+  .cardIcons {
+    display: none;
+  }
+
+  .postcodeGroup {
+    max-width: none;
+  }
+
+  .actions {
+    flex-direction: column;
+  }
+
+  .saveBtn {
+    width: 100%;
+  }
+
+  .cancelLink {
+    text-align: center;
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(unzip:*)",
+      "Bash(python3:*)",
+      "Bash(python -c:*)",
+      "Read(//c/Users/Paul Davies/**)",
+      "Bash(# Windows path for /tmp ls -la /tmp/analytics-backup/app/dashboard/analytics/ || echo \"\"not found\"\" # Try Windows temp ls \"\"/c/Users/Paul Davies/AppData/Local/Temp/analytics-backup\"\" || echo \"\"not in temp either\"\" # Where did unzip put it? find / -name \"\"analytics-backup\"\" -type d)",
+      "Read(//c/Users/PAULDA~1/AppData/Local/Temp/claude/c--Users-Paul-Davies-Downloads-hospitality-hive-nextjs-hospitality-hive-nextjs/tasks/**)"
+    ],
+    "additionalDirectories": [
+      "C:\\Users\\Paul Davies\\Downloads\\"
+    ]
+  }
+}

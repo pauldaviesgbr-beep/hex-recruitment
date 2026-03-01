@@ -1,0 +1,169 @@
+:root {
+  /* Softer, lighter color palette */
+  --primary-yellow: #FFE500;      /* Electric vibrant yellow */
+  --hover-yellow: #FFF033;        /* Bright yellow for hover */
+  --accent-yellow: #FFF8CC;       /* Light yellow for backgrounds */
+  --black: #1f1f1f;               /* Charcoal instead of pure black */
+  --dark-gray: #2d3748;           /* Dark slate for secondary dark areas */
+  --text-gray: #4a5568;           /* Soft gray for body text */
+  --text-dark: #2d3748;           /* Darker text for headings */
+  --light-gray: #f7f9fc;          /* Off-white for backgrounds */
+  --border-gray: #e2e8f0;         /* Softer border color */
+  --white: #ffffff;               /* Pure white for cards/contrast */
+  --off-white: #f7f9fc;           /* Off-white background */
+  --card-shadow: 0 2px 8px rgba(45, 55, 72, 0.08);  /* Soft shadow for cards */
+  --card-shadow-hover: 0 4px 16px rgba(45, 55, 72, 0.12);  /* Hover shadow */
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--off-white);
+  color: var(--text-gray);
+  line-height: 1.6;
+}
+
+/* Global scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 2rem;
+}
+
+.btn {
+  padding: 0.75rem 1.75rem;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 2px 4px rgba(45, 55, 72, 0.06);
+}
+
+.btn-primary {
+  background: var(--primary-yellow);
+  color: var(--text-dark);
+}
+
+.btn-primary:hover {
+  background: var(--hover-yellow);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(255, 229, 0, 0.3);
+}
+
+.btn-secondary {
+  background: var(--dark-gray);
+  color: var(--white);
+}
+
+.btn-secondary:hover {
+  background: var(--black);
+  box-shadow: 0 4px 8px rgba(45, 55, 72, 0.2);
+}
+
+/* ==========================
+   EMPLOYER SIDEBAR OFFSET
+   Body padding pushes ALL content (header, main, containers)
+   to the right of the fixed sidebar. The sidebar itself is
+   position:fixed at left:0 so it sits outside the padding.
+   ========================== */
+
+body[data-sidebar="collapsed"] {
+  padding-left: 60px;
+  transition: padding-left 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+body[data-sidebar="expanded"] {
+  padding-left: 220px;
+  transition: padding-left 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@media (max-width: 768px) {
+  body[data-sidebar="collapsed"],
+  body[data-sidebar="expanded"] {
+    padding-left: 0;
+  }
+}
+
+/* Logo slides into sidebar zone when sidebar is expanded */
+[data-sidebar-logo] {
+  transition: margin-left 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+              width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+body[data-sidebar="expanded"] [data-sidebar-logo] {
+  margin-left: calc(-220px - 2rem);
+  width: 220px;
+  justify-content: center;
+  box-sizing: border-box;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+@media (max-width: 768px) {
+  body[data-sidebar="expanded"] [data-sidebar-logo],
+  body[data-sidebar="collapsed"] [data-sidebar-logo] {
+    margin-left: 0;
+    width: auto;
+    border-right: none;
+  }
+}
+
+/* ==========================
+   GLOBAL PRINT STYLES
+   ========================== */
+@media print {
+  /* Hide the site header/navbar */
+  header {
+    display: none !important;
+  }
+
+  /* Hide any chatbot/help widgets */
+  [class*="chatbot"],
+  [class*="Chatbot"],
+  [id*="chatbot"],
+  [id*="helpWidget"],
+  [class*="helpWidget"],
+  iframe[title*="chat"],
+  [class*="intercom"],
+  [id*="intercom"] {
+    display: none !important;
+  }
+
+  /* Hide dev mode banner */
+  [style*="position: fixed"][style*="top: 0"] {
+    display: none !important;
+  }
+
+  body {
+    background: #fff !important;
+  }
+}

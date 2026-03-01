@@ -1,0 +1,792 @@
+.container {
+  max-width: 750px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+}
+
+.loading {
+  text-align: center;
+  padding: 3rem;
+  color: #666;
+}
+
+/* Back Link */
+.backLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #666;
+  text-decoration: none;
+  font-size: 0.9rem;
+  margin-bottom: 1.5rem;
+  transition: color 0.2s;
+}
+
+.backLink:hover {
+  color: #333;
+}
+
+.backArrow {
+  font-size: 1.2rem;
+}
+
+/* Header */
+.header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.headerIcon {
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fffef5;
+  border-radius: 12px;
+  font-size: 1.75rem;
+}
+
+.title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0 0 0.25rem 0;
+}
+
+.subtitle {
+  color: #666;
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+/* Message */
+.message {
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  font-size: 0.95rem;
+}
+
+.messageSuccess {
+  background: #d1fae5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+
+.messageError {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+/* Plan Status Card */
+.planCard {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 1.5rem;
+}
+
+.planHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.5rem;
+  background: var(--dark-gray);
+  color: white;
+}
+
+.planInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.planName {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--primary-yellow);
+  margin: 0;
+}
+
+.planPrice {
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.7);
+  margin: 0;
+}
+
+.planBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.375rem 0.875rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.badgeTrial {
+  background: rgba(255, 229, 0, 0.2);
+  color: var(--primary-yellow);
+}
+
+.badgeActive {
+  background: rgba(34, 197, 94, 0.2);
+  color: #22c55e;
+}
+
+.badgeExpired {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+}
+
+.badgeCancelling {
+  background: rgba(251, 191, 36, 0.2);
+  color: #f59e0b;
+}
+
+.planBody {
+  padding: 1.5rem;
+}
+
+.planDetails {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.planDetail {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.detailLabel {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.detailValue {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+/* Trial Progress Bar */
+.trialProgress {
+  margin-top: 1.25rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.trialProgressLabel {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.trialProgressText {
+  font-size: 0.85rem;
+  color: #6b7280;
+}
+
+.trialProgressDays {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--dark-gray);
+}
+
+.trialProgressDaysWarning {
+  color: #f59e0b;
+}
+
+.trialProgressDaysExpired {
+  color: #ef4444;
+}
+
+.progressBar {
+  height: 8px;
+  background: #e5e7eb;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.5s ease;
+}
+
+.progressFillGreen {
+  background: linear-gradient(90deg, #22c55e, #16a34a);
+}
+
+.progressFillYellow {
+  background: linear-gradient(90deg, #f59e0b, #d97706);
+}
+
+.progressFillRed {
+  background: linear-gradient(90deg, #ef4444, #dc2626);
+}
+
+/* Action Buttons */
+.planActions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.updatePaymentBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  background: white;
+  color: var(--dark-gray);
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-decoration: none;
+}
+
+.updatePaymentBtn:hover {
+  background: #f9fafb;
+  border-color: #9ca3af;
+}
+
+.cancelSubBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  background: white;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.cancelSubBtn:hover {
+  background: #fef2f2;
+  border-color: #f87171;
+}
+
+.resubscribeBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  background: var(--primary-yellow);
+  color: var(--dark-gray);
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-decoration: none;
+}
+
+.resubscribeBtn:hover {
+  background: var(--hover-yellow);
+}
+
+/* Payment Method Card */
+.section {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.sectionTitle {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin: 0 0 1.25rem 0;
+}
+
+.paymentMethod {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+}
+
+.cardBrand {
+  width: 48px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.cardBrand svg {
+  display: block;
+}
+
+.cardDetails {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.cardNumber {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.cardExpiry {
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+
+.noPayment {
+  color: #6b7280;
+  font-size: 0.95rem;
+  font-style: italic;
+}
+
+/* Billing History */
+.historyTable {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.historyTable th {
+  text-align: left;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 0.75rem 1rem;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.historyTable td {
+  padding: 0.875rem 1rem;
+  font-size: 0.9rem;
+  color: #374151;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.historyTable tr:last-child td {
+  border-bottom: none;
+}
+
+.invoiceStatus {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.6rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.statusPaid {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.statusPending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.statusFailed {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.downloadLink {
+  color: var(--dark-gray);
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 0.85rem;
+  transition: color 0.2s;
+}
+
+.downloadLink:hover {
+  color: var(--primary-yellow);
+  text-decoration: underline;
+}
+
+.emptyHistory {
+  text-align: center;
+  padding: 2rem;
+  color: #9ca3af;
+  font-size: 0.95rem;
+}
+
+/* CTA Card (no subscription) */
+.ctaCard {
+  background: var(--dark-gray);
+  border-radius: 12px;
+  padding: 2.5rem;
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.ctaIcon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+.ctaTitle {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--primary-yellow);
+  margin: 0 0 0.5rem 0;
+}
+
+.ctaSubtitle {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 1rem;
+  margin: 0 0 0.5rem 0;
+}
+
+.ctaPrice {
+  color: white;
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0 0 1.5rem 0;
+}
+
+.ctaPrice strong {
+  font-size: 2rem;
+  color: var(--primary-yellow);
+}
+
+.ctaFeatures {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem 1.25rem;
+  margin-bottom: 2rem;
+}
+
+.ctaFeature {
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.9rem;
+}
+
+.ctaBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem 2.5rem;
+  background: var(--primary-yellow);
+  color: var(--dark-gray);
+  border: none;
+  border-radius: 10px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-decoration: none;
+}
+
+.ctaBtn:hover {
+  background: var(--hover-yellow);
+  transform: translateY(-2px);
+}
+
+/* Cancellation Modal Overlay */
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  padding: 1rem;
+  animation: fadeIn 0.15s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.modal {
+  background: white;
+  border-radius: 16px;
+  max-width: 480px;
+  width: 100%;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  animation: slideUp 0.2s ease-out;
+  overflow: hidden;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.modalHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1.5rem 1.5rem 0;
+}
+
+.modalIcon {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fef2f2;
+  border-radius: 10px;
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.modalTitle {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0;
+}
+
+.modalBody {
+  padding: 1.25rem 1.5rem;
+}
+
+.modalText {
+  font-size: 0.95rem;
+  color: #374151;
+  line-height: 1.6;
+  margin: 0 0 1rem 0;
+}
+
+.modalWarning {
+  background: #fef3c7;
+  border: 1px solid #fde68a;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.modalWarningTitle {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #92400e;
+  margin: 0 0 0.5rem 0;
+}
+
+.modalWarningText {
+  font-size: 0.85rem;
+  color: #92400e;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.modalAccessEnd {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 1rem;
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.modalAccessEndLabel {
+  font-size: 0.8rem;
+  color: #6b7280;
+  margin: 0 0 0.25rem 0;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  font-weight: 500;
+}
+
+.modalAccessEndDate {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #dc2626;
+  margin: 0;
+}
+
+.modalLoseAccess {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.modalLoseAccess li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: #6b7280;
+  padding: 0.25rem 0;
+}
+
+.loseIcon {
+  color: #dc2626;
+  font-size: 0.75rem;
+  flex-shrink: 0;
+}
+
+.modalFooter {
+  display: flex;
+  gap: 0.75rem;
+  padding: 0 1.5rem 1.5rem;
+}
+
+.modalKeepBtn {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  background: var(--primary-yellow);
+  color: var(--dark-gray);
+  border: none;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.modalKeepBtn:hover {
+  background: var(--hover-yellow);
+}
+
+.modalCancelBtn {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  background: white;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.modalCancelBtn:hover {
+  background: #fef2f2;
+  border-color: #f87171;
+}
+
+/* Notice Period Banner */
+.noticeBanner {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+}
+
+.noticeBannerIcon {
+  font-size: 1.25rem;
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+}
+
+.noticeBannerText {
+  font-size: 0.9rem;
+  color: #92400e;
+  line-height: 1.5;
+}
+
+.noticeBannerText strong {
+  color: #78350f;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .container {
+    padding: 1rem;
+  }
+
+  .header {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .title {
+    font-size: 1.35rem;
+  }
+
+  .planHeader {
+    flex-direction: column;
+    gap: 0.75rem;
+    text-align: center;
+  }
+
+  .planDetails {
+    grid-template-columns: 1fr;
+  }
+
+  .planActions {
+    flex-direction: column;
+  }
+
+  .updatePaymentBtn,
+  .cancelSubBtn,
+  .resubscribeBtn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .historyTable th:nth-child(3),
+  .historyTable td:nth-child(3) {
+    display: none;
+  }
+
+  .ctaCard {
+    padding: 2rem 1.5rem;
+  }
+
+  .ctaFeatures {
+    flex-direction: column;
+    gap: 0.375rem;
+  }
+
+  .modalFooter {
+    flex-direction: column-reverse;
+  }
+}

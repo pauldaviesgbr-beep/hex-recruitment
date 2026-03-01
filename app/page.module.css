@@ -1,0 +1,654 @@
+/* Hero Section */
+.hero {
+  background: linear-gradient(135deg, var(--dark-gray) 0%, #1a202c 100%);
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.hero::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 200px;
+  background: linear-gradient(to bottom, transparent 0%, rgba(255, 255, 255, 0.05) 25%, rgba(255, 255, 255, 0.2) 50%, rgba(255, 255, 255, 0.6) 75%, var(--white) 100%);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.heroInner {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 0 2rem;
+  position: relative;
+  z-index: 1;
+}
+
+/* Scroll Reveal Animations */
+.scrollReveal {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: opacity 0.6s cubic-bezier(0.22, 1, 0.36, 1), transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.scrollRevealVisible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Stagger children: steps and pricing cards */
+.staggerChildren > * {
+  opacity: 0;
+  transform: translateY(25px);
+  transition: opacity 0.5s cubic-bezier(0.22, 1, 0.36, 1), transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.staggerChildren.scrollRevealVisible > *:nth-child(1) { opacity: 1; transform: translateY(0); transition-delay: 0s; }
+.staggerChildren.scrollRevealVisible > *:nth-child(2) { opacity: 1; transform: translateY(0); transition-delay: 0.15s; }
+.staggerChildren.scrollRevealVisible > *:nth-child(3) { opacity: 1; transform: translateY(0); transition-delay: 0.3s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .scrollReveal { opacity: 1; transform: none; transition: none; }
+  .staggerChildren > * { opacity: 1; transform: none; transition: none; }
+}
+
+.heroBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(255, 229, 0, 0.12);
+  border: 1px solid rgba(255, 229, 0, 0.25);
+  padding: 0.4rem 1rem;
+  border-radius: 20px;
+  margin-bottom: 1.5rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--primary-yellow);
+}
+
+.heroTitle {
+  font-size: 3.25rem;
+  font-weight: 900;
+  color: var(--white);
+  margin-bottom: 1.25rem;
+  line-height: 1.15;
+  letter-spacing: -0.5px;
+}
+
+.heroSubtitle {
+  font-size: 1.15rem;
+  color: rgba(255, 255, 255, 0.7);
+  max-width: 600px;
+  margin: 0 auto 2rem;
+  line-height: 1.7;
+}
+
+.heroCtas {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.ctaPrimary {
+  display: inline-block;
+  padding: 0.9rem 2.25rem;
+  background: var(--primary-yellow);
+  color: var(--text-dark);
+  font-size: 1rem;
+  font-weight: 700;
+  border-radius: 10px;
+  text-decoration: none;
+  transition: all 0.2s;
+  box-shadow: 0 2px 12px rgba(255, 229, 0, 0.3);
+}
+
+.ctaPrimary:hover {
+  background: var(--hover-yellow);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(255, 229, 0, 0.4);
+}
+
+.ctaSecondary {
+  display: inline-block;
+  padding: 0.9rem 2.25rem;
+  background: transparent;
+  color: var(--white);
+  font-size: 1rem;
+  font-weight: 700;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 10px;
+  text-decoration: none;
+  transition: all 0.2s;
+}
+
+.ctaSecondary:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.5);
+  transform: translateY(-2px);
+}
+
+/* Stats Bar */
+.statsBar {
+  background: var(--white);
+  padding: 1.5rem 0;
+  border-bottom: 1px solid var(--border-gray);
+}
+
+.statsInner {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 0 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.statNumber {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--text-dark);
+}
+
+.statLabel {
+  font-size: 0.8rem;
+  color: var(--text-gray);
+  font-weight: 500;
+}
+
+.statDivider {
+  width: 1px;
+  height: 36px;
+  background: var(--border-gray);
+}
+
+/* Section Shared Styles */
+.sectionInner {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 2rem;
+}
+
+.sectionTitle {
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--text-dark);
+  text-align: center;
+  margin-bottom: 0.5rem;
+}
+
+.sectionSubtitle {
+  font-size: 1.05rem;
+  color: var(--text-gray);
+  text-align: center;
+  margin-bottom: 2.5rem;
+}
+
+/* How It Works */
+.howItWorks {
+  padding: 4rem 0;
+  background: var(--light-gray);
+}
+
+.stepsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2rem;
+}
+
+.step {
+  text-align: center;
+  padding: 2rem 1.5rem;
+  background: var(--white);
+  border-radius: 12px;
+  border: 1px solid var(--border-gray);
+  border-top: 3px solid transparent;
+  box-shadow: 0 1px 4px rgba(45, 55, 72, 0.06);
+  transition: all 0.3s ease;
+}
+
+.step:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(45, 55, 72, 0.12);
+  border-top-color: var(--primary-yellow);
+}
+
+.stepNumber {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--primary-yellow);
+  color: var(--text-dark);
+  font-size: 1.25rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1rem;
+}
+
+.stepTitle {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-dark);
+  margin-bottom: 0.5rem;
+}
+
+.stepText {
+  font-size: 0.9rem;
+  color: var(--text-gray);
+  line-height: 1.6;
+}
+
+/* Benefits Section */
+.benefits {
+  padding: 4rem 0;
+  background: var(--white);
+}
+
+.benefitsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.benefitCard {
+  position: relative;
+  background: var(--light-gray);
+  border-radius: 16px;
+  padding: 2.5rem 2rem;
+  border: 1px solid var(--border-gray);
+  text-align: center;
+}
+
+.benefitCardHighlight {
+  background: var(--dark-gray);
+  border-color: var(--dark-gray);
+}
+
+.benefitCardHighlight .benefitTitle {
+  color: var(--white);
+}
+
+.benefitCardHighlight .benefitList li span:last-child {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.benefitCardHighlight .checkIcon {
+  color: var(--primary-yellow);
+}
+
+.benefitCardPro {
+  background: var(--dark-gray);
+  border-color: var(--primary-yellow);
+  box-shadow: 0 0 20px rgba(255, 229, 0, 0.15);
+}
+
+.benefitCardPro .benefitTitle {
+  color: var(--white);
+}
+
+.benefitCardPro .benefitList li span:last-child {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.benefitCardPro .checkIcon {
+  color: var(--primary-yellow);
+}
+
+.benefitCardPro .priceAmount {
+  color: var(--primary-yellow);
+}
+
+.benefitCardPro .pricePeriod {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.benefitSubhead {
+  font-size: 0.9rem;
+  color: var(--text-gray);
+  font-weight: 500;
+  margin-bottom: 1rem;
+}
+
+.benefitCardHighlight .benefitSubhead,
+.benefitCardPro .benefitSubhead {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.benefitBadge {
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--primary-yellow);
+  color: var(--text-dark);
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.3rem 1rem;
+  border-radius: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.benefitIcon {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  background: rgba(255, 229, 0, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.25rem;
+  color: var(--primary-yellow);
+}
+
+.benefitCardHighlight .benefitIcon {
+  background: rgba(255, 229, 0, 0.15);
+}
+
+.benefitTitle {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--text-dark);
+  margin-bottom: 1rem;
+}
+
+.priceTag {
+  margin-bottom: 1.25rem;
+}
+
+.priceAmount {
+  font-size: 2.25rem;
+  font-weight: 900;
+  color: var(--text-dark);
+}
+
+.pricePeriod {
+  font-size: 1rem;
+  color: var(--text-gray);
+  font-weight: 500;
+}
+
+.benefitCardHighlight .priceAmount,
+.benefitCardPro .priceAmount {
+  color: var(--primary-yellow);
+}
+
+.benefitCardHighlight .pricePeriod,
+.benefitCardPro .pricePeriod {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.benefitList {
+  list-style: none;
+  text-align: left;
+  margin-bottom: 1.5rem;
+}
+
+.benefitList li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.4rem 0;
+  font-size: 0.9rem;
+}
+
+.benefitList li span:last-child {
+  color: var(--text-gray);
+}
+
+.checkIcon {
+  color: #38a169;
+  font-weight: 700;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.benefitBtn {
+  display: inline-block;
+  padding: 0.8rem 2rem;
+  background: var(--primary-yellow);
+  color: var(--text-dark);
+  font-size: 0.95rem;
+  font-weight: 700;
+  border-radius: 10px;
+  text-decoration: none;
+  transition: all 0.2s;
+  box-shadow: 0 2px 8px rgba(255, 229, 0, 0.25);
+}
+
+.benefitBtn:hover {
+  background: var(--hover-yellow);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 229, 0, 0.35);
+}
+
+.benefitBtnHighlight {
+  display: inline-block;
+  padding: 0.8rem 2rem;
+  background: var(--primary-yellow);
+  color: var(--text-dark);
+  font-size: 0.95rem;
+  font-weight: 700;
+  border-radius: 10px;
+  text-decoration: none;
+  transition: all 0.2s;
+  box-shadow: 0 2px 12px rgba(255, 229, 0, 0.3);
+}
+
+.benefitBtnHighlight:hover {
+  background: var(--hover-yellow);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(255, 229, 0, 0.4);
+}
+
+/* Sectors Section */
+.sectors {
+  padding: 4rem 0;
+  background: var(--light-gray);
+}
+
+.sectorPills {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.6rem;
+}
+
+.sectorPill {
+  display: inline-block;
+  padding: 0.5rem 1.1rem;
+  background: var(--white);
+  border: 1.5px solid var(--border-gray);
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-dark);
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.sectorPill:hover {
+  border-color: var(--primary-yellow);
+  background: rgba(255, 229, 0, 0.1);
+  color: var(--text-dark);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(255, 229, 0, 0.15);
+}
+
+/* Final CTA Section */
+.finalCta {
+  padding: 4rem 0;
+  background: var(--dark-gray);
+  text-align: center;
+}
+
+.finalCtaTitle {
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--white);
+  margin-bottom: 0.75rem;
+}
+
+.finalCtaText {
+  font-size: 1.05rem;
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 2rem;
+  max-width: 500px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Footer */
+.footer {
+  background: #1a202c;
+  padding: 2.5rem 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.footerInner {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.footerBrand {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.footerBrandText {
+  display: flex;
+  flex-direction: column;
+}
+
+.footerLogo {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--white);
+  line-height: 1.2;
+}
+
+.footerTagline {
+  font-size: 0.65rem;
+  font-weight: 300;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.5);
+  line-height: 1;
+}
+
+.footerLinks {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.footerLink {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.6);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.footerLink:hover {
+  color: var(--primary-yellow);
+}
+
+.footerCopy {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .hero {
+    padding: 1.5rem 0 2.5rem;
+  }
+
+  .heroTitle {
+    font-size: 2.25rem;
+  }
+
+  .heroSubtitle {
+    font-size: 1rem;
+  }
+
+  .statsInner {
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  .statDivider {
+    display: none;
+  }
+
+  .stat {
+    min-width: 120px;
+  }
+
+  .stepsGrid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .benefitsGrid {
+    grid-template-columns: 1fr;
+    max-width: 400px;
+  }
+
+  .sectionTitle {
+    font-size: 1.6rem;
+  }
+
+  .finalCtaTitle {
+    font-size: 1.6rem;
+  }
+
+  .footerLinks {
+    gap: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .heroTitle {
+    font-size: 1.85rem;
+  }
+
+  .heroCtas {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .ctaPrimary,
+  .ctaSecondary {
+    width: 100%;
+    max-width: 280px;
+    text-align: center;
+  }
+}

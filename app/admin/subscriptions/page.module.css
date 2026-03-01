@@ -1,0 +1,82 @@
+.pageTitle {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #1e293b;
+  margin-bottom: 1.5rem;
+}
+
+.revenueGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.filters {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.select {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  background: white;
+  color: #334155;
+  cursor: pointer;
+}
+
+.select:focus {
+  outline: none;
+  border-color: #FFE500;
+}
+
+/* Badges */
+.badge {
+  display: inline-block;
+  padding: 0.2rem 0.6rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.badgePro { background: #FFE500; color: #1e293b; }
+.badgeStandard { background: #e2e8f0; color: #475569; }
+.badgeNone { background: #f1f5f9; color: #94a3b8; }
+
+/* Status badges */
+.status_active { background: #dcfce7; color: #16a34a; }
+.status_trialing { background: #dbeafe; color: #1d4ed8; }
+.status_past_due { background: #fef3c7; color: #92400e; }
+.status_canceled { background: #fef2f2; color: #dc2626; }
+.status_inactive { background: #f1f5f9; color: #64748b; }
+
+/* Action buttons */
+.actionBtn {
+  padding: 0.25rem 0.6rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  background: white;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.actionBtn:hover { background: #f8fafc; border-color: #cbd5e1; }
+.actionBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.dangerBtn { color: #dc2626; border-color: #fecaca; }
+.dangerBtn:hover { background: #fef2f2; border-color: #fca5a5; }
+
+@media (max-width: 1024px) {
+  .revenueGrid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 640px) {
+  .revenueGrid { grid-template-columns: 1fr; }
+}

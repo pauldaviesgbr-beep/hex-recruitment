@@ -1,0 +1,75 @@
+.pageTitle {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #1e293b;
+  margin-bottom: 1.5rem;
+}
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  max-width: 500px;
+}
+
+.participantName {
+  font-weight: 500;
+  color: #1e293b;
+}
+
+.participantSep {
+  color: #94a3b8;
+  font-size: 0.8rem;
+}
+
+.messagePreview {
+  color: #64748b;
+  font-size: 0.85rem;
+}
+
+/* Detail panel */
+.detailLoading {
+  text-align: center;
+  color: #94a3b8;
+  padding: 3rem 1rem;
+}
+
+.messageList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.messageItem {
+  padding: 0.75rem;
+  background: #f8fafc;
+  border-radius: 8px;
+  border-left: 3px solid #e2e8f0;
+}
+
+.messageHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.35rem;
+}
+
+.messageSender {
+  font-weight: 600;
+  font-size: 0.8rem;
+  color: #1e293b;
+}
+
+.messageTime {
+  font-size: 0.7rem;
+  color: #94a3b8;
+}
+
+.messageContent {
+  font-size: 0.85rem;
+  color: #334155;
+  line-height: 1.5;
+  margin: 0;
+  white-space: pre-wrap;
+}

@@ -1,0 +1,993 @@
+/* ============================================================
+   Page Header
+   ============================================================ */
+.pageHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.25rem;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.pageTitle {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #1e293b;
+}
+
+/* ============================================================
+   Tab Navigation
+   ============================================================ */
+.tabBar {
+  display: flex;
+  gap: 0;
+  border-bottom: 2px solid #e2e8f0;
+  margin-bottom: 1.25rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.tabBar::-webkit-scrollbar {
+  display: none;
+}
+
+.tab {
+  padding: 0.7rem 1.1rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  transition: all 0.2s;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  background: none;
+}
+
+.tab:hover {
+  color: #1e293b;
+}
+
+.tabActive {
+  color: #1e293b;
+  border-bottom-color: #FFE500;
+}
+
+.tabIcon {
+  display: flex;
+  align-items: center;
+}
+
+/* ============================================================
+   Date Range Picker
+   ============================================================ */
+.controlsRow {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.dateRangeBar {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.rangeBtn {
+  padding: 0.35rem 0.8rem;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  border: 1px solid #e2e8f0;
+  background: white;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.rangeBtn:hover {
+  border-color: #FFE500;
+  color: #1e293b;
+}
+
+.rangeBtnActive {
+  background: #FFE500;
+  color: #1e293b;
+  border-color: #FFE500;
+}
+
+/* Granularity toggle */
+.granularityToggle {
+  display: flex;
+  gap: 0;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  overflow: hidden;
+  margin-left: 0.5rem;
+}
+
+.granBtn {
+  padding: 0.35rem 0.7rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border: none;
+  background: white;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.granBtn:hover {
+  background: #f8fafc;
+}
+
+.granBtnActive {
+  background: #1e293b;
+  color: white;
+}
+
+/* ============================================================
+   KPI Cards Grid
+   ============================================================ */
+.kpiGrid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.kpiCard {
+  background: white;
+  border-radius: 12px;
+  padding: 1rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+}
+
+.kpiHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.4rem;
+}
+
+.kpiIconWrapper {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.kpiLabel {
+  font-size: 0.68rem;
+  color: #64748b;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.15rem;
+}
+
+.kpiValue {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #1e293b;
+  line-height: 1.2;
+}
+
+.kpiChange {
+  font-size: 0.72rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  margin-top: 0.2rem;
+}
+
+.kpiChangePositive {
+  color: #16a34a;
+}
+
+.kpiChangeNegative {
+  color: #dc2626;
+}
+
+.kpiChangeNeutral {
+  color: #64748b;
+}
+
+.kpiSparkline {
+  margin-top: auto;
+  padding-top: 0.4rem;
+}
+
+/* ============================================================
+   Charts Grid
+   ============================================================ */
+.chartsGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+.fullWidth {
+  grid-column: 1 / -1;
+}
+
+/* ============================================================
+   Chart Card
+   ============================================================ */
+.chartCard {
+  background: white;
+  border-radius: 12px;
+  padding: 1.25rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.chartHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 0.75rem;
+}
+
+.chartTitleGroup {
+  flex: 1;
+}
+
+.chartTitle {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.chartSubtitle {
+  font-size: 0.73rem;
+  color: #94a3b8;
+  margin-top: 0.15rem;
+}
+
+.chartActions {
+  display: flex;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+
+.exportBtn {
+  padding: 0.25rem 0.5rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  background: white;
+  cursor: pointer;
+  font-size: 0.68rem;
+  font-weight: 500;
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+  transition: all 0.15s;
+}
+
+.exportBtn:hover {
+  border-color: #FFE500;
+  color: #1e293b;
+}
+
+/* ============================================================
+   No Data Placeholder
+   ============================================================ */
+.noData {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 250px;
+  color: #94a3b8;
+  gap: 0.5rem;
+}
+
+.noDataIcon {
+  opacity: 0.35;
+}
+
+.noDataText {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #94a3b8;
+}
+
+.noDataHint {
+  font-size: 0.73rem;
+  color: #cbd5e1;
+  text-align: center;
+  max-width: 280px;
+  line-height: 1.4;
+}
+
+/* ============================================================
+   Loading / Skeleton
+   ============================================================ */
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  color: #64748b;
+  font-size: 0.9rem;
+}
+
+.skeleton {
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 6px;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.skeletonKpi {
+  height: 130px;
+  border-radius: 12px;
+}
+
+.skeletonChart {
+  height: 300px;
+  border-radius: 12px;
+}
+
+/* ============================================================
+   Stat Cards (DAU/WAU/MAU, single-metric)
+   ============================================================ */
+.statCardsRow {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+
+.statCard {
+  background: #f8fafc;
+  border-radius: 10px;
+  padding: 1.25rem;
+  text-align: center;
+}
+
+.statCardLabel {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.35rem;
+}
+
+.statCardValue {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: #1e293b;
+}
+
+.statCardSub {
+  font-size: 0.72rem;
+  color: #94a3b8;
+  margin-top: 0.25rem;
+}
+
+/* ============================================================
+   Heatmap
+   ============================================================ */
+.heatmapContainer {
+  overflow-x: auto;
+}
+
+.heatmapGrid {
+  display: grid;
+  grid-template-columns: 40px repeat(24, 1fr);
+  gap: 2px;
+  min-width: 600px;
+}
+
+.heatmapHeaderCell {
+  font-size: 0.6rem;
+  color: #94a3b8;
+  text-align: center;
+  padding: 0.15rem 0;
+  font-weight: 600;
+}
+
+.heatmapRowLabel {
+  font-size: 0.65rem;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  font-weight: 600;
+  padding-right: 0.25rem;
+}
+
+.heatmapCell {
+  aspect-ratio: 1.2;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: transform 0.1s;
+  position: relative;
+  min-height: 16px;
+}
+
+.heatmapCell:hover {
+  transform: scale(1.3);
+  z-index: 2;
+}
+
+.heatmapTooltip {
+  position: fixed;
+  background: #1e293b;
+  color: white;
+  font-size: 0.7rem;
+  padding: 0.3rem 0.5rem;
+  border-radius: 4px;
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 100;
+}
+
+.heatmapLegend {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  font-size: 0.7rem;
+  color: #94a3b8;
+  justify-content: flex-end;
+}
+
+.heatmapLegendBar {
+  display: flex;
+  gap: 1px;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.heatmapLegendCell {
+  width: 12px;
+  height: 12px;
+}
+
+/* ============================================================
+   Cohort Table
+   ============================================================ */
+.cohortTableWrapper {
+  overflow-x: auto;
+}
+
+.cohortTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.75rem;
+}
+
+.cohortTable th {
+  padding: 0.5rem 0.4rem;
+  text-align: center;
+  color: #64748b;
+  font-weight: 700;
+  border-bottom: 2px solid #e2e8f0;
+  font-size: 0.72rem;
+  white-space: nowrap;
+}
+
+.cohortTable td {
+  padding: 0.4rem;
+  text-align: center;
+  font-weight: 600;
+}
+
+.cohortCell {
+  border-radius: 4px;
+  padding: 0.35rem 0.5rem;
+  display: inline-block;
+  min-width: 40px;
+  font-size: 0.72rem;
+}
+
+.cohortLabel {
+  text-align: left;
+  font-weight: 700;
+  color: #1e293b;
+  white-space: nowrap;
+}
+
+.cohortSize {
+  color: #64748b;
+  font-weight: 500;
+}
+
+/* ============================================================
+   Benchmark Cards
+   ============================================================ */
+.benchmarkGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+}
+
+.benchmarkCard {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.benchmarkTitle {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 1.25rem;
+}
+
+.benchmarkRow {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.benchmarkLabel {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #64748b;
+  width: 70px;
+  flex-shrink: 0;
+}
+
+.benchmarkBarTrack {
+  flex: 1;
+  height: 10px;
+  background: #f1f5f9;
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.benchmarkBarFill {
+  height: 100%;
+  border-radius: 5px;
+  transition: width 0.5s ease;
+}
+
+.benchmarkValue {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #1e293b;
+  width: 50px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.benchmarkVerdict {
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-top: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.verdictGood {
+  color: #16a34a;
+}
+
+.verdictBad {
+  color: #f59e0b;
+}
+
+/* ============================================================
+   Revenue Stat Cards
+   ============================================================ */
+.revenueStatsRow {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.revenueStat {
+  background: white;
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.revenueStatLabel {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.3rem;
+}
+
+.revenueStatValue {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #1e293b;
+}
+
+.revenueStatSub {
+  font-size: 0.72rem;
+  color: #94a3b8;
+  margin-top: 0.2rem;
+}
+
+/* ============================================================
+   Funnel visualization
+   ============================================================ */
+.funnelContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.funnelRow {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.funnelLabel {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #1e293b;
+  width: 90px;
+  flex-shrink: 0;
+  text-align: right;
+}
+
+.funnelBarTrack {
+  flex: 1;
+  height: 28px;
+  background: #f1f5f9;
+  border-radius: 6px;
+  overflow: hidden;
+  position: relative;
+}
+
+.funnelBarFill {
+  height: 100%;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  padding-left: 0.5rem;
+  transition: width 0.5s ease;
+  min-width: 1px;
+}
+
+.funnelBarText {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: white;
+  white-space: nowrap;
+}
+
+.funnelCount {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #1e293b;
+  width: 55px;
+  flex-shrink: 0;
+}
+
+.funnelDropoff {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: #dc2626;
+  width: 50px;
+  flex-shrink: 0;
+}
+
+/* ============================================================
+   Responsive
+   ============================================================ */
+@media (max-width: 1400px) {
+  .kpiGrid {
+    grid-template-columns: repeat(5, 1fr);
+  }
+}
+
+@media (max-width: 1200px) {
+  .kpiGrid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .chartsGrid {
+    grid-template-columns: 1fr;
+  }
+  .benchmarkGrid {
+    grid-template-columns: 1fr;
+  }
+  .revenueStatsRow {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .kpiGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .tabBar {
+    gap: 0;
+  }
+  .tab {
+    padding: 0.55rem 0.7rem;
+    font-size: 0.78rem;
+  }
+  .controlsRow {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .dateRangeBar {
+    flex-wrap: wrap;
+  }
+  .statCardsRow {
+    grid-template-columns: 1fr;
+  }
+  .revenueStatsRow {
+    grid-template-columns: 1fr;
+  }
+  .pageTitle {
+    font-size: 1.25rem;
+  }
+}
+
+/* ============================================================
+   Expandable Card Styles
+   ============================================================ */
+.kpiCardClickable {
+  cursor: pointer;
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+
+.kpiCardClickable:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  transform: translateY(-2px);
+}
+
+.kpiCardExpanded {
+  grid-column: 1 / -1;
+  border: 2px solid #FFE500;
+  cursor: default;
+}
+
+.chartCardExpanded {
+  border: 2px solid #FFE500;
+}
+
+.expandHint {
+  color: #94a3b8;
+  font-size: 0.75rem;
+  font-weight: 400;
+}
+
+.closeExpandBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid #e2e8f0;
+  background: white;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+
+.closeExpandBtn:hover {
+  background: #fee2e2;
+  color: #dc2626;
+  border-color: #fca5a5;
+}
+
+.expandedContent {
+  border-top: 1px solid #e2e8f0;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  animation: expandIn 0.3s ease;
+}
+
+@keyframes expandIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.expandedChartArea {
+  margin-bottom: 1rem;
+}
+
+/* Insights Panel */
+.insightsPanel {
+  background: #f8fafc;
+  border-radius: 10px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.insightsTitle {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.insightsGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+}
+
+.insightItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.insightLabel {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-bottom: 0.1rem;
+}
+
+.insightValue {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #1e293b;
+  line-height: 1.2;
+}
+
+.insightSub {
+  font-size: 0.68rem;
+  color: #94a3b8;
+  margin-top: 0.1rem;
+}
+
+.insightIconGreen {
+  color: #16a34a;
+  margin-top: 0.2rem;
+  flex-shrink: 0;
+}
+
+.insightIconRed {
+  color: #dc2626;
+  margin-top: 0.2rem;
+  flex-shrink: 0;
+}
+
+.insightIconBlue {
+  color: #3b82f6;
+  margin-top: 0.2rem;
+  flex-shrink: 0;
+}
+
+.insightIconSlate {
+  color: #64748b;
+  margin-top: 0.2rem;
+  flex-shrink: 0;
+}
+
+/* Data Table */
+.dataTableWrapper {
+  margin-top: 0.5rem;
+}
+
+.dataTableHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.dataTableTitle {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #1e293b;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.dataTableScroll {
+  max-height: 300px;
+  overflow-y: auto;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+}
+
+.dataTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.75rem;
+}
+
+.dataTable th {
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  background: #f8fafc;
+  color: #64748b;
+  font-weight: 700;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  border-bottom: 1px solid #e2e8f0;
+  position: sticky;
+  top: 0;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.dataTable th:hover {
+  background: #f1f5f9;
+  color: #1e293b;
+}
+
+.dataTable td {
+  padding: 0.4rem 0.75rem;
+  border-bottom: 1px solid #f1f5f9;
+  color: #1e293b;
+  font-weight: 500;
+}
+
+.dataTable tbody tr:hover {
+  background: #fefce8;
+}
+
+.dataTable tbody tr:nth-child(even) {
+  background: #fafafa;
+}
+
+.dataTable tbody tr:nth-child(even):hover {
+  background: #fefce8;
+}
+
+.dataTableFooter {
+  font-size: 0.72rem;
+  color: #94a3b8;
+  text-align: center;
+  padding: 0.5rem 0;
+}
+
+/* Expandable responsive */
+@media (max-width: 1200px) {
+  .insightsGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .insightsGrid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+  .insightValue {
+    font-size: 0.9rem;
+  }
+}

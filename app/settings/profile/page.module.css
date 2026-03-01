@@ -1,0 +1,377 @@
+.container {
+  max-width: 700px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+}
+
+.loading {
+  text-align: center;
+  padding: 3rem;
+  color: #666;
+}
+
+/* Back Link */
+.backLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #666;
+  text-decoration: none;
+  font-size: 0.9rem;
+  margin-bottom: 1.5rem;
+  transition: color 0.2s;
+}
+
+.backLink:hover {
+  color: #333;
+}
+
+.backArrow {
+  font-size: 1.2rem;
+}
+
+/* Header */
+.header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.headerIcon {
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fef3c7;
+  border-radius: 12px;
+  font-size: 1.75rem;
+}
+
+.title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0 0 0.25rem 0;
+}
+
+.subtitle {
+  color: #666;
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+/* Info Box */
+.infoBox {
+  display: flex;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  background: #eff6ff;
+  border-radius: 10px;
+  margin-bottom: 1rem;
+  align-items: flex-start;
+}
+
+.infoBoxIcon {
+  font-size: 1.25rem;
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+}
+
+.infoBox strong {
+  font-size: 0.9rem;
+  color: #1e40af;
+}
+
+.infoBoxText {
+  font-size: 0.85rem;
+  color: #3b5998;
+  margin: 0.25rem 0 0 0;
+  line-height: 1.5;
+}
+
+.infoLink {
+  color: #1e40af;
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+/* Bank Note */
+.bankNote {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: #fef3c7;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  color: #92400e;
+  margin-bottom: 1.5rem;
+}
+
+/* Toggle Section */
+.toggleSection {
+  margin-bottom: 1.5rem;
+}
+
+.sectionTitle {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin: 0 0 1rem 0;
+}
+
+.toggleList {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.toggleCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  background: white;
+  border: 1px solid #e5e7eb;
+  transition: background 0.15s;
+}
+
+.toggleCard:first-child {
+  border-radius: 12px 12px 0 0;
+}
+
+.toggleCard:last-child {
+  border-radius: 0 0 12px 12px;
+}
+
+.toggleCard:only-child {
+  border-radius: 12px;
+}
+
+.toggleCard + .toggleCard {
+  border-top: none;
+}
+
+.toggleCard:hover {
+  background: #f9fafb;
+}
+
+.toggleInfo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1;
+}
+
+.toggleIcon {
+  font-size: 1.25rem;
+  width: 32px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.toggleInfo > div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.toggleLabel {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.toggleDesc {
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+
+/* Toggle Switch */
+.toggle {
+  position: relative;
+  width: 36px;
+  height: 20px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  flex-shrink: 0;
+  padding: 0;
+  margin-left: 1rem;
+}
+
+.toggleOn {
+  background: #22c55e;
+}
+
+.toggleOff {
+  background: #d1d5db;
+}
+
+.toggleThumb {
+  position: absolute;
+  top: 2px;
+  left: 0;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: white;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s ease;
+}
+
+.toggleOn .toggleThumb {
+  transform: translateX(18px);
+}
+
+.toggleOff .toggleThumb {
+  transform: translateX(2px);
+}
+
+/* Actions */
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  padding-top: 0.5rem;
+}
+
+.resetBtn {
+  padding: 0.75rem 1.5rem;
+  background: white;
+  color: #6b7280;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.resetBtn:hover {
+  background: #f9fafb;
+  color: #374151;
+  border-color: #9ca3af;
+}
+
+.saveBtn {
+  padding: 0.75rem 1.5rem;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.saveBtn:hover:not(:disabled) {
+  background: #2563eb;
+}
+
+.saveBtn:disabled {
+  background: #93c5fd;
+  cursor: not-allowed;
+}
+
+/* Toast notification */
+.toast {
+  position: fixed;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0.75rem 1.25rem;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  z-index: 9999;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+  animation: toastSlideUp 0.3s ease-out;
+  max-width: 90vw;
+}
+
+.toastSuccess {
+  background: #065f46;
+  color: #ffffff;
+}
+
+.toastError {
+  background: #991b1b;
+  color: #ffffff;
+}
+
+.toastClose {
+  background: none;
+  border: none;
+  color: inherit;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 0 0 0 0.5rem;
+  opacity: 0.7;
+  line-height: 1;
+}
+
+.toastClose:hover {
+  opacity: 1;
+}
+
+@keyframes toastSlideUp {
+  from { opacity: 0; transform: translateX(-50%) translateY(1rem); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .container {
+    padding: 1rem;
+  }
+
+  .header {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .title {
+    font-size: 1.35rem;
+  }
+
+  .toggleCard {
+    padding: 0.875rem 1rem;
+  }
+
+  .toggleInfo {
+    gap: 0.5rem;
+  }
+
+  .toggleIcon {
+    font-size: 1.1rem;
+    width: 28px;
+  }
+
+  .toggleLabel {
+    font-size: 0.9rem;
+  }
+
+  .toggleDesc {
+    font-size: 0.75rem;
+  }
+
+  .actions {
+    flex-direction: column-reverse;
+  }
+
+  .resetBtn,
+  .saveBtn {
+    width: 100%;
+    text-align: center;
+  }
+}

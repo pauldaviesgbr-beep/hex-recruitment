@@ -1,0 +1,143 @@
+.pageTitle {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #1e293b;
+  margin-bottom: 1.5rem;
+}
+
+.filters {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.select {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  background: white;
+  color: #334155;
+  cursor: pointer;
+}
+
+.select:focus {
+  outline: none;
+  border-color: #FFE500;
+}
+
+.userName {
+  font-weight: 600;
+  color: #1e293b;
+  display: block;
+}
+
+.userSub {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  display: block;
+}
+
+/* Badges */
+.badge {
+  display: inline-block;
+  padding: 0.2rem 0.6rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.badgeEmployer {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.badgeCandidate {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.badgePro {
+  background: #FFE500;
+  color: #1e293b;
+}
+
+.badgeStandard {
+  background: #e2e8f0;
+  color: #475569;
+}
+
+.badgeNone {
+  background: #f1f5f9;
+  color: #94a3b8;
+}
+
+/* Action buttons */
+.actionBtn {
+  padding: 0.25rem 0.6rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  background: white;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.actionBtn:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.actionBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.dangerBtn {
+  color: #dc2626;
+  border-color: #fecaca;
+}
+
+.dangerBtn:hover {
+  background: #fef2f2;
+  border-color: #fca5a5;
+}
+
+.bulkBtn {
+  padding: 0.25rem 0.5rem;
+  border: 1px solid #bfdbfe;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  background: white;
+  color: #2563eb;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.bulkBtn:hover {
+  background: #eff6ff;
+}
+
+.bulkBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Detail panel extras */
+.detailLoading {
+  text-align: center;
+  color: #94a3b8;
+  padding: 3rem 1rem;
+}
+
+.detailActions {
+  display: flex;
+  gap: 0.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e2e8f0;
+  margin-top: 1rem;
+}

@@ -1,0 +1,638 @@
+.header {
+  background: var(--dark-gray);
+  border-bottom: 2px solid var(--primary-yellow);
+  padding: 1rem 0;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  box-shadow: 0 4px 12px rgba(45, 55, 72, 0.15);
+}
+
+.headerContent {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 1.5rem;
+  font-weight: 900;
+  color: var(--white);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.logo:hover {
+  color: var(--primary-yellow);
+}
+
+.logoIcon {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.logoBrand {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.logoText {
+  display: inline;
+}
+
+.logoTagline {
+  font-size: 9px;
+  font-weight: 300;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.6);
+  line-height: 1;
+}
+
+.nav {
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
+}
+
+.navLink {
+  color: var(--white);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.95rem;
+  transition: color 0.2s;
+}
+
+.navLink:hover {
+  color: var(--primary-yellow);
+}
+
+/* Icon-only nav buttons (employer) */
+.navIconLink {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  color: var(--white);
+  text-decoration: none;
+  transition: all 0.2s;
+}
+
+.navIconLink:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--primary-yellow);
+}
+
+.navIcon {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+}
+
+/* Tooltip below icon */
+.navTooltip {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0.375rem 0.625rem;
+  background: var(--dark-gray);
+  color: var(--white);
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+  border-radius: 6px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  z-index: 1002;
+}
+
+.navTooltip::before {
+  content: '';
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-bottom-color: var(--dark-gray);
+}
+
+.navIconLink:hover .navTooltip {
+  opacity: 1;
+}
+
+/* Badge on icon (Messages) */
+.iconBadge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  background: var(--primary-yellow);
+  color: var(--text-dark);
+  font-size: 0.65rem;
+  font-weight: 700;
+  border-radius: 9px;
+  box-shadow: 0 2px 4px rgba(255, 229, 0, 0.3);
+  animation: badgePulse 2s infinite;
+}
+
+.navLinkWithBadge {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--white);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.95rem;
+  transition: color 0.2s;
+}
+
+.navLinkWithBadge:hover {
+  color: var(--primary-yellow);
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  background: var(--primary-yellow);
+  color: var(--text-dark);
+  font-size: 0.75rem;
+  font-weight: 700;
+  border-radius: 10px;
+  box-shadow: 0 2px 4px rgba(255, 229, 0, 0.3);
+  animation: badgePulse 2s infinite;
+}
+
+@keyframes badgePulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+/* Login buttons container */
+.loginButtons {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.loginIcon {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  margin-right: 8px;
+}
+
+/* Employer Login Button - Outlined style */
+.employerLoginBtn {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.6rem 1rem;
+  border: 2px solid var(--white);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--white);
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-decoration: none;
+  transition: all 0.2s;
+}
+
+.employerLoginBtn:hover {
+  background: var(--white);
+  color: var(--black);
+}
+
+/* Employee Login Button - Primary yellow style */
+.employeeLoginBtn {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.6rem 1rem;
+  border: 2px solid var(--primary-yellow);
+  border-radius: 8px;
+  background: var(--primary-yellow);
+  color: var(--text-dark);
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-decoration: none;
+  transition: all 0.2s;
+  box-shadow: 0 2px 4px rgba(255, 229, 0, 0.2);
+}
+
+.employeeLoginBtn:hover {
+  background: var(--hover-yellow);
+  border-color: var(--hover-yellow);
+  box-shadow: 0 4px 8px rgba(255, 229, 0, 0.3);
+}
+
+/* Profile Avatar Container */
+.profileContainer {
+  position: relative;
+}
+
+.avatarButton {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  border-radius: 50px;
+  transition: all 0.2s;
+}
+
+.avatarButton:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.avatarImage {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  transition: border-color 0.2s;
+}
+
+.avatarButton:hover .avatarImage {
+  border-color: var(--primary-yellow);
+}
+
+.avatarFallback {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--white);
+  color: #FFE500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  font-weight: 700;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  transition: all 0.2s;
+}
+
+.avatarButton:hover .avatarFallback {
+  border-color: var(--primary-yellow);
+  box-shadow: 0 2px 8px rgba(255, 229, 0, 0.3);
+}
+
+/* Square avatar for employer company logos */
+.avatarSquare {
+  border-radius: 8px;
+}
+
+.avatarDropdownIcon {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.7rem;
+  margin-left: -0.125rem;
+  transition: transform 0.2s;
+}
+
+.avatarButton:hover .avatarDropdownIcon {
+  color: var(--primary-yellow);
+}
+
+/* Profile Dropdown Menu */
+.profileDropdown {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  width: 260px;
+  background: var(--white);
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(45, 55, 72, 0.15);
+  border: 1px solid var(--border-gray);
+  z-index: 1001;
+  overflow: hidden;
+  animation: dropdownFadeIn 0.15s ease-out;
+}
+
+@keyframes dropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dropdownHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: var(--light-gray);
+}
+
+.dropdownAvatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: linear-gradient(135deg, var(--primary-yellow) 0%, var(--hover-yellow) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.dropdownAvatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.dropdownAvatar span {
+  color: var(--text-dark);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.dropdownUserInfo {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.dropdownName {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-dark);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dropdownEmail {
+  font-size: 0.8rem;
+  color: var(--text-gray);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dropdownDivider {
+  height: 1px;
+  background: var(--border-gray);
+}
+
+.dropdownItem {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.875rem 1rem;
+  color: var(--text-dark);
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.15s;
+}
+
+.dropdownItem:hover {
+  background: var(--light-gray);
+  color: var(--text-dark);
+}
+
+.dropdownItemLogout {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.875rem 1rem;
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: #e53e3e;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  text-align: left;
+}
+
+.dropdownItemLogout:hover {
+  background: #fff5f5;
+}
+
+.dropdownIcon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+/* Legacy profile link - kept for backwards compatibility */
+.profileLink {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  text-decoration: none;
+  transition: all 0.2s;
+}
+
+.profileLink:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.profileIcon {
+  font-size: 1.25rem;
+}
+
+/* Logout button - kept for backwards compatibility */
+.logoutBtn {
+  padding: 0.5rem 1rem;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--white);
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.logoutBtn:hover {
+  border-color: var(--white);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* ---- Employer header (with sidebar) ---- */
+
+.headerEmployer {
+  /* body padding-left handles the horizontal offset automatically */
+}
+
+.headerFull {
+  padding: 0 2rem;
+}
+
+/* Search bar in employer top nav */
+.searchBar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  padding: 0.4rem 0.875rem;
+  flex: 1;
+  max-width: 420px;
+  transition: all 0.2s;
+}
+
+.searchBar:focus-within {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 229, 0, 0.4);
+}
+
+.searchBarIcon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.searchBarInput {
+  flex: 1;
+  border: none;
+  background: transparent;
+  color: var(--white);
+  font-size: 0.85rem;
+  outline: none;
+}
+
+.searchBarInput::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+/* Divider between search and location */
+.searchBarDivider {
+  width: 1px;
+  height: 20px;
+  background: rgba(255, 255, 255, 0.2);
+  flex-shrink: 0;
+}
+
+/* Location wrapper in search bar */
+.searchBarLocWrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  flex: 0 0 auto;
+  min-width: 100px;
+}
+
+.searchBarLocIcon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.searchBarLocInput {
+  width: 100px;
+}
+
+/* Location suggestions dropdown */
+.searchBarSuggestions {
+  position: absolute;
+  top: calc(100% + 14px);
+  left: -1rem;
+  min-width: 220px;
+  background: var(--white);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  border: 1px solid var(--border-gray);
+  list-style: none;
+  margin: 0;
+  padding: 0.375rem 0;
+  z-index: 1003;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.searchBarSuggestionItem {
+  padding: 0.5rem 0.875rem;
+  font-size: 0.85rem;
+  color: var(--text-dark);
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.searchBarSuggestionItem:hover,
+.searchBarSuggestionHighlighted {
+  background: var(--light-gray);
+}
+
+.searchBarSuggestionItem strong {
+  font-weight: 700;
+  color: var(--text-dark);
+}
+
+@media (max-width: 768px) {
+  .headerContent {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .nav {
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .loginButtons {
+    flex-direction: column;
+    width: 100%;
+    gap: 0.5rem;
+  }
+
+  .employerLoginBtn,
+  .employeeLoginBtn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .logoText {
+    display: none;
+  }
+
+  .logoTagline {
+    display: none;
+  }
+
+  .searchBar {
+    max-width: 100%;
+  }
+}

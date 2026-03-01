@@ -1,0 +1,90 @@
+.pageTitle {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #1e293b;
+  margin-bottom: 1.5rem;
+}
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.filters {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.select {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  background: white;
+  color: #334155;
+  cursor: pointer;
+}
+
+.select:focus { outline: none; border-color: #FFE500; }
+
+.rating {
+  color: #f59e0b;
+  font-size: 0.85rem;
+  letter-spacing: 1px;
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.2rem 0.6rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.badgeFlagged { background: #fef2f2; color: #dc2626; }
+.badgeOk { background: #dcfce7; color: #16a34a; }
+
+.actionBtn {
+  padding: 0.25rem 0.6rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  background: white;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.actionBtn:hover { background: #f8fafc; border-color: #cbd5e1; }
+.actionBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.dangerBtn { color: #dc2626; border-color: #fecaca; }
+.dangerBtn:hover { background: #fef2f2; border-color: #fca5a5; }
+
+.detailActions {
+  display: flex;
+  gap: 0.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e2e8f0;
+  margin-top: 1rem;
+}
+
+.reviewText {
+  font-size: 0.85rem;
+  color: #334155;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  margin: 0;
+}
+
+@media (max-width: 1024px) {
+  .statsGrid { grid-template-columns: repeat(3, 1fr); }
+}
+
+@media (max-width: 640px) {
+  .statsGrid { grid-template-columns: 1fr; }
+}

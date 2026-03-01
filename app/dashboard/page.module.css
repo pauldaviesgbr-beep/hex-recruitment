@@ -1,0 +1,1015 @@
+/* ═══════════════════════════════════════════════════════
+   Candidate Dashboard — Comprehensive Layout
+   ═══════════════════════════════════════════════════════ */
+
+/* ── Page wrapper ────────────────────────────────────── */
+.dashboardWrap {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+/* ── Welcome header ──────────────────────────────────── */
+.welcomeHeader {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 1.5rem 2rem;
+  background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+  border-radius: 14px;
+  margin-bottom: 1.5rem;
+  color: #fff;
+}
+
+.avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid rgba(255, 215, 0, 0.6);
+  flex-shrink: 0;
+}
+
+.avatarPlaceholder {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #FFD700, #FFA500);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1e293b;
+  flex-shrink: 0;
+}
+
+.welcomeText h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0 0 0.2rem;
+}
+
+.welcomeText p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* ── Grid layout ─────────────────────────────────────── */
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.colLeft {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.colRight {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* ── Card base ───────────────────────────────────────── */
+.card {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(45, 55, 72, 0.08);
+  overflow: hidden;
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--border-gray);
+}
+
+.cardTitle {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--black);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.cardLink {
+  font-size: 0.8rem;
+  color: #6366f1;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.cardLink:hover {
+  text-decoration: underline;
+}
+
+.cardBody {
+  padding: 1.25rem;
+}
+
+/* ── Profile completion ──────────────────────────────── */
+.progressRow {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.progressCircle {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  flex-shrink: 0;
+}
+
+.progressCircle svg {
+  transform: rotate(-90deg);
+}
+
+.progressLabel {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--black);
+}
+
+.progressInfo {
+  flex: 1;
+}
+
+.progressInfo h3 {
+  margin: 0 0 0.15rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--black);
+}
+
+.progressInfo p {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--text-gray);
+}
+
+.missingFields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.missingItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0.75rem;
+  background: #fef9e7;
+  border-radius: 6px;
+  font-size: 0.85rem;
+}
+
+.missingItem span {
+  color: var(--text-gray);
+}
+
+.missingItem a {
+  color: #d97706;
+  font-weight: 600;
+  text-decoration: none;
+  font-size: 0.8rem;
+}
+
+.missingItem a:hover {
+  text-decoration: underline;
+}
+
+/* ── Application tracker ─────────────────────────────── */
+.pipeline {
+  display: flex;
+  gap: 0;
+  overflow-x: auto;
+  padding-bottom: 0.25rem;
+}
+
+.pipelineStage {
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+  padding: 0.6rem 0.25rem;
+  position: relative;
+}
+
+.pipelineStage::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 20%;
+  height: 60%;
+  width: 1px;
+  background: var(--border-gray);
+}
+
+.pipelineStage:last-child::after {
+  display: none;
+}
+
+.pipelineCount {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  font-size: 0.85rem;
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+}
+
+.pipelineCountYellow {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.pipelineCountBlue {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.pipelineCountGreen {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.pipelineCountRed {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.pipelineLabel {
+  display: block;
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--text-gray);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.recentApps {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-gray);
+}
+
+.appCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--border-gray);
+  border-radius: 8px;
+  transition: background 0.15s;
+}
+
+.appCard:hover {
+  background: var(--light-gray);
+}
+
+.appCardInfo h4 {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--black);
+}
+
+.appCardInfo p {
+  margin: 0.1rem 0 0;
+  font-size: 0.78rem;
+  color: var(--text-gray);
+}
+
+.statusBadge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.2rem 0.55rem;
+  border-radius: 20px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+.statusApplied {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.statusReviewing,
+.statusShortlisted {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.statusInterview,
+.statusOffered,
+.statusHired {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.statusRejected {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+/* ── Recommended jobs ────────────────────────────────── */
+.recCards {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.recCard {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border: 1px solid var(--border-gray);
+  border-radius: 8px;
+  text-decoration: none;
+  color: inherit;
+  transition: all 0.15s;
+}
+
+.recCard:hover {
+  border-color: #e0c65e;
+  background: rgba(255, 215, 0, 0.03);
+}
+
+.recMatch {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 800;
+  flex-shrink: 0;
+  border: 2.5px solid;
+}
+
+.recMatchHigh {
+  border-color: #22c55e;
+  color: #15803d;
+  background: #f0fdf4;
+}
+
+.recMatchMed {
+  border-color: #f59e0b;
+  color: #b45309;
+  background: #fffbeb;
+}
+
+.recMatchLow {
+  border-color: #94a3b8;
+  color: #64748b;
+  background: #f8fafc;
+}
+
+.recCardInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.recCardInfo h4 {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--black);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.recCardMeta {
+  margin: 0.15rem 0 0;
+  font-size: 0.78rem;
+  color: var(--text-gray);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Stat card (profile views, saved jobs) ───────────── */
+.statRow {
+  display: flex;
+  gap: 1rem;
+}
+
+.stat {
+  flex: 1;
+  text-align: center;
+  padding: 0.75rem 0.5rem;
+  background: var(--light-gray);
+  border-radius: 8px;
+}
+
+.statNumber {
+  display: block;
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--black);
+  line-height: 1.2;
+}
+
+.statLabel {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--text-gray);
+  font-weight: 600;
+  margin-top: 0.15rem;
+}
+
+.trendUp {
+  color: #16a34a;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.trendDown {
+  color: #dc2626;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.trendNeutral {
+  color: var(--text-gray);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+/* ── Messages preview ────────────────────────────────── */
+.msgList {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.msgItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  padding: 0.65rem 0;
+  border-bottom: 1px solid var(--border-gray);
+  text-decoration: none;
+  color: inherit;
+  transition: background 0.15s;
+}
+
+.msgItem:last-child {
+  border-bottom: none;
+}
+
+.msgItem:hover {
+  background: var(--light-gray);
+  margin: 0 -1.25rem;
+  padding-left: 1.25rem;
+  padding-right: 1.25rem;
+}
+
+.msgAvatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #475569;
+  flex-shrink: 0;
+}
+
+.msgContent {
+  flex: 1;
+  min-width: 0;
+}
+
+.msgSender {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--black);
+  margin: 0;
+}
+
+.msgPreview {
+  font-size: 0.78rem;
+  color: var(--text-gray);
+  margin: 0.1rem 0 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.msgTime {
+  font-size: 0.7rem;
+  color: #94a3b8;
+  white-space: nowrap;
+  flex-shrink: 0;
+  margin-top: 0.15rem;
+}
+
+.unreadDot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  background: #6366f1;
+  border-radius: 50%;
+  margin-right: 0.35rem;
+  vertical-align: middle;
+}
+
+/* ── Boost card ──────────────────────────────────────── */
+.boostActive {
+  padding: 0.75rem 1rem;
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.08), rgba(255, 215, 0, 0.18));
+  border: 1px solid rgba(255, 215, 0, 0.3);
+  border-radius: 8px;
+  text-align: center;
+  margin-bottom: 0.75rem;
+}
+
+.boostActiveLabel {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #b8860b;
+}
+
+.boostDays {
+  display: block;
+  font-size: 0.8rem;
+  color: #92400e;
+  margin-top: 0.15rem;
+}
+
+.boostBtn {
+  display: block;
+  width: 100%;
+  padding: 0.7rem;
+  background: linear-gradient(135deg, #FFD700, #FFA500);
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #1e293b;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.boostBtn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(255, 215, 0, 0.35);
+}
+
+/* ── Notifications ───────────────────────────────────── */
+.notifList {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.notifItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid var(--border-gray);
+  text-decoration: none;
+  color: inherit;
+}
+
+.notifItem:last-child {
+  border-bottom: none;
+}
+
+.notifIcon {
+  font-size: 1.1rem;
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+}
+
+.notifContent {
+  flex: 1;
+  min-width: 0;
+}
+
+.notifTitle {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--black);
+  margin: 0;
+}
+
+.notifMsg {
+  font-size: 0.78rem;
+  color: var(--text-gray);
+  margin: 0.1rem 0 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.notifTime {
+  font-size: 0.7rem;
+  color: #94a3b8;
+  white-space: nowrap;
+  flex-shrink: 0;
+  margin-top: 0.15rem;
+}
+
+/* ── Career Insights ──────────────────────────────────── */
+.insightsSectorBadge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.15rem 0.5rem;
+  border-radius: 20px;
+  background: #f0fdf4;
+  color: #15803d;
+  text-transform: capitalize;
+}
+
+.insightBlock {
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--border-gray);
+}
+
+.insightBlock:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.insightBlock:first-child {
+  padding-top: 0;
+}
+
+.insightLabel {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-gray);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.insightMeta {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: #94a3b8;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+/* Salary bar */
+.salaryBar {
+  margin-top: 0.25rem;
+}
+
+.salaryBarTrack {
+  height: 8px;
+  background: linear-gradient(90deg, #dbeafe, #6366f1, #dbeafe);
+  border-radius: 4px;
+  position: relative;
+}
+
+.salaryBarMarker {
+  position: absolute;
+  top: -4px;
+  width: 16px;
+  height: 16px;
+  background: #FFD700;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+  transform: translateX(-50%);
+  cursor: help;
+}
+
+.salaryBarLabels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 0.35rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-gray);
+}
+
+.salaryYouLabel {
+  font-size: 0.72rem;
+  color: #b8860b;
+  margin: 0.35rem 0 0;
+  text-align: center;
+}
+
+/* Demand trend */
+.demandRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.demandCount {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--black);
+  line-height: 1;
+}
+
+.demandText {
+  font-size: 0.8rem;
+  color: var(--text-gray);
+  flex: 1;
+}
+
+/* Skill pills */
+.skillPills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.skillPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.25rem 0.6rem;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
+.skillPillGold {
+  background: rgba(255, 215, 0, 0.15);
+  color: #92400e;
+  border: 1px solid rgba(255, 215, 0, 0.4);
+}
+
+.skillPillGrey {
+  background: #f1f5f9;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+}
+
+.skillPillCount {
+  font-size: 0.65rem;
+  font-weight: 700;
+  opacity: 0.6;
+}
+
+.skillPillAdd {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #6366f1;
+  text-decoration: none;
+  margin-left: 0.15rem;
+}
+
+.skillPillAdd:hover {
+  text-decoration: underline;
+}
+
+/* Competition level */
+.competitionRow {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.competitionBadge {
+  font-size: 0.85rem;
+  font-weight: 800;
+  padding: 0.3rem 0.75rem;
+  border-radius: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.competitionMeta {
+  font-size: 0.78rem;
+  color: var(--text-gray);
+}
+
+/* ── Activity Feed / Timeline ─────────────────────────── */
+.timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.timelineItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.65rem 0;
+  position: relative;
+}
+
+.timelineItem:first-child {
+  padding-top: 0;
+}
+
+.timelineItem:last-child {
+  padding-bottom: 0;
+}
+
+.timelineDot {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 1;
+}
+
+.timelineIcon {
+  font-size: 0.9rem;
+}
+
+.timelineLine {
+  position: absolute;
+  left: 15px;
+  top: 36px;
+  bottom: 0;
+  width: 2px;
+  background: #e2e8f0;
+}
+
+.timelineContent {
+  flex: 1;
+  min-width: 0;
+  padding-top: 0.15rem;
+}
+
+.timelineTitle {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--black);
+  margin: 0;
+}
+
+.timelineSubtitle {
+  font-size: 0.78rem;
+  color: var(--text-gray);
+  margin: 0.1rem 0 0;
+}
+
+.timelineTime {
+  font-size: 0.7rem;
+  color: #94a3b8;
+}
+
+/* ── Empty / placeholder states ──────────────────────── */
+.emptyState {
+  text-align: center;
+  padding: 1.25rem 0.5rem;
+  color: var(--text-gray);
+  font-size: 0.85rem;
+}
+
+.emptyIcon {
+  font-size: 1.5rem;
+  margin-bottom: 0.35rem;
+}
+
+/* ── Skeleton loading ────────────────────────────────── */
+.skeleton {
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite ease-in-out;
+  border-radius: 6px;
+}
+
+.skeletonLine {
+  height: 14px;
+  margin-bottom: 0.5rem;
+}
+
+.skeletonLineShort {
+  height: 14px;
+  width: 60%;
+  margin-bottom: 0.5rem;
+}
+
+.skeletonCircle {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+}
+
+.skeletonCard {
+  height: 120px;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ── Responsive ──────────────────────────────────────── */
+@media (max-width: 960px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .colRight {
+    order: -1;
+  }
+}
+
+@media (max-width: 768px) {
+  .dashboardWrap {
+    padding: 1rem;
+  }
+
+  .welcomeHeader {
+    padding: 1.25rem;
+    gap: 1rem;
+  }
+
+  .welcomeText h1 {
+    font-size: 1.25rem;
+  }
+
+  .avatar,
+  .avatarPlaceholder {
+    width: 52px;
+    height: 52px;
+    font-size: 1.25rem;
+  }
+
+  .pipeline {
+    gap: 0;
+  }
+
+  .pipelineStage {
+    padding: 0.4rem 0.15rem;
+  }
+
+  .pipelineLabel {
+    font-size: 0.55rem;
+  }
+
+  .statRow {
+    gap: 0.5rem;
+  }
+
+  .demandRow {
+    flex-wrap: wrap;
+  }
+
+  .competitionRow {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.35rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .welcomeHeader {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .appCard {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.35rem;
+  }
+
+  .recCard {
+    flex-direction: column;
+    text-align: center;
+  }
+}

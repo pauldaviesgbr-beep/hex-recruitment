@@ -1,0 +1,113 @@
+.banner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1.5rem;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.active {
+  background: linear-gradient(135deg, #FEF3CD 0%, #FFF8E1 100%);
+  border-bottom: 1px solid #F5C518;
+}
+
+.warning {
+  background: linear-gradient(135deg, #FFF3E0 0%, #FFE0B2 100%);
+  border-bottom: 1px solid #FF9800;
+}
+
+.expired {
+  background: linear-gradient(135deg, #FFEBEE 0%, #FFCDD2 100%);
+  border-bottom: 1px solid #EF5350;
+}
+
+.content {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1;
+}
+
+.icon {
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+
+.textContent {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.title {
+  font-weight: 600;
+  color: #1a1a1a;
+  font-size: 0.9375rem;
+}
+
+.message {
+  color: #666;
+  font-size: 0.8125rem;
+}
+
+.ctaButton {
+  background: #1a1a1a;
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  text-decoration: none;
+  font-size: 0.875rem;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: all 0.2s;
+}
+
+.ctaButton:hover {
+  background: #333;
+  transform: translateY(-1px);
+}
+
+.expired .ctaButton {
+  background: #DC2626;
+}
+
+.expired .ctaButton:hover {
+  background: #B91C1C;
+}
+
+.warning .ctaButton {
+  background: #F59E0B;
+  color: #1a1a1a;
+}
+
+.warning .ctaButton:hover {
+  background: #D97706;
+}
+
+@media (max-width: 640px) {
+  .banner {
+    padding: 0.75rem 1rem;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .ctaButton {
+    width: 100%;
+    text-align: center;
+    padding: 0.625rem 1rem;
+  }
+
+  .textContent {
+    gap: 0.25rem;
+  }
+
+  .title {
+    font-size: 0.875rem;
+  }
+
+  .message {
+    font-size: 0.75rem;
+  }
+}

@@ -1,0 +1,594 @@
+/* Hero Section */
+.hero {
+  background: var(--black);
+  padding: 3rem 0;
+}
+
+.heroContent {
+  max-width: 700px;
+  margin: 0 auto;
+  padding: 0 2rem;
+  text-align: center;
+}
+
+.heroTitle {
+  color: var(--primary-yellow);
+  font-size: 2.25rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.heroSubtitle {
+  color: var(--white);
+  font-size: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.benefitsList {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.75rem 1.5rem;
+}
+
+.benefitItem {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.95rem;
+}
+
+/* Form Section */
+.formSection {
+  background: var(--light-gray);
+  padding: 3rem 0 4rem;
+}
+
+.formContainer {
+  max-width: 700px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Form Section Cards */
+.formSectionCard {
+  background: var(--white);
+  border-radius: 16px;
+  padding: 2rem;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.sectionTitle {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--black);
+  margin-bottom: 1.5rem;
+}
+
+.sectionNumber {
+  width: 32px;
+  height: 32px;
+  background: var(--primary-yellow);
+  color: var(--black);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+/* Form Grid */
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.25rem;
+}
+
+@media (max-width: 640px) {
+  .formGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.fullWidth {
+  grid-column: 1 / -1;
+}
+
+/* Form Group */
+.formGroup {
+  display: flex;
+  flex-direction: column;
+}
+
+.formGroup label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--black);
+  margin-bottom: 0.5rem;
+}
+
+.formGroup input[type="text"],
+.formGroup input[type="email"],
+.formGroup input[type="tel"] {
+  padding: 0.875rem 1rem;
+  border: 2px solid var(--border-gray);
+  border-radius: 10px;
+  font-size: 1rem;
+  transition: border-color 0.2s;
+  background: var(--white);
+}
+
+.formGroup input:focus {
+  outline: none;
+  border-color: var(--primary-yellow);
+}
+
+.formGroup input::placeholder {
+  color: #999;
+}
+
+.inputError {
+  border-color: #dc2626 !important;
+}
+
+.errorText {
+  color: #dc2626;
+  font-size: 0.8rem;
+  margin-top: 0.375rem;
+}
+
+/* Password input */
+.formGroup input[type="password"] {
+  padding: 0.875rem 1rem;
+  border: 2px solid var(--border-gray);
+  border-radius: 10px;
+  font-size: 1rem;
+  transition: border-color 0.2s;
+  background: var(--white);
+}
+
+.formGroup input[type="password"]:focus {
+  outline: none;
+  border-color: var(--primary-yellow);
+}
+
+.formGroup input[type="password"]::placeholder {
+  color: #999;
+}
+
+/* Recommend Note */
+.recommendNote {
+  color: #6b7280;
+  font-size: 0.8rem;
+  margin-top: 0.375rem;
+  font-style: italic;
+}
+
+/* Password Requirements Checklist */
+.passwordRequirements {
+  list-style: none;
+  padding: 0;
+  margin: 0.625rem 0 0 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.375rem;
+}
+
+.passwordRequirements li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  color: #9ca3af;
+  transition: color 0.2s;
+}
+
+.passwordRequirements li.requirementMet {
+  color: #16a34a;
+}
+
+.requirementIcon {
+  font-size: 0.75rem;
+  width: 16px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.requirementMet .requirementIcon {
+  color: #16a34a;
+  font-weight: 700;
+}
+
+/* Password Match / Mismatch */
+.passwordMatch {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  color: #16a34a;
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin-top: 0.375rem;
+}
+
+.matchIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  background: #16a34a;
+  color: white;
+  border-radius: 50%;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.passwordMismatch {
+  color: #dc2626;
+  font-size: 0.8rem;
+  font-weight: 500;
+  margin-top: 0.375rem;
+}
+
+/* Card Note */
+.cardNote {
+  background: rgba(255, 229, 0, 0.15);
+  color: var(--black);
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  text-align: center;
+  margin-bottom: 1.5rem;
+  font-weight: 500;
+}
+
+/* Card Icons */
+.cardIcons {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  justify-content: center;
+}
+
+.cardIcon {
+  opacity: 0.4;
+  transition: opacity 0.2s;
+}
+
+.cardIcon.active {
+  opacity: 1;
+}
+
+.cardIcon svg {
+  display: block;
+}
+
+/* Checkbox Label */
+.checkboxLabel {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  cursor: pointer;
+  font-size: 0.95rem;
+  color: var(--text-gray);
+  padding: 0.5rem 0;
+  position: relative;
+  padding-left: 2rem;
+}
+
+.checkboxLabel input {
+  position: absolute;
+  opacity: 0;
+  cursor: pointer;
+  height: 0;
+  width: 0;
+}
+
+.checkmark {
+  position: absolute;
+  left: 0;
+  top: 0.5rem;
+  height: 20px;
+  width: 20px;
+  background-color: var(--white);
+  border: 2px solid var(--border-gray);
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.checkboxLabel:hover .checkmark {
+  border-color: var(--primary-yellow);
+}
+
+.checkboxLabel input:checked ~ .checkmark {
+  background-color: var(--primary-yellow);
+  border-color: var(--primary-yellow);
+}
+
+.checkmark:after {
+  content: "";
+  position: absolute;
+  display: none;
+  left: 6px;
+  top: 2px;
+  width: 5px;
+  height: 10px;
+  border: solid var(--black);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.checkboxLabel input:checked ~ .checkmark:after {
+  display: block;
+}
+
+.checkboxError {
+  color: #dc2626;
+}
+
+.checkboxError .checkmark {
+  border-color: #dc2626;
+}
+
+/* Legal Checkboxes */
+.legalCheckboxes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.link {
+  color: var(--black);
+  text-decoration: underline;
+  font-weight: 500;
+}
+
+.link:hover {
+  color: var(--primary-yellow);
+}
+
+/* Trial Terms Box */
+.trialTermsBox {
+  background: var(--white);
+  border: 2px solid var(--primary-yellow);
+  border-radius: 16px;
+  padding: 1.5rem 2rem;
+}
+
+.trialTermsTitle {
+  color: var(--black);
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.trialTermsList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.trialTermsList li {
+  padding: 0.5rem 0;
+  padding-left: 1.5rem;
+  position: relative;
+  color: var(--text-gray);
+  font-size: 0.95rem;
+}
+
+.trialTermsList li::before {
+  content: "•";
+  position: absolute;
+  left: 0;
+  color: var(--primary-yellow);
+  font-weight: bold;
+}
+
+.trialTermsList strong {
+  color: var(--black);
+}
+
+/* Submit Section */
+.submitSection {
+  text-align: center;
+}
+
+.submitBtn {
+  width: 100%;
+  max-width: 400px;
+  padding: 1.125rem 2rem;
+  background: var(--primary-yellow);
+  border: none;
+  border-radius: 12px;
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--black);
+  cursor: pointer;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.submitBtn:hover {
+  background: var(--hover-yellow);
+  transform: translateY(-2px);
+}
+
+.submitBtn:disabled {
+  opacity: 0.8;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--black);
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.securityBadge {
+  margin-top: 1rem;
+  color: var(--text-gray);
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.lockIcon {
+  font-size: 1rem;
+}
+
+/* Success Container */
+.successContainer {
+  min-height: calc(100vh - 80px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  background: var(--light-gray);
+}
+
+.successCard {
+  background: var(--white);
+  border-radius: 20px;
+  padding: 3rem;
+  text-align: center;
+  max-width: 450px;
+  width: 100%;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+}
+
+.successIcon {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+}
+
+.successCard h1 {
+  font-size: 1.5rem;
+  color: var(--black);
+  margin-bottom: 0.5rem;
+}
+
+.successMessage {
+  color: var(--text-gray);
+  font-size: 1.1rem;
+  margin-bottom: 1.5rem;
+}
+
+.successDetails {
+  background: var(--light-gray);
+  border-radius: 12px;
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.successItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.successLabel {
+  color: var(--text-gray);
+  font-size: 0.95rem;
+}
+
+.successValue {
+  color: var(--black);
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.redirectMessage {
+  color: var(--text-gray);
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+}
+
+.loadingBar {
+  height: 4px;
+  background: var(--border-gray);
+  border-radius: 2px;
+  overflow: hidden;
+  position: relative;
+}
+
+.loadingBar::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 30%;
+  background: var(--primary-yellow);
+  animation: loading 1.5s ease-in-out infinite;
+}
+
+@keyframes loading {
+  0% {
+    left: -30%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .hero {
+    padding: 2rem 0;
+  }
+
+  .heroTitle {
+    font-size: 1.75rem;
+  }
+
+  .heroSubtitle {
+    font-size: 1.1rem;
+  }
+
+  .benefitsList {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .formSectionCard {
+    padding: 1.5rem;
+  }
+
+  .sectionTitle {
+    font-size: 1.1rem;
+  }
+
+  .submitBtn {
+    font-size: 1rem;
+    padding: 1rem 1.5rem;
+  }
+
+  .passwordRequirements {
+    grid-template-columns: 1fr;
+  }
+}

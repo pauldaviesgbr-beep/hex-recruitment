@@ -1,0 +1,56 @@
+.pageTitle {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #1e293b;
+  margin-bottom: 1.5rem;
+}
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.filters {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.select {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  background: white;
+  color: #334155;
+  cursor: pointer;
+}
+
+.select:focus { outline: none; border-color: #FFE500; }
+
+.badge {
+  display: inline-block;
+  padding: 0.2rem 0.6rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.badge_pending { background: #fef3c7; color: #92400e; }
+.badge_viewed { background: #e0e7ff; color: #4338ca; }
+.badge_shortlisted { background: #fce7f3; color: #be185d; }
+.badge_interview { background: #cffafe; color: #0e7490; }
+.badge_offered { background: #d1fae5; color: #059669; }
+.badge_rejected { background: #fee2e2; color: #dc2626; }
+.badge_withdrawn { background: #f1f5f9; color: #64748b; }
+
+@media (max-width: 1024px) {
+  .statsGrid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 640px) {
+  .statsGrid { grid-template-columns: 1fr; }
+}

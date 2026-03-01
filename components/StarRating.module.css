@@ -1,0 +1,94 @@
+/* Container */
+.container {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Stars wrapper */
+.stars {
+  display: inline-flex;
+  align-items: center;
+  position: relative;
+}
+
+/* Interactive wrapper */
+.interactive {
+  cursor: pointer;
+}
+
+.interactive:focus-visible {
+  outline: 2px solid #FFD700;
+  outline-offset: 4px;
+  border-radius: 4px;
+}
+
+/* Individual star button (interactive mode) */
+.starBtn {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.12s ease;
+  position: relative;
+  outline: none;
+}
+
+.starBtn:focus-visible {
+  outline: 2px solid #FFD700;
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.starBtn:hover {
+  transform: scale(1.15);
+}
+
+/* Non-interactive star span */
+.starDisplay {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+/* Star gap */
+.gapSm .starBtn,
+.gapSm .starDisplay {
+  margin-right: 1px;
+}
+
+.gapMd .starBtn,
+.gapMd .starDisplay {
+  margin-right: 2px;
+}
+
+.gapLg .starBtn,
+.gapLg .starDisplay {
+  margin-right: 3px;
+}
+
+/* Rating value text */
+.value {
+  font-weight: 700;
+  line-height: 1;
+}
+
+.valueSm {
+  font-size: 0.85rem;
+  color: #0f172a;
+}
+
+.valueMd {
+  font-size: 1.05rem;
+  color: #0f172a;
+}
+
+.valueLg {
+  font-size: 1.35rem;
+  color: #FFD700;
+}
