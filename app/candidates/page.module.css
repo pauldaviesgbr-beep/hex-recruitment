@@ -368,6 +368,10 @@
   max-width: 1400px;
   margin: 0 auto;
   padding: 0.25rem 2rem 0;
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 120px);
+  overflow: hidden;
 }
 
 .candidateCount {
@@ -387,8 +391,8 @@
 .splitLayout {
   display: flex;
   gap: 1rem;
-  height: calc(100vh - 200px);
-  min-height: 500px;
+  flex: 1;
+  min-height: 0;
 }
 
 /* LEFT PANEL - Candidate List */
@@ -398,7 +402,7 @@
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 0;
+  gap: 8px;
   padding-right: 0.5rem;
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
@@ -421,26 +425,12 @@
   align-items: flex-start;
   position: relative;
   gap: 0.75rem;
-  padding: 0.5rem 0.75rem;
+  padding: 0.75rem 1rem;
   border: 1px solid var(--border-gray);
-  border-bottom: none;
+  border-radius: 8px;
   background: var(--white);
   cursor: pointer;
   transition: background 0.15s, box-shadow 0.15s;
-  overflow: hidden;
-}
-
-.listCard:first-child {
-  border-radius: 8px 8px 0 0;
-}
-
-.listCard:last-child {
-  border-bottom: 1px solid var(--border-gray);
-  border-radius: 0 0 8px 8px;
-}
-
-.listCard:first-child:last-child {
-  border-radius: 8px;
 }
 
 .listCard:hover {
@@ -1166,6 +1156,7 @@
     grid-template-columns: 1fr;
     height: auto;
     min-height: 0;
+    flex: none;
   }
 
   .listPanel {
@@ -1181,6 +1172,8 @@
 
   .mainContainer {
     padding: 1rem;
+    height: auto;
+    overflow: visible;
   }
 
   .container {
