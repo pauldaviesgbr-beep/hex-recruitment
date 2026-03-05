@@ -310,7 +310,7 @@ export default function SubscriptionPage() {
                   {checkoutLoading === 'standard' ? (
                     <><span className={styles.btnSpinner} /> Processing...</>
                   ) : (
-                    'Start Free Trial'
+                    'Start Free 14-Day Trial'
                   )}
                 </button>
               </div>
@@ -339,7 +339,7 @@ export default function SubscriptionPage() {
                   {checkoutLoading === 'professional' ? (
                     <><span className={styles.btnSpinner} /> Processing...</>
                   ) : (
-                    'Start Free Trial'
+                    'Start Free 14-Day Trial'
                   )}
                 </button>
               </div>

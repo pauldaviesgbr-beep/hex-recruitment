@@ -448,7 +448,7 @@ function PostJobContent() {
               You need an employer subscription to post jobs on Hex.
             </p>
             <a href="/subscribe" className="btn btn-primary">
-              Start Free 30-Day Trial
+              Start Free 14-Day Trial
             </a>
           </div>
         </div>

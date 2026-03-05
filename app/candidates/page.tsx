@@ -420,7 +420,7 @@ function CandidatesContent() {
               Subscribe to access thousands of qualified professionals.
             </p>
             <Link href="/subscribe" className="btn btn-primary">
-              Start Free 30-Day Trial
+              Start Free 14-Day Trial
             </Link>
           </div>
         </div>

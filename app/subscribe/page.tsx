@@ -1001,7 +1001,7 @@ export default function SubscribePage() {
                     Processing your payment details...
                   </>
                 ) : (
-                  'Start Free 30-Day Trial'
+                  'Start Free 14-Day Trial'
                 )}
               </button>
               <div className={styles.securityBadge}>
