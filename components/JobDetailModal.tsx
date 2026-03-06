@@ -689,7 +689,7 @@ export default function JobDetailModal({
                     <p className={styles.cvNote}>
                       Your profile CV will be attached automatically. Make sure it's up to date!
                     </p>
-                    <Link href="/dashboard" className={styles.updateCvLink}>
+                    <Link href="/cv-builder" className={styles.updateCvLink}>
                       Update your CV →
                     </Link>
                   </div>

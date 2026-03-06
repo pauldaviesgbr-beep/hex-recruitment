@@ -1054,7 +1054,7 @@ function JobsPageContent() {
                     <p className={styles.applyCvNote}>
                       Your profile CV will be attached automatically. Make sure it&apos;s up to date!
                     </p>
-                    <Link href="/dashboard" className={styles.applyUpdateCvLink}>
+                    <Link href="/cv-builder" className={styles.applyUpdateCvLink}>
                       Update your CV →
                     </Link>
                   </div>
