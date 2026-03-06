@@ -304,6 +304,7 @@ export default function DashboardPage() {
           .from('job_applications')
           .select('id, job_id, job_title, company, status, created_at')
           .eq('candidate_id', userId)
+          .neq('status', 'withdrawn')
           .order('created_at', { ascending: false })
           .limit(50)
         if (appData) setApplications(appData)
