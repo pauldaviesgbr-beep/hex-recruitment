@@ -85,7 +85,7 @@ export default function NotificationBell({ className }: NotificationBellProps) {
     }
   }, [isOpen])
 
-  // Handle notification click — mark as read but keep dropdown open
+  // Handle notification click — mark as read, close dropdown, navigate to link
   const handleNotificationClick = async (notification: Notification) => {
     if (!notification.read) {
       try {
@@ -101,6 +101,11 @@ export default function NotificationBell({ className }: NotificationBellProps) {
       } catch {
         // Fail silently on network errors
       }
+    }
+
+    setIsOpen(false)
+    if (notification.link) {
+      router.push(notification.link)
     }
   }
 
