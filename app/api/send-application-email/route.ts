@@ -15,12 +15,23 @@ export async function POST(req: Request) {
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
       )
-      const { data } = await supabaseAdmin
+
+      // Primary: employer_profiles.email
+      const { data: profileData } = await supabaseAdmin
         .from('employer_profiles')
         .select('email')
         .eq('user_id', employerId)
         .maybeSingle()
-      employerEmail = data?.email || null
+      employerEmail = profileData?.email || null
+
+      // Fallback: auth.users email (handles OAuth signups with incomplete profiles)
+      if (!employerEmail && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+        const { data: userData } = await supabaseAdmin.auth.admin.getUserById(employerId)
+        employerEmail = userData?.user?.email || null
+        if (employerEmail) {
+          console.log('[Application Email] Using auth.users email fallback for', employerId)
+        }
+      }
     }
 
     if (!employerEmail) {

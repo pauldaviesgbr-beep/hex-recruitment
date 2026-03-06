@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname, useSearchParams, useRouter } from 'next/navigation'
 import { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react'
 import styles from './EmployerSidebar.module.css'
+import { useMessages } from '@/lib/MessagesContext'
 
 const STORAGE_KEY = 'employer-sidebar-collapsed'
 
@@ -22,6 +23,7 @@ export default function EmployerSidebar() {
   const [collapsed, setCollapsed] = useState(true)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
+  const { totalUnreadCount } = useMessages()
 
   useEffect(() => {
     setMounted(true)
@@ -161,6 +163,16 @@ export default function EmployerSidebar() {
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
           <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+        </svg>
+      ),
+    },
+    {
+      label: 'Messages',
+      href: '/messages',
+      badge: totalUnreadCount,
+      icon: (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
         </svg>
       ),
     },
