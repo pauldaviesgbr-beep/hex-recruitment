@@ -46,6 +46,16 @@ const filterSections = [
   { key: 'tags' as const, title: 'Job Tags', options: ['Immediate start', 'Urgent hire', 'No experience required', 'Entry level', 'Remote', 'Flexible hours', 'Training provided', 'Free meals', 'Staff discount', 'Career progression', 'Easy apply', 'Visa sponsorship'] },
 ]
 
+const UK_POSTCODE_RE = /^[A-Z]{1,2}[0-9][0-9A-Z]?\s*[0-9][A-Z]{2}$/i
+
+function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371
+  const dLat = (lat2 - lat1) * Math.PI / 180
+  const dLon = (lon2 - lon1) * Math.PI / 180
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+}
+
 const getPostedDaysAgo = (postedAt: string): number => {
   const lower = postedAt.toLowerCase()
   if (lower.includes('today') || lower.includes('just')) return 0
@@ -188,6 +198,11 @@ function JobsPageContent() {
   const searchParams = useSearchParams()
   const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '')
   const [locationQuery, setLocationQuery] = useState(searchParams.get('city') || '')
+  const [locationRadius, setLocationRadius] = useState<number | null>(null)
+  const [locationCoords, setLocationCoords] = useState<{ lat: number; lon: number } | null>(null)
+  const [jobCoords, setJobCoords] = useState<Map<string, { lat: number; lon: number }>>(new Map())
+  const [geocodingLocation, setGeocodingLocation] = useState(false)
+  const fetchedPostcodesRef = useRef<Set<string>>(new Set())
   const [activeCategory, setActiveCategory] = useState('all')
   const [filters, setFilters] = useState<Filters>(emptyFilters())
   const [sectorsExpanded, setSectorsExpanded] = useState(false)
@@ -302,6 +317,62 @@ function JobsPageContent() {
     if (c !== locationQuery) setLocationQuery(c)
   }, [searchParams])
 
+  // Geocode search term when it looks like a UK postcode
+  useEffect(() => {
+    const trimmed = locationQuery.trim()
+    if (!trimmed || !UK_POSTCODE_RE.test(trimmed)) {
+      setLocationCoords(null)
+      return
+    }
+    const postcode = trimmed.replace(/\s+/g, '').toUpperCase()
+    setGeocodingLocation(true)
+    fetch(`https://api.postcodes.io/postcodes/${postcode}`)
+      .then(r => r.json())
+      .then(d => {
+        if (d.status === 200 && d.result) {
+          setLocationCoords({ lat: d.result.latitude, lon: d.result.longitude })
+        } else {
+          setLocationCoords(null)
+        }
+      })
+      .catch(() => setLocationCoords(null))
+      .finally(() => setGeocodingLocation(false))
+  }, [locationQuery])
+
+  // Batch-geocode job postcodes when radius filter is active
+  useEffect(() => {
+    if (!locationCoords || locationRadius === null) return
+    const uncached = jobs
+      .filter(j => j.fullLocation?.postcode)
+      .map(j => j.fullLocation!.postcode!.replace(/\s+/g, '').toUpperCase())
+      .filter((p, i, arr) => arr.indexOf(p) === i && !fetchedPostcodesRef.current.has(p))
+    if (uncached.length === 0) return
+    uncached.forEach(p => fetchedPostcodesRef.current.add(p))
+    fetch('https://api.postcodes.io/postcodes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ postcodes: uncached.slice(0, 100) }),
+    })
+      .then(r => r.json())
+      .then(d => {
+        if (d.status === 200 && d.result) {
+          setJobCoords(prev => {
+            const next = new Map(prev)
+            d.result.forEach((item: any) => {
+              if (item.result) {
+                next.set(item.query.replace(/\s+/g, '').toUpperCase(), {
+                  lat: item.result.latitude,
+                  lon: item.result.longitude,
+                })
+              }
+            })
+            return next
+          })
+        }
+      })
+      .catch(() => {})
+  }, [locationCoords, locationRadius, jobs])
+
   // Handle URL-based job selection (wait for auth check before deciding)
   useEffect(() => {
     if (isLoggedIn === null) return // Auth check still in progress
@@ -351,11 +422,26 @@ function JobsPageContent() {
 
       // Location filter
       if (locationQuery) {
-        const locQuery = locationQuery.toLowerCase()
-        const matchesLocation =
-          job.location.toLowerCase().includes(locQuery) ||
-          job.area.toLowerCase().includes(locQuery)
-        if (!matchesLocation) return false
+        if (locationCoords && locationRadius !== null) {
+          // Postcode radius filter
+          const jobPostcode = job.fullLocation?.postcode?.replace(/\s+/g, '').toUpperCase()
+          if (jobPostcode && jobCoords.has(jobPostcode)) {
+            const jc = jobCoords.get(jobPostcode)!
+            const distMiles = haversineKm(locationCoords.lat, locationCoords.lon, jc.lat, jc.lon) * 0.621371
+            if (distMiles > locationRadius) return false
+          } else {
+            // Fallback to text match while coordinates are still loading
+            const locQuery = locationQuery.toLowerCase()
+            if (!job.location.toLowerCase().includes(locQuery) && !job.area.toLowerCase().includes(locQuery)) return false
+          }
+        } else {
+          // Text match (city/town name)
+          const locQuery = locationQuery.toLowerCase()
+          const matchesLocation =
+            job.location.toLowerCase().includes(locQuery) ||
+            job.area.toLowerCase().includes(locQuery)
+          if (!matchesLocation) return false
+        }
       }
 
       // Category filter
@@ -418,7 +504,7 @@ function JobsPageContent() {
       const bBoost = boostedJobIds.has(b.id) ? 1 : 0
       return bBoost - aBoost
     })
-  }, [jobs, searchQuery, locationQuery, activeCategory, filters, boostedJobIds])
+  }, [jobs, searchQuery, locationQuery, locationCoords, locationRadius, jobCoords, activeCategory, filters, boostedJobIds])
 
   // Auto-select first job on desktop when filtered jobs change
   useEffect(() => {
@@ -530,6 +616,8 @@ function JobsPageContent() {
   const clearFilters = () => {
     setSearchQuery('')
     setLocationQuery('')
+    setLocationRadius(null)
+    setLocationCoords(null)
     setActiveCategory('all')
     clearAllFilters()
   }
@@ -770,6 +858,44 @@ function JobsPageContent() {
           </div>
           <div className={`${styles.categoriesCollapsible} ${filtersExpanded ? styles.categoriesExpanded : ''}`}>
             <div className={styles.filtersPanel}>
+              {/* Location Filter */}
+              <div className={`${styles.filterSection} ${styles.locationFilterSection}`}>
+                <h4 className={styles.filterSectionTitle}>Location</h4>
+                <div className={styles.locationInputWrapper}>
+                  <input
+                    type="text"
+                    value={locationQuery}
+                    onChange={e => {
+                      setLocationQuery(e.target.value)
+                      if (!e.target.value) { setLocationRadius(null); setLocationCoords(null) }
+                    }}
+                    placeholder="City, town or postcode"
+                    className={styles.locationInput}
+                  />
+                  {geocodingLocation && <span className={styles.locationSpinner} />}
+                  {locationQuery && !geocodingLocation && (
+                    <button
+                      className={styles.locationClear}
+                      onClick={() => { setLocationQuery(''); setLocationRadius(null); setLocationCoords(null) }}
+                      aria-label="Clear location"
+                    >✕</button>
+                  )}
+                </div>
+                {locationQuery && (
+                  <div className={styles.radiusOptions}>
+                    {([null, 10, 25, 50] as const).map(r => (
+                      <button
+                        key={r ?? 'any'}
+                        className={`${styles.categoryPill} ${locationRadius === r ? styles.categoryPillActive : ''}`}
+                        onClick={() => setLocationRadius(r)}
+                      >
+                        {r === null ? 'Any distance' : `Within ${r} mi`}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               {filterSections.map(section => (
                 <div key={section.key} className={styles.filterSection}>
                   <h4 className={styles.filterSectionTitle}>{section.title}</h4>
