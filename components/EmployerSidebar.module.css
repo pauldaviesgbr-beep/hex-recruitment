@@ -91,6 +91,9 @@
   display: flex;
   flex-direction: column;
   padding: 4px 0;
+  flex: 1 1 0;
+  overflow-y: auto;
+  min-height: 0;
 }
 
 /* ---------- Single nav item ---------- */
@@ -219,6 +222,7 @@
 
 .bottom {
   flex-shrink: 0;
+  margin-top: auto;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
   padding: 4px 0;
 }
