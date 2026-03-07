@@ -5,13 +5,17 @@
 .pageBackground {
   background: #f8f9fa;
   min-height: 100vh;
+  overflow-x: hidden;
+  width: 100%;
 }
 
 .dashboardWrap {
   max-width: 1280px;
+  width: 100%;
   margin: 0 auto;
   padding: 1.5rem;
   overflow-x: hidden;
+  box-sizing: border-box;
 }
 
 /* ── Welcome header ──────────────────────────────────── */
@@ -757,42 +761,62 @@
 
 @media (max-width: 768px) {
   .dashboardWrap { padding: 0.75rem; }
-  .welcomeHeader { padding: 1.25rem; }
+
+  /* Welcome header */
+  .welcomeHeader { padding: 1rem; }
   .welcomeText h1 { font-size: 1.25rem; }
-  .avatarPlaceholder { width: 52px; height: 52px; font-size: 1.25rem; border-radius: 10px; }
+  .avatarPlaceholder { width: 48px; height: 48px; font-size: 1.15rem; border-radius: 10px; }
+  .welcomeLeft { gap: 0.75rem; }
   .welcomeDate { display: none; }
 
-  /* Pipeline: allow horizontal scroll instead of overflow */
-  .pipelineWrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-  .pipeline { min-width: 0; }
-  .pipelineStage { padding: 0.4rem 0.1rem; }
-  .pipelineLabel { font-size: 0.52rem; }
+  /* Stats row: 2 columns with smaller gap */
+  .statsRow { grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+  .statCard { padding: 0.85rem; }
+  .statNumber { font-size: 1.5rem; }
+  .statLabel { font-size: 0.7rem; }
 
-  /* Active jobs: stack stats below title */
+  /* Pipeline: shrink to fit, no scroll needed */
+  .pipelineWrap { overflow-x: hidden; }
+  .pipeline { min-width: 0; }
+  .pipelineStage { padding: 0.35rem 0; }
+  .pipelineCount { min-width: 24px; height: 22px; font-size: 0.7rem; padding: 0 0.35rem; }
+  .pipelineLabel { font-size: 0.48rem; letter-spacing: 0; }
+
+  /* Grid & cards */
+  .grid { gap: 1rem; }
+  .card { max-width: 100%; box-sizing: border-box; }
+  .cardHeader { padding: 0.75rem 1rem; }
+  .cardBody { padding: 0.75rem; overflow-x: hidden; }
+
+  /* Active jobs: stack vertically */
   .jobItem { flex-direction: column; align-items: flex-start; gap: 0.5rem; }
   .jobItemStats { align-self: stretch; justify-content: flex-start; gap: 1.25rem; }
+  .jobItemMeta { flex-wrap: wrap; gap: 0.5rem; }
   .jobProgressWrap { max-width: none; }
 
-  /* Cards: constrain width */
-  .card { max-width: 100%; }
-  .cardBody { padding: 1rem; overflow-x: hidden; }
+  /* Application cards */
+  .appCard { padding: 0.5rem 0.65rem; }
+  .appCardInfo h4 { font-size: 0.82rem; }
 
   /* Quick actions */
-  .quickAction { padding: 0.75rem; }
-  .quickActionIcon { width: 36px; height: 36px; font-size: 1rem; }
+  .quickAction { padding: 0.65rem 0.75rem; gap: 0.65rem; }
+  .quickActionIcon { width: 34px; height: 34px; font-size: 0.95rem; }
+  .quickActionTitle { font-size: 0.82rem; }
+  .quickActionDesc { font-size: 0.68rem; }
 
-  /* Messages hover: don't expand beyond card */
+  /* Messages: don't expand beyond card on hover */
   .msgItem:hover { margin: 0; padding-left: 0; padding-right: 0; }
 }
 
 @media (max-width: 480px) {
-  .welcomeHeader { flex-direction: column; text-align: center; }
+  .dashboardWrap { padding: 0.5rem; }
+  .welcomeHeader { flex-direction: column; text-align: center; padding: 0.85rem; }
   .welcomeLeft { flex-direction: column; }
-  .statsRow { grid-template-columns: 1fr 1fr; }
   .appCard { flex-direction: column; align-items: flex-start; gap: 0.35rem; }
   .appCardRight { align-self: flex-end; }
 
-  /* Stat cards: prevent number overflow */
-  .statNumber { font-size: 1.5rem; }
-  .statCard { padding: 1rem; }
+  /* Stat cards: single column on very small screens */
+  .statCard { padding: 0.75rem; }
+  .statNumber { font-size: 1.35rem; }
+  .statCard::after { font-size: 2rem; }
 }

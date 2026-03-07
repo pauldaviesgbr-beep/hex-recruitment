@@ -116,6 +116,11 @@ body[data-sidebar="expanded"] {
   /* Prevent content being cut off at bottom by chatbot button */
   body {
     padding-bottom: 80px;
+    overflow-x: hidden;
+  }
+
+  .container {
+    padding: 0 1rem;
   }
 }
 
