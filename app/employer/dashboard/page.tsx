@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
@@ -298,6 +298,15 @@ export default function EmployerDashboardPage() {
 
   const dateInfo = formatDate()
 
+  // ── Mobile detection for pipeline layout ──────────────────
+  const [isMobile, setIsMobile] = useState(false)
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth <= 768)
+    check()
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [])
+
   // ── Loading state ───────────────────────────────────────
   if (loading) {
     return (
@@ -408,14 +417,28 @@ export default function EmployerDashboardPage() {
                 {applications.length > 0 ? (
                   <>
                     <div className={styles.pipelineWrap}>
-                      <div className={styles.pipelineTrack} />
-                      <div className={styles.pipeline}>
+                      {!isMobile && <div className={styles.pipelineTrack} />}
+                      <div
+                        className={styles.pipeline}
+                        style={isMobile ? {
+                          display: 'grid',
+                          gridTemplateColumns: 'repeat(4, 1fr)',
+                          gap: '0.25rem',
+                        } : undefined}
+                      >
                         {PIPELINE_STAGES.map(s => {
                           const count = statusCounts[s]
                           const isActive = count > 0
                           return (
-                            <div key={s} className={styles.pipelineStage}>
-                              <div className={`${styles.pipelineCount} ${styles[getPipelineStyle(s)]} ${isActive ? styles.pipelineCountActive : styles.pipelineCountMuted}`}>
+                            <div
+                              key={s}
+                              className={styles.pipelineStage}
+                              style={isMobile ? { width: '100%', flex: 'none' } : undefined}
+                            >
+                              <div
+                                className={`${styles.pipelineCount} ${styles[getPipelineStyle(s)]} ${isActive ? styles.pipelineCountActive : styles.pipelineCountMuted}`}
+                                style={isMobile ? { transform: 'none', boxShadow: 'none' } : undefined}
+                              >
                                 {count}
                               </div>
                               <span className={styles.pipelineLabel}>{STATUS_LABELS[s]}</span>
