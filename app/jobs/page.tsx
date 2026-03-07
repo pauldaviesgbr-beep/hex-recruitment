@@ -198,6 +198,7 @@ function JobsPageContent() {
   const searchParams = useSearchParams()
   const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '')
   const [locationQuery, setLocationQuery] = useState(searchParams.get('city') || '')
+  const [debouncedLocationQuery, setDebouncedLocationQuery] = useState(searchParams.get('city') || '')
   const [locationRadius, setLocationRadius] = useState<number | null>(null)
   const [locationCoords, setLocationCoords] = useState<{ lat: number; lon: number } | null>(null)
   const [jobCoords, setJobCoords] = useState<Map<string, { lat: number; lon: number }>>(new Map())
@@ -317,26 +318,35 @@ function JobsPageContent() {
     if (c !== locationQuery) setLocationQuery(c)
   }, [searchParams])
 
-  // Geocode search term when it looks like a UK postcode
+  // Debounce location query for filtering (500ms)
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedLocationQuery(locationQuery), 500)
+    return () => clearTimeout(timer)
+  }, [locationQuery])
+
+  // Geocode search term when it looks like a UK postcode (debounced 500ms)
   useEffect(() => {
     const trimmed = locationQuery.trim()
     if (!trimmed || !UK_POSTCODE_RE.test(trimmed)) {
       setLocationCoords(null)
       return
     }
-    const postcode = trimmed.replace(/\s+/g, '').toUpperCase()
-    setGeocodingLocation(true)
-    fetch(`https://api.postcodes.io/postcodes/${postcode}`)
-      .then(r => r.json())
-      .then(d => {
-        if (d.status === 200 && d.result) {
-          setLocationCoords({ lat: d.result.latitude, lon: d.result.longitude })
-        } else {
-          setLocationCoords(null)
-        }
-      })
-      .catch(() => setLocationCoords(null))
-      .finally(() => setGeocodingLocation(false))
+    const timer = setTimeout(() => {
+      const postcode = trimmed.replace(/\s+/g, '').toUpperCase()
+      setGeocodingLocation(true)
+      fetch(`https://api.postcodes.io/postcodes/${postcode}`)
+        .then(r => r.json())
+        .then(d => {
+          if (d.status === 200 && d.result) {
+            setLocationCoords({ lat: d.result.latitude, lon: d.result.longitude })
+          } else {
+            setLocationCoords(null)
+          }
+        })
+        .catch(() => setLocationCoords(null))
+        .finally(() => setGeocodingLocation(false))
+    }, 500)
+    return () => clearTimeout(timer)
   }, [locationQuery])
 
   // Batch-geocode job postcodes when radius filter is active
@@ -406,8 +416,6 @@ function JobsPageContent() {
     Object.values(filters).reduce((sum, set) => sum + set.size, 0)
   , [filters])
 
-  const clearAllFilters = () => setFilters(emptyFilters())
-
   const filteredJobs = useMemo(() => {
     return jobs.filter(job => {
       // Search filter
@@ -420,8 +428,8 @@ function JobsPageContent() {
         if (!matchesSearch) return false
       }
 
-      // Location filter
-      if (locationQuery) {
+      // Location filter (uses debounced value)
+      if (debouncedLocationQuery) {
         if (locationCoords && locationRadius !== null) {
           // Postcode radius filter
           const jobPostcode = job.fullLocation?.postcode?.replace(/\s+/g, '').toUpperCase()
@@ -431,12 +439,12 @@ function JobsPageContent() {
             if (distMiles > locationRadius) return false
           } else {
             // Fallback to text match while coordinates are still loading
-            const locQuery = locationQuery.toLowerCase()
+            const locQuery = debouncedLocationQuery.toLowerCase()
             if (!job.location.toLowerCase().includes(locQuery) && !job.area.toLowerCase().includes(locQuery)) return false
           }
         } else {
           // Text match (city/town name)
-          const locQuery = locationQuery.toLowerCase()
+          const locQuery = debouncedLocationQuery.toLowerCase()
           const matchesLocation =
             job.location.toLowerCase().includes(locQuery) ||
             job.area.toLowerCase().includes(locQuery)
@@ -504,7 +512,7 @@ function JobsPageContent() {
       const bBoost = boostedJobIds.has(b.id) ? 1 : 0
       return bBoost - aBoost
     })
-  }, [jobs, searchQuery, locationQuery, locationCoords, locationRadius, jobCoords, activeCategory, filters, boostedJobIds])
+  }, [jobs, searchQuery, debouncedLocationQuery, locationCoords, locationRadius, jobCoords, activeCategory, filters, boostedJobIds])
 
   // Auto-select first job on desktop when filtered jobs change
   useEffect(() => {
@@ -616,10 +624,11 @@ function JobsPageContent() {
   const clearFilters = () => {
     setSearchQuery('')
     setLocationQuery('')
+    setDebouncedLocationQuery('')
     setLocationRadius(null)
     setLocationCoords(null)
     setActiveCategory('all')
-    clearAllFilters()
+    setFilters(emptyFilters())
   }
 
   // Apply flow handlers
@@ -798,8 +807,8 @@ function JobsPageContent() {
         </p>
       </div>
 
-      {/* Category Pills - Collapsible (hidden when no results) */}
-      {filteredJobs.length > 0 && <section className={styles.categoriesSection}>
+      {/* Category Pills - Collapsible */}
+      <section className={styles.categoriesSection}>
         <div className={styles.categoriesInner}>
           <div className={styles.categoriesHeader}>
             <button
@@ -850,7 +859,7 @@ function JobsPageContent() {
             {activeFilterCount > 0 && !filtersExpanded && (
               <button
                 className={styles.clearSectorBtn}
-                onClick={clearAllFilters}
+                onClick={clearFilters}
               >
                 Clear all
               </button>
@@ -858,6 +867,27 @@ function JobsPageContent() {
           </div>
           <div className={`${styles.categoriesCollapsible} ${filtersExpanded ? styles.categoriesExpanded : ''}`}>
             <div className={styles.filtersPanel}>
+              {/* Keyword Search */}
+              <div className={styles.filterSection}>
+                <h4 className={styles.filterSectionTitle}>Keyword Search</h4>
+                <div className={styles.locationInputWrapper}>
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)}
+                    placeholder="Search by job title or keyword"
+                    className={styles.locationInput}
+                  />
+                  {searchQuery && (
+                    <button
+                      className={styles.locationClear}
+                      onClick={() => setSearchQuery('')}
+                      aria-label="Clear search"
+                    >✕</button>
+                  )}
+                </div>
+              </div>
+
               {/* Location Filter */}
               <div className={`${styles.filterSection} ${styles.locationFilterSection}`}>
                 <h4 className={styles.filterSectionTitle}>Location</h4>
@@ -912,22 +942,22 @@ function JobsPageContent() {
                   </div>
                 </div>
               ))}
-              {activeFilterCount > 0 && (
-                <button className={styles.clearAllBtn} onClick={clearAllFilters}>
+              {(activeFilterCount > 0 || searchQuery || locationQuery || activeCategory !== 'all') && (
+                <button className={styles.clearAllBtn} onClick={clearFilters}>
                   Clear all filters
                 </button>
               )}
             </div>
           </div>
         </div>
-      </section>}
+      </section>
 
       {/* Main Content */}
       <div className={styles.container}>
         <p className={styles.jobCount}>
           <span className={styles.jobCountHighlight}>{filteredJobs.length}</span> jobs found
           {activeCategory !== 'all' && ` in ${categories.find(c => c.id === activeCategory)?.label}`}
-          {locationQuery && ` in "${locationQuery}"`}
+          {debouncedLocationQuery && ` in "${debouncedLocationQuery}"`}
         </p>
 
         {filteredJobs.length > 0 ? (
