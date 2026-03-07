@@ -781,13 +781,14 @@
   .pipeline { flex-wrap: wrap; justify-content: center; gap: 0.25rem; }
   .pipelineStage { flex: 0 0 auto; width: calc(25% - 0.25rem); padding: 0.35rem 0; }
   .pipelineCount { min-width: 0; height: 22px; font-size: 0.7rem; padding: 0 0.35rem; }
+  .pipelineCountActive { transform: none; box-shadow: none; }
   .pipelineLabel { font-size: 0.48rem; letter-spacing: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
   /* Grid & cards */
   .grid { gap: 1rem; }
-  .card { max-width: 100%; box-sizing: border-box; }
+  .card { max-width: 100%; box-sizing: border-box; overflow: visible; }
   .cardHeader { padding: 0.75rem 1rem; }
-  .cardBody { padding: 0.75rem; overflow-x: hidden; }
+  .cardBody { padding: 0.75rem; }
 
   /* Active jobs: stack vertically */
   .jobItem { flex-direction: column; align-items: flex-start; gap: 0.5rem; }
