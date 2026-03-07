@@ -588,7 +588,9 @@
 /* Responsive */
 @media (max-width: 768px) {
   .hero {
-    padding: 1.5rem 0 2.5rem;
+    min-height: auto;
+    padding: 2.5rem 0 2.5rem;
+    align-items: flex-start;
   }
 
   .heroTitle {
