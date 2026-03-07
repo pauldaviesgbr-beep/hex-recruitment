@@ -306,6 +306,7 @@
   gap: 0;
   position: relative;
   z-index: 1;
+  flex-wrap: wrap;
 }
 
 .pipelineStage {
@@ -769,17 +770,21 @@
   .welcomeLeft { gap: 0.75rem; }
   .welcomeDate { display: none; }
 
-  /* Stats row: 2 columns with smaller gap */
+  /* Stats row */
   .statsRow { grid-template-columns: 1fr 1fr; gap: 0.5rem; }
   .statCard { padding: 0.85rem; }
   .statNumber { font-size: 1.5rem; }
   .statLabel { font-size: 0.7rem; }
 
-  /* Pipeline: wrap into 2 rows on mobile */
+  /* Pipeline */
   .pipelineWrap { overflow: visible; }
   .pipelineTrack { display: none; }
-  .pipeline { flex-wrap: wrap; justify-content: center; gap: 0.25rem; }
-  .pipelineStage { flex: 0 0 auto; width: calc(25% - 0.25rem); padding: 0.35rem 0; }
+  .pipeline {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.25rem;
+  }
+  .pipelineStage { width: auto; padding: 0.35rem 0; }
   .pipelineCount { min-width: 0; height: 22px; font-size: 0.7rem; padding: 0 0.35rem; }
   .pipelineCountActive { transform: none; box-shadow: none; }
   .pipelineLabel { font-size: 0.48rem; letter-spacing: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -790,7 +795,7 @@
   .cardHeader { padding: 0.75rem 1rem; }
   .cardBody { padding: 0.75rem; }
 
-  /* Active jobs: stack vertically */
+  /* Active jobs */
   .jobItem { flex-direction: column; align-items: flex-start; gap: 0.5rem; }
   .jobItemStats { align-self: stretch; justify-content: flex-start; gap: 1.25rem; }
   .jobItemMeta { flex-wrap: wrap; gap: 0.5rem; }
@@ -806,11 +811,11 @@
   .quickActionTitle { font-size: 0.82rem; }
   .quickActionDesc { font-size: 0.68rem; }
 
-  /* Messages: don't expand beyond card on hover, truncate preview text */
+  /* Messages */
   .msgItem { overflow: hidden; }
   .msgItem:hover { margin: 0; padding-left: 0; padding-right: 0; }
   .msgContent { overflow: hidden; min-width: 0; }
-  .msgPreview { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .msgPreview { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: calc(100vw - 130px); }
 }
 
 @media (max-width: 480px) {
@@ -820,11 +825,11 @@
   .appCard { flex-direction: column; align-items: flex-start; gap: 0.35rem; }
   .appCardRight { align-self: flex-end; }
 
-  /* Stat cards: single column on very small screens */
+  /* Stat cards */
   .statCard { padding: 0.75rem; }
   .statNumber { font-size: 1.35rem; }
   .statCard::after { font-size: 2rem; }
 
   /* Pipeline: 3 per row on very small screens */
-  .pipelineStage { width: calc(33.33% - 0.25rem); }
+  .pipeline { grid-template-columns: repeat(3, 1fr); }
 }

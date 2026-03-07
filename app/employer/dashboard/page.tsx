@@ -298,15 +298,6 @@ export default function EmployerDashboardPage() {
 
   const dateInfo = formatDate()
 
-  // ── Mobile detection for pipeline layout ──────────────────
-  const [isMobile, setIsMobile] = useState(false)
-  useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth <= 768)
-    check()
-    window.addEventListener('resize', check)
-    return () => window.removeEventListener('resize', check)
-  }, [])
-
   // ── Loading state ───────────────────────────────────────
   if (loading) {
     return (
@@ -415,58 +406,20 @@ export default function EmployerDashboardPage() {
               </div>
               <div className={styles.cardBody}>
                 {/* Pipeline always renders all 7 stages */}
-                <div style={isMobile ? { overflow: 'visible', position: 'relative', padding: '0.25rem 0' } : undefined} className={!isMobile ? styles.pipelineWrap : undefined}>
-                  {!isMobile && <div className={styles.pipelineTrack} />}
-                  <div
-                    style={isMobile ? {
-                      display: 'grid',
-                      gridTemplateColumns: 'repeat(4, 1fr)',
-                      gap: '0.35rem 0.25rem',
-                      position: 'relative',
-                      zIndex: 1,
-                    } : undefined}
-                    className={!isMobile ? styles.pipeline : undefined}
-                  >
+                <div className={styles.pipelineWrap}>
+                  <div className={styles.pipelineTrack} />
+                  <div className={styles.pipeline}>
                     {PIPELINE_STAGES.map(s => {
                       const count = statusCounts[s]
                       const isActive = count > 0
                       return (
-                        <div
-                          key={s}
-                          style={isMobile ? {
-                            textAlign: 'center' as const,
-                            padding: '0.25rem 0',
-                          } : undefined}
-                          className={!isMobile ? styles.pipelineStage : undefined}
-                        >
+                        <div key={s} className={styles.pipelineStage}>
                           <div
                             className={`${styles.pipelineCount} ${styles[getPipelineStyle(s)]} ${isActive ? styles.pipelineCountActive : styles.pipelineCountMuted}`}
-                            style={isMobile ? {
-                              transform: 'none',
-                              boxShadow: 'none',
-                              minWidth: 0,
-                              height: '24px',
-                              fontSize: '0.75rem',
-                              padding: '0 0.35rem',
-                            } : undefined}
                           >
                             {count}
                           </div>
-                          <span
-                            style={isMobile ? {
-                              display: 'block',
-                              fontSize: '0.55rem',
-                              fontWeight: 600,
-                              color: '#4a5568',
-                              textTransform: 'uppercase' as const,
-                              letterSpacing: 0,
-                              whiteSpace: 'nowrap' as const,
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              marginTop: '0.15rem',
-                            } : undefined}
-                            className={!isMobile ? styles.pipelineLabel : undefined}
-                          >
+                          <span className={styles.pipelineLabel}>
                             {STATUS_LABELS[s]}
                           </span>
                         </div>
