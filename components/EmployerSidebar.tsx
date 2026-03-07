@@ -25,6 +25,11 @@ export default function EmployerSidebar() {
   const [mounted, setMounted] = useState(false)
   const { totalUnreadCount } = useMessages()
 
+  // Close mobile sidebar on route change
+  useEffect(() => {
+    setMobileOpen(false)
+  }, [pathname, searchParams])
+
   useEffect(() => {
     setMounted(true)
     const stored = localStorage.getItem(STORAGE_KEY)

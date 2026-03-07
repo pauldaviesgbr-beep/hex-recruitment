@@ -95,25 +95,30 @@
   pointer-events: auto;
 }
 
-/* Mobile full-screen */
-@media (max-width: 400px) {
+/* Mobile */
+@media (max-width: 768px) {
+  .chatButton {
+    bottom: 16px;
+    right: 16px;
+    width: 44px;
+    height: 44px;
+    animation: none;
+  }
+
+  .chatIcon {
+    font-size: 1.25rem;
+  }
+
+  .chatBadge {
+    display: none;
+  }
+
   .chatWindow {
     width: calc(100% - 16px);
     height: 420px;
     bottom: 8px;
     right: 8px;
     border-radius: 12px;
-  }
-
-  .chatButton {
-    bottom: 16px;
-    right: 16px;
-    width: 52px;
-    height: 52px;
-  }
-
-  .chatIcon {
-    font-size: 1.5rem;
   }
 }
 

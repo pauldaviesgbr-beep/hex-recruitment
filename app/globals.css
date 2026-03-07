@@ -112,6 +112,11 @@ body[data-sidebar="expanded"] {
   body[data-sidebar="expanded"] {
     padding-left: 0;
   }
+
+  /* Prevent content being cut off at bottom by chatbot button */
+  body {
+    padding-bottom: 80px;
+  }
 }
 
 /* Logo slides into sidebar zone when sidebar is expanded */
@@ -131,7 +136,7 @@ body[data-sidebar="expanded"] [data-sidebar-logo] {
 @media (max-width: 768px) {
   body[data-sidebar="expanded"] [data-sidebar-logo],
   body[data-sidebar="collapsed"] [data-sidebar-logo] {
-    margin-left: 0;
+    margin-left: 40px;
     width: auto;
     border-right: none;
   }
