@@ -25,12 +25,14 @@
 
 html {
   scroll-behavior: smooth;
+  overflow-x: hidden;
 }
 
 body {
   background: var(--off-white);
   color: var(--text-gray);
   line-height: 1.6;
+  overflow-x: hidden;
 }
 
 /* Global scrollbar styling */

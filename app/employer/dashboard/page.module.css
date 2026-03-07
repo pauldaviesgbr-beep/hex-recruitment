@@ -775,12 +775,13 @@
   .statNumber { font-size: 1.5rem; }
   .statLabel { font-size: 0.7rem; }
 
-  /* Pipeline: shrink to fit, no scroll needed */
+  /* Pipeline: wrap into 2 rows on mobile */
   .pipelineWrap { overflow-x: hidden; }
-  .pipeline { min-width: 0; }
-  .pipelineStage { padding: 0.35rem 0; }
-  .pipelineCount { min-width: 24px; height: 22px; font-size: 0.7rem; padding: 0 0.35rem; }
-  .pipelineLabel { font-size: 0.48rem; letter-spacing: 0; }
+  .pipelineTrack { display: none; }
+  .pipeline { flex-wrap: wrap; justify-content: center; gap: 0.25rem; }
+  .pipelineStage { flex: 0 0 auto; width: calc(25% - 0.25rem); padding: 0.35rem 0; }
+  .pipelineCount { min-width: 0; height: 22px; font-size: 0.7rem; padding: 0 0.35rem; }
+  .pipelineLabel { font-size: 0.48rem; letter-spacing: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
   /* Grid & cards */
   .grid { gap: 1rem; }
@@ -819,4 +820,7 @@
   .statCard { padding: 0.75rem; }
   .statNumber { font-size: 1.35rem; }
   .statCard::after { font-size: 2rem; }
+
+  /* Pipeline: 3 per row on very small screens */
+  .pipelineStage { width: calc(33.33% - 0.25rem); }
 }
