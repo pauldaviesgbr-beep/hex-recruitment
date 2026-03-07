@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback } from 'react'
+import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import styles from './ChatBot.module.css'
 
@@ -286,6 +287,7 @@ function getBotResponse(message: string): { response: string; links?: { text: st
 }
 
 export default function ChatBot() {
+  const pathname = usePathname()
   const [isOpen, setIsOpen] = useState(false)
   const [messages, setMessages] = useState<Message[]>([])
   const [inputValue, setInputValue] = useState('')
@@ -293,6 +295,9 @@ export default function ChatBot() {
   const [showBadge, setShowBadge] = useState(true)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+
+  // Hide chatbot on the messages page to avoid overlapping the send button
+  if (pathname === '/messages') return null
 
   // Initial welcome message
   useEffect(() => {

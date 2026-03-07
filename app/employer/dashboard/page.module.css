@@ -806,9 +806,10 @@
   .quickActionDesc { font-size: 0.68rem; }
 
   /* Messages: don't expand beyond card on hover, truncate preview text */
+  .msgItem { overflow: hidden; }
   .msgItem:hover { margin: 0; padding-left: 0; padding-right: 0; }
-  .msgContent { overflow: hidden; }
-  .msgPreview { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+  .msgContent { overflow: hidden; min-width: 0; }
+  .msgPreview { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 }
 
 @media (max-width: 480px) {

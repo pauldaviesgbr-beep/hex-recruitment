@@ -320,13 +320,64 @@
 }
 
 /* Responsive */
-@media (max-width: 480px) {
+@media (max-width: 768px) {
   .dropdown {
     position: fixed;
-    top: 60px;
+    top: 56px;
     left: 8px;
     right: 8px;
     width: auto;
-    max-height: calc(100vh - 80px);
+    max-height: 360px;
+    border-radius: 10px;
+  }
+
+  .dropdownHeader {
+    padding: 0.75rem 0.875rem 0.5rem;
+  }
+
+  .dropdownTitle {
+    font-size: 0.9rem;
+  }
+
+  .markAllReadBtn {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+  }
+
+  .notificationsList {
+    max-height: 240px;
+  }
+
+  .notificationItem {
+    padding: 0.625rem 0.875rem;
+    gap: 0.5rem;
+  }
+
+  .notificationIcon {
+    width: 30px;
+    height: 30px;
+    font-size: 0.95rem;
+    border-radius: 8px;
+  }
+
+  .notificationTitle {
+    font-size: 0.8rem;
+  }
+
+  .notificationMessage {
+    font-size: 0.75rem;
+  }
+
+  .notificationTime {
+    font-size: 0.7rem;
+  }
+
+  .dropdownFooter {
+    padding: 0.5rem 0.875rem;
+  }
+
+  .viewAllBtn {
+    padding: 0.5rem;
+    font-size: 0.8rem;
   }
 }
