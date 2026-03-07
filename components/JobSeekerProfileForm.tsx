@@ -388,6 +388,15 @@ export default function JobSeekerProfileForm({ mode, existingData, userId }: Job
     }))
   }
 
+  const handleDobChange = (part: 'day' | 'month' | 'year', value: string) => {
+    const parts = formData.dateOfBirth ? formData.dateOfBirth.split('-') : ['', '', '']
+    const y = part === 'year' ? value : (parts[0] || '')
+    const m = part === 'month' ? value : (parts[1] || '')
+    const d = part === 'day' ? value : (parts[2] || '')
+    const combined = (y && m && d) ? `${y}-${m}-${d}` : ''
+    setFormData(prev => ({ ...prev, dateOfBirth: combined }))
+  }
+
   const handleAddressFound = (address: AddressData) => {
     setFormData(prev => ({
       ...prev,
@@ -1056,17 +1065,64 @@ export default function JobSeekerProfileForm({ mode, existingData, userId }: Job
 
       <div className={styles.formRow}>
         <div className={styles.formGroup}>
-          <label className={styles.label} htmlFor="dateOfBirth">Date of Birth *</label>
-          <input
-            type="date"
-            id="dateOfBirth"
-            name="dateOfBirth"
-            value={formData.dateOfBirth}
-            onChange={handleInputChange}
-            className={styles.input}
-            max={new Date(new Date().setFullYear(new Date().getFullYear() - 16)).toISOString().split('T')[0]}
-            autoComplete="bday"
-          />
+          <label className={styles.label}>Date of Birth *</label>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            {(() => {
+              const parts = formData.dateOfBirth ? formData.dateOfBirth.split('-') : ['', '', '']
+              const dobYear = parts[0] || ''
+              const dobMonth = parts[1] || ''
+              const dobDay = parts[2] || ''
+              const currentYear = new Date().getFullYear()
+              const maxYear = currentYear - 16
+              const minYear = currentYear - 100
+              return (
+                <>
+                  <select
+                    aria-label="Day"
+                    value={dobDay}
+                    onChange={e => handleDobChange('day', e.target.value)}
+                    className={styles.select}
+                    autoComplete="bday-day"
+                    style={{ flex: '0 0 auto', width: '70px' }}
+                  >
+                    <option value="">DD</option>
+                    {Array.from({ length: 31 }, (_, i) => {
+                      const d = String(i + 1).padStart(2, '0')
+                      return <option key={d} value={d}>{i + 1}</option>
+                    })}
+                  </select>
+                  <select
+                    aria-label="Month"
+                    value={dobMonth}
+                    onChange={e => handleDobChange('month', e.target.value)}
+                    className={styles.select}
+                    autoComplete="bday-month"
+                    style={{ flex: '1 1 auto' }}
+                  >
+                    <option value="">Month</option>
+                    {['January','February','March','April','May','June','July','August','September','October','November','December'].map((name, i) => {
+                      const m = String(i + 1).padStart(2, '0')
+                      return <option key={m} value={m}>{name}</option>
+                    })}
+                  </select>
+                  <select
+                    aria-label="Year"
+                    value={dobYear}
+                    onChange={e => handleDobChange('year', e.target.value)}
+                    className={styles.select}
+                    autoComplete="bday-year"
+                    style={{ flex: '0 0 auto', width: '80px' }}
+                  >
+                    <option value="">YYYY</option>
+                    {Array.from({ length: maxYear - minYear + 1 }, (_, i) => {
+                      const y = String(maxYear - i)
+                      return <option key={y} value={y}>{y}</option>
+                    })}
+                  </select>
+                </>
+              )
+            })()}
+          </div>
         </div>
         <div className={styles.formGroup}>
           <label className={styles.label} htmlFor="nationality">Nationality *</label>
