@@ -735,7 +735,8 @@
   }
 
   .chatInputArea {
-    padding: 0.75rem;
+    padding: 0.75rem 1rem;
+    padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
   }
 
   .chatInputForm {
@@ -743,9 +744,9 @@
   }
 
   .sendBtn {
-    width: 40px;
-    height: 40px;
     flex-shrink: 0;
+    width: 44px;
+    height: 44px;
   }
 
   .backBtn {
