@@ -285,9 +285,11 @@ export default function SubscribePage() {
       // Get current user or create account
       const { data: { session } } = await supabase.auth.getSession()
 
+      let userId: string | undefined
+
       if (!session) {
         // Create new employer account with user-provided credentials
-        const { error: authError } = await supabase.auth.signUp({
+        const { data: authData, error: authError } = await supabase.auth.signUp({
           email: formData.accountEmail,
           password: formData.accountPassword,
           options: {
@@ -301,41 +303,31 @@ export default function SubscribePage() {
         })
 
         if (authError) throw authError
+        userId = authData.user?.id
+      } else {
+        userId = session.user.id
       }
 
-      // Store subscription data in localStorage (mock - would be database in production)
-      const subscriptionData = {
-        status: 'trial',
-        plan: 'monthly',
-        amount: 9.99,
-        currency: 'GBP',
-        trialStartDate: new Date().toISOString(),
-        trialEndDate: trialEndDate.toISOString(),
-        nextBillingDate: trialEndDate.toISOString(),
-        companyDetails: {
-          companyName: formData.companyName,
-          companyRegistration: formData.companyRegistration,
-          vatNumber: formData.vatNumber,
-          address: {
-            line1: formData.addressLine1,
-            line2: formData.addressLine2,
-            city: formData.city,
-            county: formData.county,
-            postcode: formData.postcode,
-          },
-          phone: formData.companyPhone,
-          email: formData.companyEmail,
-        },
-        billingContact: {
-          name: formData.contactName,
-          jobTitle: formData.jobTitle,
-          email: formData.contactEmail,
-          phone: formData.contactPhone,
-        },
-        createdAt: new Date().toISOString(),
+      // Activate trial in database via server-side API (uses service role key)
+      if (userId) {
+        const activateRes = await fetch('/api/activate-trial', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId,
+            trialEndsAt: trialEndDate.toISOString(),
+            companyName: formData.companyName,
+            contactName: formData.contactName,
+            email: formData.accountEmail,
+          }),
+        })
+
+        if (!activateRes.ok) {
+          const err = await activateRes.json()
+          throw new Error(err.error || 'Failed to activate trial')
+        }
       }
 
-      localStorage.setItem('subscription', JSON.stringify(subscriptionData))
       localStorage.setItem('subscriptionStatus', 'trial')
       localStorage.setItem('trialEndDate', trialEndDate.toISOString())
 
