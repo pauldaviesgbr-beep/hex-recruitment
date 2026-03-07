@@ -776,7 +776,7 @@
   .statLabel { font-size: 0.7rem; }
 
   /* Pipeline: wrap into 2 rows on mobile */
-  .pipelineWrap { overflow-x: hidden; }
+  .pipelineWrap { overflow: visible; }
   .pipelineTrack { display: none; }
   .pipeline { flex-wrap: wrap; justify-content: center; gap: 0.25rem; }
   .pipelineStage { flex: 0 0 auto; width: calc(25% - 0.25rem); padding: 0.35rem 0; }
@@ -805,8 +805,10 @@
   .quickActionTitle { font-size: 0.82rem; }
   .quickActionDesc { font-size: 0.68rem; }
 
-  /* Messages: don't expand beyond card on hover */
+  /* Messages: don't expand beyond card on hover, truncate preview text */
   .msgItem:hover { margin: 0; padding-left: 0; padding-right: 0; }
+  .msgContent { overflow: hidden; }
+  .msgPreview { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 }
 
 @media (max-width: 480px) {
