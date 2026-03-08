@@ -218,7 +218,7 @@ export default function Header() {
           </div>
           <div className={styles.dropdownDivider} />
           <Link
-            href={profilePath}
+            href={isEmployer ? '/settings/company' : profilePath}
             className={styles.dropdownItem}
             onClick={() => setShowProfileMenu(false)}
           >
@@ -226,7 +226,7 @@ export default function Header() {
               <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
               <circle cx="12" cy="7" r="4" />
             </svg>
-            View Profile
+            {isEmployer ? 'Company Profile' : 'View Profile'}
           </Link>
           <Link
             href="/settings"
