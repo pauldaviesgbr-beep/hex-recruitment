@@ -141,7 +141,7 @@ export default function EmployerSidebar() {
     // Items without query params: match pathname, but NOT if a sibling
     // query-param item with the same base path is the better match
     if (pathname === href || pathname.startsWith(href + '/')) {
-      const allItems = [...navItems, ...bottomItems]
+      const allItems = [...navItems]
       const hasBetterQueryMatch = allItems.some(
         (item) => item.href.includes('?') && item.href.startsWith(href) && currentUrl === item.href
       )
@@ -201,7 +201,6 @@ export default function EmployerSidebar() {
               key={item.label}
               href={item.href}
               className={`${styles.item} ${isActive(item.href) ? styles.active : ''}`}
-              data-tooltip={item.label}
               onClick={() => setMobileOpen(false)}
               onMouseEnter={() => router.prefetch(item.href)}
             >
@@ -210,6 +209,7 @@ export default function EmployerSidebar() {
               {item.badge && item.badge > 0 && (
                 <span className={styles.badge}>{item.badge}</span>
               )}
+              <span className={styles.tooltip}>{item.label}</span>
             </Link>
           ))}
         </nav>
