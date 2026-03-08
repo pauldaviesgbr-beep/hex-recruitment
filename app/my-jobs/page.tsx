@@ -610,9 +610,11 @@ function MyJobsContent() {
                  `Manage your job listings for ${companyName}`}
               </p>
             </div>
-            <Link href="/post-job" className={styles.postJobBtn}>
-              + Post New Job
-            </Link>
+            {activeTab !== 'interviewing' && activeTab !== 'offers' && activeTab !== 'hired' && (
+              <Link href="/post-job" className={styles.postJobBtn}>
+                + Post New Job
+              </Link>
+            )}
           </div>
 
           {postedJobs.length > 0 && (
