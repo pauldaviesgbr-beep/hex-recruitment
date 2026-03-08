@@ -197,11 +197,11 @@
 
 /* ── Application tracker ─────────────────────────────── */
 .pipeline {
-  display: flex;
-  gap: 0;
-  overflow-x: auto;
-  padding-bottom: 0.25rem;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+  position: relative;
+  z-index: 1;
 }
 
 .pipelineStage {
@@ -997,6 +997,22 @@
     flex-direction: column;
     align-items: flex-start;
     gap: 0.35rem;
+  }
+
+  .card {
+    overflow: visible;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .grid {
+    gap: 1rem;
+  }
+
+  .colLeft,
+  .colRight {
+    min-width: 0;
+    gap: 1rem;
   }
 }
 
