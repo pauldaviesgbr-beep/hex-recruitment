@@ -201,6 +201,7 @@
   gap: 0;
   overflow-x: auto;
   padding-bottom: 0.25rem;
+  flex-wrap: wrap;
 }
 
 .pipelineStage {
@@ -970,7 +971,10 @@
   }
 
   .pipeline {
-    gap: 0;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.5rem;
+    overflow-x: visible;
   }
 
   .pipelineStage {
@@ -997,6 +1001,10 @@
 }
 
 @media (max-width: 480px) {
+  .pipeline {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
   .welcomeHeader {
     flex-direction: column;
     text-align: center;

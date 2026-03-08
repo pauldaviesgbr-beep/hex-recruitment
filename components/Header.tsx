@@ -423,13 +423,6 @@ export default function Header() {
         )}
         <span className={styles.navTooltip}>Saved Jobs</span>
       </Link>
-      <Link href="/jobs" className={styles.navIconLink} aria-label="Browse Jobs">
-        <svg className={styles.navIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="11" cy="11" r="8" />
-          <line x1="21" y1="21" x2="16.65" y2="16.65" />
-        </svg>
-        <span className={styles.navTooltip}>Browse Jobs</span>
-      </Link>
       <Link href="/applications" className={styles.navIconLink} aria-label="My Applications">
         <svg className={styles.navIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
@@ -455,13 +448,6 @@ export default function Header() {
           <polyline points="10 9 9 9 8 9" />
         </svg>
         <span className={styles.navTooltip}>CV Builder</span>
-      </Link>
-      <Link href="/reviews" className={styles.navIconLink} aria-label="Company Reviews">
-        <svg className={styles.navIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
-          <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
-        </svg>
-        <span className={styles.navTooltip}>Company Reviews</span>
       </Link>
       <NotificationBell />
       <ProfileAvatar profilePath="/profile" />
