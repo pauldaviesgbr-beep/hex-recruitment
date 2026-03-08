@@ -172,8 +172,6 @@ export default function EmployerSidebar() {
     },
   ]
 
-  const bottomItems: NavItem[] = []
-
   const isActive = (href: string) => {
     if (href === '/') return pathname === '/'
     const search = searchParams.toString()
@@ -260,22 +258,6 @@ export default function EmployerSidebar() {
           ))}
         </nav>
 
-        {/* Bottom */}
-        <div className={styles.bottom}>
-          {bottomItems.map((item) => (
-            <Link
-              key={item.label}
-              href={item.href}
-              className={`${styles.item} ${isActive(item.href) ? styles.active : ''}`}
-              data-tooltip={item.label}
-              onClick={() => setMobileOpen(false)}
-              onMouseEnter={() => router.prefetch(item.href)}
-            >
-              <span className={styles.icon}>{item.icon}</span>
-              <span className={styles.label}>{item.label}</span>
-            </Link>
-          ))}
-        </div>
       </aside>
     </>
   )
