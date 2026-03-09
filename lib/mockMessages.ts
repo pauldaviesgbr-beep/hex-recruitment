@@ -297,8 +297,10 @@ export function getMessagesByConversationId(conversationId: string): Message[] {
 }
 
 // Helper function to format relative time
-export function formatRelativeTime(dateString: string): string {
+export function formatRelativeTime(dateString: string | null | undefined): string {
+  if (!dateString) return ''
   const date = new Date(dateString)
+  if (isNaN(date.getTime())) return ''
   const now = new Date()
   const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000)
 
@@ -311,8 +313,10 @@ export function formatRelativeTime(dateString: string): string {
 }
 
 // Helper function to format message time
-export function formatMessageTime(dateString: string): string {
+export function formatMessageTime(dateString: string | null | undefined): string {
+  if (!dateString) return ''
   const date = new Date(dateString)
+  if (isNaN(date.getTime())) return ''
   const today = new Date()
   const yesterday = new Date(today)
   yesterday.setDate(yesterday.getDate() - 1)

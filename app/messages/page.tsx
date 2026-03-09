@@ -16,7 +16,8 @@ import {
 type TabType = 'messages' | 'requests'
 
 // Render message text with clickable links
-function renderMessageContent(text: string) {
+function renderMessageContent(text: string | null | undefined) {
+  if (!text) return null
   const urlRegex = /(https?:\/\/[^\s]+)/g
   const parts = text.split(urlRegex)
   return parts.map((part, i) =>
@@ -263,8 +264,9 @@ export default function MessagesPage() {
     declineRequest(connectionId)
   }
 
-  const getInitials = (name: string) => {
-    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+  const getInitials = (name: string | null | undefined) => {
+    if (!name) return '?'
+    return name.split(' ').map(n => n[0] || '').join('').toUpperCase().slice(0, 2) || '?'
   }
 
   const filteredConversations = conversations.filter(conv =>
@@ -478,9 +480,10 @@ export default function MessagesPage() {
                 const isSent = message.senderId === currentUserId
 
                 // Show date divider if this is first message or different day
-                const showDateDivider = index === 0 ||
+                const prevTimestamp = index > 0 ? messages[index - 1]?.timestamp : null
+                const showDateDivider = index === 0 || !prevTimestamp || !message.timestamp ||
                   new Date(message.timestamp).toDateString() !==
-                  new Date(messages[index - 1].timestamp).toDateString()
+                  new Date(prevTimestamp).toDateString()
 
                 return (
                   <div key={message.id}>
