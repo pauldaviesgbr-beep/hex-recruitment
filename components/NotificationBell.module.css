@@ -322,11 +322,12 @@
 /* Responsive */
 @media (max-width: 768px) {
   .dropdown {
-    position: fixed;
-    top: 56px;
-    left: 8px;
-    right: 8px;
-    width: auto;
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    left: auto;
+    width: 320px;
+    max-width: calc(100vw - 16px);
     max-height: 360px;
     border-radius: 10px;
   }

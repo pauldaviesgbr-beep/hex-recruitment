@@ -661,11 +661,12 @@
   }
 
   .profileDropdown {
-    position: fixed;
-    top: 50px;
-    right: 8px;
-    left: 8px;
-    width: auto;
+    position: absolute;
+    top: calc(100% + 0.5rem);
+    right: 0;
+    left: auto;
+    width: 260px;
+    max-width: calc(100vw - 16px);
   }
 
   .iconBadge {
