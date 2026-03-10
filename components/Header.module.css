@@ -91,6 +91,11 @@
   color: var(--primary-yellow);
 }
 
+.navIconLinkActive {
+  color: var(--primary-yellow);
+  background: rgba(255, 229, 0, 0.12);
+}
+
 .navIcon {
   width: 22px;
   height: 22px;

@@ -406,15 +406,18 @@ export default function Header() {
   )
 
   // Navigation for logged-in EMPLOYEES (job seekers)
+  const navLink = (href: string) =>
+    `${styles.navIconLink} ${pathname === href || pathname?.startsWith(href + '/') ? styles.navIconLinkActive : ''}`
+
   const EmployeeNav = () => (
     <>
-      <Link href="/jobs/recommended" className={styles.navIconLink} aria-label="Recommended">
+      <Link href="/jobs/recommended" className={navLink('/jobs/recommended')} aria-label="Recommended">
         <svg className={styles.navIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
         </svg>
         <span className={styles.navTooltip}>Recommended</span>
       </Link>
-      <Link href="/saved-jobs" className={styles.navIconLink} aria-label="Saved Jobs">
+      <Link href="/saved-jobs" className={navLink('/saved-jobs')} aria-label="Saved Jobs">
         <svg className={styles.navIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
         </svg>
@@ -423,14 +426,14 @@ export default function Header() {
         )}
         <span className={styles.navTooltip}>Saved Jobs</span>
       </Link>
-      <Link href="/applications" className={styles.navIconLink} aria-label="My Applications">
+      <Link href="/applications" className={navLink('/applications')} aria-label="My Applications">
         <svg className={styles.navIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
           <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
         </svg>
         <span className={styles.navTooltip}>My Applications</span>
       </Link>
-      <Link href="/messages" className={styles.navIconLink} aria-label="Messages">
+      <Link href="/messages" className={navLink('/messages')} aria-label="Messages">
         <svg className={styles.navIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
         </svg>
@@ -439,7 +442,7 @@ export default function Header() {
         )}
         <span className={styles.navTooltip}>Messages</span>
       </Link>
-      <Link href="/cv-builder" className={styles.navIconLink} aria-label="CV Builder">
+      <Link href="/cv-builder" className={navLink('/cv-builder')} aria-label="CV Builder">
         <svg className={styles.navIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
           <polyline points="14 2 14 8 20 8" />
