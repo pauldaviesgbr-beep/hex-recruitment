@@ -18,10 +18,10 @@ type TabType = 'messages' | 'requests'
 // Render message text with clickable links
 function renderMessageContent(text: string | null | undefined) {
   if (!text) return null
-  const urlRegex = /(https?:\/\/[^\s]+)/g
-  const parts = text.split(urlRegex)
+  const urlPattern = /(https?:\/\/[^\s]+)/g
+  const parts = text.split(urlPattern)
   return parts.map((part, i) =>
-    urlRegex.test(part) ? (
+    /^https?:\/\/[^\s]+$/.test(part) ? (
       <a key={i} href={part} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>{part}</a>
     ) : (
       <span key={i}>{part}</span>
@@ -58,34 +58,45 @@ export default function MessagesPage() {
   // Check authentication and subscription
   useEffect(() => {
     const checkAuth = async () => {
-      const { data: { session }, error } = await supabase.auth.getSession()
+      try {
+        const sessionResult = await supabase.auth.getSession()
+        const session = sessionResult?.data?.session
+        const error = sessionResult?.error
 
-      if (error || !session) {
-        router.push('/login')
-        return
-      }
-
-      setCurrentUserId(session.user.id)
-
-      // Check subscription status for employers
-      if (session.user.user_metadata?.role === 'employer') {
-        const { data: subData } = await supabase
-          .from('employer_subscriptions')
-          .select('subscription_status')
-          .eq('user_id', session.user.id)
-          .single()
-
-        if (subData && (subData.subscription_status === 'active' || subData.subscription_status === 'trialing')) {
-          setHasSubscription(true)
-        } else {
-          setHasSubscription(false)
+        if (error || !session) {
+          router.push('/login')
+          return
         }
-      } else {
-        // Candidates don't need a subscription to message
-        setHasSubscription(true)
-      }
 
-      setIsLoading(false)
+        setCurrentUserId(session.user.id)
+
+        // Check subscription status for employers
+        if (session.user.user_metadata?.role === 'employer') {
+          try {
+            const { data: subData } = await supabase
+              .from('employer_subscriptions')
+              .select('subscription_status')
+              .eq('user_id', session.user.id)
+              .single()
+
+            if (subData && (subData.subscription_status === 'active' || subData.subscription_status === 'trialing')) {
+              setHasSubscription(true)
+            } else {
+              setHasSubscription(false)
+            }
+          } catch {
+            setHasSubscription(false)
+          }
+        } else {
+          // Candidates don't need a subscription to message
+          setHasSubscription(true)
+        }
+
+        setIsLoading(false)
+      } catch {
+        // Auth check failed — redirect to login
+        router.push('/login')
+      }
     }
 
     checkAuth()
@@ -98,31 +109,35 @@ export default function MessagesPage() {
 
   // Load messages from Supabase when conversation is selected
   const loadMessages = useCallback(async (conversationId: string) => {
-    const { data, error } = await supabase
-      .from('messages')
-      .select('*')
-      .eq('conversation_id', conversationId)
-      .order('created_at', { ascending: true })
+    try {
+      const { data, error } = await supabase
+        .from('messages')
+        .select('*')
+        .eq('conversation_id', conversationId)
+        .order('created_at', { ascending: true })
 
-    if (error) {
-      if (!error.message?.includes('does not exist')) {
-        console.error('Error loading messages:', error.message)
+      if (error) {
+        if (!error.message?.includes('does not exist')) {
+          console.error('Error loading messages:', error.message)
+        }
+        return
       }
-      return
-    }
 
-    if (data) {
-      const mapped: Message[] = data.map((row: any) => ({
-        id: row.id,
-        conversationId: row.conversation_id,
-        senderId: row.sender_id,
-        senderName: row.sender_name || 'User',
-        senderRole: (row.sender_role === 'employer' ? 'employer' : 'candidate') as 'employer' | 'candidate',
-        content: row.content,
-        timestamp: row.created_at,
-        isRead: row.is_read,
-      }))
-      setMessages(mapped)
+      if (data) {
+        const mapped: Message[] = data.map((row: any) => ({
+          id: row.id,
+          conversationId: row.conversation_id,
+          senderId: row.sender_id || '',
+          senderName: row.sender_name || 'User',
+          senderRole: (row.sender_role === 'employer' ? 'employer' : 'candidate') as 'employer' | 'candidate',
+          content: row.content || '',
+          timestamp: row.created_at || new Date().toISOString(),
+          isRead: row.is_read,
+        }))
+        setMessages(mapped)
+      }
+    } catch {
+      // Fail silently on network errors
     }
   }, [])
 
@@ -269,10 +284,12 @@ export default function MessagesPage() {
     return name.split(' ').map(n => n[0] || '').join('').toUpperCase().slice(0, 2) || '?'
   }
 
-  const filteredConversations = conversations.filter(conv =>
-    conv.participantName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (conv.participantJobTitle?.toLowerCase().includes(searchQuery.toLowerCase()))
-  )
+  const filteredConversations = (conversations || []).filter(conv => {
+    const name = (conv.participantName || '').toLowerCase()
+    const title = (conv.participantJobTitle || '').toLowerCase()
+    const query = searchQuery.toLowerCase()
+    return name.includes(query) || title.includes(query)
+  })
 
   if (isLoading) {
     return <div className={styles.loading}>Loading messages...</div>

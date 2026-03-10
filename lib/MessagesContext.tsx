@@ -28,67 +28,72 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
 
   // Load conversations from Supabase
   const loadConversations = useCallback(async () => {
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session) return
+    try {
+      const sessionResult = await supabase.auth.getSession()
+      const session = sessionResult?.data?.session
+      if (!session) return
 
-    const userId = session.user.id
+      const userId = session.user.id
 
-    const { data, error } = await supabase
-      .from('conversations')
-      .select('*')
-      .or(`participant_1.eq.${userId},participant_2.eq.${userId}`)
-      .order('last_message_at', { ascending: false })
+      const { data, error } = await supabase
+        .from('conversations')
+        .select('*')
+        .or(`participant_1.eq.${userId},participant_2.eq.${userId}`)
+        .order('last_message_at', { ascending: false })
 
-    if (error) {
-      // Table might not exist yet — fail silently and stop polling
-      tableOk.current = false
-      return
-    }
+      if (error) {
+        // Table might not exist yet — fail silently and stop polling
+        tableOk.current = false
+        return
+      }
 
-    if (!data) return
+      if (!data) return
 
-    // Fetch all unread counts in a single batch query instead of N separate queries
-    const conversationIds = data.map((row: any) => row.id)
-    const unreadMap: Record<string, number> = {}
-    if (conversationIds.length > 0) {
-      const { data: unreadRows } = await supabase
-        .from('messages')
-        .select('conversation_id')
-        .in('conversation_id', conversationIds)
-        .neq('sender_id', userId)
-        .eq('is_read', false)
+      // Fetch all unread counts in a single batch query instead of N separate queries
+      const conversationIds = data.map((row: any) => row.id)
+      const unreadMap: Record<string, number> = {}
+      if (conversationIds.length > 0) {
+        const { data: unreadRows } = await supabase
+          .from('messages')
+          .select('conversation_id')
+          .in('conversation_id', conversationIds)
+          .neq('sender_id', userId)
+          .eq('is_read', false)
 
-      if (unreadRows) {
-        for (const msg of unreadRows) {
-          unreadMap[msg.conversation_id] = (unreadMap[msg.conversation_id] || 0) + 1
+        if (unreadRows) {
+          for (const msg of unreadRows) {
+            unreadMap[msg.conversation_id] = (unreadMap[msg.conversation_id] || 0) + 1
+          }
         }
       }
+
+      const mapped: Conversation[] = data.map((row: any) => {
+        const isP1 = row.participant_1 === userId
+        const otherName = isP1 ? row.participant_2_name : row.participant_1_name
+        const otherRole = isP1 ? row.participant_2_role : row.participant_1_role
+        const otherCompany = isP1 ? row.participant_2_company : row.participant_1_company
+        const otherId = isP1 ? row.participant_2 : row.participant_1
+
+        return {
+          id: row.id,
+          connectionId: row.id,
+          participantId: otherId || '',
+          participantName: otherName || 'Unknown',
+          participantRole: (otherRole === 'employer' ? 'employer' : 'candidate') as 'employer' | 'candidate',
+          participantCompany: otherCompany || undefined,
+          participantProfilePicture: null,
+          lastMessage: row.last_message || '',
+          lastMessageAt: row.last_message_at || row.created_at || new Date().toISOString(),
+          unreadCount: unreadMap[row.id] || 0,
+          isOnline: false,
+          participantJobTitle: row.related_job_title || undefined,
+        }
+      })
+
+      setConversations(mapped)
+    } catch {
+      // Network or unexpected errors — fail silently
     }
-
-    const mapped: Conversation[] = data.map((row: any) => {
-      const isP1 = row.participant_1 === userId
-      const otherName = isP1 ? row.participant_2_name : row.participant_1_name
-      const otherRole = isP1 ? row.participant_2_role : row.participant_1_role
-      const otherCompany = isP1 ? row.participant_2_company : row.participant_1_company
-      const otherId = isP1 ? row.participant_2 : row.participant_1
-
-      return {
-        id: row.id,
-        connectionId: row.id,
-        participantId: otherId,
-        participantName: otherName || 'Unknown',
-        participantRole: (otherRole === 'employer' ? 'employer' : 'candidate') as 'employer' | 'candidate',
-        participantCompany: otherCompany || undefined,
-        participantProfilePicture: null,
-        lastMessage: row.last_message || '',
-        lastMessageAt: row.last_message_at || row.created_at,
-        unreadCount: unreadMap[row.id] || 0,
-        isOnline: false,
-        participantJobTitle: row.related_job_title || undefined,
-      }
-    })
-
-    setConversations(mapped)
   }, [])
 
   // Track whether the table exists to avoid repeated 400s
@@ -102,7 +107,7 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
       if (tableOk.current) {
         interval = setInterval(loadConversations, 30000)
       }
-    })
+    }).catch(() => {})
 
     return () => { if (interval) clearInterval(interval) }
   }, [loadConversations])
@@ -137,9 +142,11 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
       const updated = prev.map(conv =>
         conv.id === conversationId ? { ...conv, ...updates } : conv
       )
-      return updated.sort((a, b) =>
-        new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()
-      )
+      return updated.sort((a, b) => {
+        const ta = a.lastMessageAt ? new Date(a.lastMessageAt).getTime() : 0
+        const tb = b.lastMessageAt ? new Date(b.lastMessageAt).getTime() : 0
+        return (isNaN(tb) ? 0 : tb) - (isNaN(ta) ? 0 : ta)
+      })
     })
   }, [])
 
@@ -161,8 +168,8 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
       const newConversation: Conversation = {
         id: `conv-new-${Date.now()}`,
         connectionId: connection.id,
-        participantId: connection.employerId,
-        participantName: connection.employerName,
+        participantId: connection.employerId || '',
+        participantName: connection.employerName || 'Unknown',
         participantRole: 'employer',
         participantCompany: connection.employerCompany,
         participantProfilePicture: null,
