@@ -47,39 +47,46 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
 
     if (!data) return
 
-    // For each conversation, count unread messages
-    const mapped: Conversation[] = await Promise.all(
-      data.map(async (row: any) => {
-        const isP1 = row.participant_1 === userId
-        const otherName = isP1 ? row.participant_2_name : row.participant_1_name
-        const otherRole = isP1 ? row.participant_2_role : row.participant_1_role
-        const otherCompany = isP1 ? row.participant_2_company : row.participant_1_company
-        const otherId = isP1 ? row.participant_2 : row.participant_1
+    // Fetch all unread counts in a single batch query instead of N separate queries
+    const conversationIds = data.map((row: any) => row.id)
+    const unreadMap: Record<string, number> = {}
+    if (conversationIds.length > 0) {
+      const { data: unreadRows } = await supabase
+        .from('messages')
+        .select('conversation_id')
+        .in('conversation_id', conversationIds)
+        .neq('sender_id', userId)
+        .eq('is_read', false)
 
-        // Count unread messages (messages not sent by me and not read)
-        const { count } = await supabase
-          .from('messages')
-          .select('id', { count: 'exact', head: true })
-          .eq('conversation_id', row.id)
-          .neq('sender_id', userId)
-          .eq('is_read', false)
-
-        return {
-          id: row.id,
-          connectionId: row.id,
-          participantId: otherId,
-          participantName: otherName || 'Unknown',
-          participantRole: (otherRole === 'employer' ? 'employer' : 'candidate') as 'employer' | 'candidate',
-          participantCompany: otherCompany || undefined,
-          participantProfilePicture: null,
-          lastMessage: row.last_message || '',
-          lastMessageAt: row.last_message_at || row.created_at,
-          unreadCount: count || 0,
-          isOnline: false,
-          participantJobTitle: row.related_job_title || undefined,
+      if (unreadRows) {
+        for (const msg of unreadRows) {
+          unreadMap[msg.conversation_id] = (unreadMap[msg.conversation_id] || 0) + 1
         }
-      })
-    )
+      }
+    }
+
+    const mapped: Conversation[] = data.map((row: any) => {
+      const isP1 = row.participant_1 === userId
+      const otherName = isP1 ? row.participant_2_name : row.participant_1_name
+      const otherRole = isP1 ? row.participant_2_role : row.participant_1_role
+      const otherCompany = isP1 ? row.participant_2_company : row.participant_1_company
+      const otherId = isP1 ? row.participant_2 : row.participant_1
+
+      return {
+        id: row.id,
+        connectionId: row.id,
+        participantId: otherId,
+        participantName: otherName || 'Unknown',
+        participantRole: (otherRole === 'employer' ? 'employer' : 'candidate') as 'employer' | 'candidate',
+        participantCompany: otherCompany || undefined,
+        participantProfilePicture: null,
+        lastMessage: row.last_message || '',
+        lastMessageAt: row.last_message_at || row.created_at,
+        unreadCount: unreadMap[row.id] || 0,
+        isOnline: false,
+        participantJobTitle: row.related_job_title || undefined,
+      }
+    })
 
     setConversations(mapped)
   }, [])
