@@ -48,42 +48,47 @@ function calculateMatchScore(
   let score = 0
   const reasons: string[] = []
 
-  // 1. Skills match (max 35 points)
+  // 1. Title / industry semantic match (max 30 points) — highest-weight signal
+  const titleScore = calcTitleMatch(job, candidate)
+  score += titleScore.points
+  if (titleScore.reason) reasons.push(titleScore.reason)
+
+  // 2. Skills match (max 35 points)
   const skillScore = calcSkillMatch(job, candidate)
   score += skillScore.points
   if (skillScore.reason) reasons.push(skillScore.reason)
 
-  // 2. Job type / employment type match (max 15 points)
+  // 3. Job type / employment type match (max 15 points)
   const typeScore = calcTypeMatch(job, candidate)
   score += typeScore.points
   if (typeScore.reason) reasons.push(typeScore.reason)
 
-  // 3. Salary match (max 15 points)
+  // 4. Salary match (max 15 points)
   const salaryScore = calcSalaryMatch(job, candidate)
   score += salaryScore.points
   if (salaryScore.reason) reasons.push(salaryScore.reason)
 
-  // 4. Location match (max 15 points)
+  // 5. Location match (max 15 points)
   const locationScore = calcLocationMatch(job, candidate)
   score += locationScore.points
   if (locationScore.reason) reasons.push(locationScore.reason)
 
-  // 5. Sector / category match (max 10 points)
+  // 6. Sector / category match (max 10 points)
   const sectorScore = calcSectorMatch(job, candidate)
   score += sectorScore.points
   if (sectorScore.reason) reasons.push(sectorScore.reason)
 
-  // 6. Browsing pattern bonus (max 5 points)
+  // 7. Browsing pattern bonus (max 5 points)
   const browsingScore = calcBrowsingBonus(job, viewedJobs)
   score += browsingScore.points
   if (browsingScore.reason) reasons.push(browsingScore.reason)
 
-  // 7. Recency bonus (max 5 points)
+  // 8. Recency bonus (max 5 points)
   const recencyScore = calcRecencyBonus(job)
   score += recencyScore.points
   if (recencyScore.reason) reasons.push(recencyScore.reason)
 
-  // 8. Tag affinity (max 10 points)
+  // 9. Tag affinity (max 10 points)
   const tagScore = calcTagAffinity(job, viewedJobs, allJobs)
   score += tagScore.points
   if (tagScore.reason) reasons.push(tagScore.reason)
@@ -93,6 +98,102 @@ function calculateMatchScore(
 
 // ─── Individual scoring components ──────────────────────────────
 
+// Keyword groups mapping industry terms to sector buckets.
+// Used to infer a candidate's/job's industry from free-text titles.
+const SECTOR_KEYWORDS: Record<string, string[]> = {
+  admin:       ['administration', 'admin', 'coordinator', 'officer', 'clerk', 'secretary', 'receptionist', 'pa ', 'executive assistant', 'office manager', 'support manager'],
+  digital:     ['software', 'developer', 'engineer', 'programmer', 'web ', 'frontend', 'backend', 'fullstack', 'devops', 'cloud', 'cybersecurity', 'data scientist', 'machine learning', 'ai engineer', 'sysadmin', 'it support', 'network'],
+  data:        ['data analyst', 'data engineer', 'business intelligence', 'bi analyst', 'data manager', 'reporting analyst'],
+  business:    ['manager', 'director', 'operations', 'business analyst', 'strategy', 'management consultant', 'project manager', 'programme manager', 'chief'],
+  hospitality: ['chef', 'cook ', 'hotel', 'restaurant', 'catering', 'bartender', 'waiter', 'waitress', 'sommelier', 'barista', 'kitchen', 'front of house', 'housekeeper', 'concierge'],
+  healthcare:  ['nurse', 'doctor', 'carer', 'care assistant', 'health visitor', 'medical', 'clinical', 'physiotherapist', 'occupational therapist', 'pharmacy', 'social worker', 'support worker', 'healthcare'],
+  marketing:   ['marketing', 'brand', 'advertising', 'pr manager', 'content', 'seo', 'social media', 'communications', 'campaign'],
+  finance:     ['accountant', 'accounting', 'finance', 'financial analyst', 'banking', 'tax', 'audit', 'investment', 'treasury', 'bookkeeper', 'payroll'],
+  teaching:    ['teacher', 'lecturer', 'tutor', 'education', 'training', 'instructor', 'academic', 'teaching assistant', 'senco'],
+  retail:      ['retail', 'sales assistant', 'shop', 'store manager', 'buyer', 'merchandiser', 'visual merchandiser'],
+  sales:       ['sales manager', 'account manager', 'business development', 'sales executive', 'sales rep'],
+  engineering: ['mechanical engineer', 'electrical engineer', 'civil engineer', 'structural engineer', 'manufacturing', 'production engineer', 'quality engineer'],
+  legal:       ['solicitor', 'lawyer', 'legal', 'paralegal', 'barrister', 'compliance', 'regulatory'],
+  creative:    ['designer', 'graphic design', 'artist', 'creative', 'photographer', 'animator', 'ux', 'ui designer'],
+  hr:          ['hr ', 'human resources', 'talent acquisition', 'people manager', 'recruitment consultant', 'resourcing'],
+  property:    ['property manager', 'estate agent', 'construction', 'architect', 'surveyor', 'building manager'],
+  logistics:   ['driver', 'logistics', 'transport', 'warehouse', 'delivery', 'supply chain', 'fleet'],
+  science:     ['scientist', 'researcher', 'laboratory', 'lab technician', 'chemist', 'biologist', 'r&d'],
+  media:       ['journalist', 'editor', 'producer', 'broadcaster', 'media', 'copywriter', 'content writer'],
+}
+
+function inferSectors(text: string): Set<string> {
+  const lower = ` ${text.toLowerCase()} `
+  const found = new Set<string>()
+  for (const [sector, keywords] of Object.entries(SECTOR_KEYWORDS)) {
+    if (keywords.some(kw => lower.includes(kw))) found.add(sector)
+  }
+  return found
+}
+
+// Title / industry semantic match (max 30 points)
+function calcTitleMatch(
+  job: Job,
+  candidate: Candidate
+): { points: number; reason: string | null } {
+  const candidateTitle = (candidate.jobTitle || '').toLowerCase().trim()
+
+  // Collect all title sources: current title + work history roles
+  const historyTitles = (candidate.workHistory || [])
+    .map(w => (w.title || '').toLowerCase().trim())
+    .filter(Boolean)
+
+  const allCandidateTitles = [candidateTitle, ...historyTitles].filter(Boolean)
+
+  // No title info at all — neutral, don't penalise
+  if (allCandidateTitles.length === 0) return { points: 10, reason: null }
+
+  const jobTitle = (job.title || '').toLowerCase()
+  const jobCategory = (job.category || '').toLowerCase()
+  const jobText = `${jobTitle} ${jobCategory}`
+
+  // 1. Direct word overlap between candidate title and job title
+  const candWords = candidateTitle.split(/\s+/).filter(w => w.length > 3)
+  const jobWords = jobTitle.split(/\s+/).filter(w => w.length > 3)
+  const wordOverlap = candWords.filter(cw =>
+    jobWords.some(jw => jw.includes(cw) || cw.includes(jw))
+  )
+  if (wordOverlap.length > 0) {
+    return { points: 30, reason: 'Matches your job title' }
+  }
+
+  // 2. Also check work history titles against job title
+  for (const histTitle of historyTitles) {
+    const histWords = histTitle.split(/\s+/).filter(w => w.length > 3)
+    const histOverlap = histWords.filter(hw =>
+      jobWords.some(jw => jw.includes(hw) || hw.includes(jw))
+    )
+    if (histOverlap.length > 0) {
+      return { points: 25, reason: 'Matches your experience' }
+    }
+  }
+
+  // 3. Sector inference — map both candidate and job to sector buckets
+  const candidateSectors = new Set<string>()
+  for (const t of allCandidateTitles) inferSectors(t).forEach(s => candidateSectors.add(s))
+
+  const jobSectors = inferSectors(jobText)
+
+  const sectorOverlap = Array.from(candidateSectors).filter(s => jobSectors.has(s))
+
+  if (sectorOverlap.length > 0) {
+    return { points: 20, reason: 'In your industry' }
+  }
+
+  // Both sides have identifiable sectors but they don't overlap — clearly different field
+  if (candidateSectors.size > 0 && jobSectors.size > 0) {
+    return { points: 0, reason: null }
+  }
+
+  // One or both sides unclassified — neutral
+  return { points: 8, reason: null }
+}
+
 function calcSkillMatch(
   job: Job,
   candidate: Candidate
@@ -101,8 +202,8 @@ function calcSkillMatch(
   const candidateSkills = (candidate.skills || []).map(s => s.toLowerCase().trim())
 
   if (jobSkills.length === 0) {
-    // No skills required — give partial credit
-    return { points: 15, reason: 'No specific skills required' }
+    // No skills required — small neutral credit, not a match signal
+    return { points: 5, reason: null }
   }
 
   const matchedSkills = jobSkills.filter(js =>
