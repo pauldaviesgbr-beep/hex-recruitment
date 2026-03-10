@@ -26,6 +26,10 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [pendingRequests, setPendingRequests] = useState<Connection[]>([])
 
+  // Track whether the table exists to avoid repeated 400s
+  // Declared before loadConversations so the closure captures an initialised ref
+  const tableOk = useRef(true)
+
   // Load conversations from Supabase
   const loadConversations = useCallback(async () => {
     try {
@@ -95,9 +99,6 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
       // Network or unexpected errors — fail silently
     }
   }, [])
-
-  // Track whether the table exists to avoid repeated 400s
-  const tableOk = useRef(true)
 
   // Load on mount, only poll if initial load succeeds
   useEffect(() => {
