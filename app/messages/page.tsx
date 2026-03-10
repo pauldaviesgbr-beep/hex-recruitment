@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Header from '@/components/Header'
 import { supabase } from '@/lib/supabase'
 import { useMessages } from '@/lib/MessagesContext'
+import ErrorBoundary from '@/components/ErrorBoundary'
 import styles from './page.module.css'
 import {
   formatRelativeTime,
@@ -320,6 +321,7 @@ export default function MessagesPage() {
   }
 
   return (
+    <ErrorBoundary label="MessagesPage">
     <div className={styles.container}>
       <Header />
 
@@ -599,5 +601,6 @@ export default function MessagesPage() {
         )}
       </div>
     </div>
+    </ErrorBoundary>
   )
 }
