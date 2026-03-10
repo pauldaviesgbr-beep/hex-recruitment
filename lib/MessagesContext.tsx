@@ -124,16 +124,20 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
       )
     )
 
-    // Mark all unread messages in this conversation as read
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session) return
+    try {
+      const sessionResult = await supabase.auth.getSession()
+      const session = sessionResult?.data?.session
+      if (!session) return
 
-    await supabase
-      .from('messages')
-      .update({ is_read: true })
-      .eq('conversation_id', conversationId)
-      .neq('sender_id', session.user.id)
-      .eq('is_read', false)
+      await supabase
+        .from('messages')
+        .update({ is_read: true })
+        .eq('conversation_id', conversationId)
+        .neq('sender_id', session.user.id)
+        .eq('is_read', false)
+    } catch {
+      // Fail silently — unread count already updated locally
+    }
   }, [])
 
   // Update a conversation

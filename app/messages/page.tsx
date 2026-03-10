@@ -42,6 +42,12 @@ export default function MessagesPage() {
   const [hasSubscription, setHasSubscription] = useState<boolean | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
+  const isMounted = useRef(true)
+
+  useEffect(() => {
+    isMounted.current = true
+    return () => { isMounted.current = false }
+  }, [])
 
   // Get conversations and pending requests from global context
   const {
@@ -160,25 +166,31 @@ export default function MessagesPage() {
     if (!selectedConversation) return
 
     const pollInterval = setInterval(async () => {
-      const { data } = await supabase
-        .from('messages')
-        .select('*')
-        .eq('conversation_id', selectedConversation.id)
-        .order('created_at', { ascending: true })
+      try {
+        const { data } = await supabase
+          .from('messages')
+          .select('*')
+          .eq('conversation_id', selectedConversation.id)
+          .order('created_at', { ascending: true })
 
-      if (data && data.length !== messages.length) {
-        const mapped: Message[] = data.map((row: any) => ({
-          id: row.id,
-          conversationId: row.conversation_id,
-          senderId: row.sender_id,
-          senderName: row.sender_name || 'User',
-          senderRole: (row.sender_role === 'employer' ? 'employer' : 'candidate') as 'employer' | 'candidate',
-          content: row.content,
-          timestamp: row.created_at,
-          isRead: row.is_read,
-        }))
-        setMessages(mapped)
-        markConversationAsRead(selectedConversation.id)
+        if (!isMounted.current) return
+
+        if (data && data.length !== messages.length) {
+          const mapped: Message[] = data.map((row: any) => ({
+            id: row.id,
+            conversationId: row.conversation_id,
+            senderId: row.sender_id || '',
+            senderName: row.sender_name || 'User',
+            senderRole: (row.sender_role === 'employer' ? 'employer' : 'candidate') as 'employer' | 'candidate',
+            content: row.content || '',
+            timestamp: row.created_at || new Date().toISOString(),
+            isRead: row.is_read,
+          }))
+          setMessages(mapped)
+          markConversationAsRead(selectedConversation.id)
+        }
+      } catch {
+        // Fail silently on network errors during polling
       }
     }, 5000)
 
@@ -198,8 +210,15 @@ export default function MessagesPage() {
     setNewMessage('')
 
     // Get session for sender info
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session) return
+    let session: any = null
+    try {
+      const result = await supabase.auth.getSession()
+      session = result?.data?.session
+    } catch {
+      setNewMessage(content) // Restore on failure
+      return
+    }
+    if (!session) { setNewMessage(content); return }
 
     const senderName = session.user.user_metadata?.full_name || session.user.user_metadata?.company_name || 'You'
     const senderRole = session.user.user_metadata?.role || 'candidate'

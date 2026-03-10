@@ -11,6 +11,8 @@
   margin: 0 auto;
   background: var(--white);
   box-shadow: 0 2px 20px rgba(45, 55, 72, 0.08);
+  position: relative;
+  overflow: hidden;
 }
 
 /* Sidebar - Conversations List */
