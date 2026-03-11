@@ -1,20 +1,16 @@
-import type { Metadata } from 'next'
-import { MessagesProvider } from '@/lib/MessagesContext'
-import ErrorBoundary from '@/components/ErrorBoundary'
+'use client'
 
-export const metadata: Metadata = {
-  title: 'Messages - Your Conversations',
-  description: 'View and manage your messages with employers and candidates on Hex.',
-  robots: { index: false },
-  alternates: {
-    canonical: '/messages',
-  },
-}
+import { useState, useEffect } from 'react'
+import { MessagesProvider } from '@/lib/MessagesContext'
 
 export default function MessagesLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <ErrorBoundary label="MessagesLayout">
-      <MessagesProvider>{children}</MessagesProvider>
-    </ErrorBoundary>
-  )
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  if (!mounted) return <>{children}</>
+
+  return <MessagesProvider>{children}</MessagesProvider>
 }
