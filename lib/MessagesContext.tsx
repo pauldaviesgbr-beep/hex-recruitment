@@ -23,14 +23,15 @@ interface MessagesContextType {
 const MessagesContext = createContext<MessagesContextType | undefined>(undefined)
 
 export function MessagesProvider({ children }: { children: ReactNode }) {
+  // ── State (all useState calls, unconditionally, at the top) ────────────
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [pendingRequests, setPendingRequests] = useState<Connection[]>([])
 
-  // Track whether the table exists to avoid repeated 400s
-  // Declared before loadConversations so the closure captures an initialised ref
+  // ── Refs (all useRef calls, before any useCallback that captures them) ─
   const tableOk = useRef(true)
 
-  // Load conversations from Supabase
+  // ── Callbacks (all useCallback calls, before useEffect) ───────────────
+
   const loadConversations = useCallback(async () => {
     try {
       const sessionResult = await supabase.auth.getSession()
@@ -46,14 +47,12 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
         .order('last_message_at', { ascending: false })
 
       if (error) {
-        // Table might not exist yet — fail silently and stop polling
         tableOk.current = false
         return
       }
 
       if (!data) return
 
-      // Fetch all unread counts in a single batch query instead of N separate queries
       const conversationIds = data.map((row: any) => row.id)
       const unreadMap: Record<string, number> = {}
       if (conversationIds.length > 0) {
@@ -73,18 +72,14 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
 
       const mapped: Conversation[] = data.map((row: any) => {
         const isP1 = row.participant_1 === userId
-        const otherName = isP1 ? row.participant_2_name : row.participant_1_name
-        const otherRole = isP1 ? row.participant_2_role : row.participant_1_role
-        const otherCompany = isP1 ? row.participant_2_company : row.participant_1_company
-        const otherId = isP1 ? row.participant_2 : row.participant_1
-
         return {
           id: row.id,
           connectionId: row.id,
-          participantId: otherId || '',
-          participantName: otherName || 'Unknown',
-          participantRole: (otherRole === 'employer' ? 'employer' : 'candidate') as 'employer' | 'candidate',
-          participantCompany: otherCompany || undefined,
+          participantId: (isP1 ? row.participant_2 : row.participant_1) || '',
+          participantName: (isP1 ? row.participant_2_name : row.participant_1_name) || 'Unknown',
+          participantRole: ((isP1 ? row.participant_2_role : row.participant_1_role) === 'employer'
+            ? 'employer' : 'candidate') as 'employer' | 'candidate',
+          participantCompany: (isP1 ? row.participant_2_company : row.participant_1_company) || undefined,
           participantProfilePicture: null,
           lastMessage: row.last_message || '',
           lastMessageAt: row.last_message_at || row.created_at || new Date().toISOString(),
@@ -100,36 +95,16 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  // Load on mount, only poll if initial load succeeds
-  useEffect(() => {
-    let interval: ReturnType<typeof setInterval> | null = null
-
-    loadConversations().then(() => {
-      if (tableOk.current) {
-        interval = setInterval(loadConversations, 30000)
-      }
-    }).catch(() => {})
-
-    return () => { if (interval) clearInterval(interval) }
-  }, [loadConversations])
-
-  // Calculate total unread count from all conversations
-  const totalUnreadCount = conversations.reduce((sum, conv) => sum + conv.unreadCount, 0)
-  const pendingRequestsCount = pendingRequests.length
-
-  // Mark a conversation as read
   const markConversationAsRead = useCallback(async (conversationId: string) => {
     setConversations(prev =>
       prev.map(conv =>
         conv.id === conversationId ? { ...conv, unreadCount: 0 } : conv
       )
     )
-
     try {
       const sessionResult = await supabase.auth.getSession()
       const session = sessionResult?.data?.session
       if (!session) return
-
       await supabase
         .from('messages')
         .update({ is_read: true })
@@ -141,7 +116,6 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  // Update a conversation
   const updateConversation = useCallback((conversationId: string, updates: Partial<Conversation>) => {
     setConversations(prev => {
       const updated = prev.map(conv =>
@@ -155,20 +129,16 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
     })
   }, [])
 
-  // Add a new conversation (local state only — Supabase insert is done by the caller)
   const addConversation = useCallback((conversation: Conversation) => {
     setConversations(prev => {
-      // Avoid duplicates
       if (prev.find(c => c.id === conversation.id)) return prev
       return [conversation, ...prev]
     })
   }, [])
 
-  // Accept a connection request
   const acceptRequest = useCallback((connectionId: string) => {
     const connection = pendingRequests.find(c => c.id === connectionId)
     setPendingRequests(prev => prev.filter(req => req.id !== connectionId))
-
     if (connection) {
       const newConversation: Conversation = {
         id: `conv-new-${Date.now()}`,
@@ -181,18 +151,32 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
         lastMessage: connection.message || 'Connection accepted',
         lastMessageAt: new Date().toISOString(),
         unreadCount: 1,
-        isOnline: false
+        isOnline: false,
       }
       setConversations(prev => [newConversation, ...prev])
     }
   }, [pendingRequests])
 
-  // Decline a connection request
   const declineRequest = useCallback((connectionId: string) => {
     setPendingRequests(prev => prev.filter(req => req.id !== connectionId))
   }, [])
 
-  const refreshConversations = loadConversations
+  // ── Effects (all useEffect calls, after all useCallback declarations) ──
+
+  useEffect(() => {
+    let interval: ReturnType<typeof setInterval> | null = null
+    loadConversations().then(() => {
+      if (tableOk.current) {
+        interval = setInterval(loadConversations, 30000)
+      }
+    }).catch(() => {})
+    return () => { if (interval) clearInterval(interval) }
+  }, [loadConversations])
+
+  // ── Derived values (no hooks below this line) ──────────────────────────
+
+  const totalUnreadCount = conversations.reduce((sum, conv) => sum + conv.unreadCount, 0)
+  const pendingRequestsCount = pendingRequests.length
 
   return (
     <MessagesContext.Provider
@@ -206,7 +190,7 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
         addConversation,
         acceptRequest,
         declineRequest,
-        refreshConversations
+        refreshConversations: loadConversations,
       }}
     >
       {children}
