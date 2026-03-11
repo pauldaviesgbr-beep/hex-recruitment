@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { MessagesProvider } from '@/lib/MessagesContext'
 
 export const metadata: Metadata = {
   title: 'Messages - Your Conversations',
@@ -10,5 +11,5 @@ export const metadata: Metadata = {
 }
 
 export default function MessagesLayout({ children }: { children: React.ReactNode }) {
-  return children
+  return <MessagesProvider>{children}</MessagesProvider>
 }

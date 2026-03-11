@@ -198,10 +198,21 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
   )
 }
 
-export function useMessages() {
-  const context = useContext(MessagesContext)
-  if (context === undefined) {
-    throw new Error('useMessages must be used within a MessagesProvider')
-  }
-  return context
+// Safe defaults returned when useMessages() is called outside MessagesProvider
+// (e.g. Header, job pages, dashboards that live outside the /messages route)
+const emptyContext: MessagesContextType = {
+  conversations: [],
+  pendingRequests: [],
+  totalUnreadCount: 0,
+  pendingRequestsCount: 0,
+  markConversationAsRead: async () => {},
+  updateConversation: () => {},
+  addConversation: () => {},
+  acceptRequest: () => {},
+  declineRequest: () => {},
+  refreshConversations: async () => {},
+}
+
+export function useMessages(): MessagesContextType {
+  return useContext(MessagesContext) ?? emptyContext
 }
