@@ -297,7 +297,9 @@ export default function ChatBot() {
   const inputRef = useRef<HTMLInputElement>(null)
 
   // Hide chatbot on the messages page to avoid overlapping the send button
-  if (pathname === '/messages') return null
+  // NOTE: must NOT early-return here — that would break the Rules of Hooks by
+  // skipping useEffect calls below. The pathname check is applied in the return instead.
+  const hiddenOnPage = pathname === '/messages'
 
   // Initial welcome message
   useEffect(() => {
@@ -390,6 +392,8 @@ export default function ChatBot() {
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
   }
+
+  if (hiddenOnPage) return null
 
   return (
     <>
