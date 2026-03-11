@@ -6,13 +6,12 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Header from '@/components/Header'
 import { supabase } from '@/lib/supabase'
-import { useMessages } from '@/lib/MessagesContext'
-import ErrorBoundary from '@/components/ErrorBoundary'
 import styles from './page.module.css'
 import {
   formatRelativeTime,
   formatMessageTime,
   type Conversation,
+  type Connection,
   type Message
 } from '@/lib/mockMessages'
 
@@ -39,6 +38,8 @@ export default function MessagesPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<TabType>('messages')
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null)
+  const [conversations, setConversations] = useState<Conversation[]>([])
+  const [pendingRequests, setPendingRequests] = useState<Connection[]>([])
   const [messages, setMessages] = useState<Message[]>([])
   const [newMessage, setNewMessage] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
@@ -51,19 +52,70 @@ export default function MessagesPage() {
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const isMounted = useRef(true)
 
-  // ── Context (before any effects) ───────────────────────────────────────
-  const {
-    conversations,
-    pendingRequests,
-    totalUnreadCount,
-    markConversationAsRead,
-    updateConversation,
-    acceptRequest,
-    declineRequest,
-    refreshConversations
-  } = useMessages()
+  // ── Derived values ─────────────────────────────────────────────────────
+  const totalUnreadCount = conversations.reduce((sum, c) => sum + (c.unreadCount || 0), 0)
 
-  // ── Callbacks (before any effects that reference them) ─────────────────
+  // ── Callbacks ──────────────────────────────────────────────────────────
+  const loadConversations = useCallback(async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('conversations')
+        .select('*')
+        .or(`participant_1.eq.${userId},participant_2.eq.${userId}`)
+        .order('last_message_at', { ascending: false })
+
+      if (error) {
+        if (!error.message?.includes('does not exist')) {
+          console.error('[MessagesPage] loadConversations error:', error.message)
+        }
+        return
+      }
+
+      if (!data) return
+
+      // Batch fetch unread counts
+      const conversationIds = data.map((row: any) => row.id)
+      const unreadMap: Record<string, number> = {}
+      if (conversationIds.length > 0) {
+        const { data: unreadRows } = await supabase
+          .from('messages')
+          .select('conversation_id')
+          .in('conversation_id', conversationIds)
+          .neq('sender_id', userId)
+          .eq('is_read', false)
+
+        if (unreadRows) {
+          for (const msg of unreadRows) {
+            unreadMap[msg.conversation_id] = (unreadMap[msg.conversation_id] || 0) + 1
+          }
+        }
+      }
+
+      const mapped: Conversation[] = data.map((row: any) => {
+        const isP1 = row.participant_1 === userId
+        return {
+          id: row.id,
+          connectionId: row.id,
+          participantId: (isP1 ? row.participant_2 : row.participant_1) || '',
+          participantName: (isP1 ? row.participant_2_name : row.participant_1_name) || 'Unknown',
+          participantRole: ((isP1 ? row.participant_2_role : row.participant_1_role) === 'employer'
+            ? 'employer' : 'candidate') as 'employer' | 'candidate',
+          participantCompany: (isP1 ? row.participant_2_company : row.participant_1_company) || undefined,
+          participantProfilePicture: null,
+          lastMessage: row.last_message || '',
+          lastMessageAt: row.last_message_at || row.created_at || new Date().toISOString(),
+          unreadCount: unreadMap[row.id] || 0,
+          isOnline: false,
+          participantJobTitle: row.related_job_title || undefined,
+        }
+      })
+
+      if (isMounted.current) setConversations(mapped)
+    } catch (err) {
+      console.error('[MessagesPage] loadConversations error:', err)
+    }
+  }, [])
+
   const loadMessages = useCallback(async (conversationId: string) => {
     try {
       const { data, error } = await supabase
@@ -90,33 +142,82 @@ export default function MessagesPage() {
           timestamp: row.created_at || new Date().toISOString(),
           isRead: row.is_read,
         }))
-        setMessages(mapped)
+        if (isMounted.current) setMessages(mapped)
       }
     } catch {
       // Fail silently on network errors
     }
   }, [])
 
-  // ── Effects (after all state, refs, context, and callbacks) ────────────
+  const markConversationAsRead = useCallback(async (conversationId: string) => {
+    setConversations(prev =>
+      prev.map(conv => conv.id === conversationId ? { ...conv, unreadCount: 0 } : conv)
+    )
+    try {
+      const sessionResult = await supabase.auth.getSession()
+      const session = sessionResult?.data?.session
+      if (!session) return
+      await supabase
+        .from('messages')
+        .update({ is_read: true })
+        .eq('conversation_id', conversationId)
+        .neq('sender_id', session.user.id)
+        .eq('is_read', false)
+    } catch {
+      // Ignore
+    }
+  }, [])
+
+  const updateConversation = useCallback((conversationId: string, updates: Partial<Conversation>) => {
+    setConversations(prev =>
+      prev.map(conv => conv.id === conversationId ? { ...conv, ...updates } : conv)
+    )
+  }, [])
+
+  const acceptRequest = useCallback(async (connectionId: string) => {
+    try {
+      await supabase
+        .from('connections')
+        .update({ status: 'accepted' })
+        .eq('id', connectionId)
+      setPendingRequests(prev => prev.filter(r => r.id !== connectionId))
+    } catch {
+      // Ignore
+    }
+  }, [])
+
+  const declineRequest = useCallback(async (connectionId: string) => {
+    try {
+      await supabase
+        .from('connections')
+        .update({ status: 'declined' })
+        .eq('id', connectionId)
+      setPendingRequests(prev => prev.filter(r => r.id !== connectionId))
+    } catch {
+      // Ignore
+    }
+  }, [])
+
+  // ── Effects ────────────────────────────────────────────────────────────
   useEffect(() => {
     isMounted.current = true
     return () => { isMounted.current = false }
   }, [])
 
-  // Check authentication and subscription
+  // Check authentication and subscription, then load data
   useEffect(() => {
     const checkAuth = async () => {
       try {
         const sessionResult = await supabase.auth.getSession()
         const session = sessionResult?.data?.session
-        const error = sessionResult?.error
 
-        if (error || !session) {
+        if (!session) {
           router.push('/login')
           return
         }
 
-        setCurrentUserId(session.user.id)
+        const userId = session.user.id
+        if (isMounted.current) setCurrentUserId(userId)
 
         // Check subscription status for employers
         if (session.user.user_metadata?.role === 'employer') {
@@ -124,31 +225,32 @@ export default function MessagesPage() {
             const { data: subData } = await supabase
               .from('employer_subscriptions')
               .select('subscription_status')
-              .eq('user_id', session.user.id)
+              .eq('user_id', userId)
               .single()
 
             if (subData && (subData.subscription_status === 'active' || subData.subscription_status === 'trialing')) {
-              setHasSubscription(true)
+              if (isMounted.current) setHasSubscription(true)
             } else {
-              setHasSubscription(false)
+              if (isMounted.current) setHasSubscription(false)
             }
           } catch {
-            setHasSubscription(false)
+            if (isMounted.current) setHasSubscription(false)
           }
         } else {
-          // Candidates don't need a subscription to message
-          setHasSubscription(true)
+          if (isMounted.current) setHasSubscription(true)
         }
 
-        setIsLoading(false)
+        // Load conversations directly
+        await loadConversations(userId)
+
+        if (isMounted.current) setIsLoading(false)
       } catch {
-        // Auth check failed — redirect to login
         router.push('/login')
       }
     }
 
     checkAuth()
-  }, [router])
+  }, [router, loadConversations])
 
   // Auto-scroll to bottom of messages
   useEffect(() => {
@@ -207,7 +309,7 @@ export default function MessagesPage() {
 
   const handleSelectConversation = (conversation: Conversation) => {
     setSelectedConversation(conversation)
-    setShowSidebar(false) // Hide sidebar on mobile
+    setShowSidebar(false)
   }
 
   const handleSendMessage = async (e: React.FormEvent) => {
@@ -217,13 +319,12 @@ export default function MessagesPage() {
     const content = newMessage.trim()
     setNewMessage('')
 
-    // Get session for sender info
     let session: any = null
     try {
       const result = await supabase.auth.getSession()
       session = result?.data?.session
     } catch {
-      setNewMessage(content) // Restore on failure
+      setNewMessage(content)
       return
     }
     if (!session) { setNewMessage(content); return }
@@ -231,7 +332,6 @@ export default function MessagesPage() {
     const senderName = session.user.user_metadata?.full_name || session.user.user_metadata?.company_name || 'You'
     const senderRole = session.user.user_metadata?.role || 'candidate'
 
-    // Insert message into Supabase
     const { data: inserted, error } = await supabase
       .from('messages')
       .insert({
@@ -247,17 +347,16 @@ export default function MessagesPage() {
 
     if (error) {
       console.error('Failed to send message:', error.message)
-      setNewMessage(content) // Restore the message on failure
+      setNewMessage(content)
       return
     }
 
-    // Add to local state immediately
     if (inserted) {
       const newMsg: Message = {
         id: inserted.id,
         conversationId: inserted.conversation_id,
         senderId: inserted.sender_id,
-        senderName: senderName,
+        senderName,
         senderRole: senderRole as 'employer' | 'candidate',
         content: inserted.content,
         timestamp: inserted.created_at,
@@ -266,7 +365,6 @@ export default function MessagesPage() {
       setMessages(prev => [...prev, newMsg])
     }
 
-    // Update conversation's last_message in Supabase
     await supabase
       .from('conversations')
       .update({
@@ -275,13 +373,11 @@ export default function MessagesPage() {
       })
       .eq('id', selectedConversation.id)
 
-    // Update conversation in local context
     updateConversation(selectedConversation.id, {
       lastMessage: content,
       lastMessageAt: new Date().toISOString(),
     })
 
-    // Send email notification to recipient (non-blocking)
     if (selectedConversation.participantId) {
       fetch('/api/email/send', {
         method: 'POST',
@@ -298,20 +394,12 @@ export default function MessagesPage() {
     }
   }
 
-  const handleAcceptRequest = (connectionId: string) => {
-    acceptRequest(connectionId)
-  }
-
-  const handleDeclineRequest = (connectionId: string) => {
-    declineRequest(connectionId)
-  }
-
   const getInitials = (name: string | null | undefined) => {
     if (!name) return '?'
     return name.split(' ').map(n => n[0] || '').join('').toUpperCase().slice(0, 2) || '?'
   }
 
-  const filteredConversations = (conversations || []).filter(conv => {
+  const filteredConversations = conversations.filter(conv => {
     const name = (conv.participantName || '').toLowerCase()
     const title = (conv.participantJobTitle || '').toLowerCase()
     const query = searchQuery.toLowerCase()
@@ -328,7 +416,6 @@ export default function MessagesPage() {
   }
 
   return (
-    <ErrorBoundary label="MessagesPage">
     <div className={styles.container}>
       <Header />
 
@@ -457,13 +544,13 @@ export default function MessagesPage() {
                     <div className={styles.requestActions}>
                       <button
                         className={styles.acceptBtn}
-                        onClick={() => handleAcceptRequest(request.id)}
+                        onClick={() => acceptRequest(request.id)}
                       >
                         Accept
                       </button>
                       <button
                         className={styles.declineBtn}
-                        onClick={() => handleDeclineRequest(request.id)}
+                        onClick={() => declineRequest(request.id)}
                       >
                         Decline
                       </button>
@@ -524,7 +611,6 @@ export default function MessagesPage() {
               {messages.map((message, index) => {
                 const isSent = message.senderId === currentUserId
 
-                // Show date divider if this is first message or different day
                 const prevTimestamp = index > 0 ? messages[index - 1]?.timestamp : null
                 const showDateDivider = index === 0 || !prevTimestamp || !message.timestamp ||
                   new Date(message.timestamp).toDateString() !==
@@ -608,6 +694,5 @@ export default function MessagesPage() {
         )}
       </div>
     </div>
-    </ErrorBoundary>
   )
 }

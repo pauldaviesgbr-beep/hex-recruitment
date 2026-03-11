@@ -6,7 +6,6 @@ import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import { ukCities } from '@/lib/ukCities'
 import { DEV_MODE, getMockUser } from '@/lib/mockAuth'
-import { useMessages } from '@/lib/MessagesContext'
 import { useSavedJobs } from '@/lib/useSavedJobs'
 import NotificationBell from './NotificationBell'
 import HoneycombLogo from './HoneycombLogo'
@@ -25,8 +24,9 @@ export default function Header() {
   const [showProfileMenu, setShowProfileMenu] = useState(false)
   const profileMenuRef = useRef<HTMLDivElement>(null)
 
-  // Get unread counts from MessagesContext (updates globally when messages are read)
-  const { totalUnreadCount, pendingRequestsCount } = useMessages()
+  // Message badge removed — no longer depends on MessagesContext
+  const totalUnreadCount = 0
+  const pendingRequestsCount = 0
   const { unseenCount } = useSavedJobs()
 
   // Navbar search state (employer search bar with location)
