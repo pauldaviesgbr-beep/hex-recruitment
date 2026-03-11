@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { MessagesProvider } from '@/lib/MessagesContext'
+import ErrorBoundary from '@/components/ErrorBoundary'
 
 export const metadata: Metadata = {
   title: 'Messages - Your Conversations',
@@ -11,5 +12,9 @@ export const metadata: Metadata = {
 }
 
 export default function MessagesLayout({ children }: { children: React.ReactNode }) {
-  return <MessagesProvider>{children}</MessagesProvider>
+  return (
+    <ErrorBoundary label="MessagesLayout">
+      <MessagesProvider>{children}</MessagesProvider>
+    </ErrorBoundary>
+  )
 }

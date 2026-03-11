@@ -32,6 +32,8 @@ function renderMessageContent(text: string | null | undefined) {
 
 export default function MessagesPage() {
   const router = useRouter()
+
+  // ── State ──────────────────────────────────────────────────────────────
   const [isLoading, setIsLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<TabType>('messages')
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null)
@@ -41,16 +43,13 @@ export default function MessagesPage() {
   const [showSidebar, setShowSidebar] = useState(true)
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const [hasSubscription, setHasSubscription] = useState<boolean | null>(null)
+
+  // ── Refs ───────────────────────────────────────────────────────────────
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const isMounted = useRef(true)
 
-  useEffect(() => {
-    isMounted.current = true
-    return () => { isMounted.current = false }
-  }, [])
-
-  // Get conversations and pending requests from global context
+  // ── Context (before any effects) ───────────────────────────────────────
   const {
     conversations,
     pendingRequests,
@@ -61,6 +60,46 @@ export default function MessagesPage() {
     declineRequest,
     refreshConversations
   } = useMessages()
+
+  // ── Callbacks (before any effects that reference them) ─────────────────
+  const loadMessages = useCallback(async (conversationId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('messages')
+        .select('*')
+        .eq('conversation_id', conversationId)
+        .order('created_at', { ascending: true })
+
+      if (error) {
+        if (!error.message?.includes('does not exist')) {
+          console.error('Error loading messages:', error.message)
+        }
+        return
+      }
+
+      if (data) {
+        const mapped: Message[] = data.map((row: any) => ({
+          id: row.id,
+          conversationId: row.conversation_id,
+          senderId: row.sender_id || '',
+          senderName: row.sender_name || 'User',
+          senderRole: (row.sender_role === 'employer' ? 'employer' : 'candidate') as 'employer' | 'candidate',
+          content: row.content || '',
+          timestamp: row.created_at || new Date().toISOString(),
+          isRead: row.is_read,
+        }))
+        setMessages(mapped)
+      }
+    } catch {
+      // Fail silently on network errors
+    }
+  }, [])
+
+  // ── Effects (after all state, refs, context, and callbacks) ────────────
+  useEffect(() => {
+    isMounted.current = true
+    return () => { isMounted.current = false }
+  }, [])
 
   // Check authentication and subscription
   useEffect(() => {
@@ -113,40 +152,6 @@ export default function MessagesPage() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
-
-  // Load messages from Supabase when conversation is selected
-  const loadMessages = useCallback(async (conversationId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('messages')
-        .select('*')
-        .eq('conversation_id', conversationId)
-        .order('created_at', { ascending: true })
-
-      if (error) {
-        if (!error.message?.includes('does not exist')) {
-          console.error('Error loading messages:', error.message)
-        }
-        return
-      }
-
-      if (data) {
-        const mapped: Message[] = data.map((row: any) => ({
-          id: row.id,
-          conversationId: row.conversation_id,
-          senderId: row.sender_id || '',
-          senderName: row.sender_name || 'User',
-          senderRole: (row.sender_role === 'employer' ? 'employer' : 'candidate') as 'employer' | 'candidate',
-          content: row.content || '',
-          timestamp: row.created_at || new Date().toISOString(),
-          isRead: row.is_read,
-        }))
-        setMessages(mapped)
-      }
-    } catch {
-      // Fail silently on network errors
-    }
-  }, [])
 
   useEffect(() => {
     if (selectedConversation) {

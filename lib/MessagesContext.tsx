@@ -90,8 +90,8 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
       })
 
       setConversations(mapped)
-    } catch {
-      // Network or unexpected errors — fail silently
+    } catch (err) {
+      console.error('[MessagesContext] loadConversations error:', err)
     }
   }, [])
 
@@ -111,8 +111,8 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
         .eq('conversation_id', conversationId)
         .neq('sender_id', session.user.id)
         .eq('is_read', false)
-    } catch {
-      // Fail silently — unread count already updated locally
+    } catch (err) {
+      console.error('[MessagesContext] markConversationAsRead error:', err)
     }
   }, [])
 
@@ -169,7 +169,9 @@ export function MessagesProvider({ children }: { children: ReactNode }) {
       if (tableOk.current) {
         interval = setInterval(loadConversations, 30000)
       }
-    }).catch(() => {})
+    }).catch((err) => {
+      console.error('[MessagesContext] initial load error:', err)
+    })
     return () => { if (interval) clearInterval(interval) }
   }, [loadConversations])
 
