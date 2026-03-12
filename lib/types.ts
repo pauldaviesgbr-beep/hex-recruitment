@@ -165,6 +165,23 @@ export function jobToSupabaseInsert(job: Partial<Job> & { company: string; title
 // ─── Supabase candidate_profiles row → Frontend Candidate ───────
 
 export function supabaseProfileToCandidate(row: any): Candidate {
+  // ── DIAGNOSTIC LOG — raw DB row for scoring fields ────────────
+  console.log('[supabaseProfileToCandidate] raw DB columns relevant to scoring:', {
+    job_title:                  row.job_title,
+    job_sector:                 row.job_sector,
+    skills:                     row.skills,
+    salary_min:                 row.salary_min,
+    salary_max:                 row.salary_max,
+    salary_period:              row.salary_period,
+    location:                   row.location,
+    city:                       row.city,
+    county:                     row.county,
+    preferred_locations:        row.preferred_locations,
+    preferred_job_types:        row.preferred_job_types,
+    work_location_preferences:  row.work_location_preferences,
+    work_history_count:         (row.work_history || []).length,
+    work_history_first_entry:   (row.work_history || [])[0] ?? null,
+  })
   return {
     id: row.user_id || row.id,
     userId: row.user_id || row.id,

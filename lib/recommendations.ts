@@ -19,20 +19,44 @@ export function scoreAndRankJobs(
   appliedJobIds: Set<string>,
   viewedJobs: JobView[]
 ): RecommendedJob[] {
+  // ── DIAGNOSTIC LOG — candidate fields that drive scoring ──────
+  console.log('[recommendations] candidate profile received:', {
+    jobTitle:    candidate.jobTitle      || '(empty)',
+    jobSector:   candidate.jobSector     || '(empty)',
+    skills:      candidate.skills?.length
+                   ? candidate.skills
+                   : '(empty)',
+    salaryMin:   candidate.salaryMin     ?? '(not set)',
+    salaryMax:   candidate.salaryMax     ?? '(not set)',
+    salaryPeriod: candidate.salaryPeriod ?? '(not set)',
+    location:    candidate.location      || '(empty)',
+    preferredLocations:       candidate.preferredLocations       || '(empty)',
+    preferredJobTypes:        candidate.preferredJobTypes        || [],
+    workLocationPreferences:  candidate.workLocationPreferences  || [],
+    workHistoryTitles: (candidate.workHistory || []).map(w => w.title).filter(Boolean),
+  })
+
   // Filter out jobs the candidate already applied to
   const eligibleJobs = jobs.filter(j => !appliedJobIds.has(j.id))
 
   const scored = eligibleJobs.map(job => {
-    const { score, reasons } = calculateMatchScore(job, candidate, viewedJobs, jobs)
+    const { score, reasons, breakdown } = calculateMatchScore(job, candidate, viewedJobs, jobs)
     return {
       ...job,
       matchPercentage: Math.min(Math.round(score), 99),
       matchReasons: reasons,
+      _breakdown: breakdown,
     }
   })
 
   // Sort by match percentage descending
   scored.sort((a, b) => b.matchPercentage - a.matchPercentage)
+
+  // ── DIAGNOSTIC LOG — top 5 results with per-component scores ──
+  console.log('[recommendations] top 5 scored jobs:')
+  scored.slice(0, 5).forEach((j, i) => {
+    console.log(`  #${i + 1} "${j.title}" (${j.company}) → ${j.matchPercentage}%`, j._breakdown)
+  })
 
   return scored
 }
@@ -44,56 +68,66 @@ function calculateMatchScore(
   candidate: Candidate,
   viewedJobs: JobView[],
   allJobs: Job[]
-): { score: number; reasons: string[] } {
+): { score: number; reasons: string[]; breakdown: Record<string, number> } {
   let score = 0
   const reasons: string[] = []
+  const breakdown: Record<string, number> = {}
 
   // 1. Title / industry semantic match (max 30 points) — highest-weight signal
   const titleScore = calcTitleMatch(job, candidate)
   score += titleScore.points
+  breakdown.title = titleScore.points
   if (titleScore.reason) reasons.push(titleScore.reason)
 
   // 2. Skills match (max 35 points)
   const skillScore = calcSkillMatch(job, candidate)
   score += skillScore.points
+  breakdown.skills = skillScore.points
   if (skillScore.reason) reasons.push(skillScore.reason)
 
   // 3. Job type / employment type match (max 15 points)
   const typeScore = calcTypeMatch(job, candidate)
   score += typeScore.points
+  breakdown.jobType = typeScore.points
   if (typeScore.reason) reasons.push(typeScore.reason)
 
   // 4. Salary match (max 15 points)
   const salaryScore = calcSalaryMatch(job, candidate)
   score += salaryScore.points
+  breakdown.salary = salaryScore.points
   if (salaryScore.reason) reasons.push(salaryScore.reason)
 
   // 5. Location match (max 15 points)
   const locationScore = calcLocationMatch(job, candidate)
   score += locationScore.points
+  breakdown.location = locationScore.points
   if (locationScore.reason) reasons.push(locationScore.reason)
 
   // 6. Sector / category match (max 10 points)
   const sectorScore = calcSectorMatch(job, candidate)
   score += sectorScore.points
+  breakdown.sector = sectorScore.points
   if (sectorScore.reason) reasons.push(sectorScore.reason)
 
   // 7. Browsing pattern bonus (max 5 points)
   const browsingScore = calcBrowsingBonus(job, viewedJobs)
   score += browsingScore.points
+  breakdown.browsing = browsingScore.points
   if (browsingScore.reason) reasons.push(browsingScore.reason)
 
   // 8. Recency bonus (max 5 points)
   const recencyScore = calcRecencyBonus(job)
   score += recencyScore.points
+  breakdown.recency = recencyScore.points
   if (recencyScore.reason) reasons.push(recencyScore.reason)
 
   // 9. Tag affinity (max 10 points)
   const tagScore = calcTagAffinity(job, viewedJobs, allJobs)
   score += tagScore.points
+  breakdown.tagAffinity = tagScore.points
   if (tagScore.reason) reasons.push(tagScore.reason)
 
-  return { score, reasons }
+  return { score, reasons, breakdown }
 }
 
 // ─── Individual scoring components ──────────────────────────────
