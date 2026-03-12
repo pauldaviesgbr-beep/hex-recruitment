@@ -407,7 +407,7 @@ export default function Header() {
 
   // Navigation for logged-in EMPLOYEES (job seekers)
   const navLink = (href: string) =>
-    `${styles.navIconLink} ${pathname === href || pathname?.startsWith(href + '/') ? styles.navIconLinkActive : ''}`
+    `${styles.navIconLink} ${pathname === href ? styles.navIconLinkActive : ''}`
 
   const EmployeeNav = () => (
     <>

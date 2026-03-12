@@ -172,8 +172,10 @@
   transition: color 0.2s;
 }
 
-.navLinkWithBadge:hover {
-  color: var(--primary-yellow);
+@media (hover: hover) {
+  .navLinkWithBadge:hover {
+    color: var(--primary-yellow);
+  }
 }
 
 .badge {

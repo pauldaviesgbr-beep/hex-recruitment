@@ -226,6 +226,8 @@
   display: flex;
   align-items: center;
   position: relative;
+  flex-shrink: 0; /* prevent flex from squashing cards in fixed-height panel */
+  min-height: 90px;
   gap: 1rem;
   padding: 0.875rem 1rem;
   border: 1px solid var(--border-gray);
