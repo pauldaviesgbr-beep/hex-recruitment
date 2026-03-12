@@ -401,7 +401,7 @@ export default function Header() {
         <span className={styles.navTooltip}>Messages</span>
       </Link>
       <NotificationBell />
-      <ProfileAvatar profilePath="/dashboard" />
+      <ProfileAvatar profilePath="/settings/company" />
     </>
   )
 

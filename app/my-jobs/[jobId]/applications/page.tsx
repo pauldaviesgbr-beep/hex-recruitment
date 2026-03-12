@@ -860,7 +860,7 @@ export default function JobApplicationsPage() {
                       className={styles.barBtnCalendar}
                       onClick={() => handleScheduleInterview(application)}
                     >
-                      Calendar Invite
+                      {application.interview ? 'Reschedule' : 'Schedule Interview'}
                     </button>
                     {['interviewing', 'offered'].includes(application.status) && !application.offer && (
                       <button
