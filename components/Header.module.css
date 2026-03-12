@@ -86,9 +86,12 @@
   transition: all 0.2s;
 }
 
-.navIconLink:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: var(--primary-yellow);
+/* Only apply hover on pointer devices — prevents :hover sticking on mobile after a tap */
+@media (hover: hover) {
+  .navIconLink:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--primary-yellow);
+  }
 }
 
 .navIconLinkActive {
@@ -132,8 +135,10 @@
   border-bottom-color: var(--dark-gray);
 }
 
-.navIconLink:hover .navTooltip {
-  opacity: 1;
+@media (hover: hover) {
+  .navIconLink:hover .navTooltip {
+    opacity: 1;
+  }
 }
 
 /* Badge on icon (Messages) */
