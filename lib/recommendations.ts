@@ -58,7 +58,16 @@ export function scoreAndRankJobs(
     console.log(`  #${i + 1} "${j.title}" (${j.company}) → ${j.matchPercentage}%`, j._breakdown)
   })
 
-  return scored
+  // Apply minimum score threshold (25 out of ~130 max ≈ 19%).
+  // If fewer than 3 jobs pass, lower the bar enough to show at least 3.
+  const THRESHOLD = 25
+  const MIN_RESULTS = 3
+  let filtered = scored.filter(j => j.matchPercentage >= THRESHOLD)
+  if (filtered.length < MIN_RESULTS) {
+    filtered = scored.slice(0, MIN_RESULTS)
+  }
+
+  return filtered
 }
 
 // ─── Score calculation ──────────────────────────────────────────
