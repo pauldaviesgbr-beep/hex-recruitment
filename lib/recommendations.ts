@@ -138,7 +138,7 @@ const SECTOR_KEYWORDS: Record<string, string[]> = {
   admin:       ['administration', 'admin', 'coordinator', 'officer', 'clerk', 'secretary', 'receptionist', 'pa ', 'executive assistant', 'office manager', 'support manager'],
   digital:     ['software', 'developer', 'engineer', 'programmer', 'web ', 'frontend', 'backend', 'fullstack', 'devops', 'cloud', 'cybersecurity', 'data scientist', 'machine learning', 'ai engineer', 'sysadmin', 'it support', 'network'],
   data:        ['data analyst', 'data engineer', 'business intelligence', 'bi analyst', 'data manager', 'reporting analyst'],
-  business:    ['manager', 'director', 'operations', 'business analyst', 'strategy', 'management consultant', 'project manager', 'programme manager', 'chief'],
+  business:    ['director', 'operations manager', 'business analyst', 'strategy', 'management consultant', 'project manager', 'programme manager', 'chief operating', 'chief executive', 'managing director', 'general manager'],
   hospitality: ['chef', 'cook ', 'hotel', 'restaurant', 'catering', 'bartender', 'waiter', 'waitress', 'sommelier', 'barista', 'kitchen', 'front of house', 'housekeeper', 'concierge'],
   healthcare:  ['nurse', 'doctor', 'carer', 'care assistant', 'health visitor', 'medical', 'clinical', 'physiotherapist', 'occupational therapist', 'pharmacy', 'social worker', 'support worker', 'healthcare'],
   marketing:   ['marketing', 'brand', 'advertising', 'pr manager', 'content', 'seo', 'social media', 'communications', 'campaign'],
@@ -278,10 +278,23 @@ function calcSalaryMatch(
   job: Job,
   candidate: Candidate
 ): { points: number; reason: string | null } {
-  // Normalize both to same period for comparison
-  const candMin = candidate.salaryMin ? Number(candidate.salaryMin) : null
-  const candMax = candidate.salaryMax ? Number(candidate.salaryMax) : null
   const candPeriod = candidate.salaryPeriod || 'year'
+
+  let candMin = candidate.salaryMin ? Number(candidate.salaryMin) : null
+  let candMax = candidate.salaryMax ? Number(candidate.salaryMax) : null
+  const desired = candidate.desiredSalary ? Number(candidate.desiredSalary) : null
+
+  // If salary_min is missing but salary_max exists, derive a floor at 70% of max.
+  // This prevents a £0–£200K range that matches every job on the platform.
+  if (!candMin && candMax) {
+    candMin = Math.round(candMax * 0.7)
+  }
+
+  // If both are missing, fall back to desired_salary ± 20% as effective range.
+  if (!candMin && !candMax && desired) {
+    candMin = Math.round(desired * 0.8)
+    candMax = Math.round(desired * 1.2)
+  }
 
   if (!candMin && !candMax) return { points: 8, reason: null }
 
@@ -291,7 +304,7 @@ function calcSalaryMatch(
 
   const jobMinAnnual = toAnnual(job.salaryMin, job.salaryPeriod)
   const jobMaxAnnual = toAnnual(job.salaryMax, job.salaryPeriod)
-  const candMinAnnual = candMin ? toAnnual(candMin, candPeriod) : 0
+  const candMinAnnual = toAnnual(candMin!, candPeriod)
   const candMaxAnnual = candMax ? toAnnual(candMax, candPeriod) : Infinity
 
   // Check overlap between ranges
@@ -369,12 +382,21 @@ function calcLocationMatch(
   return { points: 0, reason: null }
 }
 
+// Generic role-level words that appear across all industries and must not
+// be used alone to infer a sector match (e.g. "manager" in "Nurse Manager"
+// should not match a Business Support Manager).
+const GENERIC_ROLE_WORDS = new Set([
+  'manager', 'senior', 'junior', 'lead', 'head', 'chief', 'deputy',
+  'assistant', 'associate', 'specialist', 'officer', 'executive',
+  'coordinator', 'advisor', 'consultant', 'analyst', 'support',
+])
+
 function calcSectorMatch(
   job: Job,
   candidate: Candidate
 ): { points: number; reason: string | null } {
-  const candSector = (candidate.jobSector || '').toLowerCase()
-  const candTitle = (candidate.jobTitle || '').toLowerCase()
+  const candSector = (candidate.jobSector || '').toLowerCase().trim()
+  const candTitle = (candidate.jobTitle || '').toLowerCase().trim()
   const jobCategory = (job.category || '').toLowerCase()
   const jobTitle = (job.title || '').toLowerCase()
 
@@ -390,9 +412,12 @@ function calcSectorMatch(
     }
   }
 
-  // Job title similarity
+  // Job title similarity — only use meaningful, domain-specific words
+  // (length > 4 and not a generic role-level word) to avoid cross-sector false matches
   if (candTitle && jobTitle) {
-    const titleWords = candTitle.split(/\s+/).filter(w => w.length > 2)
+    const titleWords = candTitle.split(/\s+/).filter(
+      w => w.length > 4 && !GENERIC_ROLE_WORDS.has(w)
+    )
     const match = titleWords.some(tw => jobTitle.includes(tw))
     if (match) {
       return { points: 10, reason: 'Similar to your role' }
