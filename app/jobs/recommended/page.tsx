@@ -17,7 +17,7 @@ import CompanyReviewsSummary from '@/components/CompanyReviewsSummary'
 import { scoreAndRankJobs, RecommendedJob } from '@/lib/recommendations'
 import { supabase } from '@/lib/supabase'
 import { useSavedJobs } from '@/lib/useSavedJobs'
-import { getTagCategory } from '@/lib/jobTags'
+import { getTagCategory, WORK_STYLE_TAGS } from '@/lib/jobTags'
 import { useAnalyticsTracking } from '@/hooks/useAnalyticsTracking'
 import styles from './page.module.css'
 
@@ -559,10 +559,13 @@ export default function RecommendedJobsPage() {
                             : selectedJob.employmentType && <span className={styles.detailBadge}>{selectedJob.employmentType}</span>
                           }
                           {selectedJob.urgent && <span className={`${styles.detailBadge} ${styles.detailBadgeUrgent}`}>Urgent</span>}
+                          {(selectedJob.tags || []).filter(t => WORK_STYLE_TAGS.has(t)).map(t => (
+                            <span key={t} className={`${styles.detailBadge} ${styles.detailBadgeWorkStyle}`}>{t}</span>
+                          ))}
                         </div>
-                        {selectedJob.tags && selectedJob.tags.length > 0 && (
+                        {(selectedJob.tags || []).filter(t => !WORK_STYLE_TAGS.has(t)).length > 0 && (
                           <div className={styles.detailTags}>
-                            {selectedJob.tags.map(tag => {
+                            {(selectedJob.tags || []).filter(t => !WORK_STYLE_TAGS.has(t)).map(tag => {
                               const cat = getTagCategory(tag)
                               return (
                                 <span key={tag} className={`${styles.detailTag} ${cat ? styles[`detailTag_${cat}`] : ''}`}>

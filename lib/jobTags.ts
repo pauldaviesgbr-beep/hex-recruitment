@@ -14,57 +14,63 @@ export const TAG_CATEGORIES: Record<TagCategory, { title: string; icon: string }
 }
 
 export const ALL_TAGS: TagDefinition[] = [
-  // URGENCY
+  // URGENCY (4)
   { label: 'Immediate start',      category: 'urgency' },
   { label: 'Urgent hire',          category: 'urgency' },
   { label: 'Interviews this week', category: 'urgency' },
   { label: 'Start date flexible',  category: 'urgency' },
 
-  // EXPERIENCE
+  // EXPERIENCE (5)
   { label: 'No experience required', category: 'experience' },
   { label: 'Entry level',            category: 'experience' },
   { label: 'Mid level',              category: 'experience' },
   { label: 'Senior level',           category: 'experience' },
   { label: 'Management',             category: 'experience' },
-  { label: 'Executive',              category: 'experience' },
 
-  // WORK STYLE
-  { label: 'Remote',              category: 'workStyle' },
-  { label: 'Hybrid',              category: 'workStyle' },
-  { label: 'On-site',             category: 'workStyle' },
-  { label: 'Flexible hours',      category: 'workStyle' },
-  { label: 'Part-time available', category: 'workStyle' },
-  { label: 'Shift work',          category: 'workStyle' },
-  { label: 'Weekend work',        category: 'workStyle' },
-  { label: 'Night shifts',        category: 'workStyle' },
-  { label: 'Term-time only',      category: 'workStyle' },
+  // WORK STYLE (3)
+  { label: 'Remote',   category: 'workStyle' },
+  { label: 'Hybrid',   category: 'workStyle' },
+  { label: 'On-site',  category: 'workStyle' },
 
-  // BENEFITS
-  { label: 'Pension',               category: 'benefits' },
-  { label: 'Health insurance',      category: 'benefits' },
-  { label: 'Bonus scheme',          category: 'benefits' },
-  { label: 'Staff discount',        category: 'benefits' },
-  { label: 'Free meals',            category: 'benefits' },
-  { label: 'Uniform provided',      category: 'benefits' },
-  { label: 'Training provided',     category: 'benefits' },
-  { label: 'Career progression',    category: 'benefits' },
-  { label: 'Relocation assistance', category: 'benefits' },
-  { label: 'Visa sponsorship',      category: 'benefits' },
+  // BENEFITS (5)
+  { label: 'Pension',            category: 'benefits' },
+  { label: 'Health insurance',   category: 'benefits' },
+  { label: 'Bonus scheme',       category: 'benefits' },
+  { label: 'Training provided',  category: 'benefits' },
+  { label: 'Career progression', category: 'benefits' },
 
-  // APPLICATION
-  { label: 'Easy apply',                   category: 'application' },
-  { label: 'CV required',                  category: 'application' },
-  { label: 'Cover letter required',        category: 'application' },
-  { label: 'References required',          category: 'application' },
-  { label: 'DBS check required',           category: 'application' },
-  { label: 'Right to work in UK required', category: 'application' },
+  // APPLICATION (2)
+  { label: 'CV required',           category: 'application' },
+  { label: 'Cover letter required', category: 'application' },
 ]
 
-export const LEGACY_TAG_MAP: Record<string, string> = {
+// Maps old / removed tag names to the closest current tag.
+// Tags with no suitable replacement map to null so callers can drop them.
+export const LEGACY_TAG_MAP: Record<string, string | null> = {
+  // Old name formats
   'Immediate start!': 'Immediate start',
   'No experience':    'No experience required',
-  'Easy apply':       'Easy apply',
   'Interviews today': 'Interviews this week',
+  // Removed experience tag
+  'Executive':        'Management',
+  // Removed work-style tags (no equivalent — drop)
+  'Flexible hours':      null,
+  'Part-time available': null,
+  'Shift work':          null,
+  'Weekend work':        null,
+  'Night shifts':        null,
+  'Term-time only':      null,
+  // Removed benefit tags
+  'Staff discount':        null,
+  'Free meals':            null,
+  'Uniform provided':      null,
+  'Relocation assistance': null,
+  'Visa sponsorship':      null,
+  // Removed application tags
+  'Easy apply':                   null,
+  'References required':          null,
+  'DBS check required':           null,
+  'Right to work in UK required': null,
 }
 
 export function getTagsByCategory(): Record<TagCategory, TagDefinition[]> {
@@ -75,11 +81,23 @@ export function getTagsByCategory(): Record<TagCategory, TagDefinition[]> {
   return grouped
 }
 
+/** Normalise a tag array, dropping removed tags and renaming legacy names. */
 export function normalizeTags(tags: string[]): string[] {
-  return tags.map(t => LEGACY_TAG_MAP[t] || t)
+  return tags.reduce<string[]>((acc, t) => {
+    if (t in LEGACY_TAG_MAP) {
+      const mapped = LEGACY_TAG_MAP[t]
+      if (mapped) acc.push(mapped)
+    } else {
+      acc.push(t)
+    }
+    return acc
+  }, [])
 }
 
 export function getTagCategory(label: string): TagCategory | null {
   const def = ALL_TAGS.find(t => t.label === label)
   return def?.category ?? null
 }
+
+/** The three work-style tags that should appear prominently in badge rows. */
+export const WORK_STYLE_TAGS: ReadonlySet<string> = new Set(['Remote', 'Hybrid', 'On-site'])

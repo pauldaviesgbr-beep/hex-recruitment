@@ -9,7 +9,7 @@ import { useMessages } from '@/lib/MessagesContext'
 import type { Conversation } from '@/lib/mockMessages'
 import CompanyLogo from '@/components/CompanyLogo'
 import JobPostingSchema from '@/components/JobPostingSchema'
-import { getTagCategory } from '@/lib/jobTags'
+import { getTagCategory, WORK_STYLE_TAGS } from '@/lib/jobTags'
 import CompanyReviewsSummary from '@/components/CompanyReviewsSummary'
 import { useAnalyticsTracking, ViewSource } from '@/hooks/useAnalyticsTracking'
 import styles from './JobDetailModal.module.css'
@@ -418,10 +418,13 @@ export default function JobDetailModal({
                     : job.employmentType && <span className={styles.badge}>{job.employmentType}</span>
                   }
                   {job.urgent && <span className={`${styles.badge} ${styles.urgentBadge}`}>Urgent</span>}
+                  {(job.tags || []).filter(t => WORK_STYLE_TAGS.has(t)).map(t => (
+                    <span key={t} className={`${styles.badge} ${styles.workStyleBadge}`}>{t}</span>
+                  ))}
                 </div>
-                {job.tags && job.tags.length > 0 && (
+                {(job.tags || []).filter(t => !WORK_STYLE_TAGS.has(t)).length > 0 && (
                   <div className={styles.jobTags}>
-                    {job.tags.map(tag => {
+                    {(job.tags || []).filter(t => !WORK_STYLE_TAGS.has(t)).map(tag => {
                       const cat = getTagCategory(tag)
                       return (
                         <span key={tag} className={`${styles.jobTag} ${cat ? styles[`jobTag_${cat}`] : ''}`}>

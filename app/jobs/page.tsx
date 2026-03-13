@@ -43,7 +43,7 @@ const filterSections = [
   { key: 'salaryRange' as const, title: 'Salary Range', options: ['Under £20k', '£20k-£30k', '£30k-£40k', '£40k-£50k', '£50k-£75k', '£75k-£100k', '£100k+'] },
   { key: 'postedDate' as const, title: 'Posted Date', options: ['Last 24 hours', 'Last 3 days', 'Last 7 days', 'Last 14 days', 'Last 30 days'] },
   { key: 'workArrangement' as const, title: 'Work Arrangement', options: ['On-site', 'Remote', 'Hybrid'] },
-  { key: 'tags' as const, title: 'Job Tags', options: ['Immediate start', 'Urgent hire', 'No experience required', 'Entry level', 'Remote', 'Flexible hours', 'Training provided', 'Free meals', 'Staff discount', 'Career progression', 'Easy apply', 'Visa sponsorship'] },
+  { key: 'tags' as const, title: 'Job Tags', options: ['Immediate start', 'Urgent hire', 'Interviews this week', 'No experience required', 'Entry level', 'Mid level', 'Senior level', 'Management', 'Remote', 'Hybrid', 'On-site', 'Training provided', 'Career progression', 'CV required'] },
 ]
 
 const UK_POSTCODE_RE = /^[A-Z]{1,2}[0-9][0-9A-Z]?\s*[0-9][A-Z]{2}$/i

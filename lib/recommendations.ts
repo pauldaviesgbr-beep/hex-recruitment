@@ -136,6 +136,18 @@ function calculateMatchScore(
   breakdown.tagAffinity = tagScore.points
   if (tagScore.reason) reasons.push(tagScore.reason)
 
+  // 10. Work style tag match (max 10 points)
+  const workStyleScore = calcWorkStyleTagMatch(job, candidate)
+  score += workStyleScore.points
+  breakdown.workStyle = workStyleScore.points
+  if (workStyleScore.reason) reasons.push(workStyleScore.reason)
+
+  // 11. Experience level tag match (max 15 points)
+  const expLevelScore = calcExperienceLevelMatch(job, candidate)
+  score += expLevelScore.points
+  breakdown.expLevel = expLevelScore.points
+  if (expLevelScore.reason) reasons.push(expLevelScore.reason)
+
   return { score, reasons, breakdown }
 }
 
@@ -507,4 +519,86 @@ function calcTagAffinity(
     return { points, reason: 'Tags match your interests' }
   }
   return { points, reason: null }
+}
+
+// Work style tag match (max 10 points)
+// Awards points when the job has a Remote/Hybrid/On-site tag that matches
+// the candidate's workLocationPreferences. Complements the location score
+// which uses job.workLocationType; this uses the explicit tag signal.
+function calcWorkStyleTagMatch(
+  job: Job,
+  candidate: Candidate
+): { points: number; reason: string | null } {
+  const prefs = (candidate.workLocationPreferences || []).map(p => p.toLowerCase())
+  if (prefs.length === 0) return { points: 0, reason: null }
+
+  const jobTags = (job.tags || []).map(t => t.toLowerCase())
+
+  if (prefs.includes('remote') && jobTags.includes('remote')) {
+    return { points: 10, reason: 'Remote role' }
+  }
+  if (prefs.includes('hybrid') && jobTags.includes('hybrid')) {
+    return { points: 8, reason: 'Hybrid role' }
+  }
+  if ((prefs.includes('on-site') || prefs.includes('onsite') || prefs.includes('on site')) && jobTags.includes('on-site')) {
+    return { points: 6, reason: 'On-site role' }
+  }
+  return { points: 0, reason: null }
+}
+
+// Ordered experience levels used for adjacent-level partial credit
+const EXPERIENCE_LEVELS = [
+  'no experience required',
+  'entry level',
+  'mid level',
+  'senior level',
+  'management',
+] as const
+
+// Experience level tag match (max 15 points)
+// Maps candidate's years of experience to expected tag levels and awards
+// full points for a direct match, partial for an adjacent level.
+function calcExperienceLevelMatch(
+  job: Job,
+  candidate: Candidate
+): { points: number; reason: string | null } {
+  const years = candidate.yearsExperience != null ? Number(candidate.yearsExperience) : null
+  if (years === null) return { points: 5, reason: null }
+
+  // Map years → primary level index (each band covers 2 adjacent levels)
+  // 0-1 → idx 0 (No exp / Entry), 2-4 → idx 1 (Entry / Mid),
+  // 5-9 → idx 2 (Mid / Senior),  10+  → idx 3 (Senior / Management)
+  let primaryIdx: number
+  if (years <= 1) primaryIdx = 0
+  else if (years <= 4) primaryIdx = 1
+  else if (years <= 9) primaryIdx = 2
+  else primaryIdx = 3
+
+  const jobTags = (job.tags || []).map(t => t.toLowerCase())
+
+  // Full match: job tag is at the primary level or the next level up
+  const primaryTags = [
+    EXPERIENCE_LEVELS[primaryIdx],
+    EXPERIENCE_LEVELS[primaryIdx + 1] ?? null,
+  ].filter(Boolean) as string[]
+
+  if (primaryTags.some(t => jobTags.includes(t))) {
+    return { points: 15, reason: 'Matches your experience level' }
+  }
+
+  // Partial match: one level outside the primary band
+  const adjacentTags = [
+    primaryIdx > 0 ? EXPERIENCE_LEVELS[primaryIdx - 1] : null,
+    primaryIdx + 2 < EXPERIENCE_LEVELS.length ? EXPERIENCE_LEVELS[primaryIdx + 2] : null,
+  ].filter(Boolean) as string[]
+
+  if (adjacentTags.some(t => jobTags.includes(t))) {
+    return { points: 8, reason: null }
+  }
+
+  // Job has no experience-level tag at all → neutral
+  const hasAnyLevelTag = EXPERIENCE_LEVELS.some(l => jobTags.includes(l))
+  if (!hasAnyLevelTag) return { points: 5, reason: null }
+
+  return { points: 0, reason: null }
 }
