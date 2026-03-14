@@ -34,9 +34,74 @@ Company: ${data.company || 'Not specified'}
 Key Duties: ${data.keyDuties || 'Not specified'}
 Duration: ${data.duration || 'Not specified'}
 ${data.additionalContext ? `Additional context: ${data.additionalContext}` : ''}`
+    } else if (type === 'job-ad' || type === 'job-ad-enhance') {
+      const maxTokens = 1500
+      const isEnhance = type === 'job-ad-enhance'
+
+      systemPrompt = `You are an expert UK hospitality recruitment copywriter. ${isEnhance ? 'Improve and enhance the provided job advertisement' : 'Write a compelling, professional UK job advertisement'} for the hospitality sector. Return ONLY a valid JSON object with these fields: title (string), description (string, HTML formatted with <p> and <ul>/<li> tags), requirements (string, HTML formatted), benefits (string, HTML formatted or empty string). No markdown fences, no extra text outside the JSON object.`
+
+      if (isEnhance) {
+        userPrompt = `Enhance this job advertisement and return improved JSON:
+Job Title: ${data.title || 'Not specified'}
+Company: ${data.company || 'Not specified'}
+Location: ${data.location || 'Not specified'}
+Salary: ${data.salaryMin ? `£${data.salaryMin}${data.salaryMax ? ` - £${data.salaryMax}` : ''} per ${data.salaryPeriod || 'hour'}` : 'Competitive'}
+Employment Type: ${data.employmentType || 'Full-time'}
+Work Type: ${data.workLocationType || 'In person'}
+Category: ${data.category || 'Not specified'}
+
+Current Description:
+${data.description || 'None provided'}
+
+${data.companyDescription ? `Company Description: ${data.companyDescription}` : ''}`
+      } else {
+        userPrompt = `Write a job advertisement and return as JSON:
+Job Title: ${data.title || 'Not specified'}
+Company: ${data.company || 'Not specified'}
+Location: ${data.location || 'Not specified'}
+Salary: ${data.salaryMin ? `£${data.salaryMin}${data.salaryMax ? ` - £${data.salaryMax}` : ''} per ${data.salaryPeriod || 'hour'}` : 'Competitive'}
+Employment Type: ${data.employmentType || 'Full-time'}
+Work Type: ${data.workLocationType || 'In person'}
+Category: ${data.category || 'Not specified'}
+
+${data.bulletPoints ? `Key points to include:\n${data.bulletPoints}` : ''}
+${data.companyDescription ? `About the company: ${data.companyDescription}` : ''}`
+      }
+
+      const aiResponse = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: maxTokens,
+          system: systemPrompt,
+          messages: [{ role: 'user', content: userPrompt }],
+        }),
+      })
+
+      if (!aiResponse.ok) {
+        const errText = await aiResponse.text()
+        console.error('Anthropic API error:', errText)
+        return NextResponse.json({ error: 'AI service temporarily unavailable' }, { status: 502 })
+      }
+
+      const aiResult = await aiResponse.json()
+      const rawText = aiResult.content?.[0]?.text || ''
+
+      try {
+        const jobAd = JSON.parse(rawText)
+        return NextResponse.json({ jobAd })
+      } catch {
+        console.error('Failed to parse job-ad JSON:', rawText)
+        return NextResponse.json({ error: 'AI returned invalid format' }, { status: 502 })
+      }
     } else {
       return NextResponse.json(
-        { error: 'Invalid type. Use "summary" or "experience".' },
+        { error: 'Invalid type.' },
         { status: 400 }
       )
     }

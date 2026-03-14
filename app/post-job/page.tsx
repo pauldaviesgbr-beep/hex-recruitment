@@ -9,6 +9,7 @@ import { supabase } from '@/lib/supabase'
 import { useJobs } from '@/lib/JobsContext'
 import { getTagsByCategory, TAG_CATEGORIES, getTagCategory, type TagCategory } from '@/lib/jobTags'
 import { categories } from '@/lib/categories'
+import AIJobAdAssistant from '@/components/AIJobAdAssistant'
 import styles from './page.module.css'
 
 const RichTextEditor = dynamic(() => import('@/components/RichTextEditor'), { ssr: false })
@@ -495,6 +496,30 @@ function PostJobContent() {
               Loading job data...
             </div>
           )}
+
+          {/* AI Job Ad Assistant */}
+          <AIJobAdAssistant
+            formData={{
+              title: formData.title,
+              company: formData.company,
+              category: formData.category,
+              location: formData.location,
+              salaryMin: formData.salaryMin,
+              salaryMax: formData.salaryMax,
+              salaryPeriod: formData.salaryPeriod,
+              employmentType: formData.employmentType,
+              workLocationType: formData.workLocationType,
+              description: formData.description,
+            }}
+            userId={currentUser?.id ?? null}
+            onApply={(fields) => {
+              setFormData(prev => ({
+                ...prev,
+                ...(fields.title ? { title: fields.title } : {}),
+                ...(fields.description ? { description: fields.description } : {}),
+              }))
+            }}
+          />
 
           {/* Company Information */}
           <div className={styles.section}>
