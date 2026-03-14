@@ -553,6 +553,7 @@
   font-weight: 500;
   background: #EBF5FF;
   color: #1e40af;
+  white-space: nowrap;
 }
 
 /* Actions */

@@ -224,6 +224,8 @@ function JobsPageContent() {
   const [applicationStatus, setApplicationStatus] = useState<string | null>(null)
   const [shortlistedJobIds, setShortlistedJobIds] = useState<Set<string>>(new Set())
   const [boostedJobIds, setBoostedJobIds] = useState<Set<string>>(new Set())
+  const [quickWorkStyle, setQuickWorkStyle] = useState<string | null>(null)
+  const [quickExperienceLevel, setQuickExperienceLevel] = useState<string>('')
 
   // Fetch active job boosts for sorting (non-blocking — table may not exist yet)
   useEffect(() => {
@@ -506,13 +508,25 @@ function JobsPageContent() {
         if (!Array.from(filters.tags).some(ft => jobTags.includes(ft))) return false
       }
 
+      // Quick work style pill filter
+      if (quickWorkStyle) {
+        const jobTags = job.tags || []
+        if (!jobTags.includes(quickWorkStyle)) return false
+      }
+
+      // Quick experience level dropdown filter
+      if (quickExperienceLevel) {
+        const jobTags = job.tags || []
+        if (!jobTags.includes(quickExperienceLevel)) return false
+      }
+
       return true
     }).sort((a, b) => {
       const aBoost = boostedJobIds.has(a.id) ? 1 : 0
       const bBoost = boostedJobIds.has(b.id) ? 1 : 0
       return bBoost - aBoost
     })
-  }, [jobs, searchQuery, debouncedLocationQuery, locationCoords, locationRadius, jobCoords, activeCategory, filters, boostedJobIds])
+  }, [jobs, searchQuery, debouncedLocationQuery, locationCoords, locationRadius, jobCoords, activeCategory, filters, boostedJobIds, quickWorkStyle, quickExperienceLevel])
 
   // Auto-select first job on desktop when filtered jobs change
   useEffect(() => {
@@ -629,6 +643,8 @@ function JobsPageContent() {
     setLocationCoords(null)
     setActiveCategory('all')
     setFilters(emptyFilters())
+    setQuickWorkStyle(null)
+    setQuickExperienceLevel('')
   }
 
   // Apply flow handlers
@@ -805,6 +821,46 @@ function JobsPageContent() {
             ? 'See what other companies are advertising across the UK'
             : 'Thousands of jobs across all sectors in the UK'}
         </p>
+      </div>
+
+      {/* Quick Filters — work style pills + experience dropdown */}
+      <div className={styles.quickFilters}>
+        <div className={styles.quickFiltersInner}>
+          <div className={styles.workStylePills}>
+            {(['Remote', 'Hybrid', 'On-site'] as const).map(ws => (
+              <button
+                key={ws}
+                className={`${styles.workStylePill} ${quickWorkStyle === ws ? styles.workStylePillActive : ''}`}
+                onClick={() => setQuickWorkStyle(quickWorkStyle === ws ? null : ws)}
+              >
+                {ws === 'Remote' && '🌐 '}
+                {ws === 'Hybrid' && '🏠 '}
+                {ws === 'On-site' && '🏢 '}
+                {ws}
+              </button>
+            ))}
+          </div>
+          <select
+            value={quickExperienceLevel}
+            onChange={e => setQuickExperienceLevel(e.target.value)}
+            className={`${styles.experienceSelect} ${quickExperienceLevel ? styles.experienceSelectActive : ''}`}
+          >
+            <option value="">Experience level</option>
+            <option value="No experience required">No experience required</option>
+            <option value="Entry level">Entry level</option>
+            <option value="Mid level">Mid level</option>
+            <option value="Senior level">Senior level</option>
+            <option value="Management">Management</option>
+          </select>
+          {(quickWorkStyle || quickExperienceLevel) && (
+            <button
+              className={styles.quickFiltersClear}
+              onClick={() => { setQuickWorkStyle(null); setQuickExperienceLevel('') }}
+            >
+              Clear
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Category Pills - Collapsible */}
