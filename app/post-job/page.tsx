@@ -40,8 +40,20 @@ function PostJobContent() {
   const [showPreview, setShowPreview] = useState(false)
   const [enhancing, setEnhancing] = useState(false)
   const [enhanceError, setEnhanceError] = useState('')
-  const [preEnhanceDescription, setPreEnhanceDescription] = useState<string | null>(null)
   const [showUndo, setShowUndo] = useState(false)
+  // Guided description fields
+  const [guidedFields, setGuidedFields] = useState({
+    whatIsJob: '',
+    dayToDay: '',
+    experienceNeeded: '',
+    whatWeOffer: '',
+  })
+  // 'guided' = show four fields, 'editor' = show Tiptap editor
+  const [descView, setDescView] = useState<'guided' | 'editor'>('guided')
+  type UndoState =
+    | { source: 'guided'; fields: typeof guidedFields }
+    | { source: 'editor'; description: string }
+  const [undoState, setUndoState] = useState<UndoState | null>(null)
 
   const [formData, setFormData] = useState({
     company: '',
@@ -200,6 +212,8 @@ function PostJobContent() {
       }
 
       setLoadingJobData(false)
+      // Go straight to editor view when loading an existing job description
+      setDescView('editor')
     }
   }, [searchParams, jobs, getJobById])
 
@@ -338,7 +352,22 @@ function PostJobContent() {
     setEnhancing(true)
     setEnhanceError('')
     setShowUndo(false)
-    const original = formData.description
+
+    // Build the description text to send — from guided fields or existing editor content
+    const descriptionText = descView === 'guided'
+      ? [
+          guidedFields.whatIsJob ? `What is the job: ${guidedFields.whatIsJob}` : '',
+          guidedFields.dayToDay ? `Day to day: ${guidedFields.dayToDay}` : '',
+          guidedFields.experienceNeeded ? `Experience needed: ${guidedFields.experienceNeeded}` : '',
+          guidedFields.whatWeOffer ? `What we offer: ${guidedFields.whatWeOffer}` : '',
+        ].filter(Boolean).join('\n')
+      : htmlToPlainText(formData.description)
+
+    // Store undo snapshot
+    const snap: UndoState = descView === 'guided'
+      ? { source: 'guided', fields: { ...guidedFields } }
+      : { source: 'editor', description: formData.description }
+
     try {
       const res = await fetch('/api/ai-assist', {
         method: 'POST',
@@ -354,8 +383,7 @@ function PostJobContent() {
             salaryPeriod: formData.salaryPeriod,
             employmentType: formData.employmentType,
             workLocationType: formData.workLocationType,
-            // Send plain text so the AI isn't confused by Tiptap's HTML markup
-            description: htmlToPlainText(formData.description),
+            description: descriptionText,
           },
         }),
       })
@@ -366,12 +394,12 @@ function PostJobContent() {
       }
       const enhanced = json.jobAd?.description
       if (enhanced) {
-        setPreEnhanceDescription(original)
-        // Wrap in <p> if the AI returned plain text without block-level tags
         const htmlOut = /^<(p|ul|ol|h[1-6]|div)/i.test(enhanced.trimStart())
           ? enhanced
           : `<p>${enhanced}</p>`
         setFormData(prev => ({ ...prev, description: htmlOut }))
+        setUndoState(snap)
+        setDescView('editor')
         setShowUndo(true)
         setTimeout(() => setShowUndo(false), 10000)
       }
@@ -381,6 +409,22 @@ function PostJobContent() {
       setEnhancing(false)
     }
   }
+
+  const handleUndo = () => {
+    if (!undoState) return
+    if (undoState.source === 'guided') {
+      setGuidedFields(undoState.fields)
+      setFormData(prev => ({ ...prev, description: '' }))
+      setDescView('guided')
+    } else {
+      setFormData(prev => ({ ...prev, description: undoState.description }))
+      setDescView('editor')
+    }
+    setUndoState(null)
+    setShowUndo(false)
+  }
+
+  const guidedHasContent = Object.values(guidedFields).some(v => v.trim().length > 0)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -943,53 +987,141 @@ function PostJobContent() {
               Job Description
             </h2>
 
-            <div className={styles.formGroup}>
-              <label className={styles.label}>
-                Job Description <span className={styles.required}>*</span>
-              </label>
-              <RichTextEditor
-                value={formData.description}
-                onChange={(html) => setFormData(prev => ({ ...prev, description: html }))}
-                placeholder="Describe the role, day-to-day responsibilities, the team, and what success looks like in this position. Include any requirements (e.g. 2+ years experience, specific skills) and benefits (e.g. 28 days holiday, tips, staff meals, flexible hours)..."
-              />
-              {descriptionHasContent(formData.description) && (
-                <div className={styles.enhanceRow}>
-                  <button
-                    type="button"
-                    className={styles.enhanceBtn}
-                    onClick={handleEnhanceDescription}
-                    disabled={enhancing}
-                  >
-                    {enhancing ? (
-                      <>
-                        <span className={styles.enhanceSpinner} />
-                        Enhancing...
-                      </>
-                    ) : (
-                      <>✨ Enhance with AI</>
-                    )}
-                  </button>
-                  {showUndo && (
+            {descView === 'guided' ? (
+              <div>
+                <div className={styles.formGroup}>
+                  <label className={styles.label} htmlFor="desc_whatIsJob">
+                    What is the job? <span className={styles.required}>*</span>
+                  </label>
+                  <input
+                    type="text"
+                    id="desc_whatIsJob"
+                    className={styles.input}
+                    placeholder="e.g. Head Chef, Senior Developer, Marketing Manager"
+                    value={guidedFields.whatIsJob}
+                    onChange={e => setGuidedFields(prev => ({ ...prev, whatIsJob: e.target.value }))}
+                  />
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label className={styles.label} htmlFor="desc_dayToDay">
+                    What will they be doing day to day?
+                  </label>
+                  <textarea
+                    id="desc_dayToDay"
+                    className={styles.textarea}
+                    rows={3}
+                    placeholder="e.g. Leading the kitchen team, managing suppliers, creating seasonal menus..."
+                    value={guidedFields.dayToDay}
+                    onChange={e => setGuidedFields(prev => ({ ...prev, dayToDay: e.target.value }))}
+                  />
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label className={styles.label} htmlFor="desc_experienceNeeded">
+                    Experience or skills needed?
+                  </label>
+                  <textarea
+                    id="desc_experienceNeeded"
+                    className={styles.textarea}
+                    rows={3}
+                    placeholder="e.g. 3+ years in a similar role, strong leadership skills, food hygiene certificate..."
+                    value={guidedFields.experienceNeeded}
+                    onChange={e => setGuidedFields(prev => ({ ...prev, experienceNeeded: e.target.value }))}
+                  />
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label className={styles.label} htmlFor="desc_whatWeOffer">
+                    What do you offer?
+                  </label>
+                  <textarea
+                    id="desc_whatWeOffer"
+                    className={styles.textarea}
+                    rows={3}
+                    placeholder="e.g. £35,000 salary, 28 days holiday, staff meals, flexible hours, great team..."
+                    value={guidedFields.whatWeOffer}
+                    onChange={e => setGuidedFields(prev => ({ ...prev, whatWeOffer: e.target.value }))}
+                  />
+                </div>
+
+                {guidedHasContent && (
+                  <div className={styles.enhanceRow}>
                     <button
                       type="button"
-                      className={styles.undoBtn}
-                      onClick={() => {
-                        if (preEnhanceDescription !== null) {
-                          setFormData(prev => ({ ...prev, description: preEnhanceDescription }))
-                          setShowUndo(false)
-                        }
-                      }}
+                      className={styles.enhanceBtn}
+                      onClick={handleEnhanceDescription}
+                      disabled={enhancing}
                     >
-                      Undo
+                      {enhancing ? (
+                        <><span className={styles.enhanceSpinner} />Enhancing...</>
+                      ) : (
+                        <>✨ Enhance with AI</>
+                      )}
                     </button>
-                  )}
+                  </div>
+                )}
+
+                {enhanceError && <p className={styles.enhanceError}>{enhanceError}</p>}
+
+                <button
+                  type="button"
+                  className={styles.manualEditLink}
+                  onClick={() => setDescView('editor')}
+                >
+                  Edit manually instead
+                </button>
+              </div>
+            ) : (
+              <div className={styles.formGroup}>
+                <div className={styles.editorViewHeader}>
+                  <label className={styles.label}>
+                    Job Description <span className={styles.required}>*</span>
+                  </label>
+                  <div className={styles.editorViewActions}>
+                    {showUndo && (
+                      <button type="button" className={styles.undoBtn} onClick={handleUndo}>
+                        Undo
+                      </button>
+                    )}
+                    {!isEditMode && (
+                      <button
+                        type="button"
+                        className={styles.manualEditLink}
+                        onClick={() => { setDescView('guided'); setFormData(prev => ({ ...prev, description: '' })) }}
+                      >
+                        Back to guided view
+                      </button>
+                    )}
+                  </div>
                 </div>
-              )}
-              {enhanceError && <p className={styles.enhanceError}>{enhanceError}</p>}
-              <p className={styles.helperText}>
-                A short summary will be auto-generated for job cards from the first 150 characters
-              </p>
-            </div>
+                <RichTextEditor
+                  value={formData.description}
+                  onChange={(html) => setFormData(prev => ({ ...prev, description: html }))}
+                  placeholder="Describe the role, day-to-day responsibilities, the team, and what success looks like in this position..."
+                />
+                {descriptionHasContent(formData.description) && (
+                  <div className={styles.enhanceRow}>
+                    <button
+                      type="button"
+                      className={styles.enhanceBtn}
+                      onClick={handleEnhanceDescription}
+                      disabled={enhancing}
+                    >
+                      {enhancing ? (
+                        <><span className={styles.enhanceSpinner} />Enhancing...</>
+                      ) : (
+                        <>✨ Enhance with AI</>
+                      )}
+                    </button>
+                  </div>
+                )}
+                {enhanceError && <p className={styles.enhanceError}>{enhanceError}</p>}
+                <p className={styles.helperText}>
+                  A short summary will be auto-generated for job cards from the first 150 characters
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Requirements & Details */}
