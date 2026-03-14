@@ -9,7 +9,6 @@ import { supabase } from '@/lib/supabase'
 import { useJobs } from '@/lib/JobsContext'
 import { getTagsByCategory, TAG_CATEGORIES, getTagCategory, type TagCategory } from '@/lib/jobTags'
 import { categories } from '@/lib/categories'
-import AIJobAdAssistant from '@/components/AIJobAdAssistant'
 import styles from './page.module.css'
 
 const RichTextEditor = dynamic(() => import('@/components/RichTextEditor'), { ssr: false })
@@ -39,6 +38,10 @@ function PostJobContent() {
   const [bannerFileName, setBannerFileName] = useState('')
 
   const [showPreview, setShowPreview] = useState(false)
+  const [enhancing, setEnhancing] = useState(false)
+  const [enhanceError, setEnhanceError] = useState('')
+  const [preEnhanceDescription, setPreEnhanceDescription] = useState<string | null>(null)
+  const [showUndo, setShowUndo] = useState(false)
 
   const [formData, setFormData] = useState({
     company: '',
@@ -312,6 +315,49 @@ function PostJobContent() {
     }
   }
 
+  const handleEnhanceDescription = async () => {
+    setEnhancing(true)
+    setEnhanceError('')
+    setShowUndo(false)
+    const original = formData.description
+    try {
+      const res = await fetch('/api/ai-assist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'job-ad-enhance',
+          data: {
+            title: formData.title,
+            category: formData.category,
+            location: formData.location,
+            salaryMin: formData.salaryMin,
+            salaryMax: formData.salaryMax,
+            salaryPeriod: formData.salaryPeriod,
+            employmentType: formData.employmentType,
+            workLocationType: formData.workLocationType,
+            description: formData.description,
+          },
+        }),
+      })
+      const json = await res.json()
+      if (!res.ok || json.error) {
+        setEnhanceError(json.error || 'Enhancement failed. Please try again.')
+        return
+      }
+      const enhanced = json.jobAd?.description
+      if (enhanced) {
+        setPreEnhanceDescription(original)
+        setFormData(prev => ({ ...prev, description: enhanced }))
+        setShowUndo(true)
+        setTimeout(() => setShowUndo(false), 10000)
+      }
+    } catch {
+      setEnhanceError('Failed to connect to AI service.')
+    } finally {
+      setEnhancing(false)
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
@@ -496,30 +542,6 @@ function PostJobContent() {
               Loading job data...
             </div>
           )}
-
-          {/* AI Job Ad Assistant */}
-          <AIJobAdAssistant
-            formData={{
-              title: formData.title,
-              company: formData.company,
-              category: formData.category,
-              location: formData.location,
-              salaryMin: formData.salaryMin,
-              salaryMax: formData.salaryMax,
-              salaryPeriod: formData.salaryPeriod,
-              employmentType: formData.employmentType,
-              workLocationType: formData.workLocationType,
-              description: formData.description,
-            }}
-            userId={currentUser?.id ?? null}
-            onApply={(fields) => {
-              setFormData(prev => ({
-                ...prev,
-                ...(fields.title ? { title: fields.title } : {}),
-                ...(fields.description ? { description: fields.description } : {}),
-              }))
-            }}
-          />
 
           {/* Company Information */}
           <div className={styles.section}>
@@ -903,6 +925,40 @@ function PostJobContent() {
                 onChange={(html) => setFormData(prev => ({ ...prev, description: html }))}
                 placeholder="Describe the role, including responsibilities, requirements, and what makes this a great opportunity..."
               />
+              {formData.description && formData.description.replace(/<[^>]*>/g, '').trim() && (
+                <div className={styles.enhanceRow}>
+                  <button
+                    type="button"
+                    className={styles.enhanceBtn}
+                    onClick={handleEnhanceDescription}
+                    disabled={enhancing}
+                  >
+                    {enhancing ? (
+                      <>
+                        <span className={styles.enhanceSpinner} />
+                        Enhancing...
+                      </>
+                    ) : (
+                      <>✨ Enhance with AI</>
+                    )}
+                  </button>
+                  {showUndo && (
+                    <button
+                      type="button"
+                      className={styles.undoBtn}
+                      onClick={() => {
+                        if (preEnhanceDescription !== null) {
+                          setFormData(prev => ({ ...prev, description: preEnhanceDescription }))
+                          setShowUndo(false)
+                        }
+                      }}
+                    >
+                      Undo
+                    </button>
+                  )}
+                </div>
+              )}
+              {enhanceError && <p className={styles.enhanceError}>{enhanceError}</p>}
               <p className={styles.helperText}>
                 A short summary will be auto-generated for job cards from the first 150 characters
               </p>

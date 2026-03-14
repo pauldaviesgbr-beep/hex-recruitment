@@ -38,7 +38,9 @@ ${data.additionalContext ? `Additional context: ${data.additionalContext}` : ''}
       const maxTokens = 1500
       const isEnhance = type === 'job-ad-enhance'
 
-      systemPrompt = `You are an expert UK hospitality recruitment copywriter. ${isEnhance ? 'Improve and enhance the provided job advertisement' : 'Write a compelling, professional UK job advertisement'} for the hospitality sector. Return ONLY a valid JSON object with these fields: title (string), description (string, HTML formatted with <p> and <ul>/<li> tags), requirements (string, HTML formatted), benefits (string, HTML formatted or empty string). No markdown fences, no extra text outside the JSON object.`
+      systemPrompt = isEnhance
+        ? `You are an expert UK hospitality recruitment copywriter. Improve the provided job description for clarity, professionalism and appeal to UK job seekers. Preserve the employer's original intent and tone. Return ONLY a valid JSON object with a single field: description (string, HTML formatted with <p> and <ul>/<li> tags). No markdown fences, no extra text outside the JSON object.`
+        : `You are an expert UK hospitality recruitment copywriter. Write a compelling, professional UK job advertisement for the hospitality sector. Return ONLY a valid JSON object with these fields: title (string), description (string, HTML formatted with <p> and <ul>/<li> tags), requirements (string, HTML formatted), benefits (string, HTML formatted or empty string). No markdown fences, no extra text outside the JSON object.`
 
       if (isEnhance) {
         userPrompt = `Enhance this job advertisement and return improved JSON:
