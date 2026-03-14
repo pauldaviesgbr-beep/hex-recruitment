@@ -168,24 +168,13 @@ export default function AIJobAdAssistant({ formData, userId, onApply }: Props) {
             </button>
           </div>
 
-          {/* Form summary */}
-          <div className={styles.summary}>
-            <div className={styles.summaryTitle}>Using form values:</div>
-            <div className={styles.summaryGrid}>
-              <span className={styles.summaryItem}><strong>Title:</strong> {formData.title || <em>not set</em>}</span>
-              <span className={styles.summaryItem}><strong>Location:</strong> {formData.location || <em>not set</em>}</span>
-              <span className={styles.summaryItem}><strong>Salary:</strong> {formData.salaryMin ? `£${formData.salaryMin}${formData.salaryMax ? `–£${formData.salaryMax}` : ''} / ${formData.salaryPeriod}` : <em>not set</em>}</span>
-              <span className={styles.summaryItem}><strong>Type:</strong> {formData.employmentType}</span>
-            </div>
-          </div>
-
           {mode === 'generate' && (
             <div className={styles.field}>
               <label className={styles.label}>Key points to include (optional)</label>
               <textarea
                 className={styles.textarea}
                 rows={4}
-                placeholder={'e.g.\n• Fast-paced environment\n• Immediate start available\n• Tips included\n• Progression opportunities'}
+                placeholder={'e.g. Must have 3 years experience, hybrid working, fast-paced team environment...'}
                 value={bulletPoints}
                 onChange={e => setBulletPoints(e.target.value)}
               />
