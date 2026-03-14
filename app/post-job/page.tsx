@@ -20,6 +20,11 @@ const defaultImages = [
   'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=1200&h=627&fit=crop',
 ]
 
+type GuidedFields = { whatIsJob: string; dayToDay: string; experienceNeeded: string; whatWeOffer: string }
+type UndoState =
+  | { source: 'guided'; fields: GuidedFields }
+  | { source: 'editor'; description: string }
+
 function PostJobContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -42,7 +47,7 @@ function PostJobContent() {
   const [enhanceError, setEnhanceError] = useState('')
   const [showUndo, setShowUndo] = useState(false)
   // Guided description fields
-  const [guidedFields, setGuidedFields] = useState({
+  const [guidedFields, setGuidedFields] = useState<GuidedFields>({
     whatIsJob: '',
     dayToDay: '',
     experienceNeeded: '',
@@ -50,9 +55,6 @@ function PostJobContent() {
   })
   // 'guided' = show four fields, 'editor' = show Tiptap editor
   const [descView, setDescView] = useState<'guided' | 'editor'>('guided')
-  type UndoState =
-    | { source: 'guided'; fields: typeof guidedFields }
-    | { source: 'editor'; description: string }
   const [undoState, setUndoState] = useState<UndoState | null>(null)
 
   const [formData, setFormData] = useState({
