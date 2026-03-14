@@ -660,7 +660,7 @@ export default function MyJobsPage() {
                       <div className={styles.cardActions}>
                         <button
                           className={styles.viewJobBtn}
-                          onClick={() => router.push(`/jobs?id=${application.jobId}`)}
+                          onClick={() => router.push(`/job/${application.jobId}?from=applications`)}
                         >
                           View Job
                         </button>

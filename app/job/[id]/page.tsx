@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Header from '@/components/Header'
 import CompanyLogo from '@/components/CompanyLogo'
@@ -19,7 +19,9 @@ import styles from './page.module.css'
 export default function JobDetailPage() {
   const params = useParams()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const jobId = params.id as string
+  const fromParam = searchParams.get('from')
   const { jobs, loading: jobsLoading } = useJobs()
   const { isSaved: checkSaved, toggleSave } = useSavedJobs()
   const { trackJobView, trackClickEvent } = useAnalyticsTracking()
@@ -197,12 +199,21 @@ export default function JobDetailPage() {
       <div className={styles.container}>
         {/* Breadcrumb */}
         <div className={styles.breadcrumb}>
-          <Link href="/jobs" className={styles.breadcrumbLink}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="15 18 9 12 15 6" />
-            </svg>
-            Back to Jobs
-          </Link>
+          {fromParam ? (
+            <button className={styles.breadcrumbLink} style={{ border: 'none', background: 'none', padding: 0, cursor: 'pointer' }} onClick={() => router.back()}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="15 18 9 12 15 6" />
+              </svg>
+              {fromParam === 'applications' ? 'Back to Applications' : 'Back'}
+            </button>
+          ) : (
+            <Link href="/jobs" className={styles.breadcrumbLink}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="15 18 9 12 15 6" />
+              </svg>
+              Back to Jobs
+            </Link>
+          )}
         </div>
 
         {/* Job Header */}
