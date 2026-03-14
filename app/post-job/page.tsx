@@ -315,6 +315,25 @@ function PostJobContent() {
     }
   }
 
+  // Strip HTML tags and decode basic entities to plain text for the AI
+  const htmlToPlainText = (html: string) =>
+    html
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<\/p>/gi, '\n')
+      .replace(/<\/li>/gi, '\n')
+      .replace(/<[^>]+>/g, '')
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim()
+
+  // Robust empty check for Tiptap HTML (handles <p></p>, <p><br></p>, whitespace-only)
+  const descriptionHasContent = (html: string) =>
+    html ? htmlToPlainText(html).length > 0 : false
+
   const handleEnhanceDescription = async () => {
     setEnhancing(true)
     setEnhanceError('')
@@ -335,7 +354,8 @@ function PostJobContent() {
             salaryPeriod: formData.salaryPeriod,
             employmentType: formData.employmentType,
             workLocationType: formData.workLocationType,
-            description: formData.description,
+            // Send plain text so the AI isn't confused by Tiptap's HTML markup
+            description: htmlToPlainText(formData.description),
           },
         }),
       })
@@ -347,7 +367,11 @@ function PostJobContent() {
       const enhanced = json.jobAd?.description
       if (enhanced) {
         setPreEnhanceDescription(original)
-        setFormData(prev => ({ ...prev, description: enhanced }))
+        // Wrap in <p> if the AI returned plain text without block-level tags
+        const htmlOut = /^<(p|ul|ol|h[1-6]|div)/i.test(enhanced.trimStart())
+          ? enhanced
+          : `<p>${enhanced}</p>`
+        setFormData(prev => ({ ...prev, description: htmlOut }))
         setShowUndo(true)
         setTimeout(() => setShowUndo(false), 10000)
       }
@@ -797,7 +821,7 @@ function PostJobContent() {
                   name="location"
                   value={formData.location}
                   onChange={handleChange}
-                  placeholder="e.g., Mayfair, Shoreditch"
+                  placeholder="e.g. London, Manchester, Edinburgh"
                   className={styles.input}
                   autoComplete="off"
                   required
@@ -828,6 +852,7 @@ function PostJobContent() {
                   onChange={handleChange}
                   className={styles.select}
                 >
+                  <option value="">Select employment type</option>
                   <option value="Full-time">Full-time</option>
                   <option value="Part-time">Part-time</option>
                   <option value="Flexible">Flexible</option>
@@ -843,6 +868,7 @@ function PostJobContent() {
                   onChange={handleChange}
                   className={styles.select}
                 >
+                  <option value="">Select contract type</option>
                   <option value="Permanent">Permanent</option>
                   <option value="Temporary">Temporary</option>
                   <option value="Fixed-term">Fixed-term</option>
@@ -859,6 +885,7 @@ function PostJobContent() {
                 onChange={handleChange}
                 className={styles.select}
               >
+                <option value="">Select work location</option>
                 <option value="In person">In person</option>
                 <option value="Remote">Remote</option>
                 <option value="Hybrid">Hybrid</option>
@@ -877,7 +904,7 @@ function PostJobContent() {
                     name="salaryMin"
                     value={formData.salaryMin}
                     onChange={handleChange}
-                    placeholder="Min"
+                    placeholder="e.g. 12"
                     className={styles.salaryInput}
                     autoComplete="off"
                     required
@@ -889,7 +916,7 @@ function PostJobContent() {
                     name="salaryMax"
                     value={formData.salaryMax}
                     onChange={handleChange}
-                    placeholder="Max"
+                    placeholder="e.g. 18"
                     className={styles.salaryInput}
                     autoComplete="off"
                     required
@@ -923,9 +950,9 @@ function PostJobContent() {
               <RichTextEditor
                 value={formData.description}
                 onChange={(html) => setFormData(prev => ({ ...prev, description: html }))}
-                placeholder="Describe the role, including responsibilities, requirements, and what makes this a great opportunity..."
+                placeholder="Describe the role, day-to-day responsibilities, the team, and what success looks like in this position. Include any requirements (e.g. 2+ years experience, specific skills) and benefits (e.g. 28 days holiday, tips, staff meals, flexible hours)..."
               />
-              {formData.description && formData.description.replace(/<[^>]*>/g, '').trim() && (
+              {descriptionHasContent(formData.description) && (
                 <div className={styles.enhanceRow}>
                   <button
                     type="button"
