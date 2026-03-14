@@ -34,7 +34,7 @@ interface Props {
 export default function AIJobAdAssistant({ formData, userId, onApply }: Props) {
   const [isOpen, setIsOpen] = useState(false)
   const [mode, setMode] = useState<'generate' | 'enhance'>('generate')
-  const [bulletPoints, setBulletPoints] = useState('')
+  const [bulletPoints, setBulletPoints] = useState('• ')
   const [companyDescription, setCompanyDescription] = useState('')
   const [loadingCompanyDesc, setLoadingCompanyDesc] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
@@ -42,23 +42,72 @@ export default function AIJobAdAssistant({ formData, userId, onApply }: Props) {
   const [error, setError] = useState('')
   const [toast, setToast] = useState(false)
 
-  // Fetch company description from employer_profiles when panel opens
+  // Fetch company description from employer_profiles each time the panel opens
   useEffect(() => {
-    if (isOpen && userId && !companyDescription) {
+    if (!isOpen) return
+    const fetchCompanyDesc = async () => {
       setLoadingCompanyDesc(true)
-      supabase
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) { setLoadingCompanyDesc(false); return }
+      const { data } = await supabase
         .from('employer_profiles')
         .select('company_description')
-        .eq('user_id', userId)
+        .eq('user_id', session.user.id)
         .single()
-        .then(({ data }) => {
-          if (data?.company_description) {
-            setCompanyDescription(data.company_description)
-          }
-          setLoadingCompanyDesc(false)
-        })
+      if (data?.company_description) {
+        setCompanyDescription(data.company_description)
+      }
+      setLoadingCompanyDesc(false)
     }
-  }, [isOpen, userId, companyDescription])
+    fetchCompanyDesc()
+  }, [isOpen])
+
+  const handleBulletKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    const el = e.currentTarget
+    const { value, selectionStart } = el
+
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      const before = value.slice(0, selectionStart)
+      const after = value.slice(selectionStart)
+      const next = before + '\n• ' + after
+      setBulletPoints(next)
+      setTimeout(() => {
+        el.selectionStart = selectionStart + 3
+        el.selectionEnd = selectionStart + 3
+      }, 0)
+      return
+    }
+
+    if (e.key === 'Backspace') {
+      const lineStart = value.lastIndexOf('\n', selectionStart - 1) + 1
+      const currentLine = value.slice(lineStart, selectionStart)
+      if (currentLine === '• ') {
+        e.preventDefault()
+        if (lineStart === 0) {
+          // Only line — keep the starter bullet, don't delete it
+          setBulletPoints('• ')
+          setTimeout(() => { el.selectionStart = 2; el.selectionEnd = 2 }, 0)
+        } else {
+          // Remove this empty bullet line (including the preceding newline)
+          const newValue = value.slice(0, lineStart - 1) + value.slice(lineStart + 2)
+          setBulletPoints(newValue)
+          setTimeout(() => {
+            const pos = lineStart - 1
+            el.selectionStart = pos
+            el.selectionEnd = pos
+          }, 0)
+        }
+      }
+    }
+  }
+
+  // Strip "• " prefixes before sending to API
+  const bulletPointsForApi = bulletPoints
+    .split('\n')
+    .map(line => line.replace(/^•\s*/, '').trim())
+    .filter(Boolean)
+    .join('\n')
 
   const handleGenerate = async () => {
     setIsGenerating(true)
@@ -82,7 +131,7 @@ export default function AIJobAdAssistant({ formData, userId, onApply }: Props) {
             employmentType: formData.employmentType,
             workLocationType: formData.workLocationType,
             description: mode === 'enhance' ? formData.description : undefined,
-            bulletPoints: mode === 'generate' ? bulletPoints : undefined,
+            bulletPoints: mode === 'generate' ? bulletPointsForApi : undefined,
             companyDescription,
           },
         }),
@@ -155,7 +204,7 @@ export default function AIJobAdAssistant({ formData, userId, onApply }: Props) {
             <button
               type="button"
               className={`${styles.modeTab} ${mode === 'generate' ? styles.modeTabActive : ''}`}
-              onClick={() => { setMode('generate'); setResult(null); setError('') }}
+              onClick={() => { setMode('generate'); setResult(null); setError(''); setBulletPoints('• ') }}
             >
               Generate from scratch
             </button>
@@ -174,9 +223,9 @@ export default function AIJobAdAssistant({ formData, userId, onApply }: Props) {
               <textarea
                 className={styles.textarea}
                 rows={4}
-                placeholder={'e.g. Must have 3 years experience, hybrid working, fast-paced team environment...'}
                 value={bulletPoints}
                 onChange={e => setBulletPoints(e.target.value)}
+                onKeyDown={handleBulletKeyDown}
               />
             </div>
           )}
