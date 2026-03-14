@@ -144,13 +144,6 @@
   text-decoration: underline;
 }
 
-.editor :global(.tiptap) p.is-editor-empty:first-child::before {
-  content: attr(data-placeholder);
-  color: #94a3b8;
-  pointer-events: none;
-  float: left;
-  height: 0;
-}
 
 /* Link Input */
 .linkInput {

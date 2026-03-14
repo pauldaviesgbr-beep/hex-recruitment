@@ -179,3 +179,12 @@ body[data-sidebar="expanded"] [data-sidebar-logo] {
     background: #fff !important;
   }
 }
+
+/* Tiptap placeholder — must be global (CSS modules are scoped and don't reach Tiptap's injected DOM) */
+.tiptap p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: #9ca3af;
+  pointer-events: none;
+  height: 0;
+}
