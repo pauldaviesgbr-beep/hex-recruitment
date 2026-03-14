@@ -78,7 +78,7 @@ ${data.companyDescription ? `About the company: ${data.companyDescription}` : ''
           'anthropic-version': '2023-06-01',
         },
         body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
+          model: 'claude-sonnet-4-6',
           max_tokens: maxTokens,
           system: systemPrompt,
           messages: [{ role: 'user', content: userPrompt }],
@@ -87,8 +87,8 @@ ${data.companyDescription ? `About the company: ${data.companyDescription}` : ''
 
       if (!aiResponse.ok) {
         const errText = await aiResponse.text()
-        console.error('Anthropic API error:', errText)
-        return NextResponse.json({ error: 'AI service temporarily unavailable' }, { status: 502 })
+        console.error('Anthropic API error:', aiResponse.status, errText)
+        return NextResponse.json({ error: `AI service error (${aiResponse.status}): ${errText}` }, { status: 502 })
       }
 
       const aiResult = await aiResponse.json()
@@ -116,7 +116,7 @@ ${data.companyDescription ? `About the company: ${data.companyDescription}` : ''
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
         max_tokens: 512,
         system: systemPrompt,
         messages: [{ role: 'user', content: userPrompt }],
@@ -125,9 +125,9 @@ ${data.companyDescription ? `About the company: ${data.companyDescription}` : ''
 
     if (!response.ok) {
       const errText = await response.text()
-      console.error('Anthropic API error:', errText)
+      console.error('Anthropic API error:', response.status, errText)
       return NextResponse.json(
-        { error: 'AI service temporarily unavailable' },
+        { error: `AI service error (${response.status}): ${errText}` },
         { status: 502 }
       )
     }
