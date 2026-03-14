@@ -7,11 +7,10 @@ import Header from '@/components/Header'
 import CompanyLogo from '@/components/CompanyLogo'
 import JobPostingSchema from '@/components/JobPostingSchema'
 import CompanyReviewsSummary from '@/components/CompanyReviewsSummary'
+import ApplyNowModal from '@/components/ApplyNowModal'
 import { Job } from '@/lib/mockJobs'
 import { useJobs } from '@/lib/JobsContext'
 import { useSavedJobs } from '@/lib/useSavedJobs'
-import { useMessages } from '@/lib/MessagesContext'
-import type { Conversation } from '@/lib/mockMessages'
 import { supabase } from '@/lib/supabase'
 import { getTagCategory, WORK_STYLE_TAGS } from '@/lib/jobTags'
 import { useAnalyticsTracking } from '@/hooks/useAnalyticsTracking'
@@ -24,19 +23,13 @@ export default function JobDetailPage() {
   const { jobs, loading: jobsLoading } = useJobs()
   const { isSaved: checkSaved, toggleSave } = useSavedJobs()
   const { trackJobView, trackClickEvent } = useAnalyticsTracking()
-  const { addConversation, refreshConversations } = useMessages()
-
   const [job, setJob] = useState<Job | null>(null)
   const [notFound, setNotFound] = useState(false)
   const [showShareMenu, setShowShareMenu] = useState(false)
   const [copySuccess, setCopySuccess] = useState(false)
   const [showApplyModal, setShowApplyModal] = useState(false)
-  const [coverLetter, setCoverLetter] = useState('')
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [applicationSubmitted, setApplicationSubmitted] = useState(false)
   const [hasApplied, setHasApplied] = useState(false)
   const [checkingApplied, setCheckingApplied] = useState(true)
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(null)
 
   // Find job from context
@@ -66,7 +59,6 @@ export default function JobDetailPage() {
       const { data: { session } } = await supabase.auth.getSession()
       if (session) {
         setCurrentUserRole(session.user.user_metadata?.role || 'employee')
-        setCurrentUserId(session.user.id)
         try {
           const { data } = await supabase
             .from('job_applications')
@@ -121,135 +113,6 @@ export default function JobDetailPage() {
     if (hasApplied) return
     trackClickEvent(job.id, 'apply_click')
     setShowApplyModal(true)
-  }
-
-  const submitApplication = async () => {
-    if (!job) return
-    setIsSubmitting(true)
-    try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) throw new Error('Not authenticated')
-
-      const candidateName = session.user.user_metadata?.full_name || 'Candidate'
-
-      const { error: insertError } = await supabase
-        .from('job_applications')
-        .insert({
-          job_id: job.id,
-          candidate_id: session.user.id,
-          status: 'pending',
-          cover_letter: coverLetter || null,
-          job_title: job.title,
-          company: job.company,
-        })
-      if (insertError) {
-        console.warn('Supabase insert warning:', insertError.message)
-      }
-
-      if (job.employerId) {
-        try {
-          await supabase.from('notifications').insert({
-            user_id: job.employerId,
-            type: 'new_application',
-            title: 'New application received',
-            message: `${candidateName} applied for ${job.title}`,
-            link: '/my-jobs',
-            related_id: job.id,
-            related_type: 'application',
-          })
-        } catch {
-          // Non-blocking
-        }
-      }
-
-      fetch('/api/send-application-email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          jobTitle: job.title,
-          company: job.company,
-          employerId: job.employerId,
-          candidateName,
-          candidateEmail: session.user.email,
-          coverLetter: coverLetter || '',
-        }),
-      }).catch(() => console.warn('Failed to send application email'))
-
-      const autoMessage = `Hi, I've just applied for the ${job.title} position at ${job.company}. I'm very interested in this opportunity and would love to discuss it further. Please feel free to review my profile and CV. Thank you!`
-
-      if (job.employerId) {
-        try {
-          const { data: employerProfile } = await supabase
-            .from('employer_profiles')
-            .select('company_name')
-            .eq('user_id', job.employerId)
-            .maybeSingle()
-
-          const employerName = employerProfile?.company_name || job.company
-
-          const { data: convData, error: convError } = await supabase
-            .from('conversations')
-            .insert({
-              participant_1: session.user.id,
-              participant_2: job.employerId,
-              participant_1_name: candidateName,
-              participant_1_role: 'candidate',
-              participant_2_name: employerName,
-              participant_2_role: 'employer',
-              participant_2_company: job.company,
-              related_job_id: job.id,
-              related_job_title: job.title,
-              last_message: autoMessage,
-              last_message_at: new Date().toISOString(),
-            })
-            .select()
-            .single()
-
-          if (convError) {
-            console.warn('Failed to create conversation:', convError.message)
-          }
-
-          if (convData) {
-            await supabase
-              .from('messages')
-              .insert({
-                conversation_id: convData.id,
-                sender_id: session.user.id,
-                sender_name: candidateName,
-                sender_role: 'candidate',
-                content: autoMessage,
-                is_read: false,
-              })
-
-            const newConv: Conversation = {
-              id: convData.id,
-              connectionId: convData.id,
-              participantId: job.employerId,
-              participantName: employerName,
-              participantRole: 'employer',
-              participantCompany: job.company,
-              participantProfilePicture: job.companyLogo || null,
-              lastMessage: autoMessage,
-              lastMessageAt: new Date().toISOString(),
-              unreadCount: 0,
-              isOnline: false,
-              participantJobTitle: job.title,
-            }
-            addConversation(newConv)
-          }
-        } catch (convErr) {
-          console.warn('Auto-message failed (non-blocking):', convErr)
-        }
-      }
-
-      setHasApplied(true)
-      setApplicationSubmitted(true)
-    } catch (err) {
-      console.error('Application error:', err)
-      alert('Failed to submit application. Please try again.')
-    } finally {
-      setIsSubmitting(false)
-    }
   }
 
   const formatSalary = () => {
@@ -666,63 +529,12 @@ export default function JobDetailPage() {
         </button>
       </div>
 
-      {/* Apply Modal */}
-      {showApplyModal && (
-        <div className={styles.applyOverlay} onClick={(e) => e.target === e.currentTarget && setShowApplyModal(false)}>
-          <div className={styles.applyModal}>
-            {!applicationSubmitted ? (
-              <>
-                <div className={styles.applyHeader}>
-                  <h2>Apply to {job.company}</h2>
-                  <button className={styles.applyClose} onClick={() => setShowApplyModal(false)}>×</button>
-                </div>
-                <div className={styles.applyBody}>
-                  <div className={styles.applyJobInfo}>
-                    <h3>{job.title}</h3>
-                    <p>{job.location} • {formatSalary()}</p>
-                  </div>
-                  <div className={styles.applyField}>
-                    <label>Cover Letter (optional)</label>
-                    <textarea
-                      value={coverLetter}
-                      onChange={(e) => setCoverLetter(e.target.value)}
-                      placeholder="Tell the employer why you're a great fit for this role..."
-                      rows={6}
-                    />
-                  </div>
-                  <div className={styles.applyCvSection}>
-                    <p className={styles.cvNote}>
-                      Your profile CV will be attached automatically. Make sure it&apos;s up to date!
-                    </p>
-                    <Link href="/cv-builder" className={styles.updateCvLink}>
-                      Update your CV →
-                    </Link>
-                  </div>
-                </div>
-                <div className={styles.applyFooter}>
-                  <button
-                    className={styles.submitBtn}
-                    onClick={submitApplication}
-                    disabled={isSubmitting}
-                  >
-                    {isSubmitting ? 'Submitting...' : 'Submit Application'}
-                  </button>
-                </div>
-              </>
-            ) : (
-              <div className={styles.applySuccess}>
-                <div className={styles.successIcon}>✓</div>
-                <h2>Application Submitted!</h2>
-                <p>Your application has been sent to {job.company}.</p>
-                <p className={styles.successNote}>They will contact you if they&apos;re interested.</p>
-                <button className={styles.successBtn} onClick={() => setShowApplyModal(false)}>
-                  Continue Browsing
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+      <ApplyNowModal
+        job={job}
+        isOpen={showApplyModal}
+        onClose={() => setShowApplyModal(false)}
+        onSuccess={() => setHasApplied(true)}
+      />
     </main>
   )
 }
