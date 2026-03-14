@@ -39,7 +39,7 @@ ${data.additionalContext ? `Additional context: ${data.additionalContext}` : ''}
       const isEnhance = type === 'job-ad-enhance'
 
       systemPrompt = isEnhance
-        ? `You are an expert UK hospitality recruitment copywriter. Improve the provided job description for clarity, professionalism and appeal to UK job seekers. Preserve the employer's original intent and tone. Return ONLY a valid JSON object with a single field: description (string, HTML formatted with <p> and <ul>/<li> tags). No markdown fences, no extra text outside the JSON object.`
+        ? `You are an expert UK hospitality recruitment copywriter. The employer has provided rough notes or bullet points about a job. Expand these into a full, compelling, professional UK job advertisement. Structure the output with clear sections covering: about the role, day-to-day responsibilities, requirements, and what the employer offers (salary, benefits, perks). Keep the tone warm, professional and appealing to UK job seekers. Return ONLY a valid JSON object with a single field: description (string, HTML formatted using <p>, <h3>, <ul> and <li> tags). No markdown fences, no extra text outside the JSON object.`
         : `You are an expert UK hospitality recruitment copywriter. Write a compelling, professional UK job advertisement for the hospitality sector. Return ONLY a valid JSON object with these fields: title (string), description (string, HTML formatted with <p> and <ul>/<li> tags), requirements (string, HTML formatted), benefits (string, HTML formatted or empty string). No markdown fences, no extra text outside the JSON object.`
 
       if (isEnhance) {

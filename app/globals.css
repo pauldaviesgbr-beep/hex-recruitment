@@ -182,7 +182,8 @@ body[data-sidebar="expanded"] [data-sidebar-logo] {
 
 /* Tiptap placeholder — must be global (CSS modules are scoped and don't reach Tiptap's injected DOM) */
 .tiptap p.is-editor-empty:first-child::before {
-  content: attr(data-placeholder);
+  content: "• What is the job?\A• What will they be doing day to day?\A• Experience or skills needed?\A• What do you offer? (salary, benefits, perks)";
+  white-space: pre;
   float: left;
   color: #9ca3af;
   pointer-events: none;
