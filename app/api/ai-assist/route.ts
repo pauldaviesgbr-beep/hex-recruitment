@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 
+export const maxDuration = 30
+
 export async function POST(request: NextRequest) {
   try {
     const apiKey = process.env.ANTHROPIC_API_KEY
@@ -35,27 +37,19 @@ Key Duties: ${data.keyDuties || 'Not specified'}
 Duration: ${data.duration || 'Not specified'}
 ${data.additionalContext ? `Additional context: ${data.additionalContext}` : ''}`
     } else if (type === 'job-ad' || type === 'job-ad-enhance') {
-      const maxTokens = 1500
       const isEnhance = type === 'job-ad-enhance'
 
       systemPrompt = isEnhance
-        ? `You are an expert UK hospitality recruitment copywriter. The employer has provided rough notes or bullet points about a job. Expand these into a full, compelling, professional UK job advertisement. Structure the output with clear sections covering: about the role, day-to-day responsibilities, requirements, and what the employer offers (salary, benefits, perks). Keep the tone warm, professional and appealing to UK job seekers. Return ONLY a valid JSON object with a single field: description (string, HTML formatted using <p>, <h3>, <ul> and <li> tags). No markdown fences, no extra text outside the JSON object.`
+        ? `You are a UK recruitment copywriter. The user will give you rough notes about a job. Write a compelling, professional job advertisement with these sections: About the Role, Key Responsibilities, What We're Looking For, What We Offer. Be concise and engaging. Respond ONLY with a valid JSON object in this exact format, no markdown, no extra text: {"description": "full html formatted job ad here"}`
         : `You are an expert UK hospitality recruitment copywriter. Write a compelling, professional UK job advertisement for the hospitality sector. Return ONLY a valid JSON object with these fields: title (string), description (string, HTML formatted with <p> and <ul>/<li> tags), requirements (string, HTML formatted), benefits (string, HTML formatted or empty string). No markdown fences, no extra text outside the JSON object.`
 
       if (isEnhance) {
-        userPrompt = `Enhance this job advertisement and return improved JSON:
+        userPrompt = `Write a job ad from these notes:
 Job Title: ${data.title || 'Not specified'}
-Company: ${data.company || 'Not specified'}
 Location: ${data.location || 'Not specified'}
 Salary: ${data.salaryMin ? `£${data.salaryMin}${data.salaryMax ? ` - £${data.salaryMax}` : ''} per ${data.salaryPeriod || 'hour'}` : 'Competitive'}
 Employment Type: ${data.employmentType || 'Full-time'}
-Work Type: ${data.workLocationType || 'In person'}
-Category: ${data.category || 'Not specified'}
-
-Current Description:
-${data.description || 'None provided'}
-
-${data.companyDescription ? `Company Description: ${data.companyDescription}` : ''}`
+${data.description || ''}`
       } else {
         userPrompt = `Write a job advertisement and return as JSON:
 Job Title: ${data.title || 'Not specified'}
@@ -79,7 +73,7 @@ ${data.companyDescription ? `About the company: ${data.companyDescription}` : ''
         },
         body: JSON.stringify({
           model: 'claude-sonnet-4-6',
-          max_tokens: maxTokens,
+          max_tokens: 800,
           system: systemPrompt,
           messages: [{ role: 'user', content: userPrompt }],
         }),
@@ -94,13 +88,27 @@ ${data.companyDescription ? `About the company: ${data.companyDescription}` : ''
       const aiResult = await aiResponse.json()
       const rawText = aiResult.content?.[0]?.text || ''
 
+      // Robust JSON extraction — try direct parse first, then regex fallback
+      let jobAd: Record<string, string> | null = null
       try {
-        const jobAd = JSON.parse(rawText)
-        return NextResponse.json({ jobAd })
+        jobAd = JSON.parse(rawText)
       } catch {
+        const match = rawText.match(/\{[\s\S]*\}/)
+        if (match) {
+          try {
+            jobAd = JSON.parse(match[0])
+          } catch {
+            // fall through to error below
+          }
+        }
+      }
+
+      if (!jobAd) {
         console.error('Failed to parse job-ad JSON:', rawText)
         return NextResponse.json({ error: 'AI returned invalid format' }, { status: 502 })
       }
+
+      return NextResponse.json({ jobAd })
     } else {
       return NextResponse.json(
         { error: 'Invalid type.' },
