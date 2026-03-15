@@ -237,6 +237,15 @@
     padding: 1rem;
   }
 
+  .dateTimeRow {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .dateTimeField {
+    width: 100%;
+  }
+
   .actions {
     flex-direction: column-reverse;
   }

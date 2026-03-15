@@ -40,14 +40,13 @@ export default function ScheduleInterviewModal({
   const [calendarOpened, setCalendarOpened] = useState(false)
 
   const handleOpenCalendar = () => {
-    const subject = `Interview - ${candidateName} - ${jobTitle}`
-    const details = `Interview for ${jobTitle} at ${company}\nCandidate: ${candidateName}`
+    const title = jobTitle ? `Interview - ${jobTitle}` : 'Interview'
+    const details = candidateName ? `Interview with ${candidateName}` : 'Interview'
     const guestParam = candidateEmail ? `&add=${encodeURIComponent(candidateEmail)}` : ''
 
-    // Pre-fill date/time in Google Calendar if provided
     let dateParams = ''
     if (interviewDate && interviewTime) {
-      // Parse date/time components explicitly to avoid browser timezone parsing differences
+      // Parse components explicitly to avoid browser timezone parsing differences
       const [year, month, day] = interviewDate.split('-').map(Number)
       const [hours, minutes] = interviewTime.split(':').map(Number)
       const start = new Date(year, month - 1, day, hours, minutes, 0)
@@ -57,12 +56,10 @@ export default function ScheduleInterviewModal({
       const formatLocal = (d: Date) =>
         `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}T${pad(d.getHours())}${pad(d.getMinutes())}00`
 
-      const startDt = formatLocal(start)
-      const endDt = formatLocal(end)
-      dateParams = `&dates=${startDt}/${endDt}`
+      dateParams = `&dates=${formatLocal(start)}/${formatLocal(end)}`
     }
 
-    const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(subject)}&details=${encodeURIComponent(details)}${guestParam}${dateParams}`
+    const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&details=${encodeURIComponent(details)}${dateParams}${guestParam}`
     window.open(url, '_blank')
     setCalendarOpened(true)
   }
