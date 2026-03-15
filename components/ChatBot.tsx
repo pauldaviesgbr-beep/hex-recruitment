@@ -337,6 +337,16 @@ export default function ChatBot() {
     return () => window.removeEventListener('keydown', handleEsc)
   }, [isOpen])
 
+  // Open from mobile menu via custom event
+  useEffect(() => {
+    const handleOpen = () => {
+      setIsOpen(true)
+      setShowBadge(false)
+    }
+    window.addEventListener('open-hex-chatbot', handleOpen)
+    return () => window.removeEventListener('open-hex-chatbot', handleOpen)
+  }, [])
+
   const sendMessage = useCallback((content: string) => {
     if (!content.trim()) return
 

@@ -261,6 +261,23 @@ export default function EmployerSidebar() {
               )}
             </Link>
           ))}
+          <div className={styles.navDivider} />
+          <button
+            className={styles.item}
+            data-tooltip="Hex Assistant"
+            title="Hex Assistant"
+            onClick={() => {
+              setMobileOpen(false)
+              window.dispatchEvent(new CustomEvent('open-hex-chatbot'))
+            }}
+          >
+            <span className={styles.icon}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 2L21.5 7.5V16.5L12 22L2.5 16.5V7.5L12 2Z" stroke="#FFD700" />
+              </svg>
+            </span>
+            <span className={styles.label}>Hex Assistant</span>
+          </button>
         </nav>
 
       </aside>

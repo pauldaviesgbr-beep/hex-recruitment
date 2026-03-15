@@ -224,6 +224,24 @@
   opacity: 1;
 }
 
+/* ---------- Nav divider ---------- */
+
+.navDivider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.08);
+  margin: 4px 0;
+  flex-shrink: 0;
+}
+
+/* Reset button defaults for .item used as a button */
+button.item {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+}
+
 /* ---------- Bottom section ---------- */
 
 .bottom {

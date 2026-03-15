@@ -98,11 +98,7 @@
 /* Mobile */
 @media (max-width: 768px) {
   .chatButton {
-    bottom: 76px;
-    right: 16px;
-    width: 44px;
-    height: 44px;
-    animation: none;
+    display: none;
   }
 
   .chatIcon {

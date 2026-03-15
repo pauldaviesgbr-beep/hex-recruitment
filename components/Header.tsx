@@ -266,6 +266,19 @@ export default function Header() {
               Archived Jobs
             </Link>
           )}
+          <button
+            className={styles.dropdownItem}
+            style={{ width: '100%', border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left' }}
+            onClick={() => {
+              setShowProfileMenu(false)
+              window.dispatchEvent(new CustomEvent('open-hex-chatbot'))
+            }}
+          >
+            <svg className={styles.dropdownIcon} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 2L21.5 7.5V16.5L12 22L2.5 16.5V7.5L12 2Z" stroke="#FFD700" strokeWidth="2" strokeLinejoin="round" />
+            </svg>
+            Hex Assistant
+          </button>
           <div className={styles.dropdownDivider} />
           <button
             className={styles.dropdownItemLogout}
