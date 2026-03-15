@@ -181,7 +181,7 @@ function CandidatesContent() {
   const searchParams = useSearchParams()
   const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '')
   const [locationQuery, setLocationQuery] = useState(searchParams.get('city') || '')
-  const [activeCategory, setActiveCategory] = useState('all')
+  const [activeCategories, setActiveCategories] = useState<string[]>([])
   const [filters, setFilters] = useState<Filters>(emptyFilters())
   const [sectorsExpanded, setSectorsExpanded] = useState(false)
   const [filtersExpanded, setFiltersExpanded] = useState(false)
@@ -235,6 +235,16 @@ function CandidatesContent() {
       else newSet.add(value)
       return { ...prev, [category]: newSet }
     })
+  }
+
+  const toggleCategory = (categoryId: string) => {
+    if (categoryId === 'all') {
+      setActiveCategories([])
+      return
+    }
+    setActiveCategories(prev =>
+      prev.includes(categoryId) ? prev.filter(c => c !== categoryId) : [...prev, categoryId]
+    )
   }
 
   const activeFilterCount = useMemo(() =>
@@ -313,10 +323,10 @@ function CandidatesContent() {
         if (!candidate.location.toLowerCase().includes(city)) return false
       }
 
-      // Sector filter
-      if (activeCategory !== 'all') {
+      // Sector filter (OR logic — candidate must match at least one selected sector)
+      if (activeCategories.length > 0) {
         const sector = getCandidateSector(candidate)
-        if (sector !== activeCategory) return false
+        if (!activeCategories.includes(sector)) return false
       }
 
       // Availability filter
@@ -376,7 +386,7 @@ function CandidatesContent() {
       const bBoost = boostedProfileIds.has(b.id) ? 1 : 0
       return bBoost - aBoost
     })
-  }, [allCandidates, searchQuery, locationQuery, activeCategory, filters, boostedProfileIds])
+  }, [allCandidates, searchQuery, locationQuery, activeCategories, filters, boostedProfileIds])
 
   // Auto-select first candidate on desktop when filtered results change
   useEffect(() => {
@@ -402,7 +412,7 @@ function CandidatesContent() {
   const clearFilters = () => {
     setSearchQuery('')
     setLocationQuery('')
-    setActiveCategory('all')
+    setActiveCategories([])
     clearAllFilters()
   }
 
@@ -472,17 +482,22 @@ function CandidatesContent() {
               onClick={() => setSectorsExpanded(!sectorsExpanded)}
             >
               Job Sectors
-              {activeCategory !== 'all' && (
+              {activeCategories.length === 1 && (
                 <span className={styles.activeSectorLabel}>
-                  {categories.find(c => c.id === activeCategory)?.label}
+                  {categories.find(c => c.id === activeCategories[0])?.label}
+                </span>
+              )}
+              {activeCategories.length > 1 && (
+                <span className={styles.activeSectorLabel}>
+                  {activeCategories.length} selected
                 </span>
               )}
               <span className={`${styles.chevron} ${sectorsExpanded ? styles.chevronUp : ''}`}>&#9662;</span>
             </button>
-            {activeCategory !== 'all' && !sectorsExpanded && (
+            {activeCategories.length > 0 && !sectorsExpanded && (
               <button
                 className={styles.clearSectorBtn}
-                onClick={() => setActiveCategory('all')}
+                onClick={() => setActiveCategories([])}
               >
                 Clear
               </button>
@@ -493,8 +508,12 @@ function CandidatesContent() {
               {categories.map(category => (
                 <button
                   key={category.id}
-                  className={`${styles.categoryPill} ${activeCategory === category.id ? styles.categoryPillActive : ''}`}
-                  onClick={() => setActiveCategory(category.id)}
+                  className={`${styles.categoryPill} ${
+                    category.id === 'all'
+                      ? (activeCategories.length === 0 ? styles.categoryPillActive : '')
+                      : (activeCategories.includes(category.id) ? styles.categoryPillActive : '')
+                  }`}
+                  onClick={() => toggleCategory(category.id)}
                 >
                   {category.label}
                 </button>
@@ -553,7 +572,8 @@ function CandidatesContent() {
       <div className={styles.mainContainer}>
         <p className={styles.candidateCount}>
           <span className={styles.candidateCountHighlight}>{filteredCandidates.length}</span> candidates found
-          {activeCategory !== 'all' && ` in ${categories.find(c => c.id === activeCategory)?.label}`}
+          {activeCategories.length === 1 && ` in ${categories.find(c => c.id === activeCategories[0])?.label}`}
+          {activeCategories.length > 1 && ` in ${activeCategories.length} sectors`}
           {locationQuery && ` in "${locationQuery}"`}
         </p>
 
