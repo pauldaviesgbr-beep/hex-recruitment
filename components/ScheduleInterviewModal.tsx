@@ -15,6 +15,7 @@ interface ScheduleInterviewModalProps {
   candidateName: string
   candidateEmail?: string
   jobLocation?: string
+  existingInterviewId?: string
   onSuccess: () => void
 }
 
@@ -28,6 +29,7 @@ export default function ScheduleInterviewModal({
   candidateId,
   candidateName,
   candidateEmail,
+  existingInterviewId,
   onSuccess,
 }: ScheduleInterviewModalProps) {
   const [interviewDate, setInterviewDate] = useState('')
@@ -86,13 +88,24 @@ export default function ScheduleInterviewModal({
         return
       }
 
+      const isReschedule = !!existingInterviewId
+
+      // If rescheduling, mark the old interview as rescheduled
+      if (isReschedule) {
+        await supabase
+          .from('interviews')
+          .update({ status: 'rescheduled' })
+          .eq('id', existingInterviewId)
+          .catch((err: unknown) => console.error('Error marking old interview as rescheduled:', err))
+      }
+
       // Update application status to "interviewing"
       await supabase
         .from('job_applications')
         .update({ status: 'interviewing' })
         .eq('id', applicationId)
 
-      // Insert interview record
+      // Insert new interview record
       await supabase.from('interviews').insert({
         application_id: applicationId,
         job_id: jobId,
@@ -107,33 +120,57 @@ export default function ScheduleInterviewModal({
         status: 'scheduled',
       })
 
-      // Build message with the share link
-      const messageLines = [
-        `Hello ${candidateName},`,
-        '',
-        `You've been invited to an interview for the ${jobTitle} position at ${company}.`,
-        '',
-        'Click the link below to view the calendar invite:',
-        shareLink.trim(),
-      ]
+      // Format date for messages and emails
+      const [year, month, day] = interviewDate.split('-').map(Number)
+      const formattedDate = new Date(year, month - 1, day).toLocaleDateString('en-GB', {
+        weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+      })
+      const interviewTypeLabel = 'In Person'
 
-      if (notes.trim()) {
-        messageLines.push('', notes.trim())
+      // Build message content — different for reschedules vs new invites
+      let messageContent: string
+      let notificationTitle: string
+      let notificationMessage: string
+
+      if (isReschedule) {
+        const firstName = candidateName.split(' ')[0]
+        messageContent = [
+          `Hi ${firstName}, I wanted to let you know your interview for ${jobTitle} has been rescheduled.`,
+          '',
+          `Your new interview is on ${formattedDate} at ${interviewTime} (${interviewTypeLabel}).`,
+          '',
+          'Click the link below to view the updated calendar invite:',
+          shareLink.trim(),
+          '',
+          'Please let me know if you have any questions.',
+          '',
+          'Best regards,',
+          company,
+        ].join('\n')
+        notificationTitle = 'Interview Rescheduled'
+        notificationMessage = `${company} has rescheduled your interview for ${jobTitle}. New date: ${formattedDate} at ${interviewTime}.`
+      } else {
+        const messageLines = [
+          `Hello ${candidateName},`,
+          '',
+          `You've been invited to an interview for the ${jobTitle} position at ${company}.`,
+          '',
+          'Click the link below to view the calendar invite:',
+          shareLink.trim(),
+        ]
+        if (notes.trim()) {
+          messageLines.push('', notes.trim())
+        }
+        messageLines.push('', 'Best regards,', company)
+        messageContent = messageLines.join('\n')
+        notificationTitle = 'Interview Invitation'
+        notificationMessage = `${company} has invited you for an interview for the ${jobTitle} position. View invite: ${shareLink.trim()}`
       }
 
-      messageLines.push(
-        '',
-        'Best regards,',
-        company,
-      )
-
-      const messageContent = messageLines.join('\n')
-      const notificationMessage = `${company} has invited you for an interview for the ${jobTitle} position. View invite: ${shareLink.trim()}`
-
-      // Send notification
+      // Send in-app notification
       await supabase.from('notifications').insert({
         user_id: candidateId,
-        title: 'Interview Invitation',
+        title: notificationTitle,
         message: notificationMessage,
         type: 'application_update',
         read: false,
@@ -141,23 +178,42 @@ export default function ScheduleInterviewModal({
         related_type: 'application',
       })
 
-      // Send email notification
+      // Send email notification (fire & forget — never block the reschedule)
       if (candidateEmail) {
-        fetch('/api/email/send', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            to: candidateEmail,
-            type: 'interview_scheduled',
-            data: {
-              companyName: company,
-              jobTitle,
-              date: new Date(interviewDate).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }),
-              time: interviewTime,
-              notes: notes.trim() || undefined,
-            },
-          }),
-        }).catch(() => {})
+        if (isReschedule) {
+          fetch('/api/email/send', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              to: candidateEmail,
+              type: 'interview_rescheduled',
+              data: {
+                companyName: company,
+                jobTitle,
+                candidateName,
+                date: formattedDate,
+                time: interviewTime,
+                interviewType: interviewTypeLabel,
+              },
+            }),
+          }).catch((err: unknown) => console.error('Error sending reschedule email:', err))
+        } else {
+          fetch('/api/email/send', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              to: candidateEmail,
+              type: 'interview_scheduled',
+              data: {
+                companyName: company,
+                jobTitle,
+                date: formattedDate,
+                time: interviewTime,
+                notes: notes.trim() || undefined,
+              },
+            }),
+          }).catch(() => {})
+        }
       }
 
       // Find or create conversation
@@ -242,7 +298,7 @@ export default function ScheduleInterviewModal({
     <div className={styles.overlay} onClick={onClose}>
       <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
         <div className={styles.header}>
-          <h2 className={styles.title}>Send Calendar Invite</h2>
+          <h2 className={styles.title}>{existingInterviewId ? 'Reschedule Interview' : 'Send Calendar Invite'}</h2>
           <button className={styles.closeBtn} onClick={onClose} aria-label="Close">
             ✕
           </button>

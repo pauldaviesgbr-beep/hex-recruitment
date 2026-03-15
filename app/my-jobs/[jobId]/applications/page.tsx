@@ -921,6 +921,7 @@ export default function JobApplicationsPage() {
           candidateName={selectedApplication.candidateName}
           candidateEmail={selectedApplication.candidateEmail}
           jobLocation={job?.location}
+          existingInterviewId={selectedApplication.interview?.id}
           onSuccess={() => {
             loadApplications()
           }}
