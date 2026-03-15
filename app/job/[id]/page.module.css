@@ -880,8 +880,13 @@
     padding: 1rem 0.75rem 5rem;
   }
 
+  /* Clear the employer hamburger button (fixed, left: 0.75rem, width: 40px ≈ 52px from left) */
+  :global(body[data-sidebar]) .container {
+    padding-left: 56px;
+  }
+
   .jobHeader {
-    padding: 1.5rem;
+    padding: 1.5rem 1.25rem;
   }
 
   .headerContent {
