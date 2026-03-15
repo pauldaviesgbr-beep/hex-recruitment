@@ -96,11 +96,11 @@ export default function ScheduleInterviewModal({
 
       // If rescheduling, mark the old interview as rescheduled
       if (isReschedule) {
-        await supabase
+        const { error: rescheduleError } = await supabase
           .from('interviews')
           .update({ status: 'rescheduled' })
           .eq('id', existingInterviewId)
-          .catch((err: unknown) => console.error('Error marking old interview as rescheduled:', err))
+        if (rescheduleError) console.error('Error marking old interview as rescheduled:', rescheduleError)
       }
 
       // Update application status to "interviewing"
