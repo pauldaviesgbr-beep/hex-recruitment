@@ -200,14 +200,14 @@ export default function JobDetailPage() {
         {/* Breadcrumb */}
         <div className={styles.breadcrumb}>
           {fromParam ? (
-            <button className={styles.breadcrumbLink} style={{ border: 'none', background: 'none', padding: 0, cursor: 'pointer' }} onClick={() => router.back()}>
+            <button className={styles.breadcrumbLink} style={{ border: 'none', background: 'none', padding: 0, cursor: 'pointer' }} onClick={() => router.push(fromParam === 'applications' ? '/applications' : '/jobs')}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="15 18 9 12 15 6" />
               </svg>
               {fromParam === 'applications' ? 'Back to Applications' : 'Back'}
             </button>
           ) : (
-            <button className={styles.breadcrumbLink} style={{ border: 'none', background: 'none', padding: 0, cursor: 'pointer' }} onClick={() => router.back()}>
+            <button className={styles.breadcrumbLink} style={{ border: 'none', background: 'none', padding: 0, cursor: 'pointer' }} onClick={() => router.push('/jobs')}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="15 18 9 12 15 6" />
               </svg>

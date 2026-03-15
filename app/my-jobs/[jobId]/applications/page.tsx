@@ -547,10 +547,10 @@ export default function JobApplicationsPage() {
       <div className={styles.container}>
         {/* Back Link & Header */}
         <div className={styles.header}>
-          <Link href="/my-jobs" className={styles.backLink}>
+          <button className={styles.backLink} style={{ border: 'none', background: 'none', padding: 0, cursor: 'pointer' }} onClick={() => router.push('/my-jobs')}>
             <span className={styles.backArrow}>←</span>
             Back to My Jobs
-          </Link>
+          </button>
 
           <div className={styles.jobInfo}>
             <h1 className={styles.title}>
@@ -625,9 +625,9 @@ export default function JobApplicationsPage() {
               >
                 📋 Copy Job Link
               </button>
-              <Link href="/my-jobs" className={styles.backBtn}>
+              <button className={styles.backBtn} onClick={() => router.push('/my-jobs')}>
                 Back to My Jobs
-              </Link>
+              </button>
             </div>
           </div>
         ) : (

@@ -304,8 +304,13 @@
 .categoryPillActive {
   background: var(--dark-gray);
   border-color: var(--dark-gray);
-  color: var(--white);
+  color: #ffffff !important;
   font-weight: 600;
+}
+
+.categoryPillActive:hover {
+  background: var(--dark-gray);
+  color: #ffffff;
 }
 
 /* Filter Divider */

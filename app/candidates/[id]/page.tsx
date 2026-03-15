@@ -210,7 +210,7 @@ export default function CandidateDetailPage() {
       <div className={styles.container}>
         {/* Breadcrumb */}
         <div className={styles.breadcrumb}>
-          <button onClick={() => router.back()} className={styles.breadcrumbLink} style={{ border: 'none', background: 'none', padding: 0, cursor: 'pointer' }}>
+          <button onClick={() => router.push('/candidates')} className={styles.breadcrumbLink} style={{ border: 'none', background: 'none', padding: 0, cursor: 'pointer' }}>
             <ChevronLeft size={16} />
             Back to Candidates
           </button>
