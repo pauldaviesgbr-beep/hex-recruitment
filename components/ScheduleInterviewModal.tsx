@@ -4,6 +4,12 @@ import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import styles from './ScheduleInterviewModal.module.css'
 
+const INTERVIEW_TYPES = [
+  { value: 'in-person', label: 'In-Person' },
+  { value: 'video',     label: 'Video Call' },
+  { value: 'phone',     label: 'Phone Call' },
+]
+
 interface ScheduleInterviewModalProps {
   isOpen: boolean
   onClose: () => void
@@ -35,11 +41,12 @@ export default function ScheduleInterviewModal({
   const [interviewDate, setInterviewDate] = useState('')
   const [interviewTime, setInterviewTime] = useState('')
   const [duration, setDuration] = useState(30)
-  const [shareLink, setShareLink] = useState('')
+  const [interviewType, setInterviewType] = useState('in-person')
   const [notes, setNotes] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
-  const [calendarOpened, setCalendarOpened] = useState(false)
+
+  const interviewTypeLabel = INTERVIEW_TYPES.find(t => t.value === interviewType)?.label ?? 'In-Person'
 
   const handleOpenCalendar = () => {
     const title = jobTitle ? `Interview - ${jobTitle}` : 'Interview'
@@ -48,22 +55,23 @@ export default function ScheduleInterviewModal({
 
     let dateParams = ''
     if (interviewDate && interviewTime) {
-      // Parse components explicitly to avoid browser timezone parsing differences
       const [year, month, day] = interviewDate.split('-').map(Number)
       const [hours, minutes] = interviewTime.split(':').map(Number)
       const start = new Date(year, month - 1, day, hours, minutes, 0)
       const end = new Date(start.getTime() + duration * 60000)
-
       const pad = (n: number) => String(n).padStart(2, '0')
-      const formatLocal = (d: Date) =>
+      const fmt = (d: Date) =>
         `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}T${pad(d.getHours())}${pad(d.getMinutes())}00`
-
-      dateParams = `&dates=${formatLocal(start)}/${formatLocal(end)}`
+      dateParams = `&dates=${fmt(start)}/${fmt(end)}`
     }
 
-    const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&details=${encodeURIComponent(details)}${dateParams}${guestParam}`
+    const url = `https://calendar.google.com/calendar/render?action=TEMPLATE` +
+      `&text=${encodeURIComponent(title)}` +
+      `&details=${encodeURIComponent(details)}` +
+      dateParams +
+      `&location=${encodeURIComponent(interviewTypeLabel)}` +
+      guestParam
     window.open(url, '_blank')
-    setCalendarOpened(true)
   }
 
   const handleSubmit = async () => {
@@ -71,10 +79,6 @@ export default function ScheduleInterviewModal({
 
     if (!interviewDate || !interviewTime) {
       setError('Please enter the interview date and time')
-      return
-    }
-    if (!shareLink.trim()) {
-      setError('Please paste the Google Calendar share link')
       return
     }
 
@@ -114,8 +118,8 @@ export default function ScheduleInterviewModal({
         interview_date: interviewDate,
         interview_time: interviewTime,
         duration_minutes: duration,
-        interview_type: 'in-person',
-        location_or_link: shareLink.trim(),
+        interview_type: interviewType,
+        location_or_link: interviewTypeLabel,
         notes: notes.trim() || null,
         status: 'scheduled',
       })
@@ -125,9 +129,8 @@ export default function ScheduleInterviewModal({
       const formattedDate = new Date(year, month - 1, day).toLocaleDateString('en-GB', {
         weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
       })
-      const interviewTypeLabel = 'In Person'
 
-      // Build message content — different for reschedules vs new invites
+      // Build message content
       let messageContent: string
       let notificationTitle: string
       let notificationMessage: string
@@ -138,9 +141,6 @@ export default function ScheduleInterviewModal({
           `Hi ${firstName}, I wanted to let you know your interview for ${jobTitle} has been rescheduled.`,
           '',
           `Your new interview is on ${formattedDate} at ${interviewTime} (${interviewTypeLabel}).`,
-          '',
-          'Click the link below to view the updated calendar invite:',
-          shareLink.trim(),
           '',
           'Please let me know if you have any questions.',
           '',
@@ -155,8 +155,9 @@ export default function ScheduleInterviewModal({
           '',
           `You've been invited to an interview for the ${jobTitle} position at ${company}.`,
           '',
-          'Click the link below to view the calendar invite:',
-          shareLink.trim(),
+          `Date: ${formattedDate}`,
+          `Time: ${interviewTime}`,
+          `Type: ${interviewTypeLabel}`,
         ]
         if (notes.trim()) {
           messageLines.push('', notes.trim())
@@ -164,7 +165,7 @@ export default function ScheduleInterviewModal({
         messageLines.push('', 'Best regards,', company)
         messageContent = messageLines.join('\n')
         notificationTitle = 'Interview Invitation'
-        notificationMessage = `${company} has invited you for an interview for the ${jobTitle} position. View invite: ${shareLink.trim()}`
+        notificationMessage = `${company} has invited you for an interview for the ${jobTitle} position on ${formattedDate} at ${interviewTime}.`
       }
 
       // Send in-app notification
@@ -178,7 +179,7 @@ export default function ScheduleInterviewModal({
         related_type: 'application',
       })
 
-      // Send email notification (fire & forget — never block the reschedule)
+      // Send email notification (fire & forget — never block the save)
       if (candidateEmail) {
         if (isReschedule) {
           fetch('/api/email/send', {
@@ -187,14 +188,7 @@ export default function ScheduleInterviewModal({
             body: JSON.stringify({
               to: candidateEmail,
               type: 'interview_rescheduled',
-              data: {
-                companyName: company,
-                jobTitle,
-                candidateName,
-                date: formattedDate,
-                time: interviewTime,
-                interviewType: interviewTypeLabel,
-              },
+              data: { companyName: company, jobTitle, candidateName, date: formattedDate, time: interviewTime, interviewType: interviewTypeLabel },
             }),
           }).catch((err: unknown) => console.error('Error sending reschedule email:', err))
         } else {
@@ -204,13 +198,7 @@ export default function ScheduleInterviewModal({
             body: JSON.stringify({
               to: candidateEmail,
               type: 'interview_scheduled',
-              data: {
-                companyName: company,
-                jobTitle,
-                date: formattedDate,
-                time: interviewTime,
-                notes: notes.trim() || undefined,
-              },
+              data: { companyName: company, jobTitle, date: formattedDate, time: interviewTime, notes: notes.trim() || undefined },
             }),
           }).catch(() => {})
         }
@@ -267,23 +255,18 @@ export default function ScheduleInterviewModal({
         if (existingConv) {
           await supabase
             .from('conversations')
-            .update({
-              last_message: messageContent,
-              last_message_at: new Date().toISOString(),
-            })
+            .update({ last_message: messageContent, last_message_at: new Date().toISOString() })
             .eq('id', conversationId)
         }
       }
 
       onSuccess()
       onClose()
-      // Reset state
       setInterviewDate('')
       setInterviewTime('')
       setDuration(30)
-      setShareLink('')
+      setInterviewType('in-person')
       setNotes('')
-      setCalendarOpened(false)
     } catch (err) {
       console.error('Error sending interview invite:', err)
       setError('An unexpected error occurred. Please try again.')
@@ -298,92 +281,67 @@ export default function ScheduleInterviewModal({
     <div className={styles.overlay} onClick={onClose}>
       <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
         <div className={styles.header}>
-          <h2 className={styles.title}>{existingInterviewId ? 'Reschedule Interview' : 'Send Calendar Invite'}</h2>
-          <button className={styles.closeBtn} onClick={onClose} aria-label="Close">
-            ✕
-          </button>
+          <div>
+            <h2 className={styles.title}>{existingInterviewId ? 'Reschedule Interview' : 'Schedule Interview'}</h2>
+            <p className={styles.subtitle}>Set the details below and send to the candidate</p>
+          </div>
+          <button className={styles.closeBtn} onClick={onClose} aria-label="Close">✕</button>
         </div>
 
         <div className={styles.body}>
-          <p className={styles.instructions}>
-            Create your calendar event first, then paste the share link here to send to the candidate.
-          </p>
-
-          <div className={styles.step}>
-            <label className={styles.stepLabel}>1. Set the date &amp; time</label>
-            <div className={styles.dateTimeRow}>
-              <div className={styles.dateTimeField}>
-                <label htmlFor="interviewDate" className={styles.fieldLabel}>Date</label>
-                <input
-                  type="date"
-                  id="interviewDate"
-                  value={interviewDate}
-                  onChange={(e) => setInterviewDate(e.target.value)}
-                  className={styles.input}
-                />
-              </div>
-              <div className={styles.dateTimeField}>
-                <label htmlFor="interviewTime" className={styles.fieldLabel}>Time</label>
-                <input
-                  type="time"
-                  id="interviewTime"
-                  value={interviewTime}
-                  onChange={(e) => setInterviewTime(e.target.value)}
-                  className={styles.input}
-                />
-              </div>
-              <div className={styles.dateTimeField}>
-                <label htmlFor="duration" className={styles.fieldLabel}>Duration</label>
-                <select
-                  id="duration"
-                  value={duration}
-                  onChange={(e) => setDuration(Number(e.target.value))}
-                  className={styles.input}
-                >
-                  <option value={15}>15 minutes</option>
-                  <option value={30}>30 minutes</option>
-                  <option value={45}>45 minutes</option>
-                  <option value={60}>1 hour</option>
-                  <option value={90}>1.5 hours</option>
-                  <option value={120}>2 hours</option>
-                </select>
-              </div>
+          <div className={styles.dateTimeRow}>
+            <div className={styles.dateTimeField}>
+              <label htmlFor="interviewDate" className={styles.fieldLabel}>Date</label>
+              <input
+                type="date"
+                id="interviewDate"
+                value={interviewDate}
+                onChange={(e) => setInterviewDate(e.target.value)}
+                className={styles.input}
+              />
+            </div>
+            <div className={styles.dateTimeField}>
+              <label htmlFor="interviewTime" className={styles.fieldLabel}>Time</label>
+              <input
+                type="time"
+                id="interviewTime"
+                value={interviewTime}
+                onChange={(e) => setInterviewTime(e.target.value)}
+                className={styles.input}
+              />
+            </div>
+            <div className={styles.dateTimeField}>
+              <label htmlFor="duration" className={styles.fieldLabel}>Duration</label>
+              <select
+                id="duration"
+                value={duration}
+                onChange={(e) => setDuration(Number(e.target.value))}
+                className={styles.input}
+              >
+                <option value={30}>30 minutes</option>
+                <option value={60}>1 hour</option>
+                <option value={90}>1.5 hours</option>
+                <option value={120}>2 hours</option>
+              </select>
             </div>
           </div>
 
-          <div className={styles.step}>
-            <label className={styles.stepLabel}>2. Create your calendar event</label>
-            <button
-              type="button"
-              className={styles.calendarBtn}
-              onClick={handleOpenCalendar}
-            >
-              Open Google Calendar
-            </button>
-            {calendarOpened && (
-              <p className={styles.calendarHint}>
-                Google Calendar opened in a new tab.
-              </p>
-            )}
-          </div>
-
-          <div className={styles.step}>
-            <label htmlFor="shareLink" className={styles.stepLabel}>3. Paste the share link</label>
-            <input
-              type="url"
-              id="shareLink"
-              value={shareLink}
-              onChange={(e) => setShareLink(e.target.value)}
-              placeholder="https://calendar.google.com/calendar/event?eid=..."
+          <div className={styles.field}>
+            <label htmlFor="interviewType" className={styles.fieldLabel}>Interview Type</label>
+            <select
+              id="interviewType"
+              value={interviewType}
+              onChange={(e) => setInterviewType(e.target.value)}
               className={styles.input}
-            />
-            <p className={styles.helperText}>
-              After saving your event in Google Calendar, click the event, then copy the event link.
-            </p>
+            >
+              {INTERVIEW_TYPES.map(t => (
+                <option key={t.value} value={t.value}>{t.label}</option>
+              ))}
+            </select>
           </div>
 
-          <div className={styles.step}>
-            <label htmlFor="notes" className={styles.stepLabel}>
+          <div className={styles.field}>
+            <label htmlFor="notes" className={styles.fieldLabel}>
               Additional Notes <span className={styles.optional}>(Optional)</span>
             </label>
             <textarea
@@ -398,14 +356,14 @@ export default function ScheduleInterviewModal({
 
           {error && <div className={styles.error}>{error}</div>}
 
-          <div className={styles.actions}>
+          <div className={styles.formActions}>
             <button
               type="button"
-              onClick={onClose}
-              className={styles.cancelBtn}
+              className={styles.calendarBtn}
+              onClick={handleOpenCalendar}
               disabled={submitting}
             >
-              Cancel
+              Open Google Calendar
             </button>
             <button
               type="button"
@@ -414,6 +372,12 @@ export default function ScheduleInterviewModal({
               disabled={submitting}
             >
               {submitting ? 'Sending...' : 'Send to Candidate'}
+            </button>
+          </div>
+
+          <div className={styles.cancelRow}>
+            <button type="button" onClick={onClose} className={styles.cancelLink} disabled={submitting}>
+              Cancel
             </button>
           </div>
         </div>
