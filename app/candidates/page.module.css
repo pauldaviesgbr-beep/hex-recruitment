@@ -271,9 +271,10 @@
 }
 
 .categoriesExpanded {
-  max-height: 800px;
+  max-height: 1200px;
   opacity: 1;
   margin-top: 0.5rem;
+  overflow: visible;
 }
 
 .categoriesWrap {

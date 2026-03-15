@@ -207,12 +207,12 @@ export default function JobDetailPage() {
               {fromParam === 'applications' ? 'Back to Applications' : 'Back'}
             </button>
           ) : (
-            <Link href="/jobs" className={styles.breadcrumbLink}>
+            <button className={styles.breadcrumbLink} style={{ border: 'none', background: 'none', padding: 0, cursor: 'pointer' }} onClick={() => router.back()}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="15 18 9 12 15 6" />
               </svg>
               Back to Jobs
-            </Link>
+            </button>
           )}
         </div>
 

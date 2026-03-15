@@ -115,10 +115,16 @@ body[data-sidebar="expanded"] {
     padding-left: 0;
   }
 
-  /* Prevent content being cut off at bottom by chatbot button */
+  /* Fixed header on mobile + chatbot button clearance */
   body {
+    padding-top: 56px;
     padding-bottom: 80px;
     overflow-x: hidden;
+  }
+
+  /* Prevent iOS Safari auto-zoom on inputs below 16px */
+  input, select, textarea {
+    font-size: 16px;
   }
 
   .container {

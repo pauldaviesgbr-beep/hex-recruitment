@@ -756,6 +756,8 @@
 .quickInfoItem {
   display: flex;
   justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.5rem;
   padding: 0.5rem 0;
   border-bottom: 1px solid #f1f5f9;
 }
@@ -767,6 +769,7 @@
 .quickInfoLabel {
   font-size: 0.8rem;
   color: #94a3b8;
+  flex-shrink: 0;
 }
 
 .quickInfoValue {
@@ -775,6 +778,7 @@
   color: #1e293b;
   text-align: right;
   max-width: 60%;
+  word-break: break-word;
 }
 
 /* Social Links Card */

@@ -210,10 +210,10 @@ export default function CandidateDetailPage() {
       <div className={styles.container}>
         {/* Breadcrumb */}
         <div className={styles.breadcrumb}>
-          <Link href="/candidates" className={styles.breadcrumbLink}>
+          <button onClick={() => router.back()} className={styles.breadcrumbLink} style={{ border: 'none', background: 'none', padding: 0, cursor: 'pointer' }}>
             <ChevronLeft size={16} />
             Back to Candidates
-          </Link>
+          </button>
         </div>
 
         {/* ===== PROFILE HEADER ===== */}
@@ -453,20 +453,17 @@ export default function CandidateDetailPage() {
             )}
 
             {/* Interests & Hobbies */}
-            {(candidate.personalBio || (candidate.interests && candidate.interests.length > 0)) && (
+            {candidate.interests && candidate.interests.length > 0 && (
               <div className={styles.card}>
                 <div className={styles.cardHeader}>
                   <Heart size={20} className={styles.cardIcon} />
                   <h2 className={styles.cardTitle}>Interests & Hobbies</h2>
                 </div>
-                {candidate.personalBio && <p className={styles.bio}>{candidate.personalBio}</p>}
-                {candidate.interests && candidate.interests.length > 0 && (
-                  <div className={styles.interestsTags} style={candidate.personalBio ? { marginTop: '1rem' } : undefined}>
-                    {candidate.interests.map((interest, index) => (
-                      <span key={index} className={styles.interestTag}>{interest}</span>
-                    ))}
-                  </div>
-                )}
+                <div className={styles.interestsTags}>
+                  {candidate.interests.map((interest, index) => (
+                    <span key={index} className={styles.interestTag}>{interest}</span>
+                  ))}
+                </div>
               </div>
             )}
           </div>

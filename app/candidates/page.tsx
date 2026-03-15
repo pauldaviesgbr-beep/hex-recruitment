@@ -360,6 +360,16 @@ function CandidatesContent() {
         if (!matches) return false
       }
 
+      // Work Preference filter
+      if (filters.workPreference.size > 0) {
+        const candidateJobTypes = (candidate.preferredJobTypes || []).map(s => s.toLowerCase())
+        let matches = false
+        for (const pref of Array.from(filters.workPreference)) {
+          if (candidateJobTypes.some(t => t.includes(pref.toLowerCase()))) matches = true
+        }
+        if (!matches) return false
+      }
+
       return true
     }).sort((a, b) => {
       const aBoost = boostedProfileIds.has(a.id) ? 1 : 0

@@ -47,10 +47,12 @@ export default function ScheduleInterviewModal({
     // Pre-fill date/time in Google Calendar if provided
     let dateParams = ''
     if (interviewDate && interviewTime) {
-      const start = new Date(`${interviewDate}T${interviewTime}:00`)
+      // Parse date/time components explicitly to avoid browser timezone parsing differences
+      const [year, month, day] = interviewDate.split('-').map(Number)
+      const [hours, minutes] = interviewTime.split(':').map(Number)
+      const start = new Date(year, month - 1, day, hours, minutes, 0)
       const end = new Date(start.getTime() + duration * 60000)
 
-      // Build both timestamps from local time components (not toISOString which returns UTC)
       const pad = (n: number) => String(n).padStart(2, '0')
       const formatLocal = (d: Date) =>
         `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}T${pad(d.getHours())}${pad(d.getMinutes())}00`
