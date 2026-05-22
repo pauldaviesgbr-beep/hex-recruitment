@@ -19,12 +19,39 @@ interface Message {
   links?: { text: string; href: string }[]
 }
 
+interface HistoryEntry {
+  role: 'user' | 'assistant'
+  content: string
+}
+
+const WELCOME_TEXT =
+  "Hi! I'm here to help. Ask me about pricing, posting jobs, scheduling interviews, or anything else."
+
 const suggestedQuestions = [
-  'How do I post a job?',
-  'How much does it cost?',
-  'How do I find candidates?',
-  'How do I apply for jobs?',
+  'How does the trial work?',
+  'Can I hire for tech or finance roles?',
+  'How do I schedule interviews?',
+  'What support do you offer?',
 ]
+
+const MAX_HISTORY_TURNS = 15
+const FIRST_BYTE_TIMEOUT_MS = 15000
+
+// Pull "[text](path)" markdown out of an aggregated bot response and
+// expose it as a pill-chip array, leaving the inline mention in place
+// as plain text. The LLM emits links as inline markdown so it can name
+// them descriptively in-sentence; the UI surfaces them as chips below
+// the bubble (the existing rendering — the LLM swap preserves it).
+function parseLinks(text: string): { content: string; links?: { text: string; href: string }[] } {
+  const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g
+  const links: { text: string; href: string }[] = []
+  let match: RegExpExecArray | null
+  while ((match = linkRegex.exec(text)) !== null) {
+    links.push({ text: match[1], href: match[2] })
+  }
+  const stripped = text.replace(linkRegex, '$1')
+  return { content: stripped, links: links.length > 0 ? links : undefined }
+}
 
 export default function ChatBot() {
   const pathname = usePathname()
@@ -35,26 +62,32 @@ export default function ChatBot() {
   const [showBadge, setShowBadge] = useState(true)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  // Conversation ID is regenerated on first open AND on "New
+  // conversation" click. Used as the partition key in chat_logs.
+  const conversationIdRef = useRef<string>('')
 
-  // Hide chatbot on the messages page to avoid overlapping the send button
-  // NOTE: must NOT early-return here — that would break the Rules of Hooks by
-  // skipping useEffect calls below. The pathname check is applied in the return instead.
+  // Hide chatbot on the messages page to avoid overlapping the send button.
+  // NOTE: must NOT early-return here — that would break the Rules of Hooks
+  // by skipping useEffect calls below. The pathname check is applied in
+  // the return instead.
   const hiddenOnPage = pathname === '/messages'
 
-  // Initial welcome message
+  // Initial welcome message + first conversation_id when the panel opens.
   useEffect(() => {
     if (isOpen && messages.length === 0) {
-      const welcomeMessage: Message = {
-        id: 'welcome',
-        content: "Hi! I'm here to help. Ask me about pricing, posting jobs, scheduling interviews, or anything else.",
-        sender: 'bot',
-        timestamp: new Date()
+      if (!conversationIdRef.current) {
+        conversationIdRef.current = crypto.randomUUID()
       }
-      setMessages([welcomeMessage])
+      setMessages([{
+        id: 'welcome',
+        content: WELCOME_TEXT,
+        sender: 'bot',
+        timestamp: new Date(),
+      }])
     }
   }, [isOpen, messages.length])
 
-  // Auto-scroll to bottom
+  // Auto-scroll to bottom whenever messages change (including mid-stream).
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
@@ -87,34 +120,159 @@ export default function ChatBot() {
     return () => window.removeEventListener('open-thrive-chatbot', handleOpen)
   }, [])
 
-  const sendMessage = useCallback((content: string) => {
-    if (!content.trim()) return
+  const sendMessage = useCallback(async (content: string) => {
+    const trimmed = content.trim()
+    if (!trimmed) return
 
-    // Add user message
+    // Snapshot the prior conversation for history BEFORE we append the
+    // new user message. Exclude both welcome variants (system-side, never
+    // sent), tail-truncate to MAX_HISTORY_TURNS so we cap context size.
+    const history: HistoryEntry[] = messages
+      .filter((m) => m.id !== 'welcome' && m.id !== 'welcome-new')
+      .slice(-MAX_HISTORY_TURNS)
+      .map((m) => ({
+        role: m.sender === 'user' ? 'user' : 'assistant',
+        content: m.content,
+      }))
+
     const userMessage: Message = {
       id: `user-${Date.now()}`,
-      content: content.trim(),
+      content: trimmed,
       sender: 'user',
-      timestamp: new Date()
+      timestamp: new Date(),
     }
-    setMessages(prev => [...prev, userMessage])
+    setMessages((prev) => [...prev, userMessage])
     setInputValue('')
     setIsTyping(true)
 
-    // Simulate bot typing delay
-    setTimeout(() => {
-      const { response, links } = getKeywordResponse(content)
-      const botMessage: Message = {
-        id: `bot-${Date.now()}`,
+    // Defensive: a conversation_id must exist by this point (set on first
+    // open). If the user somehow sent before the open effect fired, mint
+    // one now so the API call doesn't reject on UUID validation.
+    if (!conversationIdRef.current) {
+      conversationIdRef.current = crypto.randomUUID()
+    }
+
+    const botMessageId = `bot-${Date.now()}`
+
+    // Silent fallback rendered identically to the LLM path. Called for
+    // any failure mode the spec lists: HTTP 503 with { fallback: true },
+    // network error, no first byte within 15s. Never surfaces error UI.
+    const runFallback = () => {
+      const { response, links } = getKeywordResponse(trimmed)
+      const fallbackMsg: Message = {
+        id: botMessageId,
         content: response,
         sender: 'bot',
         timestamp: new Date(),
-        links
+        links,
       }
-      setMessages(prev => [...prev, botMessage])
+      setMessages((prev) => {
+        const withoutInProgress = prev.filter((m) => m.id !== botMessageId)
+        return [...withoutInProgress, fallbackMsg]
+      })
       setIsTyping(false)
-    }, 800 + Math.random() * 500) // Random delay between 800-1300ms
-  }, [])
+    }
+
+    const controller = new AbortController()
+    let firstByteSeen = false
+    const firstByteTimer = setTimeout(() => {
+      if (!firstByteSeen) controller.abort()
+    }, FIRST_BYTE_TIMEOUT_MS)
+
+    try {
+      const response = await fetch('/api/chatbot', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: trimmed,
+          history,
+          conversation_id: conversationIdRef.current,
+        }),
+        signal: controller.signal,
+      })
+
+      if (!response.ok || !response.body) {
+        clearTimeout(firstByteTimer)
+        runFallback()
+        return
+      }
+
+      const reader = response.body.getReader()
+      const decoder = new TextDecoder()
+      let buffer = ''
+      let aggregated = ''
+      let bubbleAdded = false
+
+      while (true) {
+        const { value, done } = await reader.read()
+        if (done) break
+
+        if (!firstByteSeen) {
+          firstByteSeen = true
+          clearTimeout(firstByteTimer)
+          // First byte arrived — drop the typing indicator and add the
+          // empty bot bubble we'll stream into.
+          setIsTyping(false)
+          setMessages((prev) => [...prev, {
+            id: botMessageId,
+            content: '',
+            sender: 'bot',
+            timestamp: new Date(),
+          }])
+          bubbleAdded = true
+        }
+
+        buffer += decoder.decode(value, { stream: true })
+
+        // SSE frames are separated by \n\n. Keep the incomplete trailing
+        // chunk in buffer for the next read.
+        const frames = buffer.split('\n\n')
+        buffer = frames.pop() || ''
+
+        for (const frame of frames) {
+          if (!frame.startsWith('data: ')) continue
+          const data = frame.slice(6)
+
+          if (data === '[DONE]') {
+            const { content: finalContent, links } = parseLinks(aggregated)
+            setMessages((prev) => prev.map((m) => (
+              m.id === botMessageId ? { ...m, content: finalContent, links } : m
+            )))
+            return
+          }
+
+          try {
+            const parsed = JSON.parse(data) as { text?: unknown }
+            if (typeof parsed.text === 'string') {
+              aggregated += parsed.text
+              setMessages((prev) => prev.map((m) => (
+                m.id === botMessageId ? { ...m, content: aggregated } : m
+              )))
+            }
+          } catch {
+            // Malformed chunk — skip and keep streaming.
+          }
+        }
+      }
+
+      // Stream ended without an explicit [DONE]. If we got text, finalize
+      // it; otherwise fall back.
+      if (aggregated) {
+        const { content: finalContent, links } = parseLinks(aggregated)
+        setMessages((prev) => prev.map((m) => (
+          m.id === botMessageId ? { ...m, content: finalContent, links } : m
+        )))
+      } else {
+        if (bubbleAdded) {
+          setMessages((prev) => prev.filter((m) => m.id !== botMessageId))
+        }
+        runFallback()
+      }
+    } catch {
+      clearTimeout(firstByteTimer)
+      runFallback()
+    }
+  }, [messages])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -131,11 +289,14 @@ export default function ChatBot() {
   }
 
   const handleNewConversation = () => {
+    // Mint a fresh conversation_id so chat_logs partitions the new
+    // conversation separately from the prior one.
+    conversationIdRef.current = crypto.randomUUID()
     setMessages([{
       id: 'welcome-new',
-      content: "Hi! I'm here to help. Ask me about pricing, posting jobs, scheduling interviews, or anything else.",
+      content: WELCOME_TEXT,
       sender: 'bot',
-      timestamp: new Date()
+      timestamp: new Date(),
     }])
   }
 
