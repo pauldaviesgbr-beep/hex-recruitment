@@ -11,6 +11,7 @@
     "clean": "rm -rf .next node_modules/.cache || rmdir /s /q .next node_modules\\.cache 2>nul || echo Cache cleared"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.98.0",
     "@hello-pangea/dnd": "^18.0.1",
     "@stripe/react-stripe-js": "^6.2.0",
     "@stripe/stripe-js": "^9.2.0",
