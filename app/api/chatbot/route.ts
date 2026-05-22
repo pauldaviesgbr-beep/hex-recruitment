@@ -72,7 +72,12 @@ export async function POST(request: NextRequest) {
     return fallback()
   }
 
-  let body: { message?: unknown; history?: unknown; conversation_id?: unknown }
+  let body: {
+    message?: unknown
+    history?: unknown
+    conversation_id?: unknown
+    intercept_used?: unknown
+  }
   try {
     body = await request.json()
   } catch {
@@ -82,6 +87,12 @@ export async function POST(request: NextRequest) {
   const message = typeof body.message === 'string' ? body.message.trim() : ''
   const conversationId = typeof body.conversation_id === 'string' ? body.conversation_id : ''
   const rawHistory = Array.isArray(body.history) ? body.history : []
+  // Optional client-side signal that the frontend's high-stakes intercept
+  // chip fired before the LLM call. Logged as-is so chat_logs can show
+  // both signals per turn without coupling the route to the intercept
+  // logic itself (which lives entirely client-side behind the
+  // NEXT_PUBLIC_CHATBOT_INTERCEPTS_ENABLED flag).
+  const interceptUsed = body.intercept_used === true
 
   if (!message || message.length > MAX_MESSAGE_LENGTH) {
     return fallback()
@@ -166,7 +177,7 @@ export async function POST(request: NextRequest) {
               model: 'claude-haiku-4-5-20251001',
               latency_ms: Date.now() - startedAt,
               fallback_used: false,
-              intercept_used: false,
+              intercept_used: interceptUsed,
             })
             .then(
               () => undefined,

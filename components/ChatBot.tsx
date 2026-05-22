@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { Sprout } from 'lucide-react'
 import { getKeywordResponse } from '@/lib/chatbot/keywordFallback'
+import { detectHighStakes, interceptsEnabled } from '@/lib/chatbot/intercepts'
 import styles from './ChatBot.module.css'
 
 const ThriveIcon = ({ size = 20 }: { size?: number }) => (
@@ -152,6 +153,27 @@ export default function ChatBot() {
       conversationIdRef.current = crypto.randomUUID()
     }
 
+    // Belt-and-braces intercept layer — off by default, opt in via
+    // NEXT_PUBLIC_CHATBOT_INTERCEPTS_ENABLED. When on, we render a
+    // canonical chip above the streamed LLM response on the five
+    // high-stakes topics (cancellation, pricing, trial, support, gdpr).
+    // The LLM call still happens — intercept is additive, not a
+    // replacement, so the contextual answer follows underneath.
+    let interceptUsed = false
+    if (interceptsEnabled()) {
+      const match = detectHighStakes(trimmed)
+      if (match) {
+        interceptUsed = true
+        const interceptMessage: Message = {
+          id: `intercept-${Date.now()}`,
+          content: match.canonicalResponse,
+          sender: 'bot',
+          timestamp: new Date(),
+        }
+        setMessages((prev) => [...prev, interceptMessage])
+      }
+    }
+
     const botMessageId = `bot-${Date.now()}`
 
     // Silent fallback rendered identically to the LLM path. Called for
@@ -187,6 +209,7 @@ export default function ChatBot() {
           message: trimmed,
           history,
           conversation_id: conversationIdRef.current,
+          intercept_used: interceptUsed,
         }),
         signal: controller.signal,
       })
