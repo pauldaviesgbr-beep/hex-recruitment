@@ -896,54 +896,6 @@ export default function DashboardPage() {
           <div className={styles.colRight}>
 
 
-            {/* ── 6. MESSAGES ─────────────────────────────── */}
-            <div className={`${styles.card} ${styles.aAmber} ${styles.mMessages}`}>
-              <div className={styles.cardHeader}>
-                <h2 className={styles.cardTitle}>
-                  Messages
-                  {totalUnreadCount > 0 && (
-                    <span style={{
-                      background: '#0f172a',
-                      color: '#FFE500',
-                      fontSize: '0.7rem',
-                      fontWeight: 700,
-                      padding: '0.1rem 0.45rem',
-                      borderRadius: '10px',
-                      marginLeft: '0.35rem',
-                    }}>
-                      {totalUnreadCount}
-                    </span>
-                  )}
-                </h2>
-                <Link href="/messages" className={styles.cardLink}>View All</Link>
-              </div>
-              <div className={styles.cardBody}>
-                {recentConversations.length > 0 ? (
-                  <div className={styles.msgList}>
-                    {recentConversations.map(conv => (
-                      <Link href="/messages" key={conv.id} className={styles.msgItem}>
-                        <div className={styles.msgAvatar}>
-                          {conv.participantName ? getInitials(conv.participantName) : '?'}
-                        </div>
-                        <div className={styles.msgContent}>
-                          <p className={styles.msgSender}>
-                            {conv.unreadCount > 0 && <span className={styles.unreadDot} />}
-                            {conv.participantName}
-                          </p>
-                          <p className={styles.msgPreview}>{conv.lastMessage}</p>
-                        </div>
-                        <span className={styles.msgTime}>{formatRelativeTime(conv.lastMessageAt)}</span>
-                      </Link>
-                    ))}
-                  </div>
-                ) : (
-                  <div className={styles.emptyState}>
-                    <div className={styles.emptyIcon}>&#128172;</div>
-                    <p>No messages yet.</p>
-                  </div>
-                )}
-              </div>
-            </div>
 
             {/* ── 7. BOOST STATUS ───────────────────────────
                 GATED BEHIND profileViews > 0. "Stand out to employers — appear
@@ -1048,33 +1000,11 @@ export default function DashboardPage() {
               </div>
             )}
 
-            {/* ── 10. NOTIFICATIONS ───────────────────────── */}
-            <div className={`${styles.card} ${styles.aBlue} ${styles.mNotifications}`}>
-              <div className={styles.cardHeader}>
-                <h2 className={styles.cardTitle}>Notifications</h2>
-              </div>
-              <div className={styles.cardBody}>
-                {notifications.length > 0 ? (
-                  <div className={styles.notifList}>
-                    {notifications.slice(0, 3).map(n => (
-                      <Link href={n.link || '#'} key={n.id} className={styles.notifItem}>
-                        <span className={styles.notifIcon}>{notifIcon(n.type)}</span>
-                        <div className={styles.notifContent}>
-                          <p className={styles.notifTitle}>{n.title}</p>
-                          {n.message && <p className={styles.notifMsg}>{n.message}</p>}
-                        </div>
-                        <span className={styles.notifTime}>{formatNotificationTime(n.created_at)}</span>
-                      </Link>
-                    ))}
-                  </div>
-                ) : (
-                  <div className={styles.emptyState}>
-                    <div className={styles.emptyIcon}>&#128276;</div>
-                    <p>No notifications yet.</p>
-                  </div>
-                )}
-              </div>
-            </div>
+            {/* Messages and Notifications were panels here. Both already had
+                pages of their own, both are one tap away in the Also row, and
+                the answer line already says "3 unread messages" when it
+                matters — a panel repeating what the top of the page just told
+                you is the repetition this whole item exists to remove. */}
           </div>
         </div>
 
