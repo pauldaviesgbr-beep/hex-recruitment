@@ -1256,3 +1256,34 @@
 .greeting { font-size: 1.5rem; font-weight: 800; color: var(--text-dark, #0f172a); margin: 0; }
 .greetingSub { font-size: 0.9rem; color: var(--text-gray, #64748b); margin: 0.15rem 0 0; }
 @media (max-width: 600px) { .greeting { font-size: 1.3rem; } }
+
+/* ── Also row ────────────────────────────────────────────
+ * Where the moved panels went. Quiet on purpose: this is a footnote, not a
+ * navigation bar — the whole point of moving them was that none of them is why
+ * anyone opens this page. Wraps on a phone rather than scrolling sideways,
+ * which is the fault we removed four times over. */
+.alsoRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 1.1rem;
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e2e8f0;
+}
+.alsoLabel {
+  font-family: var(--font-mono, 'IBM Plex Mono'), ui-monospace, monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #94a3b8;
+  margin-right: 0.25rem;
+}
+.alsoLink {
+  font-size: 0.875rem;
+  color: #475569;
+  text-decoration: none;
+  /* ≥44px of tappable height on a phone without looking like a button. */
+  padding: 0.5rem 0;
+}
+.alsoLink:hover { color: #0f172a; text-decoration: underline; text-underline-offset: 3px; }
