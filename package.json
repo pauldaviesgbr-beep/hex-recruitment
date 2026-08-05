@@ -14,7 +14,9 @@
     "guard:prove": "node scripts/prove-credibility-guard.js",
     "verify": "node scripts/verify.js",
     "verify:fast": "node scripts/verify.js --fast",
-    "preview-url": "node scripts/preview-url.js"
+    "preview-url": "node scripts/preview-url.js",
+    "deploy-ready": "node scripts/deployment-ready.js",
+    "hold:prove": "node scripts/prove-hold.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.98.0",
