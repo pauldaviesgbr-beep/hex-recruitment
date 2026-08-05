@@ -95,6 +95,17 @@ const same = H.markReviewed(held, 'same', now)
 check('"same person" keeps it hidden', H.holdBlocksVisibility(same), true)
 check('"same person" is a decision, not an expiry', H.shouldRelease(same, new Date(now.getTime() + 99 * DAY)), false)
 
+console.log('\nUNDO — because a decision nobody can unmake is worse than one they can')
+// The first mis-click happened four minutes after the feature existed, on a
+// real candidate. Undo returns a row to unresolved WITHOUT changing visibility:
+// un-deciding is not the same as deciding the opposite.
+const undone = { ...H.markReviewed(held, 'different', now), reviewedAt: null, verdict: null }
+check('undo clears the verdict', undone.verdict, null)
+check('undo clears reviewedAt', undone.reviewedAt, null)
+check('undo keeps the ORIGINAL heldAt, so the 7 days are not silently extended', undone.heldAt, held.heldAt)
+check('an undone hold can expire again', H.shouldRelease(undone, new Date(now.getTime() + 8 * DAY)), true)
+check('an undone hold hides again until decided', H.holdBlocksVisibility(undone), true)
+
 console.log('\n----------------------------------------------------------------')
 console.log(failures === 0 ? '  all cases passed' : `  ${failures} FAILED`)
 console.log('----------------------------------------------------------------')

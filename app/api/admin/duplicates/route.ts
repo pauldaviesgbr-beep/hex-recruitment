@@ -73,16 +73,31 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({ groups: items, heldCount, groupsAwaitingReview: awaiting })
 }
 
-/** POST { userId, verdict: 'different' | 'same' } */
+/**
+ * POST { userId, verdict: 'different' | 'same' | 'undo' }
+ *
+ * "DIFFERENT PEOPLE" RESOLVES THE WHOLE PAIR IN ONE CLICK. It is a statement
+ * about two people, not about one row, and building it per-row meant Paul had
+ * to click it twice — 1.6 seconds apart in the timestamps, which is how we
+ * found out. "Same person — hide this one" stays per-row, because it names
+ * which row to hide.
+ *
+ * UNDO EXISTS BECAUSE A DECISION NOBODY CAN UNMAKE IS WORSE THAN ONE THEY CAN.
+ * A verdict permanently exempts a pair from ever being flagged again, and the
+ * first mis-click happened within four minutes of the feature existing — on a
+ * real candidate, recorded as "different people" when he is one man with two
+ * accounts. A confirmation dialogue would have been clicked through; a way back
+ * would not have been needed at all. Same argument as the seven-day fail-open.
+ */
 export async function POST(req: NextRequest) {
   const admin = await requireAdmin(req)
   if (!admin) return new Response('Unauthorized', { status: 401 })
 
   const body = await req.json().catch(() => ({} as any))
   const userId = typeof body?.userId === 'string' ? body.userId : null
-  const verdict = body?.verdict === 'different' || body?.verdict === 'same' ? body.verdict : null
+  const verdict = ['different', 'same', 'undo'].includes(body?.verdict) ? body.verdict as 'different' | 'same' | 'undo' : null
   if (!userId || !verdict) {
-    return NextResponse.json({ error: "need userId and verdict:'different'|'same'" }, { status: 400 })
+    return NextResponse.json({ error: "need userId and verdict:'different'|'same'|'undo'" }, { status: 400 })
   }
 
   const supabase = createClient(supabaseUrl, supabaseKey)
@@ -94,19 +109,56 @@ export async function POST(req: NextRequest) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   if (!row) return NextResponse.json({ error: 'no such candidate' }, { status: 404 })
 
-  const next = markReviewed(parseHold(row.duplicate_hold), verdict)
+  // The rows this decision is ABOUT: everybody sharing the match key.
+  const key = nameMatchKey(row.full_name as string)
+  const { data: all } = await supabase
+    .from('candidate_profiles').select('user_id, full_name, duplicate_hold')
+  const pair = (all || []).filter(r => nameMatchKey(r.full_name as string) === key)
 
-  // "Different people" releases AND stamps reviewedAt, so this pair is never
-  // held again — the row can no longer expire, because a decision outranks a
-  // timer. "Same person" leaves it hidden, and only because a human said so.
-  const update: Record<string, unknown> = { duplicate_hold: next }
-  if (verdict === 'different') update.is_discoverable = true
-  if (verdict === 'same') update.is_discoverable = false
+  // UNDO returns a row to unresolved. It never changes visibility: a candidate
+  // hidden by "same person" stays hidden until somebody decides otherwise,
+  // because un-deciding is not the same as deciding the opposite.
+  if (verdict === 'undo') {
+    const hold = parseHold(row.duplicate_hold)
+    const restored = hold.heldAt && !hold.releasedAt
+      // It was HELD when it was decided, so undo puts it back to held — with
+      // its original heldAt, so the seven days run from the real start rather
+      // than being silently extended by a mis-click.
+      ? { ...hold, reviewedAt: null, verdict: null }
+      : null
+    const { error: e } = await supabase
+      .from('candidate_profiles').update({ duplicate_hold: restored }).eq('user_id', userId)
+    if (e) return NextResponse.json({ error: e.message }, { status: 500 })
+    console.log(`[duplicates] ${admin} UNDID the verdict on ${userId} (key "${key}")`)
+    return NextResponse.json({ ok: true, userId, verdict, undone: true })
+  }
 
+  if (verdict === 'different') {
+    // ONE CLICK, WHOLE PAIR. Every row sharing the key is released and stamped,
+    // which also makes the contradictory state impossible rather than merely
+    // handled — nobody can be left carrying "same" while their pair says
+    // "different", because the pair is written together.
+    const at = new Date()
+    for (const r of pair) {
+      const next = markReviewed(parseHold(r.duplicate_hold), 'different', at)
+      const { error: e } = await supabase
+        .from('candidate_profiles')
+        .update({ duplicate_hold: next, is_discoverable: true })
+        .eq('user_id', r.user_id)
+      if (e) return NextResponse.json({ error: e.message }, { status: 500 })
+    }
+    console.log(`[duplicates] ${admin} resolved the PAIR as "different" — ${pair.length} rows on key "${key}"`)
+    return NextResponse.json({ ok: true, verdict, rowsResolved: pair.length })
+  }
+
+  // "Same person — hide this one" is genuinely per-row: it names which to hide.
+  const next = markReviewed(parseHold(row.duplicate_hold), 'same')
   const { error: writeError } = await supabase
-    .from('candidate_profiles').update(update).eq('user_id', userId)
+    .from('candidate_profiles')
+    .update({ duplicate_hold: next, is_discoverable: false })
+    .eq('user_id', userId)
   if (writeError) return NextResponse.json({ error: writeError.message }, { status: 500 })
 
-  console.log(`[duplicates] ${admin} marked ${userId} as "${verdict}" (key "${nameMatchKey(row.full_name as string)}")`)
-  return NextResponse.json({ ok: true, userId, verdict, isDiscoverable: update.is_discoverable })
+  console.log(`[duplicates] ${admin} marked ${userId} as "same" — hidden (key "${key}")`)
+  return NextResponse.json({ ok: true, userId, verdict, isDiscoverable: false })
 }

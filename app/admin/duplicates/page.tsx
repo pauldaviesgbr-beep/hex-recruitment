@@ -43,7 +43,7 @@ export default function DuplicatesPage() {
   }
   useEffect(() => { load() }, [])
 
-  const decide = async (userId: string, verdict: 'different' | 'same') => {
+  const decide = async (userId: string, verdict: 'different' | 'same' | 'undo') => {
     setBusy(userId)
     const { data: s } = await supabase.auth.getSession()
     const res = await fetch('/api/admin/duplicates', {
@@ -60,6 +60,7 @@ export default function DuplicatesPage() {
     heldAt ? Math.max(0, 7 - Math.floor((Date.now() - Date.parse(heldAt)) / DAY)) : null
 
   const open = groups.filter(g => g.rows.some(r => r.state === 'held' || r.state === 'flagged'))
+  const resolved = groups.filter(g => !g.rows.some(r => r.state === 'held' || r.state === 'flagged'))
 
   return (
     <main style={{ maxWidth: 900, margin: '0 auto', padding: '28px 20px 64px' }}>
@@ -82,8 +83,44 @@ export default function DuplicatesPage() {
         <p style={{ color: '#475569' }}>Nothing waiting. <Link href="/admin" style={{ color: '#0f172a' }}>Back to admin</Link></p>
       )}
 
+      {resolved.length > 0 && (
+        <details style={{ marginTop: 8 }}>
+          <summary style={{ cursor: 'pointer', color: '#475569', fontSize: 14 }}>
+            {resolved.length} already decided — still here, and still reversible
+          </summary>
+          <div style={{ marginTop: 12 }}>
+            {resolved.map(g => (
+              <div key={g.key} style={{ border: '1px solid #e2e8f0', borderRadius: 12, background: '#fff', padding: 14, marginBottom: 10 }}>
+                {g.rows.map(r => (
+                  <div key={r.userId} style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', justifyContent: 'space-between', padding: '6px 0' }}>
+                    <div style={{ fontSize: 14, color: '#0f172a' }}>
+                      {r.name} <span style={{ color: '#64748b', fontSize: 13 }}>
+                        · {r.hold.verdict === 'same' ? 'same person, hidden' : 'different people'}
+                      </span>
+                    </div>
+                    <button
+                      type="button" disabled={busy === r.userId}
+                      onClick={() => decide(r.userId, 'undo')}
+                      style={{ background: '#fff', color: '#0f172a', border: '1px solid #cbd5e1', borderRadius: 8, padding: '7px 12px', fontSize: 12.5, fontWeight: 600, cursor: 'pointer' }}
+                    >
+                      Undo
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        </details>
+      )}
+
       {open.map(g => (
         <section key={g.key} style={{ border: '1px solid #e2e8f0', borderRadius: 12, background: '#fff', padding: 18, marginBottom: 16 }}>
+          {g.rows.some(r => r.state === 'resolved') && g.rows.some(r => r.state !== 'resolved') && (
+            <p style={{ margin: '0 0 12px', fontSize: 13, color: '#8a7a00', background: '#fffbea', border: '1px solid #ebd98a', borderRadius: 8, padding: '8px 12px' }}>
+              A decision has already been made on part of this pair. The row marked
+              “reviewed” below is settled; the other is still waiting.
+            </p>
+          )}
           <div style={{ display: 'grid', gap: 12 }}>
             {g.rows.map(r => (
               <div key={r.userId} style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center', justifyContent: 'space-between', paddingBottom: 12, borderBottom: '1px solid #eff2f6' }}>
@@ -93,6 +130,11 @@ export default function DuplicatesPage() {
                     {r.state === 'held' && (
                       <span style={{ fontSize: 11.5, fontWeight: 600, background: '#fffbea', border: '1px solid #ebd98a', color: '#8a7a00', borderRadius: 99, padding: '2px 9px' }}>
                         Held · hidden · releases itself in {daysLeft(r.hold.heldAt)}d
+                      </span>
+                    )}
+                    {r.state === 'resolved' && (
+                      <span style={{ fontSize: 11.5, fontWeight: 500, border: '1px solid #cbd5e1', color: '#475569', borderRadius: 99, padding: '2px 9px' }}>
+                        Reviewed · {r.hold.verdict === 'same' ? 'same person, hidden' : 'different people'}
                       </span>
                     )}
                     {r.state === 'flagged' && (
@@ -106,6 +148,15 @@ export default function DuplicatesPage() {
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: 8 }}>
+                  {r.state === 'resolved' ? (
+                    <button
+                      type="button" disabled={busy === r.userId}
+                      onClick={() => decide(r.userId, 'undo')}
+                      style={{ background: '#fff', color: '#0f172a', border: '1px solid #cbd5e1', borderRadius: 8, padding: '9px 14px', fontSize: 12.5, fontWeight: 600, cursor: 'pointer' }}
+                    >
+                      Undo this decision
+                    </button>
+                  ) : (<>
                   <button
                     type="button" disabled={busy === r.userId}
                     onClick={() => decide(r.userId, 'different')}
@@ -120,6 +171,7 @@ export default function DuplicatesPage() {
                   >
                     Same person — hide this one
                   </button>
+                  </>)}
                 </div>
               </div>
             ))}
