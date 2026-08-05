@@ -455,7 +455,7 @@ function CandidatesContent() {
   // action can act rather than just describe.
   const activeFilterList = useMemo(() => {
     const out: { key: string; label: string }[] = []
-    if (searchQuery) out.push({ key: 'search', label: `“${searchQuery}”` })
+    if (searchQuery) out.push({ key: 'search', label: searchQuery })
     if (locationQuery) out.push({ key: 'location', label: locationQuery })
     if (activeCategories.length) out.push({ key: 'sector', label: activeCategories.map(getCategoryLabel).join(', ') })
     if (hasCvOnly) out.push({ key: 'hasCv', label: 'Has a CV' })
@@ -608,7 +608,8 @@ function CandidatesContent() {
       {/* Search Section (dark) — mirrors /jobs */}
       <div className={styles.searchSection}>
         <div className={styles.searchInner}>
-          <h1 className={styles.searchSectionTitle}>Find Your Perfect Candidate</h1>
+          <h1 className={styles.searchSectionTitle}>Candidates</h1>
+          <p className={styles.searchSectionSub}>Everyone on Thrive who’s open to work, whether or not they’ve applied to you.</p>
           <div className={styles.searchControls}>
             <div className={styles.searchInputWrap}>
               <input

@@ -1273,14 +1273,18 @@
    ════════════════════════════════════════════════════════════════ */
 
 /* ═══ Search Section (dark banner) ═════════════════════════════ */
-.searchSection { background: var(--dark-gray); padding: 0.8rem 0 0.7rem; }
+/* LIGHT, like the rest of the page. Navy is kept for the site bar above,
+    which is where the app already uses it — a dark hero over a light grid was
+    the theme flipping twice inside one screen. */
+.searchSection { background: #f8fafc; padding: 1.25rem 0 1rem; border-bottom: 1px solid #e2e8f0; }
 .searchInner { max-width: 980px; margin: 0 auto; padding: 0 1.5rem; }
-.searchSectionTitle { font-family: var(--font-serif), Georgia, serif; font-size: 1.4rem; font-weight: 600; letter-spacing: -0.01em; color: var(--white); margin: 0 0 0.6rem; text-align: left; }
+.searchSectionTitle { font-family: var(--font-fraunces, 'Bricolage Grotesque'), var(--font-serif), Georgia, serif; font-size: 30px; font-weight: 700; letter-spacing: -0.025em; color: #0f172a; margin: 0 0 0.25rem; text-align: left; }
+.searchSectionSub { font-size: 14.5px; color: #475569; margin: 0 0 0.85rem; max-width: 640px; }
 .searchControls { display: flex; gap: 0.5rem; }
 .searchInputWrap { flex: 1; position: relative; }
-.searchBox { width: 100%; padding: 0.7rem 2.25rem 0.7rem 1rem; border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; font-size: 0.95rem; outline: none; box-sizing: border-box; background: rgba(255,255,255,0.1); color: var(--white); }
-.searchBox::placeholder { color: rgba(255,255,255,0.5); }
-.searchBox:focus { border-color: var(--primary-yellow); background: rgba(255,255,255,0.15); }
+.searchBox { width: 100%; padding: 0.7rem 2.25rem 0.7rem 1rem; border: 1px solid #cbd5e1; border-radius: 9px; font-size: 0.95rem; outline: none; box-sizing: border-box; background: #fff; color: #0f172a; }
+.searchBox::placeholder { color: #94a3b8; }
+.searchBox:focus { border-color: #0f172a; box-shadow: 0 0 0 3px rgba(15,23,42,.08); }
 .searchClear { position: absolute; right: 0.75rem; top: 50%; transform: translateY(-50%); background: none; border: none; color: rgba(255,255,255,0.5); cursor: pointer; font-size: 0.85rem; padding: 0; }
 
 /* ═══ Filter Strip (sticky) ═══════════════════════════════════ */

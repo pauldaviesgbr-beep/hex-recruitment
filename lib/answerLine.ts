@@ -373,7 +373,7 @@ export function candidatesAnswerLine(state: CandidatesAnswerState): AnswerLineMo
     const { label, resultCount } = state.bestFilterToDrop
     return {
       eyebrow,
-      sentence: `Nobody matches all ${state.activeFilters.length} filters. ${resultCount} ${resultCount === 1 ? 'is' : 'are'} available if you drop “${label}”.`,
+      sentence: `Nobody matches all ${state.activeFilters.length} ${state.activeFilters.length === 1 ? 'filter' : 'filters'}. ${resultCount} ${resultCount === 1 ? 'is' : 'are'} available if you drop “${label}”.`,
       action: { label: `Drop “${label}”` },
     }
   }
@@ -398,7 +398,7 @@ export function candidatesAnswerLine(state: CandidatesAnswerState): AnswerLineMo
   return {
     eyebrow,
     sentence: state.activeFilters.length
-      ? `Nobody matches all ${state.activeFilters.length} filters.`
+      ? `Nobody matches all ${state.activeFilters.length} ${state.activeFilters.length === 1 ? 'filter' : 'filters'}.`
       : 'Nobody is available right now.',
   }
 }
