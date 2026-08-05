@@ -16,6 +16,25 @@ import { emailLayout, ctaButton, BASE_URL } from './layout'
  * The "What an employer would see" block is VERBATIM from the first email —
  * it was the most useful part of it, and someone reading this may not remember
  * the original.
+ *
+ * ── "26 JULY" AND "9 AUGUST" ARE LITERALS, NOT VALUES READ FROM THE ROW ──
+ *
+ * They are correct for the eight this template exists to email — notifiedAt
+ * 26 July, deadlineAt 9 August — and correct for nobody else. They were
+ * already wrong for the test row, which was notified on 5 August and received
+ * this email saying it had been written to in July.
+ *
+ * SO IT CANNOT BE REUSED FOR A FUTURE CORRECTION WITHOUT EDITING IT. Anyone
+ * reaching for it later must change these two dates or lift them into `opts`.
+ * The failure mode if that is missed is the quiet kind: a correctly-addressed
+ * email telling somebody a history that is not theirs, with nothing in the
+ * send report to show for it.
+ *
+ * Only the NEW deadline is dynamic — `opts.deadlineText`, three times.
+ *
+ * A COMMENT HERE RATHER THAN AN HTML ONE BESIDE THE SENTENCE: everything
+ * inside the template string is shipped to the recipient, and a note about our
+ * own defect does not belong in their email.
  */
 export function discoverabilityNoticeCorrectedEmail(opts: {
   candidateName: string | null
