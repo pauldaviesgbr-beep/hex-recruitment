@@ -59,6 +59,17 @@
 @media (max-width: 768px) {
   .card { flex-direction: column; gap: 0.75rem; align-items: flex-start; }
   .cardRight { width: 100%; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; }
-  .controls { flex-direction: column; }
-  .searchInput { min-width: 100%; }
+
+  /* THE CONTROLS WERE CLIPPED, NOT SCROLLED. Going column kept align-items:
+     center from the base rule, so each child held its intrinsic width and sat
+     centred in a narrower box — overflowing BOTH sides, with the right-hand
+     side cut off by the page. The second tab was unreachable at 390: not
+     scrolled out of reach, gone. "Wraps" was true and not enough.
+
+     stretch, and every child sized to the row rather than to its content. */
+  .controls { flex-direction: column; align-items: stretch; }
+  .viewToggle { width: 100%; }
+  .viewBtn { flex: 1; min-width: 0; }
+  .searchInput { min-width: 0; width: 100%; }
+  .filterSelect { min-width: 0; width: 100%; }
 }
