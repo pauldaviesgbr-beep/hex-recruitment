@@ -28,6 +28,15 @@ export interface DiscoverabilityNotice {
   optedOutAt: string | null
   /** ISO timestamp is_discoverable was actually set true by the flip step. */
   flippedAt: string | null
+  /**
+   * ISO timestamp we emailed them a SECOND time to say the first opt-out link
+   * did not work. Set = told twice, and never eligible for a third.
+   *
+   * A separate field rather than a reset of notifiedAt, and that is the whole
+   * point of it: notifiedAt is the only evidence of what we promised and when,
+   * and the tempting way to make these eight selectable again is to clear it.
+   */
+  correctedAt: string | null
   channel: 'email' | null
 }
 
@@ -36,6 +45,7 @@ export const EMPTY_NOTICE: DiscoverabilityNotice = {
   deadlineAt: null,
   optedOutAt: null,
   flippedAt: null,
+  correctedAt: null,
   channel: null,
 }
 
@@ -66,6 +76,7 @@ export function parseNotice(raw: unknown): DiscoverabilityNotice {
     deadlineAt: iso(r.deadlineAt),
     optedOutAt: iso(r.optedOutAt),
     flippedAt: iso(r.flippedAt),
+    correctedAt: iso(r.correctedAt),
     channel: r.channel === 'email' ? 'email' : null,
   }
 }
@@ -93,6 +104,49 @@ export function isEligibleForNotice(row: CandidateNoticeRow): boolean {
   return notice.notifiedAt === null
 }
 
+// ── The correction cohort ────────────────────────────────────────────
+//
+// A SEPARATE SELECTOR, NOT A REUSE OF isEligibleForNotice. That one ends
+// `notifiedAt === null`, so everybody who needs the correction is excluded by
+// it — and the tempting fix is to clear notifiedAt, which would destroy the
+// only record of what we promised on 26 July.
+//
+// Written as its own function so the correction send can only ever reach
+// people who WERE notified, have NOT opted out, and have NOT already been
+// corrected. The old cohort and the correction cohort are disjoint by
+// construction rather than by a mode flag someone might pass wrongly.
+
+export type CorrectionExclusion =
+  | 'not-notified'
+  | 'opted-out'
+  | 'already-corrected'
+  | 'already-discoverable'
+  | 'nothing-to-show'
+  | 'no-email'
+
+/**
+ * Why a candidate is not in the correction cohort, or null if they are.
+ *
+ * The last two matter as much as the first three: someone whose profile has
+ * emptied since July would be told a date that the flip will refuse to act on
+ * — flipBlocker returns 'nothing-to-show' — and promising a change we will not
+ * make is the same class of fault as the link that did nothing.
+ */
+export function correctionExclusion(row: CandidateNoticeRow): CorrectionExclusion | null {
+  const notice = parseNotice(row.discoverability_notice)
+  if (!notice.notifiedAt) return 'not-notified'
+  if (notice.optedOutAt) return 'opted-out'
+  if (notice.correctedAt) return 'already-corrected'
+  if (row.is_discoverable) return 'already-discoverable'
+  if (!hasSomethingToShow(row)) return 'nothing-to-show'
+  if (!row.email || !row.email.trim()) return 'no-email'
+  return null
+}
+
+export function isEligibleForCorrection(row: CandidateNoticeRow): boolean {
+  return correctionExclusion(row) === null
+}
+
 /**
  * Why a hidden candidate is being skipped. Reporting the reason matters more
  * than the count — "13 excluded" is only meaningful if you can say why.
@@ -117,7 +171,33 @@ export function markNotified(now: Date = new Date()): DiscoverabilityNotice {
     deadlineAt: new Date(now.getTime() + OPT_OUT_WINDOW_DAYS * DAY_MS).toISOString(),
     optedOutAt: null,
     flippedAt: null,
+    correctedAt: null,
     channel: 'email',
+  }
+}
+
+/**
+ * The correction: they were notified, the opt-out link we gave them pointed at
+ * a page that could not use it, and this records that we have told them so and
+ * given them a fresh window.
+ *
+ * WRITES deadlineAt AND correctedAt. LEAVES notifiedAt ALONE — that timestamp
+ * is the record of what we originally promised, and it is not ours to tidy.
+ *
+ * NEVER SHORTENS. The existing deadline is kept if it is somehow the later of
+ * the two, for the same reason the field is stored rather than recomputed: a
+ * window somebody was already promised cannot be taken back by a later run.
+ */
+export function markCorrected(
+  current: DiscoverabilityNotice,
+  now: Date = new Date(),
+): DiscoverabilityNotice {
+  const fresh = now.getTime() + OPT_OUT_WINDOW_DAYS * DAY_MS
+  const existing = current.deadlineAt ? Date.parse(current.deadlineAt) : 0
+  return {
+    ...current,
+    deadlineAt: new Date(Math.max(fresh, existing)).toISOString(),
+    correctedAt: now.toISOString(),
   }
 }
 
