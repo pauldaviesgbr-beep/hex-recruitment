@@ -1930,10 +1930,11 @@
 }
 
 @media (max-width: 768px) {
+  /* CONTROLS WRAP; CONTENT SCROLLS. This is the width the sideways scroll was
+     added FOR, which is exactly where it hides tabs. .tableWrap and the
+     heatmaps above keep theirs — they are content. */
   .tabBar {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
+    flex-wrap: wrap;
   }
 
   .tabBar::-webkit-scrollbar {

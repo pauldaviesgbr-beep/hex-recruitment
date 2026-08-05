@@ -1108,10 +1108,11 @@
    EMPTY STATE
    ============================================ */
 .emptyState {
-  text-align: center;
-  padding: 1.25rem 2rem 2.5rem;
-  background: var(--light-gray);
-  border-radius: 16px;
+  text-align: left;
+  padding: 44px 26px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
 }
 
 .emptyIcon {
@@ -1121,21 +1122,25 @@
 }
 
 .emptyTitle {
-  font-size: 1.375rem;
+  font-family: var(--font-fraunces, 'Bricolage Grotesque'), var(--font-serif), Georgia, serif;
+  letter-spacing: -0.02em;
+  font-size: 19px;
   font-weight: 700;
   color: var(--black);
   margin: 0 0 0.375rem 0;
 }
 
 .emptyText {
-  color: var(--text-gray);
+  color: #475569;
+  font-size: 14.5px;
+  line-height: 1.55;
   margin: 0 0 1.25rem 0;
-  max-width: 400px;
-  margin-left: auto;
-  margin-right: auto;
+  max-width: 560px;
 }
 
 .browseBtn {
+  display: inline-block;
+  text-decoration: none;
   padding: 0.875rem 2.5rem;
   background: var(--primary-yellow);
   border: none;
@@ -1268,21 +1273,27 @@
    ════════════════════════════════════════════════════════════════ */
 
 /* ═══ Search Section (dark banner) ═════════════════════════════ */
-.searchSection { background: var(--dark-gray); padding: 0.8rem 0 0.7rem; }
+/* LIGHT, like the rest of the page. Navy is kept for the site bar above,
+    which is where the app already uses it — a dark hero over a light grid was
+    the theme flipping twice inside one screen. */
+.searchSection { background: #f8fafc; padding: 1.25rem 0 1rem; border-bottom: 1px solid #e2e8f0; }
 .searchInner { max-width: 980px; margin: 0 auto; padding: 0 1.5rem; }
-.searchSectionTitle { font-family: var(--font-serif), Georgia, serif; font-size: 1.4rem; font-weight: 600; letter-spacing: -0.01em; color: var(--white); margin: 0 0 0.6rem; text-align: left; }
+.searchSectionTitle { font-family: var(--font-fraunces, 'Bricolage Grotesque'), var(--font-serif), Georgia, serif; font-size: 30px; font-weight: 700; letter-spacing: -0.025em; color: #0f172a; margin: 0 0 0.25rem; text-align: left; }
+.searchSectionSub { font-size: 14.5px; color: #475569; margin: 0 0 0.85rem; max-width: 640px; }
 .searchControls { display: flex; gap: 0.5rem; }
 .searchInputWrap { flex: 1; position: relative; }
-.searchBox { width: 100%; padding: 0.7rem 2.25rem 0.7rem 1rem; border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; font-size: 0.95rem; outline: none; box-sizing: border-box; background: rgba(255,255,255,0.1); color: var(--white); }
-.searchBox::placeholder { color: rgba(255,255,255,0.5); }
-.searchBox:focus { border-color: var(--primary-yellow); background: rgba(255,255,255,0.15); }
+.searchBox { width: 100%; padding: 0.7rem 2.25rem 0.7rem 1rem; border: 1px solid #cbd5e1; border-radius: 9px; font-size: 0.95rem; outline: none; box-sizing: border-box; background: #fff; color: #0f172a; }
+.searchBox::placeholder { color: #94a3b8; }
+.searchBox:focus { border-color: #0f172a; box-shadow: 0 0 0 3px rgba(15,23,42,.08); }
 .searchClear { position: absolute; right: 0.75rem; top: 50%; transform: translateY(-50%); background: none; border: none; color: rgba(255,255,255,0.5); cursor: pointer; font-size: 0.85rem; padding: 0; }
 
 /* ═══ Filter Strip (sticky) ═══════════════════════════════════ */
 .filterStrip { position: sticky; top: var(--nav-height); z-index: 8; background: var(--white); border-bottom: 1px solid #e5e7eb; }
-.filterStripInner { max-width: 1200px; margin: 0 auto; padding: 0.5rem 1.5rem; display: flex; align-items: center; gap: 0.5rem; }
-.filterStripLeft { display: flex; align-items: center; gap: 0.5rem; flex: 1; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
-.filterStripLeft::-webkit-scrollbar { display: none; }
+.filterStripInner { max-width: 1200px; margin: 0 auto; padding: 0.5rem 1.5rem; display: flex; align-items: flex-start; gap: 0.5rem; flex-wrap: wrap; }
+/* NEVER overflow-x ON A CONTROL ROW. Controls wrap; content scrolls. A row of
+   filters that scrolls sideways hides controls behind an edge with no
+   affordance, inside a page that scrolls vertically. */
+.filterStripLeft { display: flex; align-items: center; gap: 0.5rem; flex: 1; flex-wrap: wrap; min-width: 0; }
 .filterStripRight { display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0; }
 .resultCount { font-size: 0.82rem; color: #6b7280; font-weight: 500; white-space: nowrap; margin: 0; }
 .clearFiltersBtn { font-size: 0.78rem; color: #dc2626; background: none; border: none; cursor: pointer; font-weight: 600; white-space: nowrap; padding: 0; }
@@ -1290,6 +1301,9 @@
 
 .filterPill { padding: 0.35rem 0.75rem; border: 1px solid #e5e7eb; border-radius: 999px; background: var(--white); font-size: 0.78rem; color: #374151; cursor: pointer; white-space: nowrap; transition: all 0.15s; flex-shrink: 0; }
 .filterPill:hover { border-color: #d1d5db; background: #f9fafb; }
+/* Excludes rather than includes, so it is dashed until chosen — the same
+   convention as the card's "No CV" chip and the profile's "+ Notice period". */
+.filterPillExcluding { border-style: dashed; border-color: #94a3b8; }
 .filterPillActive { background: var(--dark-gray); color: white; border-color: var(--dark-gray); }
 .filterSelect { padding: 0.35rem 0.75rem; border: 1px solid #e5e7eb; border-radius: 999px; background: var(--white); font-size: 0.78rem; color: #374151; cursor: pointer; appearance: none; -webkit-appearance: none; padding-right: 1.5rem; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 0.5rem center; }
 .filterSelectActive { background-color: #1a1a1a; color: white; border-color: #1a1a1a; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E"); }
@@ -1333,6 +1347,7 @@
 @media (prefers-reduced-motion: reduce) { .filterBackdrop, .filterOverlay { animation: none; } }
 
 /* ═══ Candidate Card Grid (image-led, mirrors .jobCard) ═══════ */
+.answerLineWrap { max-width: 1200px; margin: 0 auto; padding: 1.25rem 1.5rem 0; }
 .cardsContainer { max-width: 1200px; margin: 0 auto; padding: 1.25rem 1.5rem 1.5rem; }
 .cardsGrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
 @media (max-width: 1024px) { .cardsGrid { grid-template-columns: repeat(2, 1fr); } }
@@ -1432,6 +1447,12 @@
   .cardsContainer { padding: 1rem 1rem 3rem; }
   .cardsGrid { grid-template-columns: 1fr; gap: 0.75rem; }
   .filterStripInner { padding: 0.5rem 1rem; }
-  .filterStripRight { display: none; }
+  /* WAS display:none — a control disappearing rather than wrapping. They get
+     their own row instead, which is what the handoff draws. */
+  .filterStripRight { width: 100%; justify-content: space-between; border-top: 1px solid #eff2f6; padding-top: 0.5rem; margin-top: 0.15rem; }
+  .filterStripLeft { flex: 1 1 100%; }
+  .filterPill, .filterSelect { padding: 9px 13px; font-size: 12.5px; }
+  .answerLineWrap { padding: 1rem 1rem 0; }
+  .emptyState { padding: 26px 18px; }
   .modalPanel { width: 100%; top: auto; bottom: 0; height: 92vh; border-radius: 16px 16px 0 0; animation: sheetIn 0.25s ease; }
 }

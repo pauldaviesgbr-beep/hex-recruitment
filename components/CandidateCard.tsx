@@ -6,6 +6,7 @@ import SignedLink from '@/components/SignedLink'
 import { FileDown, Camera, X, Plus } from 'lucide-react'
 import { Candidate } from '@/lib/mockCandidates'
 import { fallbackVariant } from '@/lib/jobBanner'
+import { joinedAgo } from '@/lib/joinedAgo'
 import styles from './CandidateCard.module.css'
 
 function initialsOf(name: string) {
@@ -36,6 +37,9 @@ export default function CandidateCard(props: {
   matchScore?: number
   featured?: boolean
   onOpen?: () => void
+  /** Directory mode. Opens the one-to-one thread — /messages resolves a single
+   *  participant, which is also why the answer line's action is a filter. */
+  onMessage?: () => void
   // dashboard
   dashboardPhotoUrl?: string | null
   /** False when the displayed photo came from OAuth rather than an upload —
@@ -61,18 +65,35 @@ export default function CandidateCard(props: {
   const initials = initialsOf(c.fullName)
 
   // ─────────── DIRECTORY MODE (/candidates) ───────────
-  // Compact, light card: a prominent initials avatar with the name stacked
-  // directly above the role, then location/experience and the availability + CV
-  // pills tucked tightly beneath. No watermark; no personal photo (privacy —
-  // employers see initials only, same as the banner card).
+  //
+  // LIGHT, and the theme change is the smaller half of it. The deciding reason
+  // was the data: twenty-one cards reading "0 yrs exp" beside a low-contrast
+  // "No CV" on navy looked like a page that had failed to load. The same facts
+  // on white read as a young marketplace telling the truth.
+  //
+  // THE RULE FOR THE WHOLE CARD: ABSENCES ARE NAMED, NEVER ZEROED. No 0, no
+  // em-dash, no grey whisper. "0 yrs exp" is what this replaces and it is the
+  // acceptance test — if it renders anywhere after this, the change hasn't
+  // landed.
+  //
+  // No watermark; no personal photo (privacy — employers see initials only).
   if (mode === 'directory') {
+    // DERIVED, NOT STORED, so a candidate who fills in a role later moves to
+    // state A on their next render with nothing to migrate.
+    const isSparse = !(c.jobTitle || '').trim() && !c.yearsExperience
+    const location = (c.location || '').trim()
+    const joined = c.createdAt ? joinedAgo(c.createdAt) : null
+
     return (
       <div
-        className={`${styles.card} ${styles.cardDirectory}`}
-        onClick={props.onOpen}
-        role="button"
-        tabIndex={0}
-        onKeyDown={(e) => e.key === 'Enter' && props.onOpen?.()}
+        className={`${styles.card} ${styles.cardDirectory} ${isSparse ? styles.cardSparse : ''}`}
+        // State B is NOT a link — there is no profile worth opening, so the
+        // card offers Message and nothing else rather than a click that lands
+        // on an empty page.
+        onClick={isSparse ? undefined : props.onOpen}
+        role={isSparse ? undefined : 'button'}
+        tabIndex={isSparse ? undefined : 0}
+        onKeyDown={isSparse ? undefined : (e) => e.key === 'Enter' && props.onOpen?.()}
       >
         {(props.matchScore || props.featured) && (
           <div className={styles.dirTopBadges}>
@@ -85,28 +106,78 @@ export default function CandidateCard(props: {
           <span className={styles.dirAvatar} aria-hidden="true">{initials}</span>
           <div className={styles.dirNameRole}>
             <span className={styles.dirName}>{c.fullName}</span>
-            {c.jobTitle && <span className={styles.dirRole}>{c.jobTitle}</span>}
+            {isSparse
+              ? <span className={styles.dirRoleSparse}>Profile not filled in yet</span>
+              : c.jobTitle ? <span className={styles.dirRole}>{c.jobTitle}</span> : null}
           </div>
         </div>
 
         <div className={styles.dirMeta}>
-          {c.location && <span>{c.location}</span>}
-          {c.location && <span className={styles.dot}>·</span>}
-          <span>{c.yearsExperience} yrs exp</span>
+          {isSparse ? (
+            // ONE line, carrying the one fact a blank profile still has.
+            // In practice that fact is usually the join date: twenty of the
+            // twenty-one discoverable candidates have no location by any path,
+            // so this branch is the normal rendering rather than the fallback.
+            <span>{location ? `${location} · joined ${joined}` : joined ? `Joined ${joined}` : 'Joined recently'}</span>
+          ) : (
+            <>
+              <span>
+                {location}
+                {location && c.yearsExperience ? ' · ' : ''}
+                {c.yearsExperience ? `${c.yearsExperience} yrs exp` : ''}
+              </span>
+              {!location && !c.yearsExperience && joined && <span>Joined {joined}</span>}
+            </>
+          )}
         </div>
 
         <div className={styles.badges}>
-          {c.availability && (
-            <span className={`${styles.badge} ${styles.availBadge} ${availClass(c.availability)}`}>
-              <span className={styles.availDot} />{c.availability}
-            </span>
+          {c.availability ? (
+            <span className={`${styles.badge} ${styles.availWash}`}>{c.availability}</span>
+          ) : (
+            <span className={`${styles.badge} ${styles.badgeDashed}`}>No availability set</span>
           )}
           {c.cvUrl ? (
-            <SignedLink src={c.cvUrl} download className={`${styles.badge} ${styles.cvTag}`} onClick={(e: any) => e.stopPropagation()}>
+            <SignedLink src={c.cvUrl} download className={`${styles.badge} ${styles.badgeOutlined}`} onClick={(e: any) => e.stopPropagation()}>
               <FileDown size={12} /> CV
             </SignedLink>
           ) : (
-            <span className={`${styles.badge} ${styles.cvTagEmpty}`}><FileDown size={12} /> No CV</span>
+            <span className={`${styles.badge} ${styles.badgeDashed}`}>No CV</span>
+          )}
+        </div>
+
+        {/* Pinned to the bottom by margin-top:auto so a mixed row equalises
+            rather than one card sitting short. No fixed height — a 60-character
+            scraped title must be able to breathe. */}
+        <div className={styles.dirActions}>
+          {isSparse ? (
+            // "Ask for a CV" is specified as the secondary here and is OMITTED:
+            // there is no request-profile-completion email and no route behind
+            // it. A dead control is worse than a missing one.
+            <button
+              type="button"
+              className={styles.actionPrimary}
+              onClick={(e) => { e.stopPropagation(); props.onMessage?.() }}
+            >
+              Message
+            </button>
+          ) : (
+            <>
+              <button
+                type="button"
+                className={styles.actionPrimary}
+                onClick={(e) => { e.stopPropagation(); props.onOpen?.() }}
+              >
+                View profile
+              </button>
+              <button
+                type="button"
+                className={styles.actionSecondary}
+                onClick={(e) => { e.stopPropagation(); props.onMessage?.() }}
+              >
+                Message
+              </button>
+            </>
           )}
         </div>
       </div>

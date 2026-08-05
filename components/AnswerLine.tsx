@@ -19,8 +19,17 @@ export interface AnswerLineModel {
   eyebrow: string
   /** The sentence itself. Already assembled; this component never composes copy. */
   sentence: string
-  /** Omitted entirely for the quiet states — silence is a legitimate answer. */
-  action?: { label: string; href: string }
+  /**
+   * Omitted entirely for the quiet states — silence is a legitimate answer.
+   *
+   * `href` navigates; `onClick` acts on the page you are already on. The
+   * candidates line needs the second kind: its action applies a filter this
+   * page already has ("Show the 10 with a CV"), because the sentence it
+   * belongs to is about the 10 rather than the 21. It replaced "Message the
+   * 10", which was a control with nothing behind it — bulk messaging does not
+   * exist, and /messages takes one participant.
+   */
+  action?: { label: string; href?: string; onClick?: () => void }
 }
 
 export default function AnswerLine({ model }: { model: AnswerLineModel | null }) {
@@ -35,10 +44,15 @@ export default function AnswerLine({ model }: { model: AnswerLineModel | null })
         <p className={styles.eyebrow}>{model.eyebrow}</p>
         <p className={styles.sentence}>{model.sentence}</p>
       </div>
-      {model.action && (
+      {model.action?.href && (
         <Link href={model.action.href} className={styles.action}>
           {model.action.label}
         </Link>
+      )}
+      {model.action && !model.action.href && model.action.onClick && (
+        <button type="button" className={styles.action} onClick={model.action.onClick}>
+          {model.action.label}
+        </button>
       )}
     </section>
   )

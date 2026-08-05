@@ -19,17 +19,16 @@
 /* ============================================================
    Tab Navigation
    ============================================================ */
+/* CONTROLS WRAP; CONTENT SCROLLS. A tab bar is a control row: sideways scroll
+   hides whole tabs behind an edge with no affordance. The tables and heatmaps
+   on this page keep their overflow-x — those are content, and a wide table has
+   nowhere else to go. */
 .tabBar {
   display: flex;
   gap: 0;
   border-bottom: 2px solid #e2e8f0;
   margin-bottom: 1.25rem;
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-
-.tabBar::-webkit-scrollbar {
-  display: none;
+  flex-wrap: wrap;
 }
 
 .tab {
