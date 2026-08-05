@@ -23,6 +23,10 @@
     {
       "path": "/api/cron/discoverability-flip",
       "schedule": "0 11 * * *"
+    },
+    {
+      "path": "/api/cron/duplicate-release",
+      "schedule": "0 12 * * *"
     }
   ]
 }

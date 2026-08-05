@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { applyDuplicateHold } from '@/lib/applyDuplicateHold'
 
 // Creates or updates a profile using the service-role client so RLS
 // doesn't block the insert before email confirmation completes.
@@ -45,6 +46,13 @@ export async function POST(req: NextRequest) {
     if (error) {
       console.error('[profile/create] upsert failed', error)
       return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+
+    // FIRST INSERT ONLY. `defaults` is non-empty exactly when the row did not
+    // exist, which is the same signal is_discoverable already relies on — so a
+    // candidate editing their own name is never held against themselves.
+    if (tableName === 'candidate_profiles' && defaults.is_discoverable) {
+      await applyDuplicateHold(supabaseAdmin, userId, (profile as any)?.full_name)
     }
 
     return NextResponse.json({ ok: true, userId: data?.[0]?.user_id })

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
+import { applyDuplicateHold } from '@/lib/applyDuplicateHold'
 import { FREE_FOUNDING_MODE } from '@/lib/constants/cohort'
 import { provisionFoundingEmployer } from '@/lib/foundingSignup'
 import type { EmailClass } from '@/lib/emailDomains'
@@ -308,6 +309,10 @@ export async function handleAuthCallback(
         { onConflict: 'user_id', ignoreDuplicates: true }
       )
     if (profileErr) console.error('[auth/callback] candidate_profiles defensive upsert failed', profileErr)
+    // ignoreDuplicates:true above means this upsert only ever lands on INSERT,
+    // so reaching here on an existing row is impossible and no extra guard is
+    // needed — the path itself is the guard.
+    if (!profileErr) await applyDuplicateHold(admin, user.id, displayName)
   }
 
   // Route decision: under FREE_FOUNDING_MODE the founding cohort gets
