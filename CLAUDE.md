@@ -85,6 +85,14 @@ Standing rules for Claude Code on this project. These override default behaviour
 - This covers page copy, meta and Open Graph descriptions, JSON-LD, email templates, the chatbot, and Stripe product descriptions — anywhere a number can reach a stranger.
 - **Check the deployed HTML, not the source.** The £99 that reached Google sat in the ROOT description, so it was served on the homepage, on `/waitlist`, and on every 404 — including `/pricing`, `/for-employers` and `/employers`, which are not routes at all.
 
+## Controls wrap; content scrolls
+
+- **Never `overflow-x` on a control row anywhere in the product.** A sideways-scrolling row of filters or tabs hides whole controls behind an edge, with no affordance, inside a page that scrolls vertically — so the control that is off-screen may as well not exist. Wrap them. **Content is the opposite:** a wide table or a heatmap has nowhere else to go, and `overflow-x` on `.tableWrap` or a heatmap is correct and stays. The test is what the element holds, not how wide it is.
+  - Fixed 5 Aug 2026 in three places: `/candidates` `.filterStripLeft`, `/admin/analytics` `.tabBar`, and `/dashboard/analytics` `.tabBar` — the last inside a `max-width:768px` block, i.e. added *for* the width where it does the most harm. `/talent-pool` already wrapped.
+  - **`display:none` on a control row is the same fault, louder.** `/candidates` hid the result count and Clear filters entirely below 640px rather than wrapping them. A control that disappears at a width is not responsive, it is missing.
+
+- **The ceiling on a client-filtered page is rows sent, not filters run.** `/candidates` does `select('*')` once and every filter is a client-side memo, so re-running the whole predicate per active filter — which is what the answer line's "drop this one" needs — costs nothing. Fine at 44 candidates. Not fine at 4,400, and shipping every row to the browser is what breaks first, long before the recompute does. When that page needs work, the number to look at is how many rows leave the database.
+
 ## A habit that has earned its place
 
 - **For any control, ask which states the object can actually be in, and whether the control should exist in each.** The gate always gets written for the state in mind while building — the fresh, happy one: no comments yet, no jobs yet, shift still open. The states that come *later* are the ones nobody looked at. Three bugs so far were this exact shape: a reply button that only existed once someone had replied; a section that only rendered once a job was posted; Close only existing while a post was open.

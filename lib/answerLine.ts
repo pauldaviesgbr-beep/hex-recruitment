@@ -305,3 +305,100 @@ export function candidateAnswerLine(state: CandidateAnswerState): AnswerLineMode
       : { label: 'Browse jobs', href: '/jobs' },
   }
 }
+
+// ───────────────────────── THE CANDIDATES DIRECTORY ─────────────────────────
+//
+// Third table, same component. The employer's question here is not "what needs
+// me today" but "is there anybody in this list worth my afternoon" — and the
+// honest answer on a young board is usually "fewer than the count suggests".
+//
+// ROW 1 IS THE WHOLE POINT: IT COUNTS WHAT'S USABLE, NOT WHAT EXISTS. Stating
+// the shortfall in the same breath as the total is what stops a grid of sparse
+// cards reading as a page that failed to load. 21 candidates, 10 with a CV.
+
+export interface CandidatesAnswerState {
+  /** Candidates matching the filters currently applied. */
+  totalMatching: number
+  /** How many of those have a CV attached — the usable subset. */
+  withCvCount: number
+  /** Labels of the filters currently applied, search included. */
+  activeFilters: string[]
+  /**
+   * The single filter whose removal yields the most results, if any does.
+   * Free to compute: the page loads every candidate once and filters in a
+   * client-side memo, so this is array work rather than a query per filter.
+   */
+  bestFilterToDrop?: { label: string; resultCount: number } | null
+  /** True when there is nobody to find at all, filters or no filters. */
+  poolIsEmpty: boolean
+  /** Named in row 4 so the emptiness is attributed rather than global. */
+  sector?: string | null
+}
+
+export function candidatesAnswerLine(state: CandidatesAnswerState): AnswerLineModel {
+  const eyebrow = 'MATCHING YOUR FILTERS'
+  const n = state.totalMatching
+  const m = state.withCvCount
+
+  // ROW 1 — results, and some of them cannot be assessed yet.
+  //
+  // The action operates on the m, not the n, which is the reason it exists.
+  // It was specified as "Message the {m}" and that control has nothing behind
+  // it: bulk messaging does not exist, and /messages resolves ONE participant.
+  // So it applies a filter the page already has instead — real, instant, and
+  // more useful than opening ten threads at once.
+  if (n > 0 && m < n) {
+    return {
+      eyebrow,
+      sentence: `${n} ${n === 1 ? 'candidate' : 'candidates'} available now. ${m} ${m === 1 ? 'has' : 'have'} a CV.`,
+      action: m > 0 ? { label: `Show the ${m} with a CV` } : undefined,
+    }
+  }
+
+  // ROW 2 — results, all of them assessable. NO ACTION, deliberately.
+  //
+  // The design gave this row "Message all", which is the same missing feature
+  // as row 1's original action — and here there is no filter to fall back on,
+  // because everybody already passes it. A quiet row is the honest outcome:
+  // there is nothing to say beyond the count and nothing to do but read it.
+  if (n > 0) {
+    return {
+      eyebrow,
+      sentence: `${n} ${n === 1 ? 'candidate' : 'candidates'} available now.`,
+    }
+  }
+
+  // ROW 3 — nothing matches, but something would if one filter went.
+  if (state.bestFilterToDrop && state.bestFilterToDrop.resultCount > 0) {
+    const { label, resultCount } = state.bestFilterToDrop
+    return {
+      eyebrow,
+      sentence: `Nobody matches all ${state.activeFilters.length} filters. ${resultCount} ${resultCount === 1 ? 'is' : 'are'} available if you drop “${label}”.`,
+      action: { label: `Drop “${label}”` },
+    }
+  }
+
+  // ROW 4 — nothing matches and there is nothing to match. The only row that
+  // sends them somewhere else, because the answer isn't on this page.
+  if (state.poolIsEmpty) {
+    const where = cleanName(state.sector)
+    return {
+      eyebrow,
+      sentence: where
+        ? `No candidates in ${where} yet. Post a role and we'll show applicants here as they arrive.`
+        : `No candidates yet. Post a role and we'll show applicants here as they arrive.`,
+      action: { label: 'Post a job', href: '/post-job' },
+    }
+  }
+
+  // CATCH-ALL — zero results, filters applied, and dropping any single one
+  // still yields nothing. Rows 3 and 4 both miss this and it is reachable with
+  // two filters that only exclude each other, so it is written down rather
+  // than left to render an empty shell.
+  return {
+    eyebrow,
+    sentence: state.activeFilters.length
+      ? `Nobody matches all ${state.activeFilters.length} filters.`
+      : 'Nobody is available right now.',
+  }
+}

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo, useRef, Suspense } from 'react'
+import { useState, useEffect, useMemo, useCallback, useRef, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Header from '@/components/Header'
@@ -25,6 +25,8 @@ import { isEmployerEntitled } from '@/lib/foundingEntitlement'
 import { scoreAllCandidates } from '@/lib/recommendations'
 import { supabaseJobToJob } from '@/lib/types'
 import { Job } from '@/lib/mockJobs'
+import AnswerLine from '@/components/AnswerLine'
+import { candidatesAnswerLine } from '@/lib/answerLine'
 import styles from './page.module.css'
 
 type Filters = {
@@ -159,6 +161,10 @@ function CandidatesContent() {
   const [locationQuery, setLocationQuery] = useState(searchParams.get('city') || '')
   const [activeCategories, setActiveCategories] = useState<string[]>([])
   const [filters, setFilters] = useState<Filters>(emptyFilters())
+  // Excludes rather than includes, so it draws dashed when unselected — and it
+  // is where the answer line's action goes, which is what stops that action
+  // being another control with nothing behind it.
+  const [hasCvOnly, setHasCvOnly] = useState(false)
   const [sectorsExpanded, setSectorsExpanded] = useState(false)
   const [filtersExpanded, setFiltersExpanded] = useState(false)
   const [checkingAuth, setCheckingAuth] = useState(true)
@@ -321,15 +327,32 @@ function CandidatesContent() {
     checkAuth()
   }, [router])
 
-  const filteredCandidates = useMemo(() => {
-    return allCandidates.filter(candidate => {
+  // ONE PREDICATE, CALLABLE WITH A DIMENSION SKIPPED.
+  //
+  // The answer line's row 3 needs to know which single filter, removed, would
+  // yield the most candidates — so the same rules have to run once per active
+  // filter. Extracting it is what makes that honest rather than a second
+  // almost-identical copy that drifts.
+  //
+  // It costs nothing: the page already loads every candidate once and filters
+  // in memory, so this is array work rather than a query per filter. The
+  // ceiling on this page is not the recompute, it is the number of rows shipped
+  // to the browser in the first place.
+  const matchesFilters = useCallback((candidate: Candidate, skip?: string) => {
       // Match score filter — when viewing matched candidates for a job
       if (matchedJob && Object.keys(matchScores).length > 0) {
         if ((matchScores[candidate.id] || 0) < 25) return false
       }
 
+      // CV filter. Excludes rather than includes, which is why it draws dashed
+      // when unselected — and it is the destination for the answer line's
+      // action, so that action operates on something real.
+      if (hasCvOnly && skip !== 'hasCv') {
+        if (!candidate.cvUrl) return false
+      }
+
       // Search filter
-      if (searchQuery) {
+      if (searchQuery && skip !== 'search') {
         const query = searchQuery.toLowerCase()
         const matchesSearch =
           candidate.fullName.toLowerCase().includes(query) ||
@@ -340,19 +363,19 @@ function CandidatesContent() {
       }
 
       // City filter
-      if (locationQuery) {
+      if (locationQuery && skip !== 'location') {
         const city = locationQuery.toLowerCase()
         if (!candidate.location.toLowerCase().includes(city)) return false
       }
 
       // Sector filter (OR logic — candidate must match at least one selected sector)
-      if (activeCategories.length > 0) {
+      if (activeCategories.length > 0 && skip !== 'sector') {
         const sector = getCandidateSector(candidate)
         if (!activeCategories.includes(sector)) return false
       }
 
       // Availability filter
-      if (filters.availability.size > 0) {
+      if (filters.availability.size > 0 && skip !== 'availability') {
         const avail = candidate.availability.toLowerCase()
         let matches = false
         for (const f of Array.from(filters.availability)) {
@@ -365,7 +388,7 @@ function CandidatesContent() {
       }
 
       // Experience Level filter
-      if (filters.experienceLevel.size > 0) {
+      if (filters.experienceLevel.size > 0 && skip !== 'experienceLevel') {
         const yrs = candidate.yearsExperience
         let matches = false
         for (const level of Array.from(filters.experienceLevel)) {
@@ -379,7 +402,7 @@ function CandidatesContent() {
       }
 
       // Skills filter
-      if (filters.skills.size > 0) {
+      if (filters.skills.size > 0 && skip !== 'skills') {
         const candidateSkills = candidate.skills.map(s => s.toLowerCase())
         const candidateBio = candidate.bio.toLowerCase()
         let matches = false
@@ -393,7 +416,7 @@ function CandidatesContent() {
       }
 
       // Work Preference filter
-      if (filters.workPreference.size > 0) {
+      if (filters.workPreference.size > 0 && skip !== 'workPreference') {
         const candidateJobTypes = (candidate.preferredJobTypes || []).map(s => s.toLowerCase())
         let matches = false
         for (const pref of Array.from(filters.workPreference)) {
@@ -403,16 +426,86 @@ function CandidatesContent() {
       }
 
       return true
-    }).sort((a, b) => {
+  }, [searchQuery, locationQuery, activeCategories, filters, matchedJob, matchScores, hasCvOnly])
+
+  const filteredCandidates = useMemo(() => {
+    return allCandidates.filter(c => matchesFilters(c)).sort((a, b) => {
       // Sort by match score when viewing matched candidates
       if (matchedJob && Object.keys(matchScores).length > 0) {
         return (matchScores[b.id] || 0) - (matchScores[a.id] || 0)
       }
       const aBoost = boostedProfileIds.has(a.id) ? 1 : 0
       const bBoost = boostedProfileIds.has(b.id) ? 1 : 0
-      return bBoost - aBoost
+      if (aBoost !== bBoost) return bBoost - aBoost
+      // RECENTLY JOINED, NOT "RECENTLY ACTIVE".
+      //
+      // updated_at exists and is not maintained: no triggers on the table, 36
+      // of 44 rows sit within five seconds of created_at, and writes made to
+      // nine rows this morning never moved it. Sorting by it under a label
+      // saying "active" would be a control asserting something only the data
+      // could support. created_at is true, and with most profiles blank
+      // recency is still the only signal that separates them.
+      return Date.parse(b.createdAt || '') - Date.parse(a.createdAt || '')
     })
-  }, [allCandidates, searchQuery, locationQuery, activeCategories, filters, boostedProfileIds, matchedJob, matchScores])
+  }, [allCandidates, matchesFilters, boostedProfileIds, matchedJob, matchScores])
+
+  // ── The answer line's inputs ──────────────────────────────────────
+  //
+  // activeFilters carries a label AND the key needed to drop it, so row 3's
+  // action can act rather than just describe.
+  const activeFilterList = useMemo(() => {
+    const out: { key: string; label: string }[] = []
+    if (searchQuery) out.push({ key: 'search', label: `“${searchQuery}”` })
+    if (locationQuery) out.push({ key: 'location', label: locationQuery })
+    if (activeCategories.length) out.push({ key: 'sector', label: activeCategories.map(getCategoryLabel).join(', ') })
+    if (hasCvOnly) out.push({ key: 'hasCv', label: 'Has a CV' })
+    for (const s of candidateFilterSections) {
+      const set = filters[s.key]
+      if (set.size) out.push({ key: s.key, label: Array.from(set).join(', ') })
+    }
+    return out
+  }, [searchQuery, locationQuery, activeCategories, hasCvOnly, filters])
+
+  const bestFilterToDrop = useMemo(() => {
+    if (filteredCandidates.length > 0 || activeFilterList.length === 0) return null
+    let best: { key: string; label: string; resultCount: number } | null = null
+    // Last added wins a tie, so walking in reverse and using a strict > keeps
+    // the most recent one — the filter they are most likely still holding in
+    // mind, and the one the design asks for.
+    for (const f of [...activeFilterList].reverse()) {
+      const resultCount = allCandidates.filter(c => matchesFilters(c, f.key)).length
+      if (resultCount > 0 && (!best || resultCount > best.resultCount)) best = { ...f, resultCount }
+    }
+    return best
+  }, [filteredCandidates.length, activeFilterList, allCandidates, matchesFilters])
+
+  const dropFilter = (key: string) => {
+    if (key === 'search') return setSearchQuery('')
+    if (key === 'location') return setLocationQuery('')
+    if (key === 'sector') return setActiveCategories([])
+    if (key === 'hasCv') return setHasCvOnly(false)
+    setFilters(prev => ({ ...prev, [key]: new Set() }))
+  }
+
+  const answerLineModel = useMemo(() => candidatesAnswerLine({
+    totalMatching: filteredCandidates.length,
+    withCvCount: filteredCandidates.filter(c => !!c.cvUrl).length,
+    activeFilters: activeFilterList.map(f => f.label),
+    bestFilterToDrop,
+    // The pool being empty is about the board, not the filters — so it reads
+    // allCandidates, and a filtered-to-nothing page never claims there is
+    // nobody on Thrive.
+    poolIsEmpty: allCandidates.length === 0,
+    sector: activeCategories.length === 1 ? getCategoryLabel(activeCategories[0]) : null,
+  }), [filteredCandidates, activeFilterList, bestFilterToDrop, allCandidates.length, activeCategories])
+
+  const answerLineWithAction = useMemo(() => {
+    if (!answerLineModel.action || answerLineModel.action.href) return answerLineModel
+    const onClick = bestFilterToDrop && answerLineModel.action.label.startsWith('Drop')
+      ? () => dropFilter(bestFilterToDrop.key)
+      : () => setHasCvOnly(true)
+    return { ...answerLineModel, action: { ...answerLineModel.action, onClick } }
+  }, [answerLineModel, bestFilterToDrop])
 
   // Clear the open candidate if it drops out of the filtered set (mirrors
   // /jobs). The detail is now a click-opened slide-in modal, so we must NOT
@@ -435,6 +528,7 @@ function CandidatesContent() {
     setSearchQuery('')
     setLocationQuery('')
     setActiveCategories([])
+    setHasCvOnly(false)
     clearAllFilters()
   }
 
@@ -447,7 +541,7 @@ function CandidatesContent() {
   const setExperience = (val: string) =>
     setFilters(prev => ({ ...prev, experienceLevel: new Set(val ? [val] : []) }))
   const hasActiveFilters =
-    activeFilterCount > 0 || !!searchQuery || !!locationQuery || activeCategories.length > 0
+    activeFilterCount > 0 || !!searchQuery || !!locationQuery || activeCategories.length > 0 || hasCvOnly
 
   // Slide-in detail modal nav (mirrors /jobs prev/next)
   const navigateToCandidate = (direction: 'prev' | 'next') => {
@@ -565,6 +659,15 @@ function CandidatesContent() {
               <option value="">Experience level</option>
               {experienceOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
             </select>
+            {/* Excludes rather than includes, so it draws dashed when off — the
+                same convention as the card's "No CV" chip. */}
+            <button
+              className={`${styles.filterPill} ${styles.filterPillExcluding} ${hasCvOnly ? styles.filterPillActive : ''}`}
+              onClick={() => setHasCvOnly(v => !v)}
+              aria-pressed={hasCvOnly}
+            >
+              Has a CV
+            </button>
             <button
               className={`${styles.filterPill} ${sectorsExpanded ? styles.filterPillActive : ''}`}
               onClick={() => { setFiltersExpanded(false); setSectorsExpanded(!sectorsExpanded) }}
@@ -677,6 +780,14 @@ function CandidatesContent() {
         </div>
       )}
 
+      {/* THE ANSWER LINE. Same component as both dashboards, third sentence
+          table. It counts what is USABLE, not what exists — stating the
+          shortfall in the same breath as the total is what stops a grid of
+          sparse cards reading as a page that failed to load. */}
+      <div className={styles.answerLineWrap}>
+        <AnswerLine model={answerLineWithAction} />
+      </div>
+
       {/* Candidate Card Grid — image-led, mirrors /jobs */}
       <div className={styles.cardsContainer}>
         {filteredCandidates.length > 0 ? (
@@ -690,23 +801,37 @@ function CandidatesContent() {
                   matchScore={matchScores[candidate.id] || undefined}
                   featured={boostedProfileIds.has(candidate.id)}
                   onOpen={() => selectCandidate(candidate)}
+                  onMessage={() => router.push(`/messages?candidate=${candidate.id}`)}
                 />
               )
             })}
           </div>
         ) : (
+          // LEFT-ALIGNED, NO ICON, NO GREY PANEL — the /talent-pool standard.
+          // It names the cause and offers the next move.
+          //
+          // AND IT NO LONGER PROMISES A SAVED SEARCH. The handoff copy ended
+          // "…or save the search and we'll email you when someone new fits."
+          // There is no saved-search table, no route and no client code, so
+          // omitting the two buttons while keeping that sentence would have
+          // left the promise standing in prose, with an email commitment
+          // attached. The controls and the copy had to go together.
           <div className={styles.emptyState}>
-            <div className={styles.emptyIcon}>
-              <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="11" cy="11" r="8" />
-                <path d="M21 21l-4.35-4.35" />
-              </svg>
-            </div>
-            <h2 className={styles.emptyTitle}>No candidates match your search</h2>
-            <p className={styles.emptyText}>Try adjusting your filters or search terms</p>
-            <button className={styles.browseBtn} onClick={clearFilters}>
-              Clear all filters
-            </button>
+            <h2 className={styles.emptyTitle}>
+              {allCandidates.length === 0 ? 'No candidates yet' : 'No candidates match all of these'}
+            </h2>
+            <p className={styles.emptyText}>
+              {allCandidates.length === 0
+                ? 'Post a role and we’ll show applicants here as they arrive.'
+                : 'Availability and location are the two that narrow it fastest. Loosen either and you’ll see more.'}
+            </p>
+            {allCandidates.length === 0 ? (
+              <Link href="/post-job" className={styles.browseBtn}>Post a job</Link>
+            ) : (
+              <button className={styles.browseBtn} onClick={clearFilters}>
+                Clear all filters
+              </button>
+            )}
           </div>
         )}
       </div>
