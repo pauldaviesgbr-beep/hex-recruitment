@@ -105,6 +105,10 @@ check('undo clears reviewedAt', undone.reviewedAt, null)
 check('undo keeps the ORIGINAL heldAt, so the 7 days are not silently extended', undone.heldAt, held.heldAt)
 check('an undone hold can expire again', H.shouldRelease(undone, new Date(now.getTime() + 8 * DAY)), true)
 check('an undone hold hides again until decided', H.holdBlocksVisibility(undone), true)
+// The SCOPE of an undo — pair for "different", row for "same" — lives in the
+// route, not in these rules, so it is proved by driving the page rather than
+// here. A check here would only test a copy of the logic, which is a check
+// that cannot fail.
 
 console.log('\n----------------------------------------------------------------')
 console.log(failures === 0 ? '  all cases passed' : `  ${failures} FAILED`)

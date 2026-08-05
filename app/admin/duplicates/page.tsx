@@ -89,26 +89,44 @@ export default function DuplicatesPage() {
             {resolved.length} already decided — still here, and still reversible
           </summary>
           <div style={{ marginTop: 12 }}>
-            {resolved.map(g => (
+            {resolved.map(g => {
+              // The rows a single "different people" verdict covers — one
+              // decision, so one control. "same person" rows keep their own.
+              const asDifferent = g.rows.filter(r => r.hold.verdict === 'different')
+              const asSame = g.rows.filter(r => r.hold.verdict === 'same')
+              return (
               <div key={g.key} style={{ border: '1px solid #e2e8f0', borderRadius: 12, background: '#fff', padding: 14, marginBottom: 10 }}>
-                {g.rows.map(r => (
+                {asDifferent.length > 0 && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', justifyContent: 'space-between', padding: '6px 0' }}>
+                    <div style={{ fontSize: 14, color: '#0f172a' }}>
+                      {asDifferent.map(r => r.name).join(' · ')}
+                      <span style={{ color: '#64748b', fontSize: 13 }}> — different people</span>
+                    </div>
+                    <button
+                      type="button" disabled={busy === asDifferent[0].userId}
+                      onClick={() => decide(asDifferent[0].userId, 'undo')}
+                      style={{ background: '#fff', color: '#0f172a', border: '1px solid #cbd5e1', borderRadius: 8, padding: '7px 12px', fontSize: 12.5, fontWeight: 600, cursor: 'pointer' }}
+                    >
+                      Undo — puts {asDifferent.length === 1 ? 'it' : 'both'} back
+                    </button>
+                  </div>
+                )}
+                {asSame.map(r => (
                   <div key={r.userId} style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', justifyContent: 'space-between', padding: '6px 0' }}>
                     <div style={{ fontSize: 14, color: '#0f172a' }}>
-                      {r.name} <span style={{ color: '#64748b', fontSize: 13 }}>
-                        · {r.hold.verdict === 'same' ? 'same person, hidden' : 'different people'}
-                      </span>
+                      {r.name} <span style={{ color: '#64748b', fontSize: 13 }}>— same person, hidden</span>
                     </div>
                     <button
                       type="button" disabled={busy === r.userId}
                       onClick={() => decide(r.userId, 'undo')}
                       style={{ background: '#fff', color: '#0f172a', border: '1px solid #cbd5e1', borderRadius: 8, padding: '7px 12px', fontSize: 12.5, fontWeight: 600, cursor: 'pointer' }}
                     >
-                      Undo
+                      Undo — stays hidden either way
                     </button>
                   </div>
                 ))}
               </div>
-            ))}
+            )})}
           </div>
         </details>
       )}
@@ -154,7 +172,7 @@ export default function DuplicatesPage() {
                       onClick={() => decide(r.userId, 'undo')}
                       style={{ background: '#fff', color: '#0f172a', border: '1px solid #cbd5e1', borderRadius: 8, padding: '9px 14px', fontSize: 12.5, fontWeight: 600, cursor: 'pointer' }}
                     >
-                      Undo this decision
+                      {r.hold.verdict === 'different' ? 'Undo — puts the pair back' : 'Undo — stays hidden'}
                     </button>
                   ) : (<>
                   <button

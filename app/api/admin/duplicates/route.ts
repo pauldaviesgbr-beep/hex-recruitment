@@ -119,18 +119,33 @@ export async function POST(req: NextRequest) {
   // hidden by "same person" stays hidden until somebody decides otherwise,
   // because un-deciding is not the same as deciding the opposite.
   if (verdict === 'undo') {
-    const hold = parseHold(row.duplicate_hold)
-    const restored = hold.heldAt && !hold.releasedAt
-      // It was HELD when it was decided, so undo puts it back to held — with
-      // its original heldAt, so the seven days run from the real start rather
-      // than being silently extended by a mis-click.
-      ? { ...hold, reviewedAt: null, verdict: null }
-      : null
-    const { error: e } = await supabase
-      .from('candidate_profiles').update({ duplicate_hold: restored }).eq('user_id', userId)
-    if (e) return NextResponse.json({ error: e.message }, { status: 500 })
-    console.log(`[duplicates] ${admin} UNDID the verdict on ${userId} (key "${key}")`)
-    return NextResponse.json({ ok: true, userId, verdict, undone: true })
+    // AN UNDO REVERSES WHATEVER THE DECISION TOUCHED — it is not per-row or
+    // per-pair, it has the SAME SCOPE as the thing being undone. Making
+    // "different people" resolve a pair in one write while its undo unresolved
+    // one row reopened, from the other direction, exactly the mixed state the
+    // pair-write had just closed.
+    //
+    //   undoing "different people"  -> both rows, because the verdict was
+    //                                  written to both
+    //   undoing "same person"       -> that row, because the verdict named it
+    const undoing = parseHold(row.duplicate_hold).verdict
+    const targets = undoing === 'different' ? pair : [row]
+
+    for (const r of targets) {
+      const hold = parseHold(r.duplicate_hold)
+      const restored = hold.heldAt && !hold.releasedAt
+        // It was HELD when it was decided, so undo puts it back to held — with
+        // its ORIGINAL heldAt, so the seven days run from the real start rather
+        // than being silently extended by a mis-click.
+        ? { ...hold, reviewedAt: null, verdict: null }
+        : null
+      const { error: e } = await supabase
+        .from('candidate_profiles').update({ duplicate_hold: restored }).eq('user_id', r.user_id)
+      if (e) return NextResponse.json({ error: e.message }, { status: 500 })
+    }
+
+    console.log(`[duplicates] ${admin} UNDID "${undoing}" across ${targets.length} row(s) on key "${key}"`)
+    return NextResponse.json({ ok: true, verdict, undoing, rowsUndone: targets.length })
   }
 
   if (verdict === 'different') {
