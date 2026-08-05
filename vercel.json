@@ -19,6 +19,10 @@
     {
       "path": "/api/cron/job-digest",
       "schedule": "0 8 * * *"
+    },
+    {
+      "path": "/api/cron/discoverability-flip",
+      "schedule": "0 11 * * *"
     }
   ]
 }
