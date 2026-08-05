@@ -109,6 +109,14 @@ Standing rules for Claude Code on this project. These override default behaviour
 
 - **For any control, ask which states the object can actually be in, and whether the control should exist in each.** The gate always gets written for the state in mind while building — the fresh, happy one: no comments yet, no jobs yet, shift still open. The states that come *later* are the ones nobody looked at. Three bugs so far were this exact shape: a reply button that only existed once someone had replied; a section that only rendered once a job was posted; Close only existing while a post was open.
 
+## The duplicate hold
+
+- **A duplicate VERDICT CAN OUTLIVE THE PAIR IT WAS ABOUT, and then nothing shows it.** `/admin/duplicates` lists groups of two or more, so if one row of a resolved pair is later deleted, the survivor keeps `duplicate_hold.verdict` but has no group — it disappears from "already decided" and **its verdict can never be undone from the page**. The row is then permanently exempt from ever being flagged again, invisibly. Found 5 Aug 2026 on Joseph Mallia, whose partner was a test signup that had been deleted; cleared by hand.
+  - Rare, because it needs a profile deletion, which is not something the product does on its own. **When it is next touched, the fix is one of two:** clear a verdict when its partner disappears, or list orphaned verdicts somewhere reachable.
+  - The general shape is worth more than the instance: **a decision recorded against a relationship needs to know what happens when one side of the relationship goes away.**
+
+- **Email cannot find our duplicates.** Both real pairs carry two different addresses and no two rows share even a local-part, so a dedup keyed on email would have caught neither. The key is the name's words, lowercased, bracketed nicknames dropped, and **sorted** — "RODRIGUE TEGUE FOTUE" and "RODRIGUE FOTUE TEGUE (Rodders)" are one man with his names in a different order, and an unsorted key sees two people. Single-word and initials-only names produce no key at all and can duplicate freely: seven rows are in that state, and that is the deliberate trade, because "Adnan" matching every other Adnan hides real people.
+
 ## Product boundary
 
 - **Thrive is a recruitment product, not HR/onboarding software.** Do not build visa/right-to-work compliance logic (visa types, hours-limited conditions, document acceptance, DBS levels, a rules engine, etc.) beyond a simple confirmation flag the employer ticks once they've verified through their own proper channel. Deeper compliance is integration territory (dedicated HR systems / a future integration), not something we model or store here — no candidate documents, no special-category data.
