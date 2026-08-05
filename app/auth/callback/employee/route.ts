@@ -2,6 +2,7 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { safeInternalPath } from '@/lib/safeRedirect'
+import { applyDuplicateHold } from '@/lib/applyDuplicateHold'
 
 function getOrigin(req: NextRequest): string {
   const proto = req.headers.get('x-forwarded-proto') || 'https'
@@ -98,6 +99,10 @@ export async function GET(request: NextRequest) {
     },
     { onConflict: 'user_id', ignoreDuplicates: false }
   )
+
+  // FIRST INSERT ONLY — this upsert runs on every OAuth login, so the hold has
+  // to gate on the same existingProfile the is_discoverable default gates on.
+  if (!existingProfile) await applyDuplicateHold(admin, user.id, displayName)
 
   fetch(`${origin}/api/email/send`, {
     method: 'POST',

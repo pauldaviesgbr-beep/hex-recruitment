@@ -58,6 +58,10 @@ const ALL = [
   // means the hook can defer to this script without losing it.
   { name: 'migrations', cmd: process.execPath, args: [path.join(ROOT, 'scripts', 'check-migrations.js')], couldNotRun: 2 },
   { name: 'guard:prove', cmd: process.execPath, args: [path.join(ROOT, 'scripts', 'prove-credibility-guard.js')] },
+  // Same standard as guard:prove, and for the same reason: a fail-open nobody
+  // has watched fail open is an intention, not a mechanism. This manufactures
+  // an eight-day-old hold and watches it release itself.
+  { name: 'hold:prove', cmd: process.execPath, args: [path.join(ROOT, 'scripts', 'prove-hold.js')] },
 ]
 const CHECKS = FAST ? ALL.filter(c => !c.slow) : ALL
 

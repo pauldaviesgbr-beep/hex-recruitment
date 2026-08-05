@@ -15,6 +15,11 @@ import styles from './layout.module.css'
 const NAV_ITEMS = [
   { href: '/admin', label: 'Overview', icon: LayoutDashboard },
   { href: '/admin/users', label: 'Users', icon: Users },
+  // The exit from the duplicate hold. It sits in the nav Paul already uses
+  // rather than arriving as an email: an email about something that fires twice
+  // a month is one you learn to ignore, and a hold nobody is told about is a
+  // silently hidden candidate.
+  { href: '/admin/duplicates', label: 'Duplicates', icon: Users },
   { href: '/admin/jobs', label: 'Jobs', icon: Briefcase },
   { href: '/admin/applications', label: 'Applications', icon: FileText },
   { href: '/admin/subscriptions', label: 'Subscriptions', icon: CreditCard },
