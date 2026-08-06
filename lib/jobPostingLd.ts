@@ -2,6 +2,9 @@ import type { JobMeta } from './jobMeta'
 import { isCredibleAnnualAsk, isHourly } from './salaryInput'
 import { validThroughIso } from './jobExpiry'
 
+/** SW18, RG17, W1 — a UK postcode DISTRICT, which is what jobs.area holds. */
+const POSTCODE_DISTRICT = /^[A-Z]{1,2}[0-9][0-9A-Z]?$/i
+
 /**
  * The JobPosting JSON-LD, built ON THE SERVER.
  *
@@ -114,7 +117,23 @@ export function buildJobPostingLd(job: JobMeta, id: string, siteUrl: string) {
         '@type': 'PostalAddress',
         addressCountry: 'GB',
         ...(loc.city || job.location ? { addressLocality: loc.city || job.location } : {}),
-        ...(job.area && { addressRegion: job.area }),
+        // `area` HOLDS A POSTCODE DISTRICT, NOT A REGION. All 23 active rows
+        // that have one match SW18 / RG17 / W1 — none carries "Greater London"
+        // or a county. Emitting those as addressRegion is what put SW18 in the
+        // region slot while Google flagged postalCode as missing.
+        //
+        // A district is not a full postcode either, so this is the honest
+        // reading of an imperfect field rather than a rename: district-shaped
+        // values go to postalCode, anything else to addressRegion.
+        //
+        // NOTHING OUTSIDE THIS FILE CHANGES. `area` is read in twelve places
+        // including lib/areas.ts and every board — it is the spine of location
+        // matching, and an SEO tidy-up is the worst possible reason to move it.
+        ...(job.area && POSTCODE_DISTRICT.test(job.area.trim())
+          ? { postalCode: loc.postcode || job.area.trim() }
+          : job.area
+            ? { addressRegion: job.area }
+            : {}),
         ...(loc.postcode && { postalCode: loc.postcode }),
         ...(loc.addressLine1 && { streetAddress: loc.addressLine1 }),
       },
