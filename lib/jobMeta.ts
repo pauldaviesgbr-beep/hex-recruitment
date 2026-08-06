@@ -14,6 +14,18 @@ export interface JobMeta {
   bannerUrl: string | null
   /** Company logo (may be a data: URI or a URL). */
   logoUrl: string | null
+  // ── Added for the server-rendered JobPosting schema ──────────────
+  // The JSON-LD is built in the /job/[id] LAYOUT, which is a server
+  // component, because the page itself is 'use client' and Google's job
+  // crawler never runs its JavaScript. These are the fields JobPosting
+  // requires beyond what a preview card needs.
+  description: string | null
+  employmentType: string[] | null
+  postedAt: string | null
+  workLocation: string | null
+  area: string | null
+  fullLocation: { addressLine1?: string; city?: string; postcode?: string } | null
+  companyWebsite: string | null
 }
 
 export async function getJobForMeta(id: string): Promise<JobMeta | null> {
@@ -25,6 +37,7 @@ export async function getJobForMeta(id: string): Promise<JobMeta | null> {
   try {
     const url =
       `${base}/rest/v1/jobs?select=title,company,location,salary_min,salary_max,salary_type,company_banner_url,company_logo_url` +
+      `,description,employment_type,posted_at,work_location,area,full_location,company_website` +
       `&status=eq.active&id=eq.${encodeURIComponent(id)}&limit=1`
     const res = await fetch(url, {
       headers: { apikey: key, Authorization: `Bearer ${key}` },
@@ -51,6 +64,13 @@ export async function getJobForMeta(id: string): Promise<JobMeta | null> {
       salaryType: row.salary_type ?? null,
       bannerUrl: banner,
       logoUrl: row.company_logo_url ?? null,
+      description: row.description ?? null,
+      employmentType: Array.isArray(row.employment_type) ? row.employment_type : (row.employment_type ? [row.employment_type] : null),
+      postedAt: row.posted_at ?? null,
+      workLocation: row.work_location ?? null,
+      area: row.area ?? null,
+      fullLocation: row.full_location ?? null,
+      companyWebsite: row.company_website ?? null,
     }
   } catch {
     return null
