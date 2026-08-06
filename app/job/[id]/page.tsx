@@ -5,7 +5,6 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Header from '@/components/Header'
 import CompanyLogo from '@/components/CompanyLogo'
-import JobPostingSchema from '@/components/JobPostingSchema'
 import CompanyReviewsSummary from '@/components/CompanyReviewsSummary'
 import ApplyNowModal from '@/components/ApplyNowModal'
 import { Job } from '@/lib/mockJobs'
@@ -230,7 +229,10 @@ export default function JobDetailPage() {
   return (
     <main className={styles.page}>
       <Header />
-      <JobPostingSchema job={job} />
+      {/* The JobPosting schema is rendered SERVER-SIDE in layout.tsx, which
+          is where Google's crawler can actually see it. Rendering it here too
+          would put two copies of the same JSON-LD on one page — and the client
+          one is the copy that never reached a crawler in the first place. */}
 
       <div className={styles.container}>
         {/* Breadcrumb */}
