@@ -31,7 +31,11 @@ const EMPLOYMENT_TYPE: Record<string, string> = {
 }
 
 function mapEmploymentType(types: string[]): string[] {
-  return types.map(t => EMPLOYMENT_TYPE[t] || 'OTHER')
+  // DEDUPED, because the map is many-to-one and our rows use it that way.
+  // A live row carrying ['Full-time', 'Permanent'] published
+  // ["FULL_TIME","FULL_TIME"] — valid, and it reads as a mistake to anyone
+  // looking at the output, which for structured data is most of the point.
+  return Array.from(new Set(types.map(t => EMPLOYMENT_TYPE[t] || 'OTHER')))
 }
 
 /**
