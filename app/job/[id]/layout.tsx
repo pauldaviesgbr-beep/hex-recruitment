@@ -82,7 +82,14 @@ export default async function JobLayout({
           // user-supplied HTML in it, and < is escaped so a description
           // containing markup cannot close the script tag early.
           dangerouslySetInnerHTML={{
-            __html: JSON.stringify(buildJobPostingLd(job, params.id, siteUrl)).replace(/</g, '\u003c'),
+            // A "<" inside the description must not be able to close this script
+            // tag early. The escape is built from char code 92 rather than written
+            // as a literal, because '\u003c' in JS source IS the character
+            // "<" — so the obvious spelling replaces "<" with "<" and silently
+            // does nothing. A guard that looks present and is not is worse than
+            // no guard.
+            __html: JSON.stringify(buildJobPostingLd(job, params.id, siteUrl))
+              .replace(/</g, String.fromCharCode(92) + 'u003c'),
           }}
         />
       )}
