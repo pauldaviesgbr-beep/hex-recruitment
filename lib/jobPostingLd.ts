@@ -1,5 +1,6 @@
 import type { JobMeta } from './jobMeta'
 import { isCredibleAnnualAsk, isHourly } from './salaryInput'
+import { validThroughIso } from './jobExpiry'
 
 /**
  * The JobPosting JSON-LD, built ON THE SERVER.
@@ -93,6 +94,12 @@ export function buildJobPostingLd(job: JobMeta, id: string, siteUrl: string) {
     // datePosted is required. Every live row has posted_at; the fallback keeps
     // a null row valid rather than emitting an invalid document.
     datePosted: (job.postedAt || new Date().toISOString()).slice(0, 10),
+    // validThrough ONLY where our own cron will act on the date. Google stops
+    // showing a posting after it, so publishing 60 days on a recruiter listing
+    // the scrape keeps alive would remove our own live jobs from the results.
+    ...(validThroughIso(job.postedAt, job.isRecruiterPosting)
+      ? { validThrough: validThroughIso(job.postedAt, job.isRecruiterPosting) }
+      : {}),
     ...(job.employmentType?.length && { employmentType: mapEmploymentType(job.employmentType) }),
     hiringOrganization: {
       '@type': 'Organization',

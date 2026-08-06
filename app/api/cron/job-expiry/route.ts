@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { jobExpiredEmail } from '@/emails/job-expired'
+import { JOB_EXPIRY_DAYS } from '@/lib/jobExpiry'
 
 import { supabaseAdmin } from '@/lib/supabase-admin'
 
@@ -44,7 +45,9 @@ export async function GET(req: NextRequest) {
   }
 
   const now = new Date()
-  const cutoff = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000) // 60 days ago
+  // The SAME constant lib/jobPostingLd publishes as validThrough. Two copies of
+  // 60 is how the schema and the cron come to disagree about when a job dies.
+  const cutoff = new Date(now.getTime() - JOB_EXPIRY_DAYS * 24 * 60 * 60 * 1000)
   const cutoffStr = cutoff.toISOString()
 
   // Active ads posted more than 60 days ago, EXCLUDING recruiter postings —
