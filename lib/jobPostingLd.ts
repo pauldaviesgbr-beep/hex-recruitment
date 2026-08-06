@@ -96,7 +96,6 @@ export function buildJobPostingLd(job: JobMeta, id: string, siteUrl: string) {
       // A data: URI is not a usable logo for Google, and some legacy rows still
       // hold one — so only an http(s) logo is published.
       ...(job.logoUrl && /^https?:\/\//.test(job.logoUrl) && { logo: job.logoUrl }),
-      ...(job.companyWebsite && { sameAs: job.companyWebsite }),
     },
     jobLocation: {
       '@type': 'Place',
