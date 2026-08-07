@@ -286,7 +286,9 @@ function PostJobContent() {
     jobReference: formData.jobReference || '',
     salaryMin: hideSalary ? 0 : parseInt(formData.salaryMin || '0'),
     salaryMax: hideSalary ? 0 : parseInt(formData.salaryMax || '0'),
-    salaryPeriod: (formData.salaryPeriod || 'year') as 'hour' | 'year',
+    // NOT `|| 'year'`. See formatJobSalary — an unchosen period now shows the
+    // figure without claiming a period, rather than asserting one she never picked.
+    salaryPeriod: formData.salaryPeriod as 'hour' | 'year',
     employmentType: [formData.employmentType, formData.contractType].filter(Boolean) as WorkType[],
     location: formData.location || 'Location',
     area: formData.area || '',
@@ -935,6 +937,19 @@ function PostJobContent() {
       return
     }
 
+    // A MISSING SESSION IS A SIGNED-OUT EMPLOYER, NOT A JOB WHOSE EMPLOYER IS
+    // CALLED 'unknown'. The old fallback put that literal into a uuid column,
+    // so the insert died on a parse error and both the message and the log
+    // pointed at the database instead of at the session. Checked here with the
+    // other validations, in the form's own treatment, so it says what is wrong.
+    // The draft is in localStorage and survives signing back in.
+    if (!currentUser?.id) {
+      setError('You appear to be signed out. Sign in again and your draft will still be here.')
+      setLoading(false)
+      return
+    }
+    const employerId = currentUser.id
+
     try {
       // Build tags array from Set
       const tags: string[] = Array.from(formData.tags)
@@ -1001,7 +1016,6 @@ function PostJobContent() {
         .filter(v => Boolean(v))
 
       const jobReference = formData.jobReference || `JOB-${Date.now().toString(36).toUpperCase()}`
-      const employerId = currentUser?.id || 'unknown'
 
       const jobPayload = {
         company: formData.company,
@@ -2528,8 +2542,8 @@ function PostJobContent() {
                     : !formData.salaryMin
                       ? 'Pay not set yet'
                       : (!formData.salaryMax || formData.salaryMax === formData.salaryMin)
-                        ? `£${formData.salaryMin} / ${formData.salaryPeriod}`
-                        : `£${formData.salaryMin} - £${formData.salaryMax} / ${formData.salaryPeriod}`
+                        ? `£${formData.salaryMin}${formData.salaryPeriod ? ` / ${formData.salaryPeriod}` : ''}`
+                        : `£${formData.salaryMin} - £${formData.salaryMax}${formData.salaryPeriod ? ` / ${formData.salaryPeriod}` : ''}`
                   }{salaryNegotiable ? ' (negotiable)' : ''}</span>
                   <span className={styles.previewDetail}>📋 {formData.employmentType} · {formData.contractType}</span>
                   <span className={styles.previewDetail}>🏢 {formData.workLocationType}</span>
