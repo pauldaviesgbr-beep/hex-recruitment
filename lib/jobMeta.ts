@@ -25,6 +25,7 @@ export interface JobMeta {
   workLocation: string | null
   area: string | null
   fullLocation: { addressLine1?: string; city?: string; postcode?: string } | null
+  isRecruiterPosting: boolean | null
 }
 
 export async function getJobForMeta(id: string): Promise<JobMeta | null> {
@@ -36,7 +37,7 @@ export async function getJobForMeta(id: string): Promise<JobMeta | null> {
   try {
     const url =
       `${base}/rest/v1/jobs?select=title,company,location,salary_min,salary_max,salary_type,company_banner_url,company_logo_url` +
-      `,description,employment_type,posted_at,work_location,area,full_location` +
+      `,description,employment_type,posted_at,work_location,area,full_location,is_recruiter_posting` +
       `&status=eq.active&id=eq.${encodeURIComponent(id)}&limit=1`
     const res = await fetch(url, {
       headers: { apikey: key, Authorization: `Bearer ${key}` },
@@ -69,6 +70,7 @@ export async function getJobForMeta(id: string): Promise<JobMeta | null> {
       workLocation: row.work_location ?? null,
       area: row.area ?? null,
       fullLocation: row.full_location ?? null,
+      isRecruiterPosting: row.is_recruiter_posting ?? null,
     }
   } catch {
     return null
