@@ -10,6 +10,7 @@ import { getEmployerCapabilities } from '@/lib/employer'
 import { DEV_MODE, getMockUserType } from '@/lib/mockAuth'
 import { employerLoginPath } from '@/lib/loginRedirect'
 import { focusField } from '@/lib/focusField'
+import FieldError from '@/components/FieldError'
 import styles from './page.module.css'
 
 const INDUSTRY_OPTIONS = [
@@ -72,6 +73,11 @@ export default function CompanySettingsPage() {
   const [logoUploadError, setLogoUploadError] = useState('')
   const [logoFileName, setLogoFileName] = useState('')
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  // WHICH field a validation error is about, so the message can sit beside it as
+  // well as in the banner. This page's banner is shared with success messages,
+  // so the field is tracked separately rather than folded into it — and cleared
+  // by every setMessage that is not one of the three field validations below.
+  const [errorField, setErrorField] = useState<string | null>(null)
   const [scrapeUrl, setScrapeUrl] = useState('')
   const [scraping, setScraping] = useState(false)
   const [isDirty, setIsDirty] = useState(false)
@@ -100,6 +106,7 @@ export default function CompanySettingsPage() {
     if (!scrapeUrl.trim()) return
     setScraping(true)
     setMessage(null)
+    setErrorField(null)
     try {
       const res = await fetch('/api/company/scrape', {
         method: 'POST',
@@ -109,6 +116,7 @@ export default function CompanySettingsPage() {
       const json = await res.json()
       if (!res.ok || !json.data) {
         setMessage({ type: 'error', text: json.error || "Couldn't import from that URL — please fill in manually" })
+        setErrorField(null)
         setScraping(false)
         return
       }
@@ -177,8 +185,10 @@ export default function CompanySettingsPage() {
       }))
       setIsDirty(true)
       setMessage({ type: 'success', text: 'Profile imported — review and save your details' })
+      setErrorField(null)
     } catch {
       setMessage({ type: 'error', text: "Couldn't import from that URL — please fill in manually" })
+      setErrorField(null)
     }
     setScraping(false)
   }
@@ -380,6 +390,7 @@ export default function CompanySettingsPage() {
     setFormData(prev => ({ ...prev, [name]: value }))
     setIsDirty(true)
     setMessage(null)
+    setErrorField(null)
   }
 
   const handleAddressFound = (address: AddressData) => {
@@ -447,6 +458,7 @@ export default function CompanySettingsPage() {
     e.preventDefault()
     setSaving(true)
     setMessage(null)
+    setErrorField(null)
 
     // Validation
     // The banner here already carries role="alert" and aria-live, which is more
@@ -456,6 +468,7 @@ export default function CompanySettingsPage() {
     // is about is what brings the page to it.
     if (!formData.companyName.trim()) {
       setMessage({ type: 'error', text: 'Company name is required' })
+      setErrorField('companyName')
       focusField('companyName')
       setSaving(false)
       return
@@ -463,6 +476,7 @@ export default function CompanySettingsPage() {
 
     if (!formData.email.trim()) {
       setMessage({ type: 'error', text: 'Email address is required' })
+      setErrorField('email')
       focusField('email')
       setSaving(false)
       return
@@ -473,6 +487,7 @@ export default function CompanySettingsPage() {
         new URL(formData.website.trim())
       } catch {
         setMessage({ type: 'error', text: 'Please enter a valid website URL (e.g. https://www.yourcompany.com)' })
+        setErrorField('website')
         focusField('website')
         setSaving(false)
         return
@@ -502,6 +517,7 @@ export default function CompanySettingsPage() {
           description: formData.description,
         }))
         setMessage({ type: 'success', text: 'Company profile saved successfully!' })
+        setErrorField(null)
         setIsDirty(false)
         window.scrollTo({ top: 0, behavior: 'smooth' })
       } else {
@@ -598,12 +614,14 @@ export default function CompanySettingsPage() {
         })
 
         setMessage({ type: 'success', text: 'Company profile saved successfully!' })
+        setErrorField(null)
         setIsDirty(false)
         window.scrollTo({ top: 0, behavior: 'smooth' })
       }
     } catch (error: any) {
       console.error('Error saving profile:', error)
       setMessage({ type: 'error', text: error.message || 'Failed to save company profile' })
+      setErrorField(null)
     } finally {
       setSaving(false)
     }
@@ -761,6 +779,7 @@ export default function CompanySettingsPage() {
                 aria-required="true"
                 autoComplete="organization"
               />
+              <FieldError activeField={errorField} name="companyName" message={message?.type === 'error' ? message.text : null} />
             </div>
 
             <div className={styles.row}>
@@ -815,6 +834,7 @@ export default function CompanySettingsPage() {
                 placeholder="https://www.yourcompany.com"
                 autoComplete="url"
               />
+              <FieldError activeField={errorField} name="website" message={message?.type === 'error' ? message.text : null} />
             </div>
 
             <div className={styles.field}>
@@ -883,6 +903,7 @@ export default function CompanySettingsPage() {
                   aria-required="true"
                   autoComplete="email"
                 />
+                <FieldError activeField={errorField} name="email" message={message?.type === 'error' ? message.text : null} />
               </div>
 
               <div className={styles.field}>

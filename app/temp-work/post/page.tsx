@@ -9,6 +9,7 @@ import { getCurrentEmployerOwnerId, getEmployerCapabilities } from '@/lib/employ
 import { ROLE_GROUPS, RATE_TYPES, DISCLAIMER } from '@/lib/tempWork'
 import { focusField } from '@/lib/focusField'
 import FormError from '@/components/FormError'
+import FieldError from '@/components/FieldError'
 import TempImagePicker from '@/components/TempImagePicker'
 
 const C = { border: '#e2e8f0', sub: '#64748b', ink: '#0f172a', yellow: '#ffe500' }
@@ -42,6 +43,14 @@ export default function PostTempWorkPage() {
 
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  // WHICH field the error is about, so the message can sit beside it as well as
+  // in the banner. One path for both, so it can never point at the wrong field.
+  const [errorField, setErrorField] = useState<string | null>(null)
+  const showError = (message: string, field?: string) => {
+    setError(message)
+    setErrorField(field ?? null)
+    if (field) focusField(field)
+  }
 
   useEffect(() => {
     const init = async () => {
@@ -63,13 +72,13 @@ export default function PostTempWorkPage() {
   }, [router])
 
   const submit = async () => {
-    setError('')
+    showError('')
     // The messages already named the field; now they send you to it. All three
     // of these sit far above the button, so being told which one and still
     // having to go looking is most of the problem.
-    if (!title.trim()) { setError('Add a title.'); focusField('tw-title'); return }
-    if (!category) { setError('Pick a category.'); focusField('tw-category'); return }
-    if (!locationArea.trim()) { setError('Add a location.'); focusField('tw-location'); return }
+    if (!title.trim()) { showError('Add a title.', 'tw-title'); return }
+    if (!category) { showError('Pick a category.', 'tw-category'); return }
+    if (!locationArea.trim()) { showError('Add a location.', 'tw-location'); return }
     if (!ownerId) return
     setBusy(true)
     const { data, error: insErr } = await supabase.from('temp_posts').insert({
@@ -95,7 +104,7 @@ export default function PostTempWorkPage() {
       status: 'open',
     }).select('id').maybeSingle()
     setBusy(false)
-    if (insErr) { setError(insErr.message || 'Could not post.'); return }
+    if (insErr) { showError(insErr.message || 'Could not post.'); return }
     router.push('/temp-work/manage')
   }
 
@@ -121,6 +130,7 @@ export default function PostTempWorkPage() {
         <div style={group}>
           <label style={label}>Title</label>
           <input id="tw-title" style={input} value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Bar staff for Saturday event" />
+          <FieldError activeField={errorField} name="tw-title" message={error} />
         </div>
 
         <div style={group}>
@@ -133,6 +143,7 @@ export default function PostTempWorkPage() {
               </optgroup>
             ))}
           </select>
+          <FieldError activeField={errorField} name="tw-category" message={error} />
         </div>
 
         <div style={group}>
@@ -162,7 +173,7 @@ export default function PostTempWorkPage() {
         )}
 
         <div style={{ display: 'flex', gap: '0.75rem', ...group }}>
-          <div style={{ flex: 2 }}><label style={label}>Location / area</label><input id="tw-location" style={input} value={locationArea} onChange={e => setLocationArea(e.target.value)} placeholder="e.g. Shoreditch, London" /></div>
+          <div style={{ flex: 2 }}><label style={label}>Location / area</label><input id="tw-location" style={input} value={locationArea} onChange={e => setLocationArea(e.target.value)} placeholder="e.g. Shoreditch, London" /><FieldError activeField={errorField} name="tw-location" message={error} /></div>
           <div style={{ flex: 1 }}><label style={label}>Postcode</label><input style={input} value={postcode} onChange={e => setPostcode(e.target.value)} placeholder="EC1A" /></div>
         </div>
 

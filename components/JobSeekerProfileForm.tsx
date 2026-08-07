@@ -18,6 +18,7 @@ import { safeInternalPath } from '@/lib/safeRedirect'
 import { getStoredAttribution, attributionColumns, HEARD_FROM_OPTIONS } from '@/lib/attribution'
 import { focusField } from '@/lib/focusField'
 import FormError from '@/components/FormError'
+import FieldError from '@/components/FieldError'
 import styles from './JobSeekerProfileForm.module.css'
 
 // Normalize URL to ensure it has https:// prefix
@@ -367,6 +368,16 @@ export default function JobSeekerProfileForm({ mode, existingData, userId }: Job
   }, [searchParams])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  // WHICH field the error is about, so the message can sit beside it as well as
+  // in the banner at the top. One path for both, so it can never point at the
+  // wrong field. This form validates a step at a time, so the field named is
+  // always on the step being shown.
+  const [errorField, setErrorField] = useState<string | null>(null)
+  const showError = (message: string, field?: string) => {
+    setError(message)
+    setErrorField(field ?? null)
+    if (field) focusField(field)
+  }
   const [success, setSuccess] = useState(false)
   const [heardFrom, setHeardFrom] = useState('') // "How did you hear about us?" (optional)
   const [showChangePassword, setShowChangePassword] = useState(false)
@@ -521,7 +532,7 @@ export default function JobSeekerProfileForm({ mode, existingData, userId }: Job
     const file = e.target.files?.[0]
     if (file) {
       if (file.size > 5 * 1024 * 1024) {
-        setError('Photo must be less than 5MB')
+        showError('Photo must be less than 5MB')
         return
       }
       const reader = new FileReader()
@@ -540,7 +551,7 @@ export default function JobSeekerProfileForm({ mode, existingData, userId }: Job
     const file = e.target.files?.[0]
     if (file) {
       if (file.size > 5 * 1024 * 1024) {
-        setError('CV must be less than 5MB')
+        showError('CV must be less than 5MB')
         return
       }
       setFormData(prev => ({
@@ -552,7 +563,7 @@ export default function JobSeekerProfileForm({ mode, existingData, userId }: Job
   }
 
   const validateStep = (step: number): boolean => {
-    setError('')
+    showError('')
 
     switch (step) {
       // These gates used to be the real reason profiles stayed empty. Saving
@@ -566,13 +577,11 @@ export default function JobSeekerProfileForm({ mode, existingData, userId }: Job
       // and can be filled whenever the candidate sees the point of it.
       case 1: // Personal Details
         if (!formData.firstName.trim()) {
-          setError('First name is required')
-          focusField('firstName')
+          showError('First name is required', 'firstName')
           return false
         }
         if (!formData.lastName.trim()) {
-          setError('Last name is required')
-          focusField('lastName')
+          showError('Last name is required', 'lastName')
           return false
         }
         return true
@@ -581,18 +590,15 @@ export default function JobSeekerProfileForm({ mode, existingData, userId }: Job
         // Address, phone and postcode are all optional. Phone is still
         // validated when present — a wrong number is worse than none.
         if (formData.phone.trim() && !/^(\+44|0)[0-9]{10,11}$/.test(formData.phone.replace(/\s/g, ''))) {
-          setError('Please enter a valid UK phone number')
-          focusField('phone')
+          showError('Please enter a valid UK phone number', 'phone')
           return false
         }
         if (!formData.email.trim()) {
-          setError('Email is required')
-          focusField('email')
+          showError('Email is required', 'email')
           return false
         }
         if (!isValidEmail(formData.email)) {
-          setError('Please enter a valid email address')
-          focusField('email')
+          showError('Please enter a valid email address', 'email')
           return false
         }
         return true
@@ -604,8 +610,7 @@ export default function JobSeekerProfileForm({ mode, existingData, userId }: Job
         // "£38 per year" does not, because we would go on to recommend roles
         // against a number the candidate never meant. See lib/salaryInput.ts.
         if (!formData.currentPosition.trim()) {
-          setError('Current/desired position is required')
-          focusField('currentPosition')
+          showError('Current/desired position is required', 'currentPosition')
           return false
         }
         {
@@ -615,7 +620,7 @@ export default function JobSeekerProfileForm({ mode, existingData, userId }: Job
             period: formData.salaryPeriod,
           })
           if (problem) {
-            setError(problem.message)
+            showError(problem.message)
             return false
           }
         }
@@ -628,18 +633,15 @@ export default function JobSeekerProfileForm({ mode, existingData, userId }: Job
       case 5: // Account
         if (mode === 'register' || showChangePassword) {
           if (!formData.password) {
-            setError('Password is required')
-            focusField('password')
+            showError('Password is required', 'password')
             return false
           }
           if (formData.password.length < 8) {
-            setError('Password must be at least 8 characters')
-            focusField('password')
+            showError('Password must be at least 8 characters', 'password')
             return false
           }
           if (formData.password !== formData.confirmPassword) {
-            setError('Passwords do not match')
-            focusField('confirmPassword')
+            showError('Passwords do not match', 'confirmPassword')
             return false
           }
         }
@@ -748,7 +750,7 @@ export default function JobSeekerProfileForm({ mode, existingData, userId }: Job
       period: formData.salaryPeriod,
     })
     if (salaryProblem) {
-      setError(salaryProblem.message)
+      showError(salaryProblem.message)
       setCurrentStep(3)
       return
     }
@@ -765,7 +767,7 @@ export default function JobSeekerProfileForm({ mode, existingData, userId }: Job
     }
 
     setLoading(true)
-    setError('')
+    showError('')
 
     try {
       if (mode === 'register') {
@@ -1162,7 +1164,7 @@ export default function JobSeekerProfileForm({ mode, existingData, userId }: Job
         setDirty(false)
       }
     } catch (err: any) {
-      setError(err.message || 'An error occurred')
+      showError(err.message || 'An error occurred')
     } finally {
       setLoading(false)
     }
@@ -1228,6 +1230,7 @@ export default function JobSeekerProfileForm({ mode, existingData, userId }: Job
             placeholder="John"
             autoComplete="given-name"
           />
+          <FieldError activeField={errorField} name="firstName" message={error} />
         </div>
         <div className={styles.formGroup}>
           <label className={styles.label} htmlFor="lastName">Last Name *</label>
@@ -1241,6 +1244,7 @@ export default function JobSeekerProfileForm({ mode, existingData, userId }: Job
             placeholder="Smith"
             autoComplete="family-name"
           />
+          <FieldError activeField={errorField} name="lastName" message={error} />
         </div>
       </div>
 
@@ -1583,6 +1587,7 @@ export default function JobSeekerProfileForm({ mode, existingData, userId }: Job
             placeholder="+44 7700 900000"
             autoComplete="tel"
           />
+          <FieldError activeField={errorField} name="phone" message={error} />
         </div>
         <div className={styles.formGroup}>
           <label className={styles.label} htmlFor="email">Email Address *</label>
@@ -1597,6 +1602,7 @@ export default function JobSeekerProfileForm({ mode, existingData, userId }: Job
             disabled={mode === 'edit'}
             autoComplete="email"
           />
+          <FieldError activeField={errorField} name="email" message={error} />
         </div>
       </div>
 
@@ -1827,6 +1833,7 @@ export default function JobSeekerProfileForm({ mode, existingData, userId }: Job
           placeholder="e.g. Project Manager, Software Engineer, Nurse"
           autoComplete="organization-title"
         />
+        <FieldError activeField={errorField} name="currentPosition" message={error} />
       </div>
 
       <div className={styles.formGroup}>
@@ -2442,6 +2449,7 @@ export default function JobSeekerProfileForm({ mode, existingData, userId }: Job
               minLength={8}
               autoComplete={mode === 'register' ? 'new-password' : 'new-password'}
             />
+            <FieldError activeField={errorField} name="password" message={error} />
 
             {formData.password.length > 0 && (
               <>
@@ -2484,6 +2492,7 @@ export default function JobSeekerProfileForm({ mode, existingData, userId }: Job
               placeholder="Re-enter your password"
               autoComplete="new-password"
             />
+            <FieldError activeField={errorField} name="confirmPassword" message={error} />
             {formData.confirmPassword.length > 0 && (
               <div className={passwordsMatch ? styles.passwordMatch : styles.passwordMismatch}>
                 <span>{passwordsMatch ? '✓' : '✕'}</span>
