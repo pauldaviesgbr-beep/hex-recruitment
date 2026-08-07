@@ -633,7 +633,7 @@ function JobsPageContent() {
       const parts = [job.fullLocation.addressLine1, job.fullLocation.addressLine2, job.fullLocation.city, job.fullLocation.postcode].filter(Boolean)
       locationString = parts.join(', ')
     } else {
-      locationString = `${job.location}, ${job.area}`
+      locationString = [job.location, job.area].filter(Boolean).join(', ')
     }
     return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(locationString)}`
   }
@@ -1237,7 +1237,7 @@ function JobsPageContent() {
                 <a href={getGoogleMapsUrl(selectedJob)} target="_blank" rel="noopener noreferrer" className={styles.detailLocation}>
                   📍 {selectedJob.fullLocation?.addressLine1
                     ? `${selectedJob.fullLocation.addressLine1}, ${selectedJob.fullLocation.city} ${selectedJob.fullLocation.postcode}`
-                    : `${selectedJob.location}, ${selectedJob.area}`}
+                    : [selectedJob.location, selectedJob.area].filter(Boolean).join(', ')}
                 </a>
                 <p className={styles.detailSalary}>{formatSalaryFull(selectedJob)}</p>
                 {selectedJob.expiresDate && (() => {

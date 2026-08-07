@@ -185,7 +185,7 @@ export default function JobDetailPage() {
       ].filter(Boolean)
       locationString = parts.join(', ')
     } else {
-      locationString = `${job.location}, ${job.area}`
+      locationString = [job.location, job.area].filter(Boolean).join(', ')
     }
     return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(locationString)}`
   }
@@ -290,7 +290,7 @@ export default function JobDetailPage() {
                 <span className={styles.metaIcon}>📍</span>
                 {job.fullLocation?.addressLine1
                   ? `${job.fullLocation.addressLine1}, ${job.fullLocation.city} ${job.fullLocation.postcode}`
-                  : `${job.location}, ${job.area}`}
+                  : [job.location, job.area].filter(Boolean).join(', ')}
               </a>
               <span className={styles.salary}>{formatSalary()}</span>
             </div>
@@ -368,7 +368,7 @@ export default function JobDetailPage() {
                       <p>{job.fullLocation.city}, {job.fullLocation.postcode}</p>
                     </>
                   ) : (
-                    <p>{job.location}, {job.area}</p>
+                    <p>{[job.location, job.area].filter(Boolean).join(', ')}</p>
                   )}
                 </div>
               </a>
