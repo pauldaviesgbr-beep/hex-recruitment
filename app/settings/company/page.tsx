@@ -9,6 +9,7 @@ import { supabase } from '@/lib/supabase'
 import { getEmployerCapabilities } from '@/lib/employer'
 import { DEV_MODE, getMockUserType } from '@/lib/mockAuth'
 import { employerLoginPath } from '@/lib/loginRedirect'
+import { focusField } from '@/lib/focusField'
 import styles from './page.module.css'
 
 const INDUSTRY_OPTIONS = [
@@ -448,14 +449,21 @@ export default function CompanySettingsPage() {
     setMessage(null)
 
     // Validation
+    // The banner here already carries role="alert" and aria-live, which is more
+    // than most of the platform — what it lacked was any movement. Measured on
+    // production before this: the banner rendered at top = -946px, 946 pixels
+    // above the window, with focus left on body. Focusing the field the message
+    // is about is what brings the page to it.
     if (!formData.companyName.trim()) {
       setMessage({ type: 'error', text: 'Company name is required' })
+      focusField('companyName')
       setSaving(false)
       return
     }
 
     if (!formData.email.trim()) {
       setMessage({ type: 'error', text: 'Email address is required' })
+      focusField('email')
       setSaving(false)
       return
     }
@@ -465,6 +473,7 @@ export default function CompanySettingsPage() {
         new URL(formData.website.trim())
       } catch {
         setMessage({ type: 'error', text: 'Please enter a valid website URL (e.g. https://www.yourcompany.com)' })
+        focusField('website')
         setSaving(false)
         return
       }

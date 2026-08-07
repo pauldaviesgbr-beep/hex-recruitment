@@ -16,6 +16,8 @@ import { isValidEmail } from '@/lib/validateEmail'
 import { validateSalaryInput } from '@/lib/salaryInput'
 import { safeInternalPath } from '@/lib/safeRedirect'
 import { getStoredAttribution, attributionColumns, HEARD_FROM_OPTIONS } from '@/lib/attribution'
+import { focusField } from '@/lib/focusField'
+import FormError from '@/components/FormError'
 import styles from './JobSeekerProfileForm.module.css'
 
 // Normalize URL to ensure it has https:// prefix
@@ -565,10 +567,12 @@ export default function JobSeekerProfileForm({ mode, existingData, userId }: Job
       case 1: // Personal Details
         if (!formData.firstName.trim()) {
           setError('First name is required')
+          focusField('firstName')
           return false
         }
         if (!formData.lastName.trim()) {
           setError('Last name is required')
+          focusField('lastName')
           return false
         }
         return true
@@ -578,14 +582,17 @@ export default function JobSeekerProfileForm({ mode, existingData, userId }: Job
         // validated when present — a wrong number is worse than none.
         if (formData.phone.trim() && !/^(\+44|0)[0-9]{10,11}$/.test(formData.phone.replace(/\s/g, ''))) {
           setError('Please enter a valid UK phone number')
+          focusField('phone')
           return false
         }
         if (!formData.email.trim()) {
           setError('Email is required')
+          focusField('email')
           return false
         }
         if (!isValidEmail(formData.email)) {
           setError('Please enter a valid email address')
+          focusField('email')
           return false
         }
         return true
@@ -598,6 +605,7 @@ export default function JobSeekerProfileForm({ mode, existingData, userId }: Job
         // against a number the candidate never meant. See lib/salaryInput.ts.
         if (!formData.currentPosition.trim()) {
           setError('Current/desired position is required')
+          focusField('currentPosition')
           return false
         }
         {
@@ -621,14 +629,17 @@ export default function JobSeekerProfileForm({ mode, existingData, userId }: Job
         if (mode === 'register' || showChangePassword) {
           if (!formData.password) {
             setError('Password is required')
+            focusField('password')
             return false
           }
           if (formData.password.length < 8) {
             setError('Password must be at least 8 characters')
+            focusField('password')
             return false
           }
           if (formData.password !== formData.confirmPassword) {
             setError('Passwords do not match')
+            focusField('confirmPassword')
             return false
           }
         }
@@ -2514,7 +2525,7 @@ export default function JobSeekerProfileForm({ mode, existingData, userId }: Job
 
       {renderStepIndicator()}
 
-      {error && <div className={styles.error}>{error}</div>}
+      <FormError message={error} className={styles.error} />
       {success && mode === 'register' && (
         <div style={{ textAlign: 'center', padding: '3rem 1.5rem' }}>
           <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📧</div>

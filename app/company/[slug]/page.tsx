@@ -619,7 +619,18 @@ function ReviewModal({ companyName, employerId, reviewerId, onClose, onSubmit }:
 
   const handleSubmit = async () => {
     if (!isValid) {
-      setError('Please fill in all required fields.')
+      // NAMES THE FIELD. "Please fill in all required fields" is the one kind
+      // of message that is no help even once you have found it: it says
+      // something is wrong and leaves you to work out what. `isValid` already
+      // tested all five — asking them again in order costs nothing and turns
+      // the sentence into an instruction.
+      setError(
+        !rating ? 'Please choose a star rating.'
+        : !jobTitle.trim() ? 'Please add your job title.'
+        : !employmentStatus ? 'Please say whether you work there now or used to.'
+        : !pros.trim() ? 'Please add what was good about working there.'
+        : 'Please add what could be better.',
+      )
       return
     }
 

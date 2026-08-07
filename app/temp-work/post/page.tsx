@@ -7,6 +7,8 @@ import Header from '@/components/Header'
 import { supabase } from '@/lib/supabase'
 import { getCurrentEmployerOwnerId, getEmployerCapabilities } from '@/lib/employer'
 import { ROLE_GROUPS, RATE_TYPES, DISCLAIMER } from '@/lib/tempWork'
+import { focusField } from '@/lib/focusField'
+import FormError from '@/components/FormError'
 import TempImagePicker from '@/components/TempImagePicker'
 
 const C = { border: '#e2e8f0', sub: '#64748b', ink: '#0f172a', yellow: '#ffe500' }
@@ -62,9 +64,12 @@ export default function PostTempWorkPage() {
 
   const submit = async () => {
     setError('')
-    if (!title.trim()) { setError('Add a title.'); return }
-    if (!category) { setError('Pick a category.'); return }
-    if (!locationArea.trim()) { setError('Add a location.'); return }
+    // The messages already named the field; now they send you to it. All three
+    // of these sit far above the button, so being told which one and still
+    // having to go looking is most of the problem.
+    if (!title.trim()) { setError('Add a title.'); focusField('tw-title'); return }
+    if (!category) { setError('Pick a category.'); focusField('tw-category'); return }
+    if (!locationArea.trim()) { setError('Add a location.'); focusField('tw-location'); return }
     if (!ownerId) return
     setBusy(true)
     const { data, error: insErr } = await supabase.from('temp_posts').insert({
@@ -115,12 +120,12 @@ export default function PostTempWorkPage() {
 
         <div style={group}>
           <label style={label}>Title</label>
-          <input style={input} value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Bar staff for Saturday event" />
+          <input id="tw-title" style={input} value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Bar staff for Saturday event" />
         </div>
 
         <div style={group}>
           <label style={label}>Role</label>
-          <select style={input} value={category} onChange={e => setCategory(e.target.value)}>
+          <select id="tw-category" style={input} value={category} onChange={e => setCategory(e.target.value)}>
             <option value="">Choose a role…</option>
             {ROLE_GROUPS.map(g => (
               <optgroup key={g.key} label={`${g.icon} ${g.label}`}>
@@ -157,7 +162,7 @@ export default function PostTempWorkPage() {
         )}
 
         <div style={{ display: 'flex', gap: '0.75rem', ...group }}>
-          <div style={{ flex: 2 }}><label style={label}>Location / area</label><input style={input} value={locationArea} onChange={e => setLocationArea(e.target.value)} placeholder="e.g. Shoreditch, London" /></div>
+          <div style={{ flex: 2 }}><label style={label}>Location / area</label><input id="tw-location" style={input} value={locationArea} onChange={e => setLocationArea(e.target.value)} placeholder="e.g. Shoreditch, London" /></div>
           <div style={{ flex: 1 }}><label style={label}>Postcode</label><input style={input} value={postcode} onChange={e => setPostcode(e.target.value)} placeholder="EC1A" /></div>
         </div>
 
@@ -190,7 +195,7 @@ export default function PostTempWorkPage() {
           <input style={input} value={externalLink} onChange={e => setExternalLink(e.target.value)} placeholder="https://…" />
         </div>
 
-        {error && <p style={{ color: '#b91c1c', fontSize: '0.88rem', marginBottom: '0.75rem' }}>{error}</p>}
+        <FormError message={error} style={{ color: '#b91c1c', fontSize: '0.88rem', marginBottom: '0.75rem' }} />
 
         <button onClick={submit} disabled={busy} style={{ padding: '0.7rem 1.4rem', background: C.yellow, color: C.ink, fontWeight: 700, fontSize: '0.95rem', border: 'none', borderRadius: 10, cursor: 'pointer', opacity: busy ? 0.6 : 1 }}>
           {busy ? 'Posting…' : 'Post to Temp Work'}
