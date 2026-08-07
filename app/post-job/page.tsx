@@ -291,7 +291,9 @@ function PostJobContent() {
     location: formData.location || 'Location',
     area: formData.area || '',
     venue: formData.venue || undefined,
-    fullLocation: { addressLine1: formData.location, city: formData.city || '', postcode: formData.postcode || '' },
+    // Matches what the submit payload now writes, so the preview shows the ad
+    // that will exist rather than one with the town in the street line.
+    fullLocation: { addressLine1: '', city: formData.city || '', postcode: formData.postcode || '' },
     shiftSchedule: formData.shiftSchedule || '',
     description: '',
     fullDescription: '',
@@ -1016,11 +1018,23 @@ function PostJobContent() {
         salaryPeriod: (formData.salaryPeriod || undefined) as 'hour' | 'year' | undefined,
         employmentType: employmentType as WorkType[],
         location: formData.location,
-        area: formData.area || 'London',
+        // NOTHING HERE MAY NAME A PLACE THE EMPLOYER DID NOT. `area` and `city`
+        // are only ever filled by the address picker; typing the town by hand
+        // and skipping it — the fastest way through this form — used to fall
+        // through to a hard-coded 'London'. A job in Bath was then filed as
+        // London on the card, in the location filter, on /jobs/london, and in
+        // the JobPosting schema Google reads. Left empty, `area` is resolved
+        // server-side from the town by /api/jobs/resolve-area, the same way
+        // area_region and area_county already are.
+        area: formData.area || undefined,
         venue: formData.venue.trim() || undefined,
         fullLocation: {
-          addressLine1: formData.location,
-          city: formData.city || formData.area?.split(' ')[0] || 'London',
+          // This form never collects a street address — the picker sets city,
+          // postcode and area, and no field sets addressLine1 — so putting the
+          // TOWN here made the job page read "Bath, London" and the schema emit
+          // streetAddress "Bath". Both omit themselves when it is empty.
+          addressLine1: '',
+          city: formData.city || '',
           postcode: formData.postcode || '',
         },
         description: shortDescription,
@@ -1035,7 +1049,11 @@ function PostJobContent() {
         benefits: [],
         responsibilities: [],
         skillsRequired: [],
-        workAuthorization: ['UK work authorization required'],
+        // A right-to-work requirement is the employer's statement to make, and
+        // this form never asks. Five rows carry this sentence because the form
+        // wrote it for them. It is rendered nowhere, which is the only reason
+        // it never reached a candidate — an unasked claim sitting in the data.
+        workAuthorization: [],
         workLocationType: formData.workLocationType,
         postedDate: new Date().toISOString().split('T')[0],
         expiresDate: formData.expiresAt || undefined,
