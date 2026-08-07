@@ -17,6 +17,7 @@ import type { Job as JobType } from '@/lib/mockJobs'
 import { employerLoginPath } from '@/lib/loginRedirect'
 import { focusField, type FieldProblem } from '@/lib/focusField'
 import FormError from '@/components/FormError'
+import FieldError from '@/components/FieldError'
 import { EMPLOYMENT_TYPES, CONTRACT_TYPES } from '@/lib/workTypes'
 import JobCard from '@/components/JobCard'
 import { FlowAppBar, Stepper, StepProgress } from './FlowChrome'
@@ -53,6 +54,16 @@ function PostJobContent() {
   const { jobs, addJob, updateJob, getJobById } = useJobs()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  // WHICH field the current error is about, so the message can be rendered
+  // beside it as well as in the banner. Every error goes through showError so
+  // this can never be stale — a message sitting next to the wrong field is
+  // worse than one at the top of the page.
+  const [errorField, setErrorField] = useState<string | null>(null)
+  const showError = (message: string, field?: string) => {
+    setError(message)
+    setErrorField(field ?? null)
+    if (field) focusField(field)
+  }
   const [success, setSuccess] = useState(false)
   const [checkingAuth, setCheckingAuth] = useState(true)
   const [logoError, setLogoError] = useState('')
@@ -485,7 +496,7 @@ function PostJobContent() {
         }
       } else {
         console.error('[PostJob] Job not found for editing:', editId)
-        setError('Job not found. It may have been deleted.')
+        showError('Job not found. It may have been deleted.')
       }
 
       setLoadingJobData(false)
@@ -867,27 +878,26 @@ function PostJobContent() {
     // Back NEVER discards and never validates — the only reason someone goes
     // back is to change something, and refusing to let them is how a form
     // traps people.
-    if (next < step) { setError(''); setStep(next); window.scrollTo({ top: 0, behavior: 'smooth' }); return }
+    if (next < step) { showError(''); setStep(next); window.scrollTo({ top: 0, behavior: 'smooth' }); return }
 
     if (step === 1) {
       const problem = stepOneProblem()
       if (problem) {
-        setError(problem.message)
+        showError(problem.message, problem.field)
         // The scroll four lines below is on the SUCCESS path and this return
         // never reaches it — which is why the page used to move only when there
         // was nothing to see. Focusing the field moves it to the problem.
-        focusField(problem.field)
-        return
+          return
       }
     }
-    setError('')
+    showError('')
     setStep(next)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setError('')
+    showError('')
     setLoading(true)
 
     // NAMES THE FIELD. This said "Please fill in all required fields", which is
@@ -902,8 +912,7 @@ function PostJobContent() {
       : !formData.location ? { field: 'location', message: 'Please add a town or city' }
       : null
     if (missing) {
-      setError(missing.message)
-      focusField(missing.field)
+      showError(missing.message, missing.field)
       setLoading(false)
       return
     }
@@ -913,14 +922,14 @@ function PostJobContent() {
     // two chips that previously looked answered, so "required fields" alone
     // would send someone hunting.
     if (!formData.employmentType || !formData.contractType) {
-      setError(
+      showError(
         !formData.employmentType && !formData.contractType
           ? 'Please choose the employment type and the contract type'
           : !formData.employmentType
             ? 'Please choose an employment type — full-time, part-time or flexible'
             : 'Please choose a contract type — permanent, temporary or fixed-term',
+        !formData.employmentType ? 'employmentType' : 'contractType',
       )
-      focusField(!formData.employmentType ? 'employmentType' : 'contractType')
       setLoading(false)
       return
     }
@@ -934,8 +943,7 @@ function PostJobContent() {
       // already collapse min == max to one figure; the form was the thing
       // manufacturing the ranges.
       if (!formData.salaryMin) {
-        setError('Please enter a salary, or tick "Competitive salary" to hide it')
-        focusField('salaryMin')
+        showError('Please enter a salary, or tick "Competitive salary" to hide it', 'salaryMin')
         setLoading(false)
         return
       }
@@ -943,27 +951,25 @@ function PostJobContent() {
       // the comment on salaryPeriod in the initial state. Named separately so
       // the employer is told exactly which box is unanswered.
       if (!formData.salaryPeriod) {
-        setError('Please choose whether the pay is per hour or per year')
-        focusField('salaryPeriod')
+        showError('Please choose whether the pay is per hour or per year', 'salaryPeriod')
         setLoading(false)
         return
       }
       if (formData.salaryMax && parseInt(formData.salaryMin) > parseInt(formData.salaryMax)) {
-        setError('Minimum salary cannot be higher than maximum salary')
-        focusField('salaryMin')
+        showError('Minimum salary cannot be higher than maximum salary', 'salaryMin')
         setLoading(false)
         return
       }
     }
 
     if (descView === 'guided' && !guidedHasContent) {
-      setError('Please add a job description before posting')
+      showError('Please add a job description before posting')
       setLoading(false)
       return
     }
 
     if (descView === 'editor' && !descriptionHasContent(formData.description)) {
-      setError('Please add a job description before posting')
+      showError('Please add a job description before posting')
       setLoading(false)
       return
     }
@@ -975,7 +981,7 @@ function PostJobContent() {
     // other validations, in the form's own treatment, so it says what is wrong.
     // The draft is in localStorage and survives signing back in.
     if (!currentUser?.id) {
-      setError('You appear to be signed out. Sign in again and your draft will still be here.')
+      showError('You appear to be signed out. Sign in again and your draft will still be here.')
       setLoading(false)
       return
     }
@@ -1187,7 +1193,7 @@ function PostJobContent() {
       }, 1500)
 
     } catch (err: any) {
-      setError(err.message || 'Something went wrong')
+      showError(err.message || 'Something went wrong')
     } finally {
       setLoading(false)
     }
@@ -1202,7 +1208,7 @@ function PostJobContent() {
   const handleFinishExtras = async () => {
     if (!publishedJobId) { router.push('/my-jobs'); return }
     setLoading(true)
-    setError('')
+    showError('')
     try {
       // Everything step 3 can change. A field that only APPEARS here is a field
       // that only SAVES here — venue and work location moved into this step, so
@@ -1222,7 +1228,7 @@ function PostJobContent() {
     } catch (err: any) {
       // The ad is already live, so a failure here loses the extras, not the ad.
       // Say that, rather than letting it read as "the post failed".
-      setError(`Your ad is live, but these extras didn't save: ${err.message || 'unknown error'}`)
+      showError(`Your ad is live, but these extras didn't save: ${err.message || 'unknown error'}`)
       setLoading(false)
     }
   }
@@ -1435,6 +1441,7 @@ function PostJobContent() {
                    display:none on steps 2 and 3, and a hidden required control
                    blocks submit with an unfocusable-element error */
               />
+              <FieldError activeField={errorField} name="company" message={error} />
             </div>
 
             <div className={styles.formGroup}>
@@ -1579,6 +1586,7 @@ function PostJobContent() {
                    display:none on steps 2 and 3, and a hidden required control
                    blocks submit with an unfocusable-element error */
               />
+              <FieldError activeField={errorField} name="title" message={error} />
             </div>
 
             <div className={styles.formRow}>
@@ -1603,6 +1611,7 @@ function PostJobContent() {
                     </option>
                   ))}
                 </select>
+                <FieldError activeField={errorField} name="category" message={error} />
               </div>
 
               <div className={styles.formGroup}>
@@ -1622,6 +1631,7 @@ function PostJobContent() {
                      display:none on steps 2 and 3, and a hidden required control
                      blocks submit with an unfocusable-element error */
                 />
+                <FieldError activeField={errorField} name="location" message={error} />
               </div>
             </div>
 
@@ -1685,6 +1695,7 @@ function PostJobContent() {
                     </button>
                   ))}
                 </div>
+                <FieldError activeField={errorField} name="employmentType" message={error} />
               </div>
 
               <div className={styles.formGroup}>
@@ -1706,6 +1717,7 @@ function PostJobContent() {
                     </button>
                   ))}
                 </div>
+                <FieldError activeField={errorField} name="contractType" message={error} />
               </div>
             </div>
 
@@ -1757,6 +1769,7 @@ function PostJobContent() {
                     className={styles.salaryInput}
                     autoComplete="off"
                   />
+                  <FieldError activeField={errorField} name="salaryMin" message={error} />
                   <span className={styles.salaryDivider}>to</span>
                   <input
                     type="number"
@@ -1782,6 +1795,7 @@ function PostJobContent() {
                   <option value="hour">Per hour (£)</option>
                   <option value="year">Per year (£)</option>
                 </select>
+                <FieldError activeField={errorField} name="salaryPeriod" message={error} />
               </div>
               )}
 
