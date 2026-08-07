@@ -49,6 +49,19 @@ export function formatJobSalary(job: Job): string {
   const negotiable = (job.tags || []).includes('Salary negotiable') ? ' (negotiable)' : ''
   const single = !job.salaryMax || job.salaryMin === job.salaryMax
 
+  // A DRAFT CAN CARRY A FIGURE BEFORE IT CARRIES A PERIOD, and this formatter's
+  // else-branch is "year". Every STORED job has a period — the mapper normalises
+  // it — so this is only ever reachable from the post-job preview, which renders
+  // while the employer is still filling the form. Defaulting there showed them
+  // "£32k/year" against a pay period they had not chosen, next to placeholders
+  // that were obviously placeholders, so it read as a decision rather than a
+  // gap. Show the figure and claim nothing until they pick.
+  if (!job.salaryPeriod) {
+    return single
+      ? `${formatMoney(job.salaryMin)}${negotiable}`
+      : `${formatMoney(job.salaryMin)}-${formatMoney(job.salaryMax)}${negotiable}`
+  }
+
   if (job.salaryPeriod === 'hour') {
     return single
       ? `${formatMoney(job.salaryMin)}/hr${negotiable}`
