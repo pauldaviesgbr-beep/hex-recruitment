@@ -21,8 +21,19 @@ export function focusField(id: string | null | undefined): boolean {
   if (!id || typeof document === 'undefined') return false
   const el = document.getElementById(id)
   if (!el || typeof (el as HTMLElement).focus !== 'function') return false
-  // preventScroll is deliberately NOT set: the scrolling is the point.
-  ;(el as HTMLElement).focus()
+
+  // CENTRE IT, DON'T JUST BRING IT INTO VIEW. Plain focus() scrolls the element
+  // to the NEAREST edge — the minimum that counts as visible — which put the
+  // profile editor's first name input at the bottom of the window and left the
+  // message rendered directly beneath it at 835px, 35px below the fold.
+  // Measured, not assumed: the field was in view and its own error was not.
+  //
+  // So: focus without scrolling, then centre. block:'center' leaves room below
+  // the field for the message that belongs to it. 'auto' rather than 'smooth'
+  // because a smooth scroll is still moving when the next thing reads the
+  // position, and a check that races the animation is a check that lies.
+  ;(el as HTMLElement).focus({ preventScroll: true })
+  el.scrollIntoView({ block: 'center', inline: 'nearest' })
   return true
 }
 
