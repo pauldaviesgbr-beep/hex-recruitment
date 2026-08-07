@@ -15,6 +15,8 @@ import { PHOTO_TIPS } from '@/lib/photoTips'
 import type { WorkType } from '@/lib/workTypes'
 import type { Job as JobType } from '@/lib/mockJobs'
 import { employerLoginPath } from '@/lib/loginRedirect'
+import { focusField, type FieldProblem } from '@/lib/focusField'
+import FormError from '@/components/FormError'
 import { EMPLOYMENT_TYPES, CONTRACT_TYPES } from '@/lib/workTypes'
 import JobCard from '@/components/JobCard'
 import { FlowAppBar, Stepper, StepProgress } from './FlowChrome'
@@ -824,31 +826,38 @@ function PostJobContent() {
    * because it had one button, and splitting the screen without splitting this
    * is how a step starts letting through what the next one rejects.
    */
-  const stepOneProblem = (): string | null => {
-    if (!formData.company) return 'Please add the company name'
-    if (!formData.title) return 'Please add a job title'
-    if (!formData.category) return 'Please choose a category'
-    if (!formData.location) return 'Please add a town or city'
+  // IT RETURNS THE FIELD AS WELL AS THE MESSAGE. It always knew which field had
+  // failed — it tests them in order and returns at the first one — and then
+  // threw that away by returning a bare string, one line before it became
+  // useful. Carrying it is what lets the offending input take focus, which is
+  // what moves the page to the problem instead of leaving the error 189px above
+  // the window with the button looking dead. Every id below is on a real
+  // focusable element; the two chip groups put one on their first chip.
+  const stepOneProblem = (): FieldProblem | null => {
+    if (!formData.company) return { field: 'company', message: 'Please add the company name' }
+    if (!formData.title) return { field: 'title', message: 'Please add a job title' }
+    if (!formData.category) return { field: 'category', message: 'Please choose a category' }
+    if (!formData.location) return { field: 'location', message: 'Please add a town or city' }
 
     // Named separately from a generic "required fields" because these are two
     // chips that previously looked answered — see the initial-state comment.
     if (!formData.employmentType || !formData.contractType) {
       return !formData.employmentType && !formData.contractType
-        ? 'Please choose the employment type and the contract type'
+        ? { field: 'employmentType', message: 'Please choose the employment type and the contract type' }
         : !formData.employmentType
-          ? 'Please choose an employment type — full-time, part-time or flexible'
-          : 'Please choose a contract type — permanent, temporary or fixed-term'
+          ? { field: 'employmentType', message: 'Please choose an employment type — full-time, part-time or flexible' }
+          : { field: 'contractType', message: 'Please choose a contract type — permanent, temporary or fixed-term' }
     }
 
     if (!hideSalary) {
       // A SINGLE FIGURE IS A VALID ANSWER, and until recently it wasn't allowed.
       // Validation required BOTH boxes, so an employer paying a flat £32,000 had
       // no way to say so — the only route past was typing the same number twice.
-      if (!formData.salaryMin) return 'Please enter a pay figure, or choose "Pay on application"'
+      if (!formData.salaryMin) return { field: 'salaryMin', message: 'Please enter a pay figure, or choose "Pay on application"' }
       // The period is a claim about the job, not a formatting preference.
-      if (!formData.salaryPeriod) return 'Please choose whether the pay is per hour or per year'
+      if (!formData.salaryPeriod) return { field: 'salaryPeriod', message: 'Please choose whether the pay is per hour or per year' }
       if (formData.salaryMax && parseInt(formData.salaryMin) > parseInt(formData.salaryMax)) {
-        return 'The bottom of the range is higher than the top — please swap them'
+        return { field: 'salaryMin', message: 'The bottom of the range is higher than the top — please swap them' }
       }
     }
     return null
@@ -862,7 +871,14 @@ function PostJobContent() {
 
     if (step === 1) {
       const problem = stepOneProblem()
-      if (problem) { setError(problem); return }
+      if (problem) {
+        setError(problem.message)
+        // The scroll four lines below is on the SUCCESS path and this return
+        // never reaches it — which is why the page used to move only when there
+        // was nothing to see. Focusing the field moves it to the problem.
+        focusField(problem.field)
+        return
+      }
     }
     setError('')
     setStep(next)
@@ -874,9 +890,20 @@ function PostJobContent() {
     setError('')
     setLoading(true)
 
-    // Validation
-    if (!formData.company || !formData.title || !formData.category || !formData.location) {
-      setError('Please fill in all required fields')
+    // NAMES THE FIELD. This said "Please fill in all required fields", which is
+    // the one kind of message that is no help even once you have found it — it
+    // tells you something is wrong and leaves you to hunt for which. The four
+    // are already tested in order elsewhere; testing them in order here too
+    // gives both the sentence and the field to send the person to.
+    const missing: FieldProblem | null =
+      !formData.company ? { field: 'company', message: 'Please add the company name' }
+      : !formData.title ? { field: 'title', message: 'Please add a job title' }
+      : !formData.category ? { field: 'category', message: 'Please choose a category' }
+      : !formData.location ? { field: 'location', message: 'Please add a town or city' }
+      : null
+    if (missing) {
+      setError(missing.message)
+      focusField(missing.field)
       setLoading(false)
       return
     }
@@ -893,6 +920,7 @@ function PostJobContent() {
             ? 'Please choose an employment type — full-time, part-time or flexible'
             : 'Please choose a contract type — permanent, temporary or fixed-term',
       )
+      focusField(!formData.employmentType ? 'employmentType' : 'contractType')
       setLoading(false)
       return
     }
@@ -907,6 +935,7 @@ function PostJobContent() {
       // manufacturing the ranges.
       if (!formData.salaryMin) {
         setError('Please enter a salary, or tick "Competitive salary" to hide it')
+        focusField('salaryMin')
         setLoading(false)
         return
       }
@@ -915,11 +944,13 @@ function PostJobContent() {
       // the employer is told exactly which box is unanswered.
       if (!formData.salaryPeriod) {
         setError('Please choose whether the pay is per hour or per year')
+        focusField('salaryPeriod')
         setLoading(false)
         return
       }
       if (formData.salaryMax && parseInt(formData.salaryMin) > parseInt(formData.salaryMax)) {
         setError('Minimum salary cannot be higher than maximum salary')
+        focusField('salaryMin')
         setLoading(false)
         return
       }
@@ -1307,7 +1338,7 @@ function PostJobContent() {
               <StepProgress current={step} />
             </>
           )}
-          {error && <div className={styles.error}>{error}</div>}
+          <FormError message={error} className={styles.error} />
           {success && (
             <div className={styles.success}>
               <span>✓</span> {isEditMode ? 'Job updated successfully! Redirecting...' : 'Job posted successfully! Redirecting to jobs page...'}
