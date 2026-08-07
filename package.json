@@ -16,7 +16,8 @@
     "verify:fast": "node scripts/verify.js --fast",
     "preview-url": "node scripts/preview-url.js",
     "deploy-ready": "node scripts/deployment-ready.js",
-    "hold:prove": "node scripts/prove-hold.js"
+    "hold:prove": "node scripts/prove-hold.js",
+    "unmerged": "node scripts/unmerged.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.98.0",
