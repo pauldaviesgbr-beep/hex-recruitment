@@ -775,7 +775,16 @@ export default function CompanySettingsPage() {
                 value={formData.companyName}
                 onChange={handleChange}
                 className={styles.input}
-                required
+                /* NO NATIVE `required`. It masked the app's own validation
+                   entirely: the browser blocked the submit, focused this field
+                   itself and showed "Please fill out this field." in a bubble
+                   that is not a DOM node, so handleSubmit never ran and the
+                   banner, the FieldError and the focusField call below it were
+                   all unreachable. Measured 8 Aug: focus moved, zero message
+                   nodes, and "Company name is required" nowhere on the page.
+                   aria-required stays — assistive tech is still told. Same
+                   choice as post-job, which carries its own comment saying the
+                   browser does not validate these fields. */
                 aria-required="true"
                 autoComplete="organization"
               />
@@ -899,7 +908,14 @@ export default function CompanySettingsPage() {
                   value={formData.email}
                   onChange={handleChange}
                   className={styles.input}
-                  required
+                  /* Same mask as companyName above, same fix. `required` goes,
+                     type="email" STAYS — a blank value is valid for an unrequired
+                     email input, so the app's blank check now runs, while the
+                     browser still rejects a MALFORMED address. That is why this
+                     is two attribute deletions rather than noValidate on the
+                     form: noValidate would have taken the format check with it,
+                     and nothing in handleSubmit replaces it — it only tests
+                     .trim(). */
                   aria-required="true"
                   autoComplete="email"
                 />
