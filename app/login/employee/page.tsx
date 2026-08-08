@@ -131,11 +131,12 @@ function EmployeeLoginPageContent() {
       return
     }
 
+    // hex_session_volatile is gone: it was written on every unticked login and
+    // read nowhere. hex_prev_volatile is the one that does the work — see the
+    // volatile-cleanup effect in SessionGuard.
     if (!rememberMe) {
-      sessionStorage.setItem('hex_session_volatile', '1')
       localStorage.setItem('hex_prev_volatile', '1')
     } else {
-      sessionStorage.removeItem('hex_session_volatile')
       localStorage.removeItem('hex_prev_volatile')
     }
 
