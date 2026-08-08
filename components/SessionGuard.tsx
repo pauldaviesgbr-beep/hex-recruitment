@@ -45,9 +45,28 @@ export default function SessionGuard() {
   // redirect a session we're in the middle of clearing.
   const volatileSignOut = useRef(false)
 
-  // Volatile session cleanup
+  // Volatile session cleanup — "Remember me" left unticked.
+  //
+  // THE MARKER IS A SESSION COOKIE, NOT sessionStorage, AND THAT IS THE WHOLE
+  // FIX. sessionStorage is per browsing CONTEXT: a second tab has an empty one,
+  // which this effect could not tell apart from a fresh browser. So opening a
+  // link in a new tab ran the sign-out — and because signOut() clears the
+  // shared cookie store, it signed the person out of the tab they were already
+  // working in. Measured on production before the change: with the box
+  // unticked, tab B landed on /login with 0 auth cookies and tab A followed it.
+  // A cookie with no Max-Age is per BROWSER: shared across tabs, gone when the
+  // browser closes. That is exactly the boundary this feature needs, and the
+  // browser draws it instead of us.
+  //
+  // KNOWN TRADE, CHOSEN RATHER THAN MISSED: a browser set to restore tabs on
+  // relaunch (Chrome's "Continue where you left off") can restore session
+  // cookies too, so on that setting untick-and-close may no longer sign you
+  // out — where sessionStorage was always cleared. Accepted deliberately: the
+  // second-tab sign-out hit everyone who opened a link in a new tab and lost
+  // them their session mid-work, while the restore-tabs case needs someone to
+  // have chosen that setting AND to be relying on the checkbox.
   useEffect(() => {
-    const sessionStarted = sessionStorage.getItem('hex_session_started')
+    const sessionStarted = getCookie('hex_session_started')
     if (!sessionStarted) {
       const prevVolatile = localStorage.getItem('hex_prev_volatile')
       if (prevVolatile === '1') {
@@ -55,7 +74,10 @@ export default function SessionGuard() {
         supabase.auth.signOut()
         localStorage.removeItem('hex_prev_volatile')
       }
-      sessionStorage.setItem('hex_session_started', '1')
+      // No Max-Age and no Expires — that is what makes it a session cookie.
+      document.cookie =
+        'hex_session_started=1; path=/; SameSite=Lax' +
+        (window.location.protocol === 'https:' ? '; Secure' : '')
     }
   }, [])
 
