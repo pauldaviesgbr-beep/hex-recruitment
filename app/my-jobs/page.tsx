@@ -11,6 +11,7 @@ import { formatWhen, type TempPost } from '@/lib/tempWork'
 import { useJobs } from '@/lib/JobsContext' // refreshJobs only — data fetched directly from Supabase
 import CompanyLogo from '@/components/CompanyLogo'
 import BoostModal from '@/components/BoostModal'
+import RemoveAdModal from '@/components/RemoveAdModal'
 import { RowInlineFields } from '@/components/RowInlineFields'
 import { MoreHorizontal } from 'lucide-react'
 import { Boost, JOB_BOOST_TIERS, getDaysRemaining, isBoostActive } from '@/lib/boostTypes'
@@ -66,6 +67,13 @@ function MyJobsContent() {
   // them, not a second home for them — see the section below.
   const [shifts, setShifts] = useState<TempPost[] | null>(null)
   const [canManageShifts, setCanManageShifts] = useState(false)
+  // Gates the Remove ad item. Defaults FALSE so the control is absent until the
+  // capability is known — the wrong direction to fail is showing a button that
+  // the endpoint will refuse.
+  const [canManageJobs, setCanManageJobs] = useState(false)
+  // The advert awaiting confirmation, or null. Holds the whole row rather than
+  // an id so the dialog can name the advert it is about.
+  const [removeTarget, setRemoveTarget] = useState<PostedJob | null>(null)
   const [loading, setLoading] = useState(true)
   const [postedJobs, setPostedJobs] = useState<PostedJob[]>([])
   const [appliedJobs, setAppliedJobs] = useState<AppliedJob[]>([])
@@ -392,24 +400,14 @@ function MyJobsContent() {
     return labels[status] || { label: status, className: '' }
   }
 
-  const handleDeleteJob = async (jobId: string) => {
-    if (!confirm('Are you sure you want to delete this job posting?')) return
-    try {
-      const { error } = await supabase
-        .from('jobs')
-        .update({ status: 'archived' })
-        .eq('id', jobId)
-      if (error) {
-        console.error('Error deleting job:', error)
-        alert('Failed to delete job. Please try again.')
-        return
-      }
-      setPostedJobs(prev => prev.filter(job => job.id !== jobId))
-      await refreshJobs()
-    } catch (err) {
-      console.error('Error deleting job:', err)
-    }
-  }
+  // handleDeleteJob and handleArchiveJob used to live here. Both were defined
+  // and never rendered — dead since before this branch, each doing a bare
+  // client-side `update({status:'archived'}).eq('id', jobId)` with no check on
+  // the CURRENT status, and the first one calling itself "delete" while
+  // archiving. They are gone rather than left in place: with handleRemoveAd
+  // below there would otherwise be three ways to archive an advert in one file,
+  // two of them unreachable and both of them wrong, which is how the next
+  // person wires up the wrong one.
 
   // A job status toggle used to live here and has been DELETED rather than
   // fixed. It was `job.status === 'active' ? 'paused' : 'active'` — a binary
@@ -516,27 +514,40 @@ function MyJobsContent() {
     }
   }
 
-  const handleArchiveJob = async (jobId: string) => {
-    const confirmed = confirm('Archive this job? It will be moved to the Archived Jobs section.')
-    if (!confirmed) return
+  // Take a live advert off the public board.
+  //
+  // Goes through /api/jobs/[id]/remove rather than updating from here like its
+  // neighbours do. RLS can say WHOSE row this is but not WHICH transition is
+  // allowed — the policy permits any status value — so "active -> archived, and
+  // only that" has to live somewhere the browser cannot edit. The reasoning is
+  // in the route.
+  //
+  // Throws on failure rather than alert()-ing: the modal keeps itself open and
+  // shows the message, so a failure cannot be mistaken for a success the way a
+  // dialog that closes regardless would be.
+  const handleRemoveAd = async (job: PostedJob) => {
+    const res = await fetch(`/api/jobs/${job.id}/remove`, { method: 'POST' })
+    let body: { ok?: boolean; status?: string; error?: string } | null = null
+    try { body = await res.json() } catch { /* non-JSON body handled below */ }
 
-    try {
-      const { error } = await supabase
-        .from('jobs')
-        .update({ status: 'archived' })
-        .eq('id', jobId)
-
-      if (error) {
-        console.error('Error archiving job:', error)
-        alert('Failed to archive job. Please try again.')
-        return
-      }
-
-      setPostedJobs(prev => prev.map(j => j.id === jobId ? { ...j, status: 'archived' as const } : j))
-      await refreshJobs()
-    } catch (err) {
-      console.error('Error archiving job:', err)
+    if (!res.ok) {
+      const message =
+        body?.error === 'not_active' ? 'This advert is not live, so there is nothing to remove. Refresh the page to see its current status.'
+        : body?.error === 'forbidden' ? 'You do not have permission to remove adverts on this account.'
+        : body?.error === 'unauthenticated' ? 'Your session has expired. Please sign in again.'
+        : body?.error === 'not_found' ? 'That advert could not be found on your account.'
+        : 'Could not remove the advert. Please try again.'
+      throw new Error(message)
     }
+    // Believe the ROW the route reports it wrote, not the 200. A 200 says the
+    // request was handled; only the returned status says the advert moved.
+    if (body?.status !== 'archived') {
+      throw new Error('The advert was not removed. Please try again.')
+    }
+
+    setPostedJobs(prev => prev.map(j => j.id === job.id ? { ...j, status: 'archived' as const } : j))
+    setRemoveTarget(null)
+    await refreshJobs()
   }
 
   // Categorise each job by its highest application status
@@ -702,6 +713,11 @@ function MyJobsContent() {
     const run = async () => {
       const caps = await getEmployerCapabilities(supabase)
       if (cancelled) return
+      // Same single capability read now also gates Remove ad. Set BEFORE the
+      // early return below, which exists for the shifts query and would
+      // otherwise leave this stuck at its default for exactly the members it
+      // is meant to describe.
+      setCanManageJobs(caps.manage_jobs)
       if (!caps.manage_jobs) { setCanManageShifts(false); setShifts([]); return }
       setCanManageShifts(true)
       const ownerId = await getCurrentEmployerOwnerId(supabase)
@@ -782,6 +798,20 @@ function MyJobsContent() {
                 onClick={(e) => choose(e, () => { setBoostTargetJob(job); setBoostModalOpen(true) })}>
                 <span className={styles.kebabItemIcon} aria-hidden="true">⚡</span>
                 <span>{isBoosted ? 'Boosted (manage)' : 'Boost this job'}</span>
+              </button>
+            )}
+            {/* ACTIVE ONLY, and deliberately so. 'filled' and 'archived' are
+                already off the public board (JobsContext loads status=active),
+                so offering Remove on them would be a control that appears to do
+                something and does nothing — and the menu already carries
+                Reactivate for exactly those two states. Gated on manage_jobs so
+                a member who would be refused by the endpoint is not shown the
+                door in the first place. */}
+            {job.status === 'active' && canManageJobs && (
+              <button type="button" role="menuitem" className={styles.kebabItem}
+                onClick={(e) => choose(e, () => setRemoveTarget(job))}>
+                <span className={styles.kebabItemIcon} aria-hidden="true"></span>
+                <span>Remove ad</span>
               </button>
             )}
             {(job.status === 'archived' || job.status === 'filled') && (
@@ -1145,6 +1175,14 @@ function MyJobsContent() {
             </>
           )}
         </div>
+
+        {removeTarget && (
+          <RemoveAdModal
+            jobTitle={removeTarget.title}
+            onCancel={() => setRemoveTarget(null)}
+            onConfirm={() => handleRemoveAd(removeTarget)}
+          />
+        )}
 
         <BoostModal
           isOpen={boostModalOpen}

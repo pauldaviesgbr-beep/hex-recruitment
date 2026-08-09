@@ -861,6 +861,45 @@
   margin-top: 0;
 }
 
+/* Remove ad — edit mode only.
+   Quiet on purpose. It sits directly beneath Update Job and must not compete
+   with it: an employer who came here to change a salary should not find the
+   heaviest control on the page is the one that unpublishes the advert. Nothing
+   is deleted and the action is reversible, so it is not styled as a danger
+   button either — see the note in components/RemoveAdModal.
+   Centres and wraps rather than scrolling; the label is a full sentence and
+   will run to two lines on a narrow phone, which is fine. */
+.removeAdRow {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 1.25rem;
+}
+
+.removeAdBtn {
+  max-width: 100%;
+  padding: 0.6rem 0.9rem;
+  background: none;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--text-muted, #64748b);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.removeAdBtn:hover {
+  color: #b91c1c;
+}
+
+.removeAdBtn:focus-visible {
+  outline: 2px solid var(--primary-yellow);
+  outline-offset: 2px;
+}
+
 @media (max-width: 640px) {
   .submitGroup {
     flex-direction: column;
