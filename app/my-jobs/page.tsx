@@ -1179,6 +1179,10 @@ function MyJobsContent() {
         {removeTarget && (
           <RemoveAdModal
             jobTitle={removeTarget.title}
+            // Already loaded — the second pass at ~line 183 fills
+            // applicationCount from job_applications, and the card beside this
+            // renders the same number. No extra query on this surface.
+            applicationCount={removeTarget.applicationCount}
             onCancel={() => setRemoveTarget(null)}
             onConfirm={() => handleRemoveAd(removeTarget)}
           />

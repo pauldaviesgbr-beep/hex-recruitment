@@ -21,11 +21,19 @@ import { useEffect, useRef, useState } from 'react'
 
 interface RemoveAdModalProps {
   jobTitle: string
+  /**
+   * How many people have applied. NULL means "not known yet" and is NOT the
+   * same as zero — a count is a claim, and the one thing this dialog must never
+   * do is state a number it has not read. Unknown falls back to saying nothing
+   * about applications, which is the safe direction: a missing true sentence
+   * costs less than a confident wrong one.
+   */
+  applicationCount?: number | null
   onCancel: () => void
   onConfirm: () => Promise<void>
 }
 
-export default function RemoveAdModal({ jobTitle, onCancel, onConfirm }: RemoveAdModalProps) {
+export default function RemoveAdModal({ jobTitle, applicationCount, onCancel, onConfirm }: RemoveAdModalProps) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const cancelRef = useRef<HTMLButtonElement>(null)
@@ -100,8 +108,27 @@ export default function RemoveAdModal({ jobTitle, onCancel, onConfirm }: RemoveA
         </p>
 
         <ul style={{ margin: '0 0 1.25rem', paddingLeft: '1.15rem', color: '#334155', lineHeight: 1.6 }}>
-          <li>Applications you have already received are kept, and your pipeline is unchanged.</li>
-          <li>You can put it back at any time with <strong>Reactivate</strong> in the same menu.</li>
+          {/* Only when there is a number AND it is above zero. An advert nobody
+              has applied to needs no reassurance about applications, and a
+              sentence about "0 people" reads as a bug. */}
+          {typeof applicationCount === 'number' && applicationCount > 0 && (
+            <li>
+              <strong style={{ color: '#0F172A' }}>
+                {applicationCount === 1
+                  ? '1 person has applied to this ad'
+                  : `${applicationCount} people have applied to this ad`}
+              </strong>
+              {applicationCount === 1
+                ? ' — their application will be kept, and your pipeline is unchanged.'
+                : ' — their applications will be kept, and your pipeline is unchanged.'}
+            </li>
+          )}
+          {/* ONE sentence, true on every surface it can be read from. It used to
+              say "with Reactivate in the same menu", which is written from the
+              /my-jobs kebab and means nothing on the edit form — where it was
+              being displayed. Naming the destination rather than the control
+              survives being read from anywhere. */}
+          <li>You can restore it any time from the <strong>Archived</strong> tab in My Jobs.</li>
         </ul>
 
         {error && (

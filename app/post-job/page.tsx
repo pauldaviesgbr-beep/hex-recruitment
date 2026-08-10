@@ -173,6 +173,8 @@ function PostJobContent() {
   // this branch adds rather than quietly widening scope to the whole page.
   const [canRemove, setCanRemove] = useState(false)
   const [removeOpen, setRemoveOpen] = useState(false)
+  // null = not read yet / read failed. Deliberately distinct from 0.
+  const [removeAppCount, setRemoveAppCount] = useState<number | null>(null)
 
   // Capability for the Remove control. Only asked for in edit mode — the
   // control does not exist on a new post, so neither should the round-trip.
@@ -185,6 +187,35 @@ function PostJobContent() {
     })()
     return () => { cancelled = true }
   }, [isEditMode])
+
+  // How many people have applied, for the Remove dialog. This page held no
+  // application data at all, so unlike /my-jobs it needs its own read.
+  //
+  // NO NEW ENDPOINT, and none is needed: job_applications is already scoped by
+  // RLS to the employer who owns the job ("Employers view job applications" on
+  // jobs.employer_id = auth.uid(), plus a members policy), so the browser
+  // client asking with the employer's own session is the owner-authenticated
+  // path. A public count route would be a way to ask how many people applied to
+  // anyone's advert.
+  //
+  // head + exact returns the count without shipping a single application row —
+  // the dialog needs the number and has no business holding candidate data.
+  //
+  // Stays NULL on failure rather than falling back to 0: null prints nothing,
+  // 0 would be a claim that nobody has applied.
+  useEffect(() => {
+    if (!isEditMode || !editJobId) return
+    let cancelled = false
+    ;(async () => {
+      const { count, error } = await supabase
+        .from('job_applications')
+        .select('id', { count: 'exact', head: true })
+        .eq('job_id', editJobId)
+      if (cancelled) return
+      setRemoveAppCount(error ? null : (count ?? null))
+    })()
+    return () => { cancelled = true }
+  }, [isEditMode, editJobId])
 
   // Same endpoint and the same contract as /my-jobs. Throws on failure so the
   // modal can hold itself open and say what went wrong; on success this page
@@ -2729,6 +2760,7 @@ function PostJobContent() {
           {removeOpen && (
             <RemoveAdModal
               jobTitle={formData.title || 'This advert'}
+              applicationCount={removeAppCount}
               onCancel={() => setRemoveOpen(false)}
               onConfirm={handleRemoveAd}
             />
