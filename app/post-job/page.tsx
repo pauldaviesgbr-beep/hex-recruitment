@@ -21,7 +21,7 @@ import FieldError from '@/components/FieldError'
 import { EMPLOYMENT_TYPES, CONTRACT_TYPES } from '@/lib/workTypes'
 import JobCard from '@/components/JobCard'
 import RemoveAdModal from '@/components/RemoveAdModal'
-import { getEmployerCapabilities } from '@/lib/employer'
+import { getEmployerCapabilities, getCurrentEmployerOwnerId } from '@/lib/employer'
 import { FlowAppBar, Stepper, StepProgress } from './FlowChrome'
 import styles from './page.module.css'
 import flow from './flow.module.css'
@@ -1063,7 +1063,26 @@ function PostJobContent() {
       setLoading(false)
       return
     }
-    const employerId = currentUser.id
+    // THE OWNER'S id, not the session user's.
+    //
+    // Every employer-scoped table keys employer_id to the OWNER's auth user id
+    // — /my-jobs has always resolved it this way and this page did not. With
+    // currentUser.id a team member's advert was created under THEIR OWN id, so
+    // it went live on the public board while the owner's /my-jobs (which
+    // filters on the owner id) could never see or manage it. Nobody hit it
+    // only because there are no team members yet.
+    //
+    // It is also what makes the insert policy work after the migration in this
+    // branch. A member has no employer profile of their own, so
+    // "Employers insert own jobs" now refuses them — correctly. They are
+    // authorised instead by "members insert jobs (manage_jobs)", which checks
+    // has_employer_permission against the employer_id ON THE ROW. That policy
+    // can only match if the row carries the OWNER's id, i.e. this line.
+    //
+    // Falls back to the session id for single-user accounts, which have no
+    // membership row — same fallback /my-jobs uses, so their behaviour is
+    // unchanged.
+    const employerId = (await getCurrentEmployerOwnerId(supabase)) ?? currentUser.id
 
     try {
       // Build tags array from Set

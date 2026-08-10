@@ -106,14 +106,34 @@ export function JobsProvider({ children }: { children: ReactNode }) {
       if (updates.expiresDate !== undefined) supabaseUpdates.expires_at = updates.expiresDate
       supabaseUpdates.updated_at = new Date().toISOString()
 
-      const { error } = await supabase
+      // .select() SO A REFUSAL CANNOT LOOK LIKE A SAVE.
+      //
+      // An RLS-refused UPDATE is not an error. PostgREST matches zero rows and
+      // returns success, so `error` is null and every caller carried on to
+      // "Job updated successfully! Redirecting..." having written nothing.
+      // Someone editing an advert they do not own was told it worked — and
+      // /post-job?edit= will load ANY active advert, so that is reachable
+      // rather than theoretical.
+      //
+      // Asking for the row back turns "did it save?" into a count instead of
+      // an assumption. Same reasoning as the remove endpoint, which selects
+      // its row for exactly this.
+      const { data: updatedRows, error } = await supabase
         .from('jobs')
         .update(supabaseUpdates)
         .eq('id', jobId)
+        .select('id')
 
       if (error) {
         console.error('Error updating job:', error.message)
         throw new Error(error.message)
+      }
+
+      if (!updatedRows || updatedRows.length === 0) {
+        console.error('Update matched no rows for job', jobId)
+        throw new Error(
+          'That advert could not be saved. It may belong to another account, or it may have been removed. Nothing was changed.',
+        )
       }
 
       // Update local state
