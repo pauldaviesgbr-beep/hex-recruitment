@@ -20,6 +20,8 @@ import FormError from '@/components/FormError'
 import FieldError from '@/components/FieldError'
 import { EMPLOYMENT_TYPES, CONTRACT_TYPES } from '@/lib/workTypes'
 import JobCard from '@/components/JobCard'
+import RemoveAdModal from '@/components/RemoveAdModal'
+import { getEmployerCapabilities } from '@/lib/employer'
 import { FlowAppBar, Stepper, StepProgress } from './FlowChrome'
 import styles from './page.module.css'
 import flow from './flow.module.css'
@@ -51,7 +53,7 @@ type UndoState =
 function PostJobContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { jobs, addJob, updateJob, getJobById } = useJobs()
+  const { jobs, addJob, updateJob, getJobById, refreshJobs } = useJobs()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   // WHICH field the current error is about, so the message can be rendered
@@ -163,6 +165,82 @@ function PostJobContent() {
   const [isEditMode, setIsEditMode] = useState(false)
   const [editJobId, setEditJobId] = useState<string | null>(null)
   const [loadingJobData, setLoadingJobData] = useState(false)
+  // Remove-ad control, the second surface for the /my-jobs kebab item. Edit
+  // mode only. `canRemove` defaults false and is set from the same capability
+  // the endpoint is enforced against, so a member who would be refused is not
+  // offered the control — NOTE this page has no capability gate of its own, so
+  // that member can still reach the form and press Update; gating only what
+  // this branch adds rather than quietly widening scope to the whole page.
+  const [canRemove, setCanRemove] = useState(false)
+  const [removeOpen, setRemoveOpen] = useState(false)
+  // null = not read yet / read failed. Deliberately distinct from 0.
+  const [removeAppCount, setRemoveAppCount] = useState<number | null>(null)
+
+  // Capability for the Remove control. Only asked for in edit mode — the
+  // control does not exist on a new post, so neither should the round-trip.
+  useEffect(() => {
+    if (!isEditMode) return
+    let cancelled = false
+    ;(async () => {
+      const caps = await getEmployerCapabilities(supabase)
+      if (!cancelled) setCanRemove(caps.manage_jobs)
+    })()
+    return () => { cancelled = true }
+  }, [isEditMode])
+
+  // How many people have applied, for the Remove dialog. This page held no
+  // application data at all, so unlike /my-jobs it needs its own read.
+  //
+  // NO NEW ENDPOINT, and none is needed: job_applications is already scoped by
+  // RLS to the employer who owns the job ("Employers view job applications" on
+  // jobs.employer_id = auth.uid(), plus a members policy), so the browser
+  // client asking with the employer's own session is the owner-authenticated
+  // path. A public count route would be a way to ask how many people applied to
+  // anyone's advert.
+  //
+  // head + exact returns the count without shipping a single application row —
+  // the dialog needs the number and has no business holding candidate data.
+  //
+  // Stays NULL on failure rather than falling back to 0: null prints nothing,
+  // 0 would be a claim that nobody has applied.
+  useEffect(() => {
+    if (!isEditMode || !editJobId) return
+    let cancelled = false
+    ;(async () => {
+      const { count, error } = await supabase
+        .from('job_applications')
+        .select('id', { count: 'exact', head: true })
+        .eq('job_id', editJobId)
+      if (cancelled) return
+      setRemoveAppCount(error ? null : (count ?? null))
+    })()
+    return () => { cancelled = true }
+  }, [isEditMode, editJobId])
+
+  // Same endpoint and the same contract as /my-jobs. Throws on failure so the
+  // modal can hold itself open and say what went wrong; on success this page
+  // leaves for /my-jobs, because staying on an edit form for an advert that is
+  // no longer live invites an Update that would then fail.
+  const handleRemoveAd = async () => {
+    if (!editJobId) throw new Error('No advert selected.')
+    const res = await fetch(`/api/jobs/${editJobId}/remove`, { method: 'POST' })
+    let body: { ok?: boolean; status?: string; error?: string } | null = null
+    try { body = await res.json() } catch { /* non-JSON body handled below */ }
+
+    if (!res.ok) {
+      throw new Error(
+        body?.error === 'not_active' ? 'This advert is not live, so there is nothing to remove.'
+        : body?.error === 'forbidden' ? 'You do not have permission to remove adverts on this account.'
+        : body?.error === 'unauthenticated' ? 'Your session has expired. Please sign in again.'
+        : body?.error === 'not_found' ? 'That advert could not be found on your account.'
+        : 'Could not remove the advert. Please try again.',
+      )
+    }
+    if (body?.status !== 'archived') throw new Error('The advert was not removed. Please try again.')
+
+    await refreshJobs()
+    router.push('/my-jobs')
+  }
 
   // ── THREE-STEP FLOW ────────────────────────────────────────────────────
   //
@@ -2663,6 +2741,29 @@ function PostJobContent() {
                   : (isEditMode ? '⬡ Update Job' : '⬡ Post Job')}
             </button>
           </div>
+          )}
+
+          {/* Remove ad — second surface for the /my-jobs kebab item.
+              Only ever reachable for a LIVE advert: this page loads the row
+              through JobsContext, which selects status='active' and nothing
+              else, so an archived one never gets here (it lands in the "Job not
+              found for editing" branch). Outside submitGroup and type="button"
+              so it can neither look like nor act as the form's submit. */}
+          {isEditMode && editJobId && canRemove && (
+            <div className={styles.removeAdRow}>
+              <button type="button" className={styles.removeAdBtn} onClick={() => setRemoveOpen(true)}>
+                Remove this advert from the job board
+              </button>
+            </div>
+          )}
+
+          {removeOpen && (
+            <RemoveAdModal
+              jobTitle={formData.title || 'This advert'}
+              applicationCount={removeAppCount}
+              onCancel={() => setRemoveOpen(false)}
+              onConfirm={handleRemoveAd}
+            />
           )}
           </div>
         </form>
