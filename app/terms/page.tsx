@@ -3,7 +3,6 @@
 import Link from 'next/link'
 import Header from '@/components/Header'
 import ThriveMark from '@/components/ThriveMark'
-import { EMPLOYER_SUBSCRIPTION_PRICE, trialPhraseFormal } from '@/lib/trialUtils'
 import styles from './page.module.css'
 
 const sections = [
@@ -12,7 +11,7 @@ const sections = [
   { id: 'accounts', label: 'User Accounts' },
   { id: 'employer-terms', label: 'Employer Terms' },
   { id: 'job-seeker-terms', label: 'Job Seeker Terms' },
-  { id: 'subscriptions', label: 'Subscriptions & Billing' },
+  { id: 'subscriptions', label: 'Fees' },
   { id: 'acceptable-use', label: 'Acceptable Use' },
   { id: 'ip', label: 'Intellectual Property' },
   { id: 'liability', label: 'Limitation of Liability' },
@@ -47,7 +46,7 @@ export default function TermsPage() {
             Back to Home
           </Link>
           <h1 className={styles.heroTitle}>Terms of Service</h1>
-          <p className={styles.heroDate}>Last updated: April 2026</p>
+          <p className={styles.heroDate}>Last updated: 11 August 2026</p>
         </div>
       </section>
 
@@ -130,7 +129,7 @@ export default function TermsPage() {
               <div className={styles.card}>
                 <h3 className={styles.cardTitle}>Employer Account</h3>
                 <ul className={styles.list}>
-                  <li>Requires paid subscription after free trial</li>
+                  <li>Free while we build — no charge to post or hire</li>
                   <li>Post job listings</li>
                   <li>Browse candidate profiles</li>
                   <li>Contact job seekers directly</li>
@@ -193,7 +192,7 @@ export default function TermsPage() {
               </li>
               <li>
                 By uploading your CV, you grant Thrive permission to store and display your
-                information to registered employers with active subscriptions, in accordance with our
+                information to registered employers using the Platform, in accordance with our
                 Privacy Policy
               </li>
               <li>
@@ -230,36 +229,35 @@ export default function TermsPage() {
             </p>
           </section>
 
-          {/* 6. Subscriptions & Billing */}
+          {/* 6. Fees.
+              REPLACED, not gated. A legal page describing a charge
+              with the number deleted is worse than one that never mentioned it
+              — it would still assert that a charge exists. Nothing has ever
+              been charged: 8 subscription rows, all inactive, zero Stripe
+              customer or subscription ids, zero boost rows, nothing ever taken. So this
+              section now says what is true rather than what was planned.
+              Wording is Paul's, not mine — legal copy is his to write. */}
           <section id="subscriptions" className={styles.section}>
             <h2 className={styles.sectionTitle}>
               <span className={styles.sectionNumber}>6</span>
-              Subscriptions &amp; Billing
+              Fees
             </h2>
 
-            <div className={styles.highlightBox}>
-              <h3 className={styles.highlightTitle}>Free Trial</h3>
-              <p>
-                New employer accounts receive a <strong>{trialPhraseFormal()}</strong> with full access to
-                all Platform features. No payment details are required during the trial period.
-              </p>
-            </div>
-
-            <p>After the trial period, employer access requires a paid subscription:</p>
-            <ul className={styles.list}>
-              <li>
-                <strong>Monthly subscription:</strong> &pound;{EMPLOYER_SUBSCRIPTION_PRICE} per month (GBP, inclusive of VAT)
-              </li>
-              <li>Subscriptions renew automatically each month</li>
-              <li>
-                Cancellation requires a minimum of 1 week&apos;s (7 days&apos;) written notice via your
-                account settings. Access continues until the end of the notice period
-              </li>
-              <li>Refunds are not provided for partial months</li>
-            </ul>
             <p>
-              We reserve the right to change subscription pricing with at least 30 days&apos; written
-              notice to existing subscribers.
+              Access to Thrive is currently provided to employers free of charge. We do not charge
+              for posting roles, viewing candidates, or any other feature of the Service.
+            </p>
+            <p>
+              We may introduce charges for some or all employer features in future. If we do, we
+              will give you at least 30 days&apos; written notice before any charge applies to your
+              account, and no charge will be made without your express agreement at that time.
+              Continuing to use the Service after charges are introduced does not by itself
+              constitute agreement to pay.
+            </p>
+            <p>
+              Where you have been accepted into our founding employer group, the terms of that
+              arrangement will be confirmed to you separately in writing and take precedence over
+              this section.
             </p>
           </section>
 
@@ -349,7 +347,6 @@ export default function TermsPage() {
             <ul className={styles.list}>
               <li>Violate these Terms of Service</li>
               <li>Engage in fraudulent activity</li>
-              <li>Fail to pay applicable subscription fees</li>
               <li>For any other reason, with reasonable notice provided</li>
             </ul>
             <p>
