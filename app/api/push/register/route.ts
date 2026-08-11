@@ -32,7 +32,15 @@ export async function POST(req: NextRequest) {
       },
     },
   )
-  const { data: { user } } = await supabase.auth.getUser()
+  // COOKIES OR A BEARER TOKEN. The website holds a cookie session; an app —
+  // which is the whole reason this endpoint exists — holds a bearer. Accepting
+  // only cookies would 401 every real caller, which is exactly what happened
+  // the first time this was driven.
+  let user = (await supabase.auth.getUser()).data.user
+  if (!user) {
+    const bearer = req.headers.get('authorization')?.replace(/^Bearer /i, '')
+    if (bearer) user = (await supabaseAdmin.auth.getUser(bearer)).data.user ?? null
+  }
   if (!user) return NextResponse.json({ error: 'unauthenticated' }, { status: 401 })
 
   let body: { token?: string; platform?: string }
