@@ -8,6 +8,7 @@ import Header from '@/components/Header'
 import PasswordInput from '@/components/PasswordInput'
 import PostcodeLookup, { type AddressData } from '@/components/PostcodeLookup'
 import { EMPLOYER_SUBSCRIPTION_PRICE } from '@/lib/trialUtils'
+import { PAID_SURFACES_ENABLED } from '@/lib/paidSurfaces'
 import { isDisposableEmail } from '@/lib/validateEmail'
 import styles from '../../login/page.module.css'
 import registerStyles from './page.module.css'
@@ -162,9 +163,21 @@ function RegisterEmployerPageContent() {
       <div className={styles.container}>
         <div className={styles.formCard} style={{ maxWidth: '600px' }}>
           <h1 className={styles.title}>Create Employer Account</h1>
-          <p className={styles.subtitle}>
-            You selected the <strong>{selectedPlan.name}</strong> plan at <strong>£{selectedPlan.price}/month</strong>
-          </p>
+          {/* This page is NOT redirected by next.config — only /register and
+              /register/employer/payment are — so it is reachable, and it was
+              rendering "the Standard plan at £99/month" while /terms now says
+              access is free of charge. A page contradicting the Terms is worse
+              than either statement alone. Gated on the switch that already
+              hides every other price, so nothing new was invented here. */}
+          {PAID_SURFACES_ENABLED ? (
+            <p className={styles.subtitle}>
+              You selected the <strong>{selectedPlan.name}</strong> plan at <strong>£{selectedPlan.price}/month</strong>
+            </p>
+          ) : (
+            <p className={styles.subtitle}>
+              Free while we build — there is nothing to pay and no card needed.
+            </p>
+          )}
 
           <form onSubmit={handleSubmit} className={styles.form}>
             {error && <div className={styles.error}>{error}</div>}

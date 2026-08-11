@@ -3,7 +3,6 @@
 import Link from 'next/link'
 import Header from '@/components/Header'
 import ThriveMark from '@/components/ThriveMark'
-import { EMPLOYER_SUBSCRIPTION_PRICE, trialPhraseFormal } from '@/lib/trialUtils'
 import styles from './page.module.css'
 
 const sections = [
@@ -47,7 +46,7 @@ export default function PrivacyPolicyPage() {
             Back to Home
           </Link>
           <h1 className={styles.heroTitle}>Privacy Policy</h1>
-          <p className={styles.heroDate}>Last updated: June 2026</p>
+          <p className={styles.heroDate}>Last updated: 11 August 2026</p>
         </div>
       </section>
 
@@ -134,12 +133,15 @@ export default function PrivacyPolicyPage() {
               <li>Interaction data (applications submitted, messages sent, profiles viewed)</li>
             </ul>
 
-            <h3 className={styles.subTitle}>Payment Data</h3>
-            <ul className={styles.list}>
-              <li>Billing name and address (for employer subscriptions)</li>
-              <li>Payment method details are processed securely by our payment provider (Stripe) and are <strong>never stored on our servers</strong></li>
-              <li>Transaction history and subscription status</li>
-            </ul>
+            <h3 className={styles.subTitle}>Payment information</h3>
+            <p>
+              We do not currently collect or process payment details from employers, as the Service
+              is provided free of charge. If we introduce charges in future, payments will be
+              handled by Stripe, Inc. acting as a separate data controller. We would not receive or
+              store full card details; Stripe would provide us only with limited information such
+              as the last four digits, card type and transaction status, used solely to administer
+              your account.
+            </p>
           </section>
 
           {/* 2. How We Use Your Data */}
@@ -157,7 +159,6 @@ export default function PrivacyPolicyPage() {
                   <li>Creating and managing your account</li>
                   <li>Displaying your profile to relevant users</li>
                   <li>Facilitating job applications and messaging</li>
-                  <li>Processing employer subscriptions and billing</li>
                 </ul>
               </div>
               <div className={styles.purposeCard}>
@@ -173,7 +174,6 @@ export default function PrivacyPolicyPage() {
                 <h3 className={styles.purposeTitle}>Communication</h3>
                 <ul className={styles.list}>
                   <li>Sending notification emails and alerts</li>
-                  <li>Subscription and billing reminders</li>
                   <li>Platform updates and security notices</li>
                   <li>Marketing (only with your consent)</li>
                 </ul>
@@ -214,15 +214,15 @@ export default function PrivacyPolicyPage() {
 
             <ul className={styles.list}>
               <li>
-                <strong>Subscribed Employers:</strong> Job seeker profiles (including CV, skills,
-                experience, and contact details) are visible to registered employers with an active
-                paid subscription (&pound;{EMPLOYER_SUBSCRIPTION_PRICE}/month) or during their {trialPhraseFormal()}. Employers
-                must agree to our Terms of Service and comply with UK GDPR when handling your data.
+                <strong>Registered Employers:</strong> Job seeker profiles (including CV, skills,
+                experience, and contact details) are visible to registered employers using the
+                Platform. Employers must agree to our Terms of Service and comply with UK GDPR when
+                handling your data.
               </li>
               <li>
-                <strong>Payment Processors:</strong> We use Stripe to securely process employer
-                subscription payments. Stripe operates as an independent data controller for payment
-                data. See{' '}
+                <strong>Payment Processors:</strong> We do not currently process payments. If we
+                introduce charges in future, Stripe, Inc. would process them as an independent data
+                controller. See{' '}
                 <a href="https://stripe.com/gb/privacy" className={styles.link} target="_blank" rel="noopener noreferrer">
                   Stripe&apos;s Privacy Policy
                 </a>.
@@ -312,7 +312,7 @@ export default function PrivacyPolicyPage() {
               <li>All data is encrypted in transit using TLS/SSL encryption</li>
               <li>Passwords are securely hashed and never stored in plain text</li>
               <li>Database access is restricted using row-level security policies</li>
-              <li>Payment card details are handled exclusively by Stripe and never touch our servers</li>
+              <li>We hold no payment card details. If charges are introduced, card data would be handled exclusively by Stripe and would never touch our servers</li>
               <li>Regular security audits and vulnerability assessments</li>
               <li>Access to personal data is limited to authorised personnel only</li>
               <li>Automated backups with encryption at rest</li>
