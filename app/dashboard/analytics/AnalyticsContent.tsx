@@ -7,6 +7,7 @@ import Header from '@/components/Header'
 import { supabase } from '@/lib/supabase'
 import { getCategoryLabel } from '@/lib/categories'
 import { EMPLOYER_SUBSCRIPTION_PRICE } from '@/lib/trialUtils'
+import { PAID_SURFACES_ENABLED, BILLING_NOT_LIVE_MESSAGE } from '@/lib/paidSurfaces'
 import { employerLoginPath } from '@/lib/loginRedirect'
 import { annualisedOrNull } from '@/lib/salaryInput'
 import {
@@ -2768,9 +2769,20 @@ export default function AnalyticsContent() {
               Subscribe to access detailed recruitment insights, candidate demographics,
               market benchmarking, and more.
             </p>
-            <Link href="/dashboard/subscription" className={styles.upgradeBtnLink}>
-              Subscribe — £{EMPLOYER_SUBSCRIPTION_PRICE}/month
-            </Link>
+            {/* The price came off this button with the rest of them. While
+                billing is off there is nothing to subscribe TO, so a button
+                that says "Subscribe" would send an employer to a page telling
+                them billing isn't live — a door that goes nowhere. The
+                sentence above still explains why the panel is limited. */}
+            {PAID_SURFACES_ENABLED ? (
+              <Link href="/dashboard/subscription" className={styles.upgradeBtnLink}>
+                Subscribe — £{EMPLOYER_SUBSCRIPTION_PRICE}/month
+              </Link>
+            ) : (
+              <p className={styles.upgradeText} style={{ margin: 0 }}>
+                {BILLING_NOT_LIVE_MESSAGE}
+              </p>
+            )}
           </div>
         </div>
       )}
@@ -4210,8 +4222,15 @@ export default function AnalyticsContent() {
         </div>
         )}
 
-        {/* Cost Per Hire */}
-        {activeTab === 'market' && costPerHire && (
+        {/* Cost Per Hire.
+            HIDDEN ENTIRELY while billing is off, not stripped of its numbers.
+            This panel does not merely DISPLAY the subscription price — it
+            computes from it (MONTHLY_COST feeds totalCost, which feeds cost
+            per hire and the "saving vs industry average" line). A panel
+            silently deriving figures from a price we have decided not to
+            publish is worse than no panel: the number would still be on the
+            screen, just laundered through arithmetic. */}
+        {PAID_SURFACES_ENABLED && activeTab === 'market' && costPerHire && (
           <div className={`${styles.sectionCard}`} style={{ marginBottom: '1.5rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
               <h2 className={styles.sectionTitle} style={{ margin: 0 }}>Cost Per Hire</h2>

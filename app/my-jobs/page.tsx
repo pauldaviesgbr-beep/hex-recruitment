@@ -12,6 +12,7 @@ import { useJobs } from '@/lib/JobsContext' // refreshJobs only — data fetched
 import CompanyLogo from '@/components/CompanyLogo'
 import BoostModal from '@/components/BoostModal'
 import RemoveAdModal from '@/components/RemoveAdModal'
+import { PAID_SURFACES_ENABLED } from '@/lib/paidSurfaces'
 import { RowInlineFields } from '@/components/RowInlineFields'
 import { MoreHorizontal } from 'lucide-react'
 import { Boost, JOB_BOOST_TIERS, getDaysRemaining, isBoostActive } from '@/lib/boostTypes'
@@ -793,7 +794,11 @@ function MyJobsContent() {
             {/* "Find candidates" kebab item removed: feature pending
                 post-launch GDPR + pricing decision on full-database search.
                 /candidates route still exists, gated behind subscription. */}
-            {job.status !== 'archived' && job.status !== 'filled' && (
+            {/* Boost is a paid surface — its modal shows six prices. Hidden
+                while PAID_SURFACES_ENABLED is false. The item and the modal
+                are both gated: hiding only the item would leave the modal
+                openable by any other route into that state. */}
+            {PAID_SURFACES_ENABLED && job.status !== 'archived' && job.status !== 'filled' && (
               <button type="button" role="menuitem" className={styles.kebabItem}
                 onClick={(e) => choose(e, () => { setBoostTargetJob(job); setBoostModalOpen(true) })}>
                 <span className={styles.kebabItemIcon} aria-hidden="true">⚡</span>
@@ -1189,7 +1194,7 @@ function MyJobsContent() {
         )}
 
         <BoostModal
-          isOpen={boostModalOpen}
+          isOpen={PAID_SURFACES_ENABLED && boostModalOpen}
           onClose={() => { setBoostModalOpen(false); setBoostTargetJob(null) }}
           onSuccess={async () => {
             const { data: { session } } = await supabase.auth.getSession()

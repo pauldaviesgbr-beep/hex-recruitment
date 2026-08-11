@@ -1,5 +1,7 @@
 'use client'
 
+import { PAID_SURFACES_ENABLED } from "@/lib/paidSurfaces"
+
 import { useState, useEffect, useMemo, useRef, type CSSProperties } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -934,9 +936,9 @@ export default function DashboardPage() {
                     <p style={{ fontSize: '0.85rem', color: 'var(--text-gray)', margin: '0 0 0.75rem' }}>
                       Stand out to employers — appear first in search results with a Featured badge.
                     </p>
-                    <button className={styles.boostBtn} onClick={() => setBoostModalOpen(true)}>
+                    {PAID_SURFACES_ENABLED && (<button className={styles.boostBtn} onClick={() => setBoostModalOpen(true)}>
                       &#9889; Boost Profile
-                    </button>
+                    </button>)}
                   </>
                 )}
               </div>
@@ -1032,7 +1034,7 @@ export default function DashboardPage() {
 
       {/* Profile Boost Payment Modal — only mounted when the user opens it,
           so Stripe.js isn't fetched on every candidate dashboard load. */}
-      {boostModalOpen && (
+      {PAID_SURFACES_ENABLED && boostModalOpen && (
         <ProfileBoostPaymentModal
           isOpen={boostModalOpen}
           onClose={() => setBoostModalOpen(false)}

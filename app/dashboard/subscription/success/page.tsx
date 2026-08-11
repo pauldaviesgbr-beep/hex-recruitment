@@ -1,5 +1,8 @@
 'use client'
 
+import { PAID_SURFACES_ENABLED } from '@/lib/paidSurfaces'
+import BillingNotLive from '@/components/BillingNotLive'
+
 import { Suspense, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
@@ -64,6 +67,10 @@ function SuccessContent() {
 }
 
 export default function SubscriptionSuccessPage() {
+  // Billing is off — see lib/paidSurfaces. Returns before any hook runs, which
+  // is safe only because the flag is a compile-time constant.
+  if (!PAID_SURFACES_ENABLED) return <BillingNotLive />
+
   return (
     <main>
       <Header />

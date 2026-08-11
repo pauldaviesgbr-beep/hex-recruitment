@@ -1,5 +1,8 @@
 'use client'
 
+import { PAID_SURFACES_ENABLED } from '@/lib/paidSurfaces'
+import BillingNotLive from '@/components/BillingNotLive'
+
 import { Suspense, useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -26,6 +29,10 @@ const PLAN_FEATURES = SUBSCRIPTION_TIERS.standard.features
 // useSearchParams() requires a Suspense boundary at the page level when
 // prerendering — wrap the content and export the wrapper as default.
 export default function SubscriptionPage() {
+  // Billing is off — see lib/paidSurfaces. Returns before any hook runs, which
+  // is safe only because the flag is a compile-time constant.
+  if (!PAID_SURFACES_ENABLED) return <BillingNotLive />
+
   return (
     <Suspense fallback={null}>
       <SubscriptionContent />

@@ -1,5 +1,8 @@
 'use client'
 
+import { PAID_SURFACES_ENABLED } from '@/lib/paidSurfaces'
+import BillingNotLive from '@/components/BillingNotLive'
+
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -48,6 +51,10 @@ function getAccessEndDate(): Date {
 }
 
 export default function SubscriptionSettingsPage() {
+  // Billing is off — see lib/paidSurfaces. Returns before any hook runs, which
+  // is safe only because the flag is a compile-time constant.
+  if (!PAID_SURFACES_ENABLED) return <BillingNotLive />
+
   const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [subscription, setSubscription] = useState<SubscriptionData | null>(null)

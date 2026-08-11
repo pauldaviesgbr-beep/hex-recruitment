@@ -4,7 +4,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: 'Thrive — Free UK Job Board',
     short_name: 'Thrive',
-    description: 'Find jobs or hire great people across all UK sectors. Post unlimited jobs free.',
+    description: 'Find jobs or hire great people across UK hospitality.',
     start_url: '/',
     display: 'standalone',
     background_color: '#0A1628',
