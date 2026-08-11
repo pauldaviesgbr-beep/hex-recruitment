@@ -1,4 +1,5 @@
 'use client'
+import { PAID_SURFACES_ENABLED } from '@/lib/paidSurfaces'
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
@@ -97,15 +98,15 @@ const settingsCards: SettingCard[] = [
     href: '/settings/privacy',
     forUserTypes: ['employer', 'employee'],
   },
-  {
-    id: 'subscription',
+  ...(PAID_SURFACES_ENABLED ? ([{
+      id: 'subscription',
     title: 'Subscription & Billing',
     description: 'View your plan, trial status, and payment history',
     icon: '💳',
     href: '/settings/subscription',
     forUserTypes: ['employer', 'employee'],
     requiresCap: 'manage_billing',
-  },
+  }] as SettingCard[]) : []),
 ]
 
 export default function SettingsPage() {

@@ -1,9 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { PAID_SURFACES_ENABLED, BILLING_NOT_LIVE_MESSAGE } from '@/lib/paidSurfaces'
 import { stripe } from '@/lib/stripe'
 
 import { supabaseAdmin } from '@/lib/supabase-admin'
 
 export async function POST(req: NextRequest) {
+  // PAID SURFACES ARE OFF. A hidden button is not a gate — the jobs-insert hole
+  // was exactly that lesson — so the refusal lives here, where the money would
+  // actually be taken, and does not depend on any UI having hidden a control.
+  if (!PAID_SURFACES_ENABLED) {
+    return NextResponse.json({ error: BILLING_NOT_LIVE_MESSAGE }, { status: 403 })
+  }
+
   try {
     const { paymentIntentId, boost_type, duration, item_id, user_id } = await req.json()
 

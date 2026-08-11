@@ -1,4 +1,5 @@
 'use client'
+import { PAID_SURFACES_ENABLED } from '@/lib/paidSurfaces'
 
 import { useState, useEffect } from 'react'
 import { useRouter, useParams, useSearchParams } from 'next/navigation'
@@ -175,9 +176,9 @@ export default function CandidateDetailPage() {
           <div className={styles.accessIcon}>🔒</div>
           <h2>Employer Access Only</h2>
           <p>Only employers with a subscription can view candidate profiles.</p>
-          <Link href="/subscribe" className={styles.backBtnPrimary}>
+          {PAID_SURFACES_ENABLED && (<Link href="/subscribe" className={styles.backBtnPrimary}>
             View Subscription Plans
-          </Link>
+          </Link>)}
         </div>
       </main>
     )

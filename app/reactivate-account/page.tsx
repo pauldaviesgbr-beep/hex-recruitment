@@ -1,5 +1,8 @@
 'use client'
 
+import { PAID_SURFACES_ENABLED } from '@/lib/paidSurfaces'
+import BillingNotLive from '@/components/BillingNotLive'
+
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Header from '@/components/Header'
@@ -9,6 +12,10 @@ import { JOB_SEEKER_REACTIVATION_PRICE, formatExpiryDate, calculateTrialExpiry }
 import styles from './page.module.css'
 
 export default function ReactivateAccountPage() {
+  // Billing is off — see lib/paidSurfaces. Returns before any hook runs, which
+  // is safe only because the flag is a compile-time constant.
+  if (!PAID_SURFACES_ENABLED) return <BillingNotLive />
+
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)

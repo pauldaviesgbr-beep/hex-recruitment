@@ -1,11 +1,18 @@
 'use client'
 
+import { PAID_SURFACES_ENABLED } from '@/lib/paidSurfaces'
+import BillingNotLive from '@/components/BillingNotLive'
+
 import Link from 'next/link'
 import Header from '@/components/Header'
 import { trialPhraseFormal } from '@/lib/trialUtils'
 import styles from './page.module.css'
 
 export default function SubscriptionCancelPage() {
+  // Billing is off — see lib/paidSurfaces. Returns before any hook runs, which
+  // is safe only because the flag is a compile-time constant.
+  if (!PAID_SURFACES_ENABLED) return <BillingNotLive />
+
   return (
     <main>
       <Header />
