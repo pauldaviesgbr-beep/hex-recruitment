@@ -1,5 +1,6 @@
 import 'server-only'
 import { Resend } from 'resend'
+import { supabaseAdmin } from '@/lib/supabase-admin'
 
 if (!process.env.RESEND_API_KEY) {
   console.warn('RESEND_API_KEY is not set — emails will not be sent')
@@ -16,6 +17,49 @@ function maskAddress(to: string): string {
   const head = local.slice(0, 1)
   const tail = local.length > 2 ? local.slice(-1) : ''
   return `${head}${'*'.repeat(Math.max(1, local.length - 2))}${tail}@${domain}`
+}
+
+/**
+ * Record one attempted send in public.email_log.
+ *
+ * IT CAN NEVER BREAK A SEND. Every failure mode — a missing table, RLS, a dead
+ * connection, a malformed value — is swallowed and reported to the console.
+ * Instrumentation that can take down the thing it measures is worse than no
+ * instrumentation, and this sits directly in the path of every email the
+ * product sends.
+ *
+ * NOT awaited by the caller for the same reason: a slow log write must not
+ * delay or fail a send. The promise is fired and its rejection handled here.
+ *
+ * The FULL address is stored, unlike the console line above it, which masks.
+ * That is the point of the table — "which address bounced" was unanswerable
+ * this morning precisely because the only record we had was masked.
+ */
+function recordSend(row: {
+  recipient: string
+  emailType: string
+  subject: string
+  success: boolean
+  providerMessageId?: string | null
+  error?: string | null
+}): void {
+  try {
+    void supabaseAdmin
+      .from('email_log')
+      .insert({
+        recipient: row.recipient,
+        email_type: row.emailType,
+        subject: row.subject,
+        success: row.success,
+        provider_message_id: row.providerMessageId ?? null,
+        error: row.error ?? null,
+      })
+      .then(({ error }) => {
+        if (error) console.error('[Email] send-log insert failed:', error.message)
+      })
+  } catch (err: any) {
+    console.error('[Email] send-log insert threw:', err?.message)
+  }
 }
 
 /**
@@ -68,6 +112,19 @@ export interface SendEmailOptions {
    * all-zero user id.
    */
   unsubscribeUrl?: string
+  /**
+   * What KIND of email this is — 'roundup', 'activation_day7', 'team_invite'.
+   *
+   * Passed explicitly by every caller rather than derived from the subject.
+   * Subjects are copy: they interpolate a company name, they get rewritten,
+   * and two different emails can share one. A type inferred from a subject
+   * would be a guess that looks like data, and the whole point of this log is
+   * to stop guessing about what we sent.
+   *
+   * Defaults to 'unknown' so a new call site logs SOMETHING rather than
+   * nothing — a row with an unhelpful type is still evidence a send happened.
+   */
+  emailType?: string
 }
 
 export async function sendEmail(
@@ -78,8 +135,14 @@ export async function sendEmail(
   text?: string,
   options: SendEmailOptions = {},
 ): Promise<{ success: boolean; error?: string }> {
+  const emailType = options.emailType || 'unknown'
+
   if (!resend) {
     console.warn(`[Email] Would send to ${to}: ${subject} (Resend not configured)`)
+    // Logged as an ATTEMPT that failed. This is the exact shape of the fault
+    // that hid for four and a half months: nothing sent, nothing recorded, and
+    // silence indistinguishable from success.
+    recordSend({ recipient: to, emailType, subject, success: false, error: 'Resend not configured' })
     return { success: false, error: 'Resend not configured' }
   }
 
@@ -111,6 +174,7 @@ export async function sendEmail(
         statusCode: (result.error as any).statusCode,
       }
       console.error('[Email] Send failed:', JSON.stringify(detail))
+      recordSend({ recipient: to, emailType, subject, success: false, error: JSON.stringify(detail) })
       return { success: false, error: JSON.stringify(detail) }
     }
 
@@ -126,9 +190,17 @@ export async function sendEmail(
     // when", which the subject and domain do; the full address adds little and
     // puts candidate email addresses in a log we scroll through casually.
     console.log('[Email] Sent:', JSON.stringify({ to: maskAddress(to), subject }))
+    // Resend's id, captured so a row here matches a row there without guessing
+    // — which is what "which of these bounced?" needed this morning and could
+    // not have.
+    recordSend({
+      recipient: to, emailType, subject, success: true,
+      providerMessageId: (result as any)?.data?.id ?? null,
+    })
     return { success: true }
   } catch (err: any) {
     console.error('[Email] Unexpected error:', err?.message, err?.stack?.slice(0, 300))
+    recordSend({ recipient: to, emailType, subject, success: false, error: err?.message || 'unknown error' })
     return { success: false, error: err?.message || 'unknown error' }
   }
 }

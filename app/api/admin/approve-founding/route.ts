@@ -144,6 +144,9 @@ async function handle(req: NextRequest) {
           Questions, or something looks off? Just reply to this email &mdash; we'd love to help you get hiring.
         </p>
       `),
+      undefined,
+      undefined,
+      { emailType: 'founding_approved' },
     ).catch(err => console.error('[approve-founding] employer email failed', err))
   }
 

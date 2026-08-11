@@ -193,7 +193,7 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: `Unknown email type: ${type}` }, { status: 400 })
     }
 
-    const result = await sendEmail(to, email.subject, email.html)
+    const result = await sendEmail(to, email.subject, email.html, undefined, undefined, { emailType: type })
 
     if (!result.success) {
       console.error(`[Email API] Failed to send ${type} to ${to}:`, result.error)

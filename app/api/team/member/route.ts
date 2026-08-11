@@ -111,7 +111,7 @@ export async function POST(req: NextRequest) {
     const inviterName = user.user_metadata?.full_name || user.email || 'A teammate'
     const link = `${inviteOrigin(req)}/invite/accept?token=${newToken}`
     const { subject, html } = buildInviteEmail({ company, inviterName, email: target.invited_email || '', link })
-    const sent = await sendEmail(target.invited_email || '', subject, html)
+    const sent = await sendEmail(target.invited_email || '', subject, html, undefined, undefined, { emailType: 'team_member_update' })
     return NextResponse.json({ ok: true, emailSent: sent.success })
   }
 

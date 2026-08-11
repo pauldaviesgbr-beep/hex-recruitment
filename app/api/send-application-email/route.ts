@@ -56,7 +56,7 @@ export async function POST(req: Request) {
 
     // Send branded email via Resend
     const { subject, html } = newApplicationEmail(candidateName, jobTitle, company)
-    const result = await sendEmail(employerEmail, subject, html)
+    const result = await sendEmail(employerEmail, subject, html, undefined, undefined, { emailType: 'application_to_employer' })
 
     if (!result.success) {
       console.error('[Application Email] Failed:', result.error)
@@ -65,7 +65,7 @@ export async function POST(req: Request) {
     // Send confirmation email to candidate
     if (candidateEmail) {
       const candidateEmailContent = applicationSubmittedEmail(candidateName, jobTitle, company)
-      await sendEmail(candidateEmail, candidateEmailContent.subject, candidateEmailContent.html)
+      await sendEmail(candidateEmail, candidateEmailContent.subject, candidateEmailContent.html, undefined, undefined, { emailType: 'application_confirmation' })
         .catch(() => {}) // non-blocking
     }
 

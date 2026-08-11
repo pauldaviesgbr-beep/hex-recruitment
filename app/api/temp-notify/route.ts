@@ -83,7 +83,7 @@ export async function POST(req: Request) {
         const { data } = await admin.auth.admin.getUserById(id)
         const addr = data?.user?.email
         if (!addr) { failures.push(`${id}: no address`); continue }
-        const r = await sendEmail(addr, subject, html)
+        const r = await sendEmail(addr, subject, html, undefined, undefined, { emailType: 'temp_interest' })
         if (r.success) sent++
         else failures.push(`${id}: ${r.error}`)
       }
@@ -111,7 +111,7 @@ export async function POST(req: Request) {
     // sendEmail returns { success, error } — report what actually happened
     // rather than defaulting to true, or a rejected key looks like a clean send.
     // That exact defaulting is how the roundup reported "sent: 0" as a success.
-    const result = await sendEmail(to, subject, html)
+    const result = await sendEmail(to, subject, html, undefined, undefined, { emailType: 'temp_notify' })
     return NextResponse.json({ success: true, emailed: result.success, error: result.error })
   } catch (e: any) {
     console.error('[temp-notify] failed:', e?.message)

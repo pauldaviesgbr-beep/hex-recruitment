@@ -54,7 +54,10 @@ export async function POST(request: NextRequest) {
     sendEmail(
       email.trim(),
       "You're on the Thrive waitlist — we'll be in touch soon",
-      buildConfirmationEmail(name || '')
+      buildConfirmationEmail(name || ''),
+      undefined,
+      undefined,
+      { emailType: 'waitlist_confirmation' },
     ).catch(() => {})
 
     return NextResponse.json({ success: true })
