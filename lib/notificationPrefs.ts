@@ -26,6 +26,21 @@ export interface CandidatePrefs {
     job_alerts: boolean
     new_messages: boolean
   }
+  /**
+   * PUSH. A fourth channel alongside email and sms, added 11 Aug 2026 with a
+   * data migration that backfilled every existing row — per this file's own
+   * warning about inventing keys.
+   *
+   * NOTE THE sms KEYS ABOVE ARE ASPIRATIONAL: no SMS sender exists anywhere in
+   * the repo, so their presence proves nothing about whether that channel
+   * works. push is deliberately NOT left in that state — it has a dispatcher,
+   * a transport and a log behind it before these keys were added.
+   */
+  push: {
+    job_matches: boolean
+    new_messages: boolean
+    application_updates: boolean
+  }
   frequency: NotificationFrequency
 }
 
@@ -41,6 +56,12 @@ export interface EmployerPrefs {
     new_messages: boolean
     urgent_applications: boolean
   }
+  /** See the note on CandidatePrefs.push. */
+  push: {
+    new_applications: boolean
+    new_messages: boolean
+    application_updates: boolean
+  }
   frequency: NotificationFrequency
 }
 
@@ -49,12 +70,14 @@ export type NotificationPrefs = CandidatePrefs | EmployerPrefs
 export const CANDIDATE_DEFAULTS: CandidatePrefs = {
   email: { job_matches: true, job_digest: true, new_messages: true, application_updates: true, marketing: false },
   sms: { job_alerts: false, new_messages: false },
+  push: { job_matches: true, new_messages: true, application_updates: true },
   frequency: 'instant',
 }
 
 export const EMPLOYER_DEFAULTS: EmployerPrefs = {
   email: { new_applications: true, job_views: true, new_messages: true, application_updates: true, marketing: false },
   sms: { new_messages: false, urgent_applications: false },
+  push: { new_applications: true, new_messages: true, application_updates: true },
   frequency: 'instant',
 }
 
@@ -93,9 +116,16 @@ export function normalisePrefs(role: Role, stored: unknown): NotificationPrefs {
     }
   }
 
+  const push = { ...((base as any).push as Record<string, boolean>) }
+  if (s.push && typeof s.push === 'object') {
+    for (const k of Object.keys(push)) {
+      if (typeof s.push[k] === 'boolean') push[k] = s.push[k]
+    }
+  }
+
   const frequency: NotificationFrequency = FREQUENCIES.includes(s.frequency) ? s.frequency : base.frequency
 
-  return { email, sms, frequency } as NotificationPrefs
+  return { email, sms, push, frequency } as NotificationPrefs
 }
 
 // True if the stored value is already exactly canonical (same keys, no stray
@@ -114,4 +144,35 @@ function sortDeep(v: any): any {
     return out
   }
   return v
+}
+
+/**
+ * Which push preference key governs a given notification.type.
+ *
+ * Returns null when a type has no key, and the dispatcher treats null as
+ * ALLOWED. That is the deliberate direction: a new notification type added by
+ * someone who never reads this file should still reach the person, rather than
+ * being silently swallowed by a preference that does not exist. Silence is the
+ * failure mode this whole phase is about.
+ *
+ * Live types as at 11 Aug 2026: new_application, application_update,
+ * temp_interest, temp_comment, temp_comment_reply.
+ */
+export function pushPrefKeyFor(notificationType: string): string | null {
+  switch (notificationType) {
+    case 'new_application': return 'new_applications'
+    case 'application_update': return 'application_updates'
+    case 'job_match': return 'job_matches'
+    case 'new_message': return 'new_messages'
+    default: return null
+  }
+}
+
+/** True if this person wants a push for this notification type. */
+export function pushAllowed(prefs: NotificationPrefs, notificationType: string): boolean {
+  const key = pushPrefKeyFor(notificationType)
+  if (!key) return true
+  const push = (prefs as any).push as Record<string, boolean> | undefined
+  if (!push || !(key in push)) return true
+  return push[key] !== false
 }
