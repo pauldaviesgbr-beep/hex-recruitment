@@ -262,7 +262,7 @@ export async function POST(req: NextRequest) {
 
     // The test carries the header too, with the inert-but-valid token, so this
     // path proves the header end to end without risking a real opt-out.
-    const result = await sendEmail(body.testTo, subject, html, undefined, undefined, { unsubscribeUrl })
+    const result = await sendEmail(body.testTo, subject, html, undefined, undefined, { unsubscribeUrl, emailType: 'job_digest_test' })
     return NextResponse.json({
       ...summary,
       testTo: body.testTo,
@@ -279,7 +279,7 @@ export async function POST(req: NextRequest) {
 
   for (const plan of plans) {
     const { subject, html, unsubscribeUrl } = renderPlan(plan, { live: true })
-    const result = await sendEmail(plan.row.email!, subject, html, undefined, undefined, { unsubscribeUrl })
+    const result = await sendEmail(plan.row.email!, subject, html, undefined, undefined, { unsubscribeUrl, emailType: 'job_digest' })
     if (!result.success) {
       failed.push({ email: plan.row.email, error: result.error })
       continue
@@ -352,7 +352,7 @@ export async function GET(req: NextRequest) {
   const failed: { email: string | null; error?: string }[] = []
   for (const plan of plans) {
     const { subject, html, unsubscribeUrl } = renderPlan(plan, { live: true })
-    const result = await sendEmail(plan.row.email!, subject, html, undefined, undefined, { unsubscribeUrl })
+    const result = await sendEmail(plan.row.email!, subject, html, undefined, undefined, { unsubscribeUrl, emailType: 'job_digest' })
     if (!result.success) {
       failed.push({ email: plan.row.email, error: result.error })
       continue

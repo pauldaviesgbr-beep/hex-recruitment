@@ -180,7 +180,7 @@ export async function POST(req: NextRequest) {
       // exercises the real route, but cannot opt anybody out.
       stayHiddenUrl: stayHiddenUrl(generateStayHiddenToken('00000000-0000-0000-0000-000000000000')),
     })
-    const result = await sendEmail(body.testTo, subject, html)
+    const result = await sendEmail(body.testTo, subject, html, undefined, undefined, { emailType: 'discoverability_notice_test' })
     return NextResponse.json({
       ...summary,
       testTo: body.testTo,
@@ -202,7 +202,7 @@ export async function POST(req: NextRequest) {
       stayHiddenUrl: stayHiddenUrl(generateStayHiddenToken(row.user_id)),
     })
 
-    const result = await sendEmail(row.email!, subject, html)
+    const result = await sendEmail(row.email!, subject, html, undefined, undefined, { emailType: 'discoverability_notice' })
     if (!result.success) {
       failed.push({ email: row.email, error: result.error })
       continue

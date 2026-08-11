@@ -149,7 +149,7 @@ export async function POST(req: NextRequest) {
       stayHiddenUrl: stayHiddenUrl(generateStayHiddenToken(row.user_id)),
     })
 
-    const result = await sendEmail(row.email!, subject, html)
+    const result = await sendEmail(row.email!, subject, html, undefined, undefined, { emailType: 'discoverability_correction' })
     if (!result.success) {
       failed.push({ email: row.email, error: result.error })
       continue

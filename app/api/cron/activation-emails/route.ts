@@ -80,7 +80,7 @@ export async function GET(req: NextRequest) {
       const builder = EMAIL_BUILDERS[targetDay]
       const { subject, html } = builder(companyName)
 
-      const result = await sendEmail(email, subject, html)
+      const result = await sendEmail(email, subject, html, undefined, undefined, { emailType: `activation_day${targetDay}` })
       if (result.success) totalSent++
     }
   }

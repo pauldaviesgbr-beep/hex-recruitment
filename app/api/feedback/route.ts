@@ -53,7 +53,10 @@ export async function POST(request: NextRequest) {
         <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;font-size:14px;">
           ${rows}
         </table>
-      `)
+      `),
+            undefined,
+            undefined,
+            { emailType: 'feedback_received' },
           )
         }
       } catch {

@@ -212,7 +212,7 @@ export async function provisionFoundingEmployer({
           Approve consumes one of the founding spots. Reject locks the account out of founding entitlement. Both links are signed with HMAC, expire in 7&nbsp;days, and are single-use (enforced by approval_status).
         </p>
     `)
-    const sendResult = await sendEmail(recipient, subject, html, 'noreply@thrivecareer.co.uk')
+    const sendResult = await sendEmail(recipient, subject, html, 'noreply@thrivecareer.co.uk', undefined, { emailType: 'founding_signup' })
     if (sendResult.success) {
       approvalEmail = { recipient, result: 'sent' }
       console.log('[foundingSignup] approval email sent', { recipient, userId })

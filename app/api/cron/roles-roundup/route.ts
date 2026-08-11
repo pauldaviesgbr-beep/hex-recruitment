@@ -307,7 +307,7 @@ export async function POST(req: NextRequest) {
     const testSubject = `${subject} [test ${now.toISOString().slice(11, 19)}Z]`
     // The test carries the header too, with the inert-but-valid token, so this
     // path proves the header end to end without risking a real opt-out.
-    const result = await sendEmail(body.testTo, testSubject, html, undefined, undefined, { unsubscribeUrl })
+    const result = await sendEmail(body.testTo, testSubject, html, undefined, undefined, { unsubscribeUrl, emailType: 'roundup_test' })
     // Same rule as the real send: a test that didn't send is not a 200. This
     // one returned "HTTP 200, sent: 0" while Resend was rejecting the key, and
     // the only reason it was caught is that somebody read the body carefully.
@@ -333,7 +333,7 @@ export async function POST(req: NextRequest) {
 
   for (const plan of plans) {
     const { subject, html, unsubscribeUrl } = renderPlan(plan, { live: true })
-    const result = await sendEmail(plan.row.email!, subject, html, undefined, undefined, { unsubscribeUrl })
+    const result = await sendEmail(plan.row.email!, subject, html, undefined, undefined, { unsubscribeUrl, emailType: 'roundup' })
     if (!result.success) {
       failed.push({ email: plan.row.email, error: result.error })
       continue
