@@ -10,6 +10,7 @@ import {
   type Role, type NotificationPrefs, type NotificationFrequency,
   defaultsFor, normalisePrefs,
 } from '@/lib/notificationPrefs'
+import PushToggle from '@/components/PushToggle'
 import styles from './page.module.css'
 
 // UI config — maps each canonical nested key to its label/description, per role.
@@ -217,6 +218,32 @@ export default function NotificationsSettingsPage() {
             {message.text}
           </div>
         )}
+
+        {/*
+          PUSH SITS OUTSIDE THE FORM DELIBERATELY. Everything below saves
+          preferences to the profile row on submit; this one talks to the
+          BROWSER — it takes out or tears down a real subscription and writes
+          device_tokens through its own endpoint. Putting it inside the form
+          would imply it needs saving, and someone who flipped it and navigated
+          away would think it had not taken effect when it had.
+        */}
+        <div className={styles.section}>
+          <div className={styles.sectionHeader}>
+            <span className={styles.sectionIcon}>🔔</span>
+            <h2 className={styles.sectionTitle}>Push Notifications</h2>
+          </div>
+          <div className={styles.settingsList}>
+            <div className={styles.settingItem}>
+              <div className={styles.settingInfo}>
+                <span className={styles.settingName}>Notifications on this device</span>
+                <span className={styles.settingDescription}>
+                  Get told when an employer messages you, invites you to an interview, or makes an offer.
+                </span>
+              </div>
+              <PushToggle />
+            </div>
+          </div>
+        </div>
 
         <form onSubmit={handleSubmit} className={styles.form}>
           {/* Email Notifications */}

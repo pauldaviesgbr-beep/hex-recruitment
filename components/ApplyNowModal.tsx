@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { Job } from '@/lib/mockJobs'
 import { supabase } from '@/lib/supabase'
 import { useMessages } from '@/lib/MessagesContext'
+import PushPriming from '@/components/PushPriming'
 import type { Conversation } from '@/lib/mockMessages'
 import styles from './ApplyNowModal.module.css'
 
@@ -389,6 +390,17 @@ export default function ApplyNowModal({ job, isOpen, onClose, onSuccess }: Apply
             <h2>Application Submitted!</h2>
             <p>Your application has been sent to {job.company}.</p>
             <p className={styles.successNote}>They will contact you if they&apos;re interested.</p>
+            {/*
+              THE PERMISSION ASK LIVES HERE AND NOWHERE ELSE.
+              This is the only moment in the product where the candidate is now
+              WAITING FOR A HUMAN TO REPLY, which is exactly what the
+              notification delivers — so it is the only place the ask has
+              something true to promise. Saving a job creates no expectation of
+              anyone getting back to you, so priming there would be asking for a
+              permission in exchange for nothing.
+              It renders after the submit has succeeded, never on arrival.
+            */}
+            <PushPriming trigger={submitted} />
             <button className={styles.successBtn} onClick={onClose}>
               Continue Browsing
             </button>
