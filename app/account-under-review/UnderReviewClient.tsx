@@ -56,8 +56,18 @@ export default function UnderReviewClient({
           <p style={{ color: '#475569', lineHeight: 1.6, marginTop: '1rem' }}>
             We usually review applications within a few hours during UK business hours. You&apos;ll get an email the moment your account is approved.
           </p>
+          {/*
+            BOTH ESCAPE ROUTES ON THIS PAGE WERE DEAD UNTIL 12 AUG 2026, which
+            is why the address changed here as well as in lib/email.ts. This is
+            the page an employer lands on when they CANNOT USE THE PRODUCT, so
+            it is the one place a contact address has to work — and it offered
+            two: "reply to your confirmation email", whose Reply-To was
+            hello@thrivecareer.co.uk, and a mailto to the same dead address.
+            hello@ accepts mail and silently drops it, with no bounce, so a
+            blocked employer got no answer and no indication why.
+          */}
           <p style={{ color: '#94a3b8', fontSize: '0.85rem', marginTop: '2rem' }}>
-            In a hurry? Reply to your confirmation email or contact <a href="mailto:hello@thrivecareer.co.uk" style={{ color: '#16a34a' }}>hello@thrivecareer.co.uk</a> with your company name and we&apos;ll prioritise.
+            In a hurry? Reply to your confirmation email or contact <a href="mailto:support@thrivecareer.co.uk" style={{ color: '#16a34a' }}>support@thrivecareer.co.uk</a> with your company name and we&apos;ll prioritise.
           </p>
         </>
       )}
@@ -66,7 +76,7 @@ export default function UnderReviewClient({
           <div style={{ fontSize: '3rem', marginBottom: '0.75rem' }}>⚠️</div>
           <h1 style={{ fontSize: '1.5rem', fontWeight: 700, margin: '0 0 0.75rem' }}>Account not approved</h1>
           <p style={{ color: '#475569', lineHeight: 1.6 }}>
-            We weren&apos;t able to approve your founding-cohort signup. If you think this is a mistake, please reply to your confirmation email or contact <a href="mailto:hello@thrivecareer.co.uk" style={{ color: '#16a34a' }}>hello@thrivecareer.co.uk</a> with your company name and we&apos;ll take another look.
+            We weren&apos;t able to approve your founding-cohort signup. If you think this is a mistake, please reply to your confirmation email or contact <a href="mailto:support@thrivecareer.co.uk" style={{ color: '#16a34a' }}>support@thrivecareer.co.uk</a> with your company name and we&apos;ll take another look.
           </p>
         </>
       )}

@@ -127,11 +127,34 @@ export interface SendEmailOptions {
   emailType?: string
 }
 
+/**
+ * Where a reply goes when a caller does not name one.
+ *
+ * IT USED TO BE hello@thrivecareer.co.uk, AND THAT MAILBOX IS DEAD. Paul tested
+ * it on 11 Aug 2026: nothing arrived, and no bounce came back either. The
+ * address accepts mail and silently drops it, which is the worst of the three
+ * possible behaviours — a hard bounce would at least have told the sender.
+ *
+ * Every email Thrive has ever sent except two carried that Reply-To. Anyone who
+ * replied to an interview reminder, an offer, an application update or a job
+ * expiry notice has been writing to nobody, and got no failure notice to
+ * suggest otherwise.
+ *
+ * support@ is the address /terms, /privacy-policy and the chatbot already give
+ * out, so it is the one that has to work.
+ *
+ * A DEFAULT IS A CLAIM HERE, NOT A CONVENIENCE. Every one of the 29 email types
+ * that omits this argument is telling its recipient "you can reply to this".
+ * Same shape as the form defaults in CLAUDE.md: the value nobody chose is still
+ * the value that reaches the person.
+ */
+const DEFAULT_REPLY_TO = 'support@thrivecareer.co.uk'
+
 export async function sendEmail(
   to: string,
   subject: string,
   html: string,
-  replyTo: string = 'hello@thrivecareer.co.uk',
+  replyTo: string = DEFAULT_REPLY_TO,
   text?: string,
   options: SendEmailOptions = {},
 ): Promise<{ success: boolean; error?: string }> {
