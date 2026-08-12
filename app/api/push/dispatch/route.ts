@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { loadServiceAccount, sendToToken } from '@/lib/fcm'
+import { sendWebPush } from '@/lib/webpush'
 import { normalisePrefs, pushAllowed, type Role } from '@/lib/notificationPrefs'
 
 /**
@@ -77,18 +78,20 @@ export async function POST(req: NextRequest) {
 
   // Credentials before anything else, so "misconfigured" never masquerades as
   // "nobody to send to".
-  let sa
+  // NOT FATAL ANY MORE, and that change matters. FCM credentials are needed
+  // only by the native path; a browser subscription is sent with VAPID keys and
+  // never touches Firebase. Returning early here would have meant that a
+  // missing FIREBASE_* silently killed WEB push too — a coupling between two
+  // transports that have nothing to do with each other. The failure is now
+  // raised per row, by the branch that actually needs it.
+  let sa: ReturnType<typeof loadServiceAccount> | null = null
+  let saError: string | null = null
   try {
     sa = loadServiceAccount()
+    if (!sa) saError = 'FIREBASE_* not configured'
   } catch (err: any) {
-    // The project-id guard lands here — a service account for the wrong
-    // project. Loud, and recorded.
-    await log({ ...base, success: false, outcome: 'no_credentials', error: err?.message?.slice(0, 400) })
-    return NextResponse.json({ ok: false, outcome: 'no_credentials' })
-  }
-  if (!sa) {
-    await log({ ...base, success: false, outcome: 'no_credentials', error: 'FIREBASE_* not configured' })
-    return NextResponse.json({ ok: false, outcome: 'no_credentials' })
+    // The project-id guard lands here — a service account for the wrong project.
+    saError = err?.message?.slice(0, 400) || 'service account load failed'
   }
 
   // Preferences. Read from whichever profile the user has; a missing profile
@@ -110,7 +113,7 @@ export async function POST(req: NextRequest) {
 
   const { data: tokens } = await supabaseAdmin
     .from('device_tokens')
-    .select('id, token, platform')
+    .select('id, token, platform, endpoint, p256dh, auth')
     .eq('user_id', n.user_id)
     .is('revoked_at', null)
 
@@ -121,14 +124,48 @@ export async function POST(req: NextRequest) {
 
   let sent = 0
   for (const t of tokens) {
-    // Only FCM today. 'ios' and 'web' rows are accepted by the table and will
-    // be picked up here the moment APNs or Web Push lands; until then they are
-    // recorded as unsupported rather than silently skipped.
+    // TWO TRANSPORTS, CHOSEN BY WHAT THE ROW ACTUALLY HOLDS rather than by the
+    // platform string. `platform` is a label the client supplied; endpoint vs
+    // token is the thing that determines what can physically be sent, and the
+    // table's CHECK guarantees exactly one of them is present. Trusting the
+    // data over the label means a mislabelled row still goes the right way.
+    if (t.endpoint) {
+      const r = await sendWebPush(
+        { endpoint: t.endpoint, p256dh: t.p256dh as string, auth: t.auth as string },
+        {
+          title: n.title,
+          body: n.message || '',
+          url: n.link || '/',
+          tag: n.type || 'thrive',
+        },
+      )
+      if (r.ok) {
+        sent++
+        await log({ ...base, success: true, outcome: 'sent', provider_message_id: `webpush:${r.status}` })
+      } else {
+        await log({ ...base, success: false, outcome: 'provider_error', error: r.error })
+        // ONLY a subscription the push service calls permanently dead (404/410)
+        // or one we can never encrypt for. A 5xx or a network blip must not
+        // revoke, or one bad afternoon unsubscribes everybody.
+        if (r.gone) {
+          await supabaseAdmin.from('device_tokens')
+            .update({ revoked_at: new Date().toISOString() }).eq('id', t.id)
+        }
+      }
+      continue
+    }
+
+    // FCM path — native handsets. Unchanged from phase 1, except that missing
+    // credentials are now reported here, against the row that needed them.
+    if (!sa) {
+      await log({ ...base, success: false, outcome: 'no_credentials', error: saError })
+      continue
+    }
     if (t.platform !== 'android' && t.platform !== 'web') {
       await log({ ...base, success: false, outcome: 'provider_error', error: `no transport for platform ${t.platform}` })
       continue
     }
-    const r = await sendToToken(sa, t.token, n.title, n.message || '', n.link)
+    const r = await sendToToken(sa, t.token as string, n.title, n.message || '', n.link)
     if (r.ok) {
       sent++
       await log({ ...base, success: true, outcome: 'sent', provider_message_id: r.messageId })

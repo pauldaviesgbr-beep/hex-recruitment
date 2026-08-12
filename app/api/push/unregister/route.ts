@@ -39,17 +39,17 @@ export async function POST(req: NextRequest) {
   }
   if (!user) return NextResponse.json({ error: 'unauthenticated' }, { status: 401 })
 
-  let body: { token?: string }
+  let body: { token?: string; endpoint?: string }
   try { body = await req.json() } catch { return NextResponse.json({ error: 'invalid_json' }, { status: 400 }) }
   const token = (body.token || '').toString().trim()
-  if (!token) return NextResponse.json({ error: 'invalid_token' }, { status: 400 })
+  const endpoint = (body.endpoint || '').toString().trim()
+  // A browser identifies its subscription by endpoint, an app by FCM token.
+  if (!token && !endpoint) return NextResponse.json({ error: 'invalid_token' }, { status: 400 })
 
-  const { data, error } = await supabaseAdmin
-    .from('device_tokens')
-    .delete()
-    .eq('token', token)
-    .eq('user_id', user.id)
-    .select('id')
+  // Still scoped to the session user either way, so a caller cannot unregister
+  // somebody else's device by guessing an endpoint.
+  const query = supabaseAdmin.from('device_tokens').delete().eq('user_id', user.id)
+  const { data, error } = await (endpoint ? query.eq('endpoint', endpoint) : query.eq('token', token)).select('id')
 
   if (error) {
     console.error('[push/unregister] failed:', error.message)

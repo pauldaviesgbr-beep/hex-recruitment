@@ -1,0 +1,97 @@
+/* Matches the existing card treatment — see app/job/[id]/page.module.css. */
+.card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: var(--ds-radius-card-lg, 14px);
+  padding: 1.25rem 1.35rem 1.35rem;
+  margin: 1.5rem 0;
+  max-width: 520px;
+}
+
+.title {
+  margin: 0 0 0.6rem;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.3;
+  text-wrap: balance;
+}
+
+.body {
+  margin: 0 0 0.6rem;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: #475569;
+}
+
+.small {
+  margin: 0 0 1.1rem;
+  font-size: 0.85rem;
+  line-height: 1.55;
+  color: #94a3b8;
+}
+
+.steps {
+  margin: 0 0 1.1rem;
+  padding-left: 1.15rem;
+  font-size: 0.92rem;
+  line-height: 1.85;
+  color: #475569;
+}
+
+/* Controls WRAP — never a horizontal scroller. Two buttons fit side by side on
+   a phone, and wrap rather than being pushed off the edge if the labels grow. */
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.primary,
+.secondary {
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.95rem;
+  padding: 0.7rem 1.15rem;
+  border-radius: 9px;
+  cursor: pointer;
+  /* Comfortable tap target on a phone. */
+  min-height: 44px;
+}
+
+.primary {
+  background: #16a34a;
+  color: #fff;
+  border: 1px solid #16a34a;
+  flex: 1 1 auto;
+}
+
+.primary:disabled {
+  opacity: 0.65;
+  cursor: default;
+}
+
+.secondary {
+  background: #fff;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+}
+
+.primary:focus-visible,
+.secondary:focus-visible {
+  outline: 2px solid #16a34a;
+  outline-offset: 2px;
+}
+
+.tiny {
+  margin: 0.85rem 0 0;
+  font-size: 0.8rem;
+  color: #94a3b8;
+}
+
+@media (prefers-color-scheme: dark) {
+  .card { background: #131722; border-color: #253046; }
+  .title { color: #f1f5f9; }
+  .body, .steps { color: #cbd5e1; }
+  .secondary { background: transparent; color: #cbd5e1; border-color: #334155; }
+}
