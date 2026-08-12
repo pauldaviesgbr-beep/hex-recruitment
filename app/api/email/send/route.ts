@@ -13,7 +13,6 @@ import { interviewRescheduledEmail } from '@/emails/interview-rescheduled'
 import { interviewConfirmedEmail } from '@/emails/interview-confirmed'
 import { interviewConfirmedEmployerEmail } from '@/emails/interview-confirmed-employer'
 import { interviewCancelledEmail } from '@/emails/interview-cancelled'
-import { trialEndingEmail } from '@/emails/trial-ending'
 import { newMessageEmail } from '@/emails/new-message'
 import { passwordResetEmail } from '@/emails/password-reset'
 import { emailVerificationEmail } from '@/emails/email-verification'
@@ -155,9 +154,16 @@ export async function POST(req: Request) {
       case 'interview_cancelled':
         email = interviewCancelledEmail(data.companyName, data.jobTitle, data.candidateName, data.date)
         break
-      case 'trial_ending':
-        email = trialEndingEmail(data.companyName, data.daysLeft)
-        break
+      // 'trial_ending' IS GONE — the template is deleted, not disabled. It said
+      // "your free trial expires in N days" and quoted £99/month, and Paul may
+      // EXTEND the free period depending on signups over the next twelve months.
+      // So it described a future nobody has committed to. An email is the worst
+      // possible carrier for a claim you may need to withdraw: a page can be
+      // edited and a price hidden behind a flag, but a sent email is in
+      // somebody's inbox permanently.
+      //
+      // Nothing ever called it. Requests with this type now fall through to the
+      // 400 below, which is the correct answer.
       case 'new_message':
         email = newMessageEmail(data.senderName, data.messagePreview)
         break
