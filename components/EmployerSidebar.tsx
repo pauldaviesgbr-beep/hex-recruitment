@@ -184,6 +184,36 @@ export default function EmployerSidebar() {
       ),
     },
     {
+      // CANDIDATES AND TALENT POOL ARE NOT THE SAME LIST, which is why both are
+      // here and neither replaces the other:
+      //   Candidates  — the whole discoverable candidate base. People you go and
+      //                 find. candidate_profiles where is_discoverable = true.
+      //   Talent Pool — only people who applied to THIS employer's own jobs,
+      //                 defaulting to the ones they rejected. People who came to
+      //                 you. Empty until they have posted a job and had
+      //                 applicants; /candidates is populated from day one.
+      //
+      // Candidates sits FIRST because it is the one that works on day one, and
+      // because until now it had no nav entry at all — the only way in from the
+      // signed-in UI was a "Browse all candidates →" link in the Talent Pool
+      // page header, which is two steps from anywhere an employer starts and
+      // behind a page that is empty for a new employer.
+      //
+      // Icon is person-plus-magnifier: distinct from Talent Pool's two-person
+      // group and from Browse Jobs' bare magnifier, and it reads as SEARCHING
+      // for people rather than listing them.
+      label: 'Candidates',
+      href: '/candidates',
+      icon: (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="10" cy="7" r="4" />
+          <path d="M10.3 15H7a4 4 0 0 0-4 4v2" />
+          <circle cx="17" cy="17" r="3" />
+          <path d="m21 21-1.9-1.9" />
+        </svg>
+      ),
+    },
+    {
       label: 'Talent Pool',
       href: '/talent-pool',
       icon: (
