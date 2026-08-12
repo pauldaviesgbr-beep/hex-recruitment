@@ -84,14 +84,15 @@ export type ProvisionResult = {
   /**
    * For 'pending' provisions, records what happened when we tried to
    * email Paul. 'sent' = Resend accepted the send; 'failed' includes
-   * the (stringified) error. Absent on 'approved'/'noop' paths.
+   * the (stringified) error; 'skipped' = this employer had already been
+   * decided, so no review was requested. Absent on 'approved'/'noop' paths.
    *
    * The founding-row write is never blocked by an email failure — the
    * user is genuinely pending, Paul can still flip them via direct DB
    * if the email path is broken. But the result is now visible to the
    * caller so we can surface it.
    */
-  approvalEmail?: { recipient: string; result: 'sent' | 'failed'; error?: string }
+  approvalEmail?: { recipient: string; result: 'sent' | 'failed' | 'skipped'; error?: string }
 }
 
 export async function provisionFoundingEmployer({
@@ -118,6 +119,36 @@ export async function provisionFoundingEmployer({
   if (!FREE_FOUNDING_MODE) {
     return { status: 'noop_legacy_mode', classification: 'unknown' }
   }
+
+  // ── HAS THIS EMPLOYER ALREADY BEEN DECIDED? ────────────────────────────────
+  //
+  // READ BEFORE THE UPSERTS. This is the only moment the pre-existing state is
+  // still visible: the upsert below writes approval_status on insert, so a
+  // brand-new signup and a returning one look identical one line later.
+  //
+  // The obvious guard — "did settleApprovalStatus update a row?" — CANNOT WORK,
+  // and it is worth saying why so nobody reaches for it later. Its WHERE clause
+  // is `approval_status is null`, and it matches ZERO rows in both cases:
+  //   new signup       the upsert already INSERTED approval_status='pending'
+  //   returning user   the upsert is a no-op and the status is already set
+  // Both answer 0. A check that returns the same value in the two states it is
+  // meant to separate cannot separate them, whichever way it happens to fall.
+  //
+  // WHY THIS EXISTS AT ALL: the freemail branch below sent the admin review
+  // email unconditionally, every time the auth callback ran. A magic link, a
+  // password reset or a Google sign-in all run it — so a freemail employer
+  // signing back in re-fired "please review this signup" at Paul for someone he
+  // decided weeks ago. Found on 12 Aug 2026 when five such emails arrived during
+  // a UI drive that signed the test employer in five times.
+  //
+  // ONLY THE EMAIL CHANGES. The data behaviour is untouched: the upserts still
+  // use ignoreDuplicates and settleApprovalStatus still only writes over NULL.
+  const { data: priorProfile } = await admin
+    .from('employer_profiles')
+    .select('approval_status')
+    .eq('user_id', userId)
+    .maybeSingle()
+  const alreadyDecided = !!priorProfile && priorProfile.approval_status !== null
 
   // Prefer the metadata stamp (set server-side by /api/auth/employer-signup
   // so it's tamper-proof), but fall back to fresh classification for the
@@ -179,10 +210,25 @@ export async function provisionFoundingEmployer({
   // is broken. But the result is surfaced (logged + returned) so we
   // can diagnose Resend issues without Vercel runtime logs.
   const recipient = getFoundingAdminEmail()
-  let approvalEmail: { recipient: string; result: 'sent' | 'failed'; error?: string } = {
+  let approvalEmail: { recipient: string; result: 'sent' | 'failed' | 'skipped'; error?: string } = {
     recipient,
     result: 'failed',
     error: 'unstarted',
+  }
+
+  // THE GUARD. Already decided → the review already happened, so do not ask for
+  // it again. Recorded as 'skipped' rather than silently doing nothing, so the
+  // caller's log distinguishes "we chose not to email" from "the email failed".
+  //
+  // The trade-off, stated rather than hidden: if the very first review email
+  // FAILED to send, a later sign-in will not retry it. That is the correct
+  // priority — one missed notification Paul can see in the result and in
+  // email_log beats an unbounded repeat every time somebody signs in — but it
+  // is a real edge. approval_status='pending' with no email_log row for that
+  // recipient is how you would spot it.
+  if (alreadyDecided) {
+    console.log(`[foundingSignup] review email skipped — already ${priorProfile!.approval_status}`)
+    return { status: 'pending', classification, approvalEmail: { recipient, result: 'skipped' } }
   }
 
   try {
