@@ -17,7 +17,8 @@
     "preview-url": "node scripts/preview-url.js",
     "deploy-ready": "node scripts/deployment-ready.js",
     "hold:prove": "node scripts/prove-hold.js",
-    "unmerged": "node scripts/unmerged.js"
+    "unmerged": "node scripts/unmerged.js",
+    "emails:prove": "npx tsx scripts/render-activation-emails.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.98.0",

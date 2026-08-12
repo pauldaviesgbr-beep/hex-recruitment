@@ -17,12 +17,9 @@ import { trialEndingEmail } from '@/emails/trial-ending'
 import { newMessageEmail } from '@/emails/new-message'
 import { passwordResetEmail } from '@/emails/password-reset'
 import { emailVerificationEmail } from '@/emails/email-verification'
-import { activationDay1Email } from '@/emails/activation-day1'
-import { activationDay3Email } from '@/emails/activation-day3'
-import { activationDay7Email } from '@/emails/activation-day7'
-import { activationDay14Email } from '@/emails/activation-day14'
-import { activationDay30Email } from '@/emails/activation-day30'
 import { candidateWelcomeEmail } from '@/emails/candidate-welcome'
+// The five activation templates are DELIBERATELY not imported here — see the
+// note where their `case` branches used to be, below.
 
 export async function POST(req: Request) {
   try {
@@ -170,21 +167,16 @@ export async function POST(req: Request) {
       case 'email_verification':
         email = emailVerificationEmail(data.verifyUrl)
         break
-      case 'activation_day1':
-        email = activationDay1Email(data.companyName)
-        break
-      case 'activation_day3':
-        email = activationDay3Email(data.companyName)
-        break
-      case 'activation_day7':
-        email = activationDay7Email(data.companyName)
-        break
-      case 'activation_day14':
-        email = activationDay14Email(data.companyName)
-        break
-      case 'activation_day30':
-        email = activationDay30Email(data.companyName)
-        break
+      // 'activation_day1' | 3 | 7 | 14 | 30 ARE NO LONGER ACCEPTED HERE, and
+      // fall through to the 400 below. Nothing in the repo ever called them.
+      //
+      // They took a company name and nothing else, which is precisely the fault
+      // the activation rewrite exists to remove: an email that tells an employer
+      // how their hiring is going has to know how their hiring is going. Built
+      // from a name alone, day 14 would claim nobody had applied to someone
+      // sitting on twelve applications. A generic endpoint cannot assemble that
+      // state honestly, so it does not get to try — the templates are reachable
+      // only from /api/cron/activation-emails, which does the lookups.
       case 'raw':
         // Pre-rendered subject + html passed directly (used by cron jobs)
         email = { subject: data.subject, html: data.html }

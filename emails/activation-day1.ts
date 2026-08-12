@@ -1,39 +1,65 @@
 import { emailLayout, ctaButton, BASE_URL } from './layout'
+import { foundingPhraseFormal } from '@/lib/trialUtils'
+import type { ActivationContext, ActivationEmail } from './activation-context'
 
-export function activationDay1Email(companyName: string): { subject: string; html: string } {
-  const subject = "Post your first job — it takes 3 minutes"
+/**
+ * Day 1 — get the first job posted.
+ *
+ * THE FOUNDING OFFER BELONGS HERE. An earlier draft of this rewrite stripped
+ * ALL money language, which over-corrected: "12 months free, no card needed"
+ * for the first 100 employers is the ONE permitted claim, it is an offer being
+ * honoured rather than a price, and it cannot age badly. "Your account is live"
+ * is true and says nothing. The phrase comes from foundingPhraseFormal() so it
+ * can never drift from FOUNDING_PERIOD_MONTHS.
+ */
+export function activationDay1Email(ctx: ActivationContext): ActivationEmail {
+  const first = ctx.companyName
 
-  const html = emailLayout(subject, `
-    <p style="margin:0 0 4px;font-size:13px;color:#94a3b8;">Your free spot is claimed. Here's what to do next.</p>
-    <h1 style="margin:0 0 16px;font-size:22px;font-weight:700;color:#1e293b;">Time to post your first job, ${companyName}</h1>
-    <p style="margin:0 0 16px;font-size:15px;color:#475569;line-height:1.6;">
-      The first job is the hardest part. After that, Thrive runs itself — applications come in, you review them, and you hire. The whole thing takes about 3 minutes:
-    </p>
-    <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 24px;width:100%;">
-      <tr>
-        <td style="padding:10px 0;border-bottom:1px solid #f1f5f9;">
-          <span style="display:inline-block;width:24px;height:24px;background:#0f172a;border-radius:50%;text-align:center;line-height:24px;font-weight:700;color:#ffffff;font-size:13px;margin-right:10px;vertical-align:middle;">1</span>
-          <span style="font-size:15px;color:#334155;vertical-align:middle;">Write the job title and salary</span>
-        </td>
-      </tr>
-      <tr>
-        <td style="padding:10px 0;border-bottom:1px solid #f1f5f9;">
-          <span style="display:inline-block;width:24px;height:24px;background:#0f172a;border-radius:50%;text-align:center;line-height:24px;font-weight:700;color:#ffffff;font-size:13px;margin-right:10px;vertical-align:middle;">2</span>
-          <span style="font-size:15px;color:#334155;vertical-align:middle;">Describe what you need</span>
-        </td>
-      </tr>
-      <tr>
-        <td style="padding:10px 0;">
-          <span style="display:inline-block;width:24px;height:24px;background:#0f172a;border-radius:50%;text-align:center;line-height:24px;font-weight:700;color:#ffffff;font-size:13px;margin-right:10px;vertical-align:middle;">3</span>
-          <span style="font-size:15px;color:#334155;vertical-align:middle;">Hit publish</span>
-        </td>
-      </tr>
-    </table>
-    ${ctaButton('Post your first job', `${BASE_URL}/post-job`)}
-    <p style="margin:0;font-size:14px;color:#94a3b8;">
-      That's it. Candidates start seeing your job immediately.
-    </p>
-  `)
+  if (!ctx.hasPostedJob) {
+    const subject = 'Your first job takes about three minutes'
+    return {
+      subject,
+      preheader: 'Job title, pay, and what the shift actually involves.',
+      html: emailLayout(subject, `
+        <h1 style="margin:0 0 16px;font-size:22px;font-weight:700;color:#1e293b;">You're in, ${first}</h1>
+        <p style="margin:0 0 16px;font-size:15px;color:#475569;line-height:1.6;">
+          You're one of our founding employers, which means <strong style="color:#0f172a;">${foundingPhraseFormal()}</strong>.
+          The only thing between you and your first applicants is one advert.
+        </p>
+        <p style="margin:0 0 12px;font-size:15px;color:#475569;line-height:1.6;">Three minutes:</p>
+        <ol style="margin:0 0 20px;padding-left:20px;font-size:15px;color:#475569;line-height:1.9;">
+          <li>The role and the pay</li>
+          <li>What the shift actually involves</li>
+          <li>Publish</li>
+        </ol>
+        <p style="margin:0 0 8px;font-size:15px;color:#475569;line-height:1.6;">
+          Be specific about hours. Hospitality candidates scan fast and skip anything vague &mdash;
+          &ldquo;some evenings&rdquo; loses people that &ldquo;Thurs&ndash;Sun, 5pm&ndash;close&rdquo; keeps.
+        </p>
+        ${ctaButton('Post your first job', `${BASE_URL}/post-job`)}
+        <p style="margin:0;font-size:14px;color:#64748b;line-height:1.6;text-align:center;">
+          It's on the board the moment you publish.
+        </p>
+      `, 'Job title, pay, and what the shift actually involves.'),
+    }
+  }
 
-  return { subject, html }
+  const subject = 'Your job is live — here’s what happens next'
+  return {
+    subject,
+    preheader: 'What to expect in the first few days, and the one thing you control.',
+    html: emailLayout(subject, `
+      <h1 style="margin:0 0 16px;font-size:22px;font-weight:700;color:#1e293b;">You're up and running, ${first}</h1>
+      <p style="margin:0 0 16px;font-size:15px;color:#475569;line-height:1.6;">
+        Your advert is on the board and candidates can apply from now on. You're a founding
+        employer, so that's <strong style="color:#0f172a;">${foundingPhraseFormal()}</strong>.
+      </p>
+      <p style="margin:0 0 16px;font-size:15px;color:#475569;line-height:1.6;">
+        Two things worth knowing early. Applications tend to arrive in bursts rather than a steady
+        trickle, so a quiet first day means very little. And the biggest thing you control is how
+        fast you reply &mdash; good hospitality staff are usually talking to more than one employer.
+      </p>
+      ${ctaButton('View your dashboard', `${BASE_URL}/employer/dashboard`)}
+    `, 'What to expect in the first few days, and the one thing you control.'),
+  }
 }
