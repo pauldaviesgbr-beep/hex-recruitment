@@ -18,7 +18,7 @@
  */
 
 import { useEffect, useState } from 'react'
-import { pushState, subscribeToPush, unsubscribeFromPush, isIOS, isStandalone } from '@/lib/pushClient'
+import { getPushStatus, getSubscription, subscribeToPush, unsubscribeFromPush, isIOS, isStandalone } from '@/lib/pushClient'
 
 type Line = { at: string; text: string; ok?: boolean }
 
@@ -30,23 +30,35 @@ export default function PushDiagnosticPage() {
   const say = (text: string, ok?: boolean) =>
     setLines(l => [...l, { at: new Date().toLocaleTimeString(), text, ok }])
 
-  useEffect(() => {
+  const readEnv = async () => {
     setEnv({
       'push supported': String(typeof window !== 'undefined' && 'PushManager' in window),
       'service worker': String(typeof navigator !== 'undefined' && 'serviceWorker' in navigator),
-      'permission': typeof Notification !== 'undefined' ? Notification.permission : 'n/a',
-      'state': pushState(),
+      'OS permission': typeof Notification !== 'undefined' ? Notification.permission : 'n/a',
+      // THESE TWO ARE DIFFERENT FACTS and showing both is the point of this
+      // page. A granted permission with no subscription is exactly the state
+      // that made the settings toggle lie about itself.
+      'subscription exists': String(!!(await getSubscription())),
+      'status': await getPushStatus(),
       'iOS': String(isIOS()),
       'installed (standalone)': String(isStandalone()),
-      'VAPID key present': String(!!process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY),
+      'VAPID key in this build': String(!!process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY),
     })
-  }, [])
+  }
+
+  useEffect(() => { void readEnv() }, [])
 
   const step1 = async () => {
     setBusy(true)
     say('Asking for permission and subscribing…')
     const r = await subscribeToPush()
-    say(r.ok ? 'Subscribed. A row now exists in device_tokens.' : `Failed: ${r.reason}`, r.ok)
+    say(
+      r.ok
+        ? 'Subscribed. A row now exists in device_tokens.'
+        : `Failed: ${r.reason}${r.detail ? ' — ' + r.detail : ''}`,
+      r.ok,
+    )
+    await readEnv()
     setBusy(false)
   }
 
@@ -67,8 +79,11 @@ export default function PushDiagnosticPage() {
 
   const step3 = async () => {
     setBusy(true)
-    await unsubscribeFromPush()
-    say('Unsubscribed and the row removed.', true)
+    const r = await unsubscribeFromPush()
+    say(r.hadSubscription
+      ? 'Unsubscribed and the row removed.'
+      : 'There was no subscription to remove — nothing to do.', true)
+    await readEnv()
     setBusy(false)
   }
 

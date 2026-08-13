@@ -19,7 +19,8 @@
     "hold:prove": "node scripts/prove-hold.js",
     "unmerged": "node scripts/unmerged.js",
     "emails:prove": "npx tsx scripts/render-activation-emails.ts",
-    "webpush:prove": "npx tsx scripts/prove-webpush.ts"
+    "webpush:prove": "npx tsx scripts/prove-webpush.ts",
+    "push:prove": "npx tsx scripts/prove-push-state.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.98.0",

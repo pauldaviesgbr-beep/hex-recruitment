@@ -1,12 +1,12 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import {
-  pushState,
+  getPushStatus,
   subscribeToPush,
   unsubscribeFromPush,
   recordAsked,
-  type PushState,
+  type PushStatus,
 } from '@/lib/pushClient'
 
 /**
@@ -17,62 +17,79 @@ import {
  *   this control      is there a device to send to at all?  (device_tokens row)
  *   the type toggles  which events are allowed through      (notification_preferences)
  *
- * Both are honoured by the dispatcher, and they fail closed independently: no
- * row means no_tokens, a type switched off means opted_out. Keeping them
- * separate is what lets someone stay subscribed but silence one kind of
- * message, instead of having to revoke the permission to stop one email.
+ * ── WHY THIS WAS REWRITTEN (13 Aug 2026) ────────────────────────────────────
  *
- * TURNING IT ON FROM HERE STILL GOES THROUGH THE OS PROMPT — but unlike the
- * priming screen, this is a deliberate visit to a settings page, so the person
- * has already decided. There is no priming step in front of it.
+ * On a real iPhone this button read "Turn off on this device" while the line
+ * underneath read "Your browser didn't allow notifications", and tapping it did
+ * nothing at all. Three separate faults, all of them mine:
+ *
+ *   1. The LABEL came from Notification.permission === 'granted'. That is
+ *      whether the OS allows notifications, not whether a subscription exists.
+ *      Permission was granted and subscribe() had failed, so it claimed to be
+ *      on with nowhere to send.
+ *   2. Tapping ran unsubscribe on nothing, then re-read the same permission
+ *      flag, which had not changed — so the button could never flip. A silent
+ *      no-op is the worst possible outcome: you cannot tell a broken app from a
+ *      broken user.
+ *   3. The failure message named ONE cause out of five possible ones, and named
+ *      the wrong one. A confident wrong explanation costs more than silence.
+ *
+ * The label now comes from a real PushSubscription, every failure reports its
+ * own reason, and the button always says what just happened.
  */
 export default function PushToggle() {
-  const [state, setState] = useState<PushState | null>(null)
+  const [status, setStatus] = useState<PushStatus | null>(null)
   const [busy, setBusy] = useState(false)
-  const [note, setNote] = useState<string | null>(null)
+  const [note, setNote] = useState<{ text: string; bad?: boolean } | null>(null)
 
-  const refresh = () => setState(pushState())
-  useEffect(() => { refresh() }, [])
+  const refresh = useCallback(async () => setStatus(await getPushStatus()), [])
+  useEffect(() => { void refresh() }, [refresh])
 
-  if (state === null) return null
+  const muted: React.CSSProperties = { margin: 0, fontSize: '0.85rem', color: '#94a3b8', lineHeight: 1.55 }
 
-  if (state === 'unsupported') {
-    return <p style={{ margin: 0, fontSize: '0.85rem', color: '#94a3b8' }}>
-      This browser doesn&rsquo;t support notifications.
-    </p>
+  if (status === null) return <p style={muted}>Checking…</p>
+
+  if (status === 'unsupported') {
+    return <p style={muted}>This browser doesn&rsquo;t support notifications.</p>
   }
 
-  if (state === 'ios-needs-install') {
-    return <p style={{ margin: 0, fontSize: '0.85rem', color: '#94a3b8' }}>
+  if (status === 'ios-needs-install') {
+    return <p style={muted}>
       To get notifications on iPhone, add Thrive to your home screen first
       (Share &rarr; Add to Home Screen), then open it from there.
     </p>
   }
 
-  if (state === 'denied') {
-    // We cannot re-prompt. Saying so is more use than a button that does nothing.
-    return <p style={{ margin: 0, fontSize: '0.85rem', color: '#94a3b8' }}>
-      Notifications are blocked for this site. To turn them on, allow
-      notifications for Thrive in your browser&rsquo;s site settings.
+  if (status === 'blocked') {
+    // We cannot re-prompt. Saying so beats a button that cannot work.
+    return <p style={muted}>
+      Notifications are blocked for Thrive on this device. To turn them on,
+      allow notifications for Thrive in your device or browser settings, then
+      come back to this page.
     </p>
   }
 
-  const on = state === 'granted'
+  const on = status === 'subscribed'
 
   const flip = async () => {
     setBusy(true)
     setNote(null)
     if (on) {
-      await unsubscribeFromPush()
-      setNote('Push notifications turned off for this device.')
+      const r = await unsubscribeFromPush()
+      setNote(r.ok
+        ? { text: 'Push notifications are off for this device.' }
+        : { text: 'Could not turn them off. Try again.', bad: true })
     } else {
       const r = await subscribeToPush()
       recordAsked(r.ok ? 'accepted' : 'declined')
+      // THE FAILURE REASON IS SHOWN, not a guess at it. This is the line that
+      // would have saved an evening on the iPhone.
       setNote(r.ok
-        ? 'Push notifications are on for this device.'
-        : 'Your browser didn’t allow notifications.')
+        ? { text: 'Push notifications are on for this device.' }
+        : { text: `Couldn’t turn them on — ${r.reason}${r.detail ? `. ${r.detail}` : ''}`, bad: true })
     }
-    refresh()
+    // Re-read from the subscription, so the label can only ever reflect reality.
+    await refresh()
     setBusy(false)
   }
 
@@ -94,9 +111,20 @@ export default function PushToggle() {
       >
         {busy ? 'Just a moment…' : on ? 'Turn off on this device' : 'Turn on for this device'}
       </button>
-      {note && <p style={{ margin: '0.6rem 0 0', fontSize: '0.85rem', color: '#64748b' }}>{note}</p>}
-      <p style={{ margin: '0.6rem 0 0', fontSize: '0.8rem', color: '#94a3b8' }}>
-        Applies to this device only. Turning it on elsewhere is a separate step.
+
+      {note && (
+        <p
+          role="status"
+          style={{ margin: '0.6rem 0 0', fontSize: '0.85rem', lineHeight: 1.55, color: note.bad ? '#b91c1c' : '#15803d' }}
+        >
+          {note.text}
+        </p>
+      )}
+
+      <p style={{ ...muted, margin: '0.6rem 0 0', fontSize: '0.8rem' }}>
+        {on
+          ? 'This device is subscribed. Applies to this device only.'
+          : 'Nothing can arrive on this device until you turn it on.'}
       </p>
     </div>
   )
