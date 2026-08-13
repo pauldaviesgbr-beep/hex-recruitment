@@ -187,9 +187,16 @@ function EmployeeLoginPageContent() {
             primary action is now creating an account and signing in is secondary.
             Cost us a real candidate on 13 Aug 2026.
           */}
+          {/*
+            NO ICON. There was an emoji here — 👤, and 📝 in the apply state.
+            Emoji used as iconography is the single thing that most makes a page
+            read as unfinished, and this one also pushed the heading off-centre
+            because the row is a flex with a gap. Nothing replaces it: no
+            substitute emoji, no invented SVG. Nothing is better than something
+            here.
+          */}
           <div className={styles.loginHeader}>
-            <span className={styles.loginIcon}>{arrivingToApply ? '📝' : '👤'}</span>
-            <h1 className={styles.title}>
+            <h1 className={`${styles.title} ${styles.titleCompact}`}>
               {arrivingToApply ? 'Create a free account to apply' : 'Job Seeker Login'}
             </h1>
           </div>

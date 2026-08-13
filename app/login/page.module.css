@@ -24,6 +24,27 @@
   text-align: center;
 }
 
+/*
+  A SIZE THAT FITS THE SENTENCE, applied ONLY where it is opted into.
+  .title is shared with the employer login, which is out of scope, so this is a
+  modifier rather than a change to the base rule — the employer heading keeps
+  the size it had.
+
+  "Create a free account to apply" at 2rem/900 wrapped to THREE LINES on a
+  390px phone, eating the screen before anything actionable appeared. The clamp
+  scales it down on narrow viewports and leaves it near the original on a
+  desktop. text-wrap:balance evens the lines out rather than leaving one orphan
+  word, and the max-width stops it running the full card width on a laptop.
+*/
+.titleCompact {
+  font-size: clamp(1.35rem, 6vw, 2rem);
+  line-height: 1.2;
+  text-wrap: balance;
+  max-width: 22ch;
+  margin-left: auto;
+  margin-right: auto;
+}
+
 .subtitle {
   color: var(--text-gray);
   margin-bottom: 2rem;
