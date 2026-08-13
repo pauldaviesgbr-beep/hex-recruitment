@@ -701,31 +701,35 @@ export default function JobSeekerProfileForm({ mode, existingData, userId }: Job
     setCurrentStep(prev => Math.max(prev - 1, 1))
   }
 
-  const ensureBucketExists = async () => {
-    const { data: buckets } = await supabase.storage.listBuckets()
-    const exists = buckets?.some(b => b.name === 'profiles')
-    if (!exists) {
-      await supabase.storage.createBucket('profiles', { public: true })
-    }
-  }
+  /*
+    There used to be an ensureBucketExists() here that called
+    createBucket('profiles', { public: true }) FROM THE BROWSER when an upload
+    came back "not found", then retried. It is gone, and not replaced with a
+    safer or server-side version — provisioning a bucket is not the client's job
+    and the bucket has existed since February.
 
+    Two reasons it had to go rather than be tidied:
+
+    - It would have recreated this bucket PUBLIC. Not "private with a loose
+      policy", which is what we just spent a migration fixing — world-readable,
+      no key needed at all.
+    - Its trigger was the wrong signal. Storage answers a request it will not
+      serve with "Bucket not found" rather than a permission error — measured,
+      not assumed: an unauthenticated GET against this bucket returns
+      NoSuchBucket, while an authenticated one that RLS rejects returns
+      "Object not found". So "not found" here can mean "you may not", and the
+      recovery for "you may not" must never be "then create it public".
+
+    An upload that fails now simply fails, and the caller shows the error.
+  */
   const uploadFile = async (file: File, path: string): Promise<string | null> => {
     const fileExt = file.name.split('.').pop()
     const fileName = `${Date.now()}.${fileExt}`
     const filePath = `${path}/${fileName}`
 
-    let { error: uploadError } = await supabase.storage
+    const { error: uploadError } = await supabase.storage
       .from('profiles')
       .upload(filePath, file, { contentType: file.type, upsert: true })
-
-    // If bucket not found, try creating it and retry
-    if (uploadError?.message?.includes('Bucket not found') || uploadError?.message?.includes('not found')) {
-      await ensureBucketExists()
-      const retry = await supabase.storage
-        .from('profiles')
-        .upload(filePath, file, { contentType: file.type, upsert: true })
-      uploadError = retry.error
-    }
 
     if (uploadError) {
       console.error('Upload error:', uploadError)
