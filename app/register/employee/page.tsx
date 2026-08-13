@@ -44,7 +44,18 @@ function RegisterEmployeePageContent() {
 
         <div className={styles.loginLink}>
           <p>Already have an account?</p>
-          <Link href="/login/employee">Log in here</Link>
+          {/*
+            CARRIES THE JOB. Everything else on this page threads the apply
+            redirect — the OAuth buttons via `next`, the email form via the
+            confirmation link's `?next` — but this one link dropped it. Someone
+            who tapped Apply, reached signup, then realised they already had an
+            account would arrive at a bare login and, after signing in, land on
+            the dashboard instead of the role they wanted. The one door out of
+            this page that forgot where the person was going.
+          */}
+          <Link href={redirectTo ? `/login/employee?redirect=${encodeURIComponent(redirectTo)}` : '/login/employee'}>
+            Log in here
+          </Link>
         </div>
       </div>
     </main>

@@ -36,6 +36,32 @@ function EmployeeLoginPageContent() {
   // Same-origin path or null. Recomputed at each point of navigation below.
   const safeRedirect = safeInternalPath(redirectTo)
 
+  /**
+   * Did they get here by tapping Apply on a job, rather than choosing to log in?
+   *
+   * Read from the redirect target, which /job/[id] sets to
+   * `/job/<id>?apply=1`. That is the difference between somebody returning to
+   * an account and somebody who has never had one, and it decides whether this
+   * page leads with "create an account" or with a password box.
+   */
+  const arrivingToApply = !!safeRedirect && safeRedirect.startsWith('/job/')
+
+  /**
+   * Are we inside another app's embedded browser?
+   *
+   * Everyone who taps a link in the LinkedIn or Facebook app lands in one, and
+   * sign-in there can fail in ways we do not control and cannot see. Detected
+   * from the user agent — which is the only signal available, and unusually IS
+   * the right tool here, because the app names itself in it. Nothing depends on
+   * this being exhaustive: a missed webview just means no extra notice, and a
+   * false positive shows a hint that is harmless.
+   */
+  const [inAppBrowser, setInAppBrowser] = useState(false)
+  useEffect(() => {
+    const ua = navigator.userAgent || ''
+    setInAppBrowser(/LinkedInApp|FBAN|FBAV|Instagram|Twitter|; wv\)|WebView/i.test(ua))
+  }, [])
+
   // Friendly "you used the wrong login for this account" notice — amber info
   // tone, not a scary red error. Fires for OAuth sign-ins (error=wrong-role)
   // AND email confirmation (error=wrong_account), keyed on `have` (the role the
@@ -152,12 +178,60 @@ function EmployeeLoginPageContent() {
       <Header />
       <div className={styles.container}>
         <div className={styles.formCard}>
+          {/*
+            ARRIVING FROM "APPLY NOW" IS A DIFFERENT VISIT FROM COMING TO LOG IN.
+            A chef who tapped Apply on a LinkedIn post has no account, and this
+            page used to greet him with "Job Seeker Login" over a password form,
+            with "Create an account" as a small link at the very bottom. It read
+            as a locked door. Most people arriving this way are NEW, so the
+            primary action is now creating an account and signing in is secondary.
+            Cost us a real candidate on 13 Aug 2026.
+          */}
           <div className={styles.loginHeader}>
-            <span className={styles.loginIcon}>👤</span>
-            <h1 className={styles.title}>Job Seeker Login</h1>
+            <span className={styles.loginIcon}>{arrivingToApply ? '📝' : '👤'}</span>
+            <h1 className={styles.title}>
+              {arrivingToApply ? 'Create a free account to apply' : 'Job Seeker Login'}
+            </h1>
           </div>
-          <p className={styles.subtitle}>Find your next opportunity</p>
+          <p className={styles.subtitle}>
+            {arrivingToApply
+              ? 'It takes a minute, and we’ll bring you straight back to the role.'
+              : 'Find your next opportunity'}
+          </p>
           <LiveJobCount style={{ margin: '0 0 1rem', color: '#374151' }} />
+
+          {arrivingToApply && (
+            <Link
+              href={`/register/employee?redirect=${encodeURIComponent(safeRedirect!)}`}
+              style={{
+                display: 'block', width: '100%', textAlign: 'center',
+                background: '#16a34a', color: '#fff', fontWeight: 700, fontSize: '1rem',
+                padding: '0.95rem 1rem', borderRadius: 10, textDecoration: 'none',
+                minHeight: 48, marginBottom: '0.9rem',
+              }}
+            >
+              Create a free account
+            </Link>
+          )}
+
+          {inAppBrowser && (
+            /*
+              IN-APP BROWSER NOTICE. Everyone tapping a link inside the LinkedIn
+              or Facebook app lands in an embedded webview. Sign-in there is
+              unreliable in ways we cannot control, and the failure is silent —
+              which is indistinguishable from the site being broken.
+              Told plainly, in words a chef would use, rather than left to guess.
+            */
+            <div style={{
+              background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 10,
+              padding: '0.85rem 1rem', margin: '0 0 1rem', textAlign: 'left',
+              fontSize: '0.9rem', color: '#78350f', lineHeight: 1.55,
+            }}>
+              You&rsquo;ve opened this inside another app. If signing in doesn&rsquo;t work,
+              tap the <strong>&hellip;</strong> or <strong>share</strong> icon in the corner and choose
+              <strong> Open in browser</strong> — then everything works normally.
+            </div>
+          )}
 
           {pendingEmail && (
             <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 10, padding: '0.9rem 1rem', margin: '0 0 1rem', textAlign: 'left' }}>
@@ -185,8 +259,21 @@ function EmployeeLoginPageContent() {
           <div className={styles.divider}><span>or</span></div>
 
           <form onSubmit={handleSubmit} className={styles.form}>
+            {/*
+              THE OLD LINE HERE WAS FALSE: "Sign in to view job details and
+              apply". He had ALREADY read the job details — the job page is
+              fully public, salary and description included. Being told he must
+              sign in to see what he has just read is the kind of sentence that
+              makes someone assume the site is broken, or that they have hit a
+              paywall. It now says what is actually true: an account is needed
+              to APPLY, not to look.
+            */}
             {safeRedirect && !successMessage && (
-              <div className={styles.info}>Sign in to view job details and apply</div>
+              <div className={styles.info}>
+                {arrivingToApply
+                  ? 'Already have an account? Log in and we’ll take you back to the role.'
+                  : 'Log in to continue'}
+              </div>
             )}
             {successMessage && <div className={styles.success}>{successMessage}</div>}
             {error && <div className={styles.error}>{error}</div>}

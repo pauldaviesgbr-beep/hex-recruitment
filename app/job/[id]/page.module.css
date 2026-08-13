@@ -677,7 +677,13 @@
 .mobileApplyBar {
   display: none;
   position: fixed;
-  bottom: 0;
+  /* SITS ABOVE THE COOKIE BANNER RATHER THAN UNDER IT.
+     Both are fixed to bottom:0 and the banner wins on z-index, so a first-time
+     visitor — every visitor arriving from a social post — tapped Apply Now and
+     hit the consent banner instead. CookieConsent publishes its own height;
+     this reads it and steps up out of the way, returning to 0 when it goes. */
+  bottom: var(--cookie-banner-height, 0px);
+  transition: bottom 0.15s ease;
   left: 0;
   right: 0;
   padding: 1rem;
