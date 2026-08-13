@@ -24,6 +24,8 @@ export default function ApplyNowModal({ job, isOpen, onClose, onSuccess }: Apply
   const [submitted, setSubmitted] = useState(false)
   const [cvUrl, setCvUrl] = useState<string | null>(null)
   const [cvFileName, setCvFileName] = useState<string | null>(null)
+  /** Attach the profile CV to this application? Defaults on; see the control below. */
+  const [useSavedCv, setUseSavedCv] = useState(true)
   const [loadingCv, setLoadingCv] = useState(true)
   const [screeningAnswers, setScreeningAnswers] = useState<Record<string, string>>({})
 
@@ -133,6 +135,14 @@ export default function ApplyNowModal({ job, isOpen, onClose, onSuccess }: Apply
         cover_letter: coverLetter || null,
         job_title: job.title,
         company: job.company,
+        // RECORD WHAT THEY APPLIED WITH. This key was simply absent, so every
+        // application ever made carried cv_url null — including the 24 whose
+        // author had a CV sitting on their profile. The column was named
+        // exactly right and never populated: the expires_at shape.
+        //
+        // Null when they have no CV, or unticked the box above, and that null
+        // is now TRUE rather than meaningless.
+        cv_url: useSavedCv ? cvUrl : null,
       }
       if (questions.length > 0) {
         appData.screening_answers = questions.map(q => ({
@@ -290,8 +300,23 @@ export default function ApplyNowModal({ job, isOpen, onClose, onSuccess }: Apply
                 {loadingCv ? (
                   <p className={styles.cvLoading}>Loading CV info...</p>
                 ) : cvUrl ? (
+                  /*
+                    THIS CONTROL USED TO BE DECORATIVE — `defaultChecked readOnly`
+                    with no state behind it. It told the candidate "Apply with
+                    your saved CV", could not be unticked, and the CV was never
+                    attached: all 59 applications carried cv_url null while 24
+                    candidates had a CV on file. A control that makes a promise
+                    and does nothing is worse than no control.
+                    It is now real: it decides whether the CV is recorded on the
+                    application, and defaults to on because that is what almost
+                    everyone wants.
+                  */
                   <label className={styles.cvCheckboxRow}>
-                    <input type="checkbox" defaultChecked readOnly />
+                    <input
+                      type="checkbox"
+                      checked={useSavedCv}
+                      onChange={e => setUseSavedCv(e.target.checked)}
+                    />
                     <div className={styles.cvCheckboxText}>
                       <span className={styles.cvLabel}>Apply with your saved CV</span>
                       <span className={styles.cvFilename}>{cvFileName || 'your-cv.pdf'}</span>

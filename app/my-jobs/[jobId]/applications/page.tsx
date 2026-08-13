@@ -182,7 +182,18 @@ export default function JobApplicationsPage() {
             candidatePhoto: profile?.profile_picture_url || null,
             candidatePosition: profile?.job_title || 'Job Seeker',
             candidateCity: profile?.location || profile?.city || '',
-            candidateCv: profile?.cv_url || null,
+            // APPLICATION FIRST, PROFILE AS FALLBACK.
+            // row.cv_url is what they actually applied with; the profile is
+            // what they have TODAY. Reading the application is the honest
+            // answer — an employer looking at a months-old application should
+            // not see it change because the candidate swapped their CV.
+            // The fallback exists because all 59 pre-existing rows are null:
+            // switching outright would make 24 candidates CVs VANISH from the
+            // employer view, which is worse than the problem. Historical rows
+            // keep working, new ones are accurate, and NOTHING WAS BACKFILLED —
+            // we cannot know what CV those people actually held at the time,
+            // and inventing one would put a false value in an audit trail.
+            candidateCv: row.cv_url || profile?.cv_url || null,
             interviewInterestStatus: row.interview_interest_status || null,
             interview: interview ? {
               id: interview.id,
@@ -307,7 +318,7 @@ export default function JobApplicationsPage() {
           candidatePhoto: profile?.profile_picture_url || null,
           candidatePosition: profile?.job_title || 'Job Seeker',
           candidateCity: profile?.location || profile?.city || '',
-          candidateCv: profile?.cv_url || null,
+          candidateCv: row.cv_url || profile?.cv_url || null,
           interviewInterestStatus: row.interview_interest_status || null,
           interview: interview ? {
             id: interview.id,

@@ -58,3 +58,4 @@ token.json
 
 # one-off codemod scratch
 .surface.js
+scripts/tmp-*
