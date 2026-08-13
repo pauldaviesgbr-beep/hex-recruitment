@@ -157,6 +157,20 @@
   font-size: 2.5rem;
 }
 
+/*
+  Muted helper text under the sign-in buttons for someone in an embedded
+  webview. NO box, no fill, no border, no icon — the same weight as any other
+  hint on the page. It replaced a yellow warning panel that sat above the
+  buttons and read as a fault notice before anything had gone wrong.
+*/
+.webviewHint {
+  margin: 0.7rem 0 0;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: var(--text-gray);
+  text-align: center;
+}
+
 /* Remember me row */
 .rememberRow {
   display: flex;
