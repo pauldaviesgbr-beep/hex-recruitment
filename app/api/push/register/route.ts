@@ -98,8 +98,28 @@ export async function POST(req: NextRequest) {
         .select('id')
 
   if (error) {
-    console.error('[push/register] failed:', error.message)
-    return NextResponse.json({ error: 'register_failed' }, { status: 500 })
+    // THE OPAQUE ANSWER WAS ITS OWN BUG. This used to return the single word
+    // "register_failed", and the real cause — a partial unique index that could
+    // not be an ON CONFLICT target — was only in the Vercel log. From a phone
+    // that is indistinguishable from a broken account, a bad payload or a dead
+    // server, and it cost a full round trip to find.
+    //
+    // The CLASS of failure is returned so a caller can act; the exact database
+    // message stays server-side, because it names columns and constraints and
+    // the browser has no business knowing the schema.
+    const code = (error as { code?: string }).code || ''
+    const kind =
+      code === '23505' ? 'duplicate'
+      : code === '23514' ? 'constraint_violation'
+      : code === '42P10' ? 'upsert_target_missing'
+      : code === '23503' ? 'unknown_user'
+      : code.startsWith('42') ? 'schema_error'
+      : 'database_error'
+    console.error(`[push/register] failed (${code || 'no code'}):`, error.message)
+    return NextResponse.json(
+      { error: 'register_failed', reason: kind, code: code || null },
+      { status: code.startsWith('23') ? 400 : 500 },
+    )
   }
   return NextResponse.json({ ok: true, id: data?.[0]?.id ?? null })
 }
