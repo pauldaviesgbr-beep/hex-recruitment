@@ -243,6 +243,21 @@ export default function NotificationsSettingsPage() {
               <PushToggle />
             </div>
           </div>
+          {/*
+            THE WAY IN TO THE TEST PAGE FROM AN INSTALLED APP.
+            A standalone PWA has no address bar and the manifest starts at '/',
+            so /diag-push was unreachable on the one device that can prove push
+            works — the page built for the job could not be opened for the job.
+            A link from here is the fix: settings is reachable from the app's
+            own navigation.
+          */}
+          <p style={{ margin: '0.85rem 0 0', fontSize: '0.82rem', color: '#94a3b8' }}>
+            Not working?{' '}
+            <Link href="/diag-push" style={{ color: '#16a34a', fontWeight: 600 }}>
+              Run the push test
+            </Link>{' '}
+            to see exactly where it stops.
+          </p>
         </div>
 
         <form onSubmit={handleSubmit} className={styles.form}>

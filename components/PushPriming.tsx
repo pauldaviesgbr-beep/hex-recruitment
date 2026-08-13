@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from 'react'
 import {
-  pushState,
+  getPushStatus,
+  hasBeenAsked,
   recordAsked,
   subscribeToPush,
   isIOS,
-  type PushState,
+  type PushStatus,
 } from '@/lib/pushClient'
 import styles from './PushPriming.module.css'
 
@@ -36,7 +37,7 @@ import styles from './PushPriming.module.css'
  * that WE will tell them when something happens.
  */
 export default function PushPriming({ trigger }: { trigger: boolean }) {
-  const [state, setState] = useState<PushState | null>(null)
+  const [state, setState] = useState<PushStatus | null>(null)
   const [busy, setBusy] = useState(false)
   const [done, setDone] = useState<'accepted' | 'declined' | null>(null)
 
@@ -44,13 +45,20 @@ export default function PushPriming({ trigger }: { trigger: boolean }) {
     if (!trigger) return
     // Read the state only once the trigger fires, so nothing is evaluated —
     // and certainly nothing is asked — on a page the candidate has just landed on.
-    setState(pushState())
+    // Async because the honest answer comes from the SUBSCRIPTION, not from
+    // Notification.permission. See the note in lib/pushClient.ts.
+    let alive = true
+    void getPushStatus().then(s => { if (alive) setState(s) })
+    return () => { alive = false }
   }, [trigger])
 
   if (!trigger || !state || done) return null
-  // 'granted' means they already have it; 'denied'/'unsupported' means asking
-  // cannot succeed. In all three the honest thing is to render nothing.
-  if (state === 'granted' || state === 'denied' || state === 'unsupported') return null
+  // 'subscribed' means they already have it; 'blocked'/'unsupported' means
+  // asking cannot succeed. In all three the honest thing is to render nothing.
+  if (state === 'subscribed' || state === 'blocked' || state === 'unsupported') return null
+  // Asked once already and they said no. Our screen is cheap to dismiss but not
+  // free to repeat, and nagging is how a "not now" becomes a "never".
+  if (hasBeenAsked()) return null
 
   // iOS Safari cannot grant web push at all until Thrive is on the home screen.
   // Showing an iPhone user a permission button that physically cannot work
@@ -87,6 +95,11 @@ export default function PushPriming({ trigger }: { trigger: boolean }) {
     recordAsked(result.ok ? 'accepted' : 'declined')
     setBusy(false)
     setDone(result.ok ? 'accepted' : 'declined')
+    // A failure here is deliberately quiet FOR THE CANDIDATE — they are mid-way
+    // through applying and a technical reason is no use to them. It is not
+    // quiet for us: the reason goes to the console, and Settings shows the same
+    // failure in full for anyone who goes looking.
+    if (!result.ok) console.warn('[push] priming subscribe failed:', result.reason, result.detail)
   }
 
   const decline = () => {
