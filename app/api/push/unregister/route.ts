@@ -52,8 +52,15 @@ export async function POST(req: NextRequest) {
   const { data, error } = await (endpoint ? query.eq('endpoint', endpoint) : query.eq('token', token)).select('id')
 
   if (error) {
-    console.error('[push/unregister] failed:', error.message)
-    return NextResponse.json({ error: 'unregister_failed' }, { status: 500 })
+    // Same treatment as register, for the same reason: a single opaque word
+    // makes a database rejection, a bad payload and a dead server look alike.
+    // Found by auditing for the shape rather than only fixing the one that bit.
+    const code = (error as { code?: string }).code || ''
+    console.error(`[push/unregister] failed (${code || 'no code'}):`, error.message)
+    return NextResponse.json(
+      { error: 'unregister_failed', reason: code.startsWith('42') ? 'schema_error' : 'database_error', code: code || null },
+      { status: 500 },
+    )
   }
   // Zero rows is not an error — unregistering a token that is already gone is
   // the expected result of a retry, and the caller wanted it gone either way.

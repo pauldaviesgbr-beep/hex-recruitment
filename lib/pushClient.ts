@@ -238,15 +238,21 @@ export async function subscribeToPush(): Promise<SubscribeResult> {
 
   if (!res.ok) {
     const text = await res.text().catch(() => '')
+    let served: { reason?: string; code?: string } = {}
+    try { served = JSON.parse(text) } catch { /* not JSON */ }
     // A subscription the server never stored can receive nothing, so the
     // browser-side one is torn down rather than left as a lie.
     await sub.unsubscribe().catch(() => {})
     return {
       ok: false,
-      reason: `register_rejected_${res.status}`,
+      reason: `register_rejected_${res.status}${served.reason ? '_' + served.reason : ''}`,
       detail: res.status === 401
         ? 'You are not signed in on this device.'
-        : text.slice(0, 200),
+        : served.reason
+          // The server now names the CLASS of failure; surfacing it here is
+          // what turns "500" into something actionable on a phone.
+          ? `The server rejected it: ${served.reason}${served.code ? ` (${served.code})` : ''}.`
+          : text.slice(0, 200),
     }
   }
 
