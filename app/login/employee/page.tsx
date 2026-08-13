@@ -221,25 +221,6 @@ function EmployeeLoginPageContent() {
             </Link>
           )}
 
-          {inAppBrowser && (
-            /*
-              IN-APP BROWSER NOTICE. Everyone tapping a link inside the LinkedIn
-              or Facebook app lands in an embedded webview. Sign-in there is
-              unreliable in ways we cannot control, and the failure is silent —
-              which is indistinguishable from the site being broken.
-              Told plainly, in words a chef would use, rather than left to guess.
-            */
-            <div style={{
-              background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 10,
-              padding: '0.85rem 1rem', margin: '0 0 1rem', textAlign: 'left',
-              fontSize: '0.9rem', color: '#78350f', lineHeight: 1.55,
-            }}>
-              You&rsquo;ve opened this inside another app. If signing in doesn&rsquo;t work,
-              tap the <strong>&hellip;</strong> or <strong>share</strong> icon in the corner and choose
-              <strong> Open in browser</strong> — then everything works normally.
-            </div>
-          )}
-
           {pendingEmail && (
             <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 10, padding: '0.9rem 1rem', margin: '0 0 1rem', textAlign: 'left' }}>
               <p style={{ margin: '0 0 0.35rem', fontWeight: 700, color: '#1e3a8a' }}>Confirm your email to apply</p>
@@ -263,6 +244,26 @@ function EmployeeLoginPageContent() {
           <div style={{ marginTop: '0.6rem' }}>
             <LinkedInSignInButton role="employee" className={styles.googleBtn} next={safeRedirect || undefined} />
           </div>
+
+          {/*
+            THE WEBVIEW HINT, DEMOTED TO A HINT.
+            It used to be a yellow bordered box sitting ABOVE these buttons — it
+            announced a problem before one had happened, in a warning colour,
+            somewhere it could not be ignored. To someone deciding whether to
+            trust us with an email address that reads as "this site is broken",
+            which costs more than the information saves.
+            It is not deleted, because if sign-in DOES fail in a webview then a
+            candidate with no explanation is exactly the person we lost. It now
+            sits BELOW the buttons — where you look only once something has not
+            worked — as ordinary muted helper text, and stays conditional
+            because we still cannot show that OAuth fails in a webview.
+          */}
+          {inAppBrowser && (
+            <p className={styles.webviewHint}>
+              Opened this inside another app? Open it in your browser if sign-in doesn&rsquo;t work.
+            </p>
+          )}
+
           <div className={styles.divider}><span>or</span></div>
 
           <form onSubmit={handleSubmit} className={styles.form}>
