@@ -62,13 +62,49 @@ export default function CookieConsent() {
     }
   }, [handleOpenPreferences])
 
+  /**
+   * PUBLISH THE BANNER'S HEIGHT so other fixed-bottom bars can sit above it.
+   *
+   * THIS BANNER WAS SWALLOWING THE APPLY BUTTON. Both it and the job page's
+   * mobile apply bar are position:fixed at bottom:0; the banner is z-index 1001
+   * and the bar is 100, so on a phone the banner sat directly on top of Apply
+   * Now. A first-time visitor arriving from a link — which is EVERY visitor
+   * arriving from a LinkedIn post — tapped Apply and hit the cookie banner.
+   * Verified with elementFromPoint at the button's own centre: it returned the
+   * banner's Manage Preferences button, not Apply.
+   *
+   * Raising the apply bar's z-index instead would only reverse the problem and
+   * bury the consent controls. Publishing the height lets anything anchored to
+   * the bottom move up while the banner is there, and drop back when it goes.
+   */
+  useEffect(() => {
+    const root = document.documentElement
+    const showing = showBanner && !showModal
+    if (!showing) {
+      root.style.setProperty('--cookie-banner-height', '0px')
+      return
+    }
+    const measure = () => {
+      const el = document.querySelector<HTMLElement>('[data-cookie-banner]')
+      root.style.setProperty('--cookie-banner-height', `${el?.offsetHeight ?? 0}px`)
+    }
+    // Measured after paint, and re-measured on resize — the banner wraps to a
+    // different height on a narrow screen, which is exactly where it matters.
+    measure()
+    window.addEventListener('resize', measure)
+    return () => {
+      window.removeEventListener('resize', measure)
+      root.style.setProperty('--cookie-banner-height', '0px')
+    }
+  }, [showBanner, showModal])
+
   if (!showBanner && !showModal) return null
 
   return (
     <>
       {/* Banner */}
       {showBanner && !showModal && (
-        <div className={styles.banner} role="dialog" aria-label="Cookie consent">
+        <div className={styles.banner} role="dialog" aria-label="Cookie consent" data-cookie-banner>
           <div className={styles.bannerInner}>
             <div className={styles.bannerText}>
               <p>
