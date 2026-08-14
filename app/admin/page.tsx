@@ -3,15 +3,22 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useAdminToken } from '@/lib/admin-context'
-import { EMPLOYER_SUBSCRIPTION_PRICE } from '@/lib/trialUtils'
 import StatsCard from '@/components/admin/StatsCard'
 import {
-  LineChart, Line, BarChart, Bar, PieChart, Pie, Cell,
+  LineChart, Line, BarChart, Bar,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from 'recharts'
 import styles from './page.module.css'
 
-const PIE_COLORS = ['#FFE500', '#3b82f6', '#64748b']
+// Every number on this page excludes the two is_test fixture accounts —
+// enforced in /api/admin/stats and /api/admin/health, not here.
+//
+// DELIBERATELY GONE (14 Aug 2026): the Monthly Revenue card (computed from a
+// price that is deliberately undecided), the Active Subscriptions tile and
+// pie, and the expiring-trial/past-due alerts (their states are never
+// written). Replaced by founding seats, the funnel, per-employer
+// responsiveness, and employers-alive — the numbers that say whether the
+// platform WORKS rather than how big it is.
 
 interface Stats {
   totalUsers: number
@@ -19,21 +26,27 @@ interface Stats {
   totalEmployers: number
   newUsersWeek: number
   newUsersMonth: number
-  totalJobs: number
-  activeJobs: number
+  jobs: { liveBoard: number; employerPosted: number; imported: number; importedRetired: number }
   totalApplications: number
-  subscriptions: { active: number; trials: number; total: number }
-  monthlyRevenue: number
+  foundingSeats: { taken: number; of: number }
   growth: {
     candidates: { month: string; count: number }[]
     employers: { month: string; count: number }[]
     jobs: { month: string; count: number }[]
   }
-  alerts?: {
-    expiringTrials: number
-    pastDuePayments: number
-    flaggedReviews: number
-  }
+  alerts?: { flaggedReviews: number }
+}
+
+interface Health {
+  funnel: { signups: number; withProfile: number; withCv: number; applied: number; gotResponse: number; hired: number }
+  responsiveness: {
+    employerId: string; company: string; received: number
+    listOpened: number; actioned: number; medianHoursToOpen: number | null
+  }[]
+  employersAlive: {
+    company: string; approvedAt: string; lastSignIn: string | null
+    hasPosted: boolean; hasOpenedApplications: boolean
+  }[]
 }
 
 // Shape returned by /api/admin/analytics?section=sources — reused as-is rather
@@ -51,6 +64,7 @@ interface SourcesData {
 export default function AdminOverviewPage() {
   const token = useAdminToken()
   const [stats, setStats] = useState<Stats | null>(null)
+  const [health, setHealth] = useState<Health | null>(null)
   const [sources, setSources] = useState<SourcesData | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -67,8 +81,19 @@ export default function AdminOverviewPage() {
       .catch(() => setLoading(false))
   }, [token])
 
-  // Acquisition channels, last 30 days. Fetched separately so a failure here
-  // never blocks the rest of the dashboard from rendering.
+  // The health numbers (funnel / responsiveness / alive). Fetched separately
+  // so a failure here never blocks the rest of the dashboard.
+  useEffect(() => {
+    if (!token) return
+    fetch('/api/admin/health', {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(r => (r.ok ? r.json() : null))
+      .then(data => { if (data && !data.error) setHealth(data) })
+      .catch(() => {})
+  }, [token])
+
+  // Acquisition channels, last 30 days.
   useEffect(() => {
     if (!token) return
     fetch('/api/admin/analytics?section=sources&range=30d', {
@@ -104,12 +129,23 @@ export default function AdminOverviewPage() {
     jobs: j.count,
   }))
 
-  const subsPie = [
-    { name: 'Active', value: stats.subscriptions.active },
-    { name: 'Trials', value: stats.subscriptions.trials },
-  ].filter(s => s.value > 0)
+  const fmtSignIn = (iso: string | null) => {
+    if (!iso) return 'never'
+    const d = new Date(iso)
+    return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+  }
 
-  const hasAlerts = stats.alerts && (stats.alerts.expiringTrials > 0 || stats.alerts.pastDuePayments > 0 || stats.alerts.flaggedReviews > 0)
+  const funnelSteps = health ? [
+    { label: 'Signed up', value: health.funnel.signups },
+    { label: 'Has profile', value: health.funnel.withProfile },
+    { label: 'Has CV', value: health.funnel.withCv },
+    { label: 'Applied', value: health.funnel.applied },
+    { label: 'Got a response', value: health.funnel.gotResponse, isTheDrop: true },
+    { label: 'Hired', value: health.funnel.hired },
+  ] : []
+  const funnelMax = Math.max(...funnelSteps.map(s => s.value), 1)
+
+  const hasAlerts = stats.alerts && stats.alerts.flaggedReviews > 0
 
   return (
     <div>
@@ -117,51 +153,132 @@ export default function AdminOverviewPage() {
 
       {hasAlerts && stats.alerts && (
         <div className={styles.alertsBar}>
-          {stats.alerts.expiringTrials > 0 && (
-            <div className={`${styles.alert} ${styles.alertWarning}`}>
-              <span className={styles.alertIcon}>⏳</span>
-              <span>{stats.alerts.expiringTrials} trial{stats.alerts.expiringTrials !== 1 ? 's' : ''} expiring in 3 days</span>
-            </div>
-          )}
-          {stats.alerts.pastDuePayments > 0 && (
-            <div className={`${styles.alert} ${styles.alertDanger}`}>
-              <span className={styles.alertIcon}>⚠️</span>
-              <span>{stats.alerts.pastDuePayments} past due payment{stats.alerts.pastDuePayments !== 1 ? 's' : ''}</span>
-            </div>
-          )}
-          {stats.alerts.flaggedReviews > 0 && (
-            <div className={`${styles.alert} ${styles.alertInfo}`}>
-              <span className={styles.alertIcon}>🚩</span>
-              <span>{stats.alerts.flaggedReviews} flagged review{stats.alerts.flaggedReviews !== 1 ? 's' : ''}</span>
-            </div>
-          )}
+          <div className={`${styles.alert} ${styles.alertInfo}`}>
+            <span className={styles.alertIcon}>🚩</span>
+            <span>{stats.alerts.flaggedReviews} flagged review{stats.alerts.flaggedReviews !== 1 ? 's' : ''}</span>
+          </div>
         </div>
       )}
 
       <div className={styles.statsGrid}>
-        <StatsCard title="Total Users" value={stats.totalUsers.toLocaleString()} change={`+${stats.newUsersWeek} this week`} icon="👥" />
+        <StatsCard title="Real Users" value={stats.totalUsers.toLocaleString()} change={`+${stats.newUsersWeek} this week`} icon="👥" />
         <StatsCard title="New This Month" value={stats.newUsersMonth.toLocaleString()} icon="📈" color="#3b82f6" />
-        <StatsCard title="Total Jobs" value={stats.totalJobs.toLocaleString()} icon="💼" color="#8b5cf6" />
-        <StatsCard title="Active Jobs" value={stats.activeJobs.toLocaleString()} icon="🟢" color="#16a34a" />
+        <StatsCard title="Live Board" value={stats.jobs.liveBoard.toLocaleString()} icon="🟢" color="#16a34a" />
+        <StatsCard title="Employer-Posted Jobs" value={stats.jobs.employerPosted.toLocaleString()} icon="💼" color="#8b5cf6" />
         <StatsCard title="Applications" value={stats.totalApplications.toLocaleString()} icon="📋" color="#f59e0b" />
-        <StatsCard title="Active Subscriptions" value={stats.subscriptions.total.toLocaleString()} icon="💳" color="#0ea5e9" />
+        <StatsCard title="Founding Seats" value={`${stats.foundingSeats.taken} of ${stats.foundingSeats.of}`} icon="🪑" color="#0ea5e9" />
       </div>
 
-      <div className={styles.revenueCard}>
-        <div className={styles.revenueHeader}>
-          <h2>Monthly Revenue (Estimated)</h2>
-          <span className={styles.revenueAmount}>£{stats.monthlyRevenue.toFixed(2)}</span>
-        </div>
-        <div className={styles.revenueBreakdown}>
-          <div className={styles.revenueItem}>
-            <span className={styles.revLabel}>Active ({stats.subscriptions.active})</span>
-            <span>£{(stats.subscriptions.active * EMPLOYER_SUBSCRIPTION_PRICE).toFixed(2)}</span>
+      <p style={{ margin: '-0.5rem 0 1.5rem', fontSize: '0.8rem', color: '#64748b' }}>
+        Imported listings: {stats.jobs.imported.toLocaleString()} ({stats.jobs.importedRetired.toLocaleString()} retired).
+        All user, application and posting numbers exclude the two test fixture accounts.
+      </p>
+
+      {/* ── The candidate funnel ─────────────────────────────────────────── */}
+      <div className={styles.chartCard} style={{ marginBottom: '1.5rem' }}>
+        <h3 className={styles.chartTitle}>The candidate funnel — real people only</h3>
+        {health ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+            {funnelSteps.map((s, i) => {
+              const pct = health.funnel.signups ? Math.round((s.value / health.funnel.signups) * 100) : 0
+              const prev = i > 0 ? funnelSteps[i - 1].value : s.value
+              const dropPct = prev > 0 ? Math.round(((prev - s.value) / prev) * 100) : 0
+              return (
+                <div key={s.label}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.86rem', fontWeight: 700, color: '#1e293b', marginBottom: 3 }}>
+                    <span>{s.label}</span>
+                    <span>
+                      {s.value} · {pct}%
+                      {s.isTheDrop && dropPct > 0 && (
+                        <span style={{ color: '#dc2626', marginLeft: 8 }}>▼ {dropPct}% lost here</span>
+                      )}
+                    </span>
+                  </div>
+                  <div style={{ height: 10, background: '#f1f5f9', borderRadius: 5, overflow: 'hidden', outline: s.isTheDrop ? '2px solid #dc2626' : 'none' }}>
+                    <div style={{ width: `${(s.value / funnelMax) * 100}%`, height: '100%', background: s.isTheDrop ? '#dc2626' : '#FFE500' }} />
+                  </div>
+                </div>
+              )
+            })}
+            <p style={{ margin: '0.4rem 0 0', fontSize: '0.78rem', color: '#64748b' }}>
+              “Got a response” = the application was list-opened by the employer or its status ever changed.
+            </p>
           </div>
-          <div className={styles.revenueItem}>
-            <span className={styles.revLabel}>Trials</span>
-            <span>{stats.subscriptions.trials}</span>
+        ) : (
+          <div className={styles.emptyChart}>Loading…</div>
+        )}
+      </div>
+
+      {/* ── Employer responsiveness ──────────────────────────────────────── */}
+      <div className={styles.chartCard} style={{ marginBottom: '1.5rem' }}>
+        <h3 className={styles.chartTitle}>Employer responsiveness — worst first</h3>
+        {health ? (
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.86rem' }}>
+              <thead>
+                <tr style={{ textAlign: 'left', color: '#64748b', borderBottom: '1px solid #e2e8f0' }}>
+                  <th style={{ padding: '0.4rem 0.5rem' }}>Employer</th>
+                  <th style={{ padding: '0.4rem 0.5rem' }}>Received</th>
+                  <th style={{ padding: '0.4rem 0.5rem' }}>List opened*</th>
+                  <th style={{ padding: '0.4rem 0.5rem' }}>Actioned</th>
+                  <th style={{ padding: '0.4rem 0.5rem' }}>Median hrs to open</th>
+                </tr>
+              </thead>
+              <tbody>
+                {health.responsiveness.map(r => (
+                  <tr key={r.employerId} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                    <td style={{ padding: '0.4rem 0.5rem', fontWeight: 700, color: '#1e293b' }}>{r.company}</td>
+                    <td style={{ padding: '0.4rem 0.5rem' }}>{r.received}</td>
+                    <td style={{ padding: '0.4rem 0.5rem', color: r.listOpened === 0 ? '#dc2626' : undefined, fontWeight: r.listOpened === 0 ? 700 : undefined }}>{r.listOpened}</td>
+                    <td style={{ padding: '0.4rem 0.5rem' }}>{r.actioned}</td>
+                    <td style={{ padding: '0.4rem 0.5rem' }}>{r.medianHoursToOpen ?? '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <p style={{ margin: '0.5rem 0 0', fontSize: '0.78rem', color: '#64748b' }}>
+              *“List opened” means the employer loaded their applicant list — it does NOT mean this
+              application was read. Nothing currently records opening an individual application.
+            </p>
           </div>
-        </div>
+        ) : (
+          <div className={styles.emptyChart}>Loading…</div>
+        )}
+      </div>
+
+      {/* ── Employers alive ──────────────────────────────────────────────── */}
+      <div className={styles.chartCard} style={{ marginBottom: '1.5rem' }}>
+        <h3 className={styles.chartTitle}>Employers alive — stalest first</h3>
+        {health ? (
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.86rem' }}>
+              <thead>
+                <tr style={{ textAlign: 'left', color: '#64748b', borderBottom: '1px solid #e2e8f0' }}>
+                  <th style={{ padding: '0.4rem 0.5rem' }}>Employer</th>
+                  <th style={{ padding: '0.4rem 0.5rem' }}>Last sign-in*</th>
+                  <th style={{ padding: '0.4rem 0.5rem' }}>Ever posted</th>
+                  <th style={{ padding: '0.4rem 0.5rem' }}>Ever opened applicants</th>
+                </tr>
+              </thead>
+              <tbody>
+                {health.employersAlive.map(e => (
+                  <tr key={e.company} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                    <td style={{ padding: '0.4rem 0.5rem', fontWeight: 700, color: '#1e293b' }}>{e.company}</td>
+                    <td style={{ padding: '0.4rem 0.5rem' }}>{fmtSignIn(e.lastSignIn)}</td>
+                    <td style={{ padding: '0.4rem 0.5rem' }}>{e.hasPosted ? 'yes' : <span style={{ color: '#dc2626' }}>no</span>}</td>
+                    <td style={{ padding: '0.4rem 0.5rem' }}>{e.hasOpenedApplications ? 'yes' : <span style={{ color: '#dc2626' }}>no</span>}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <p style={{ margin: '0.5rem 0 0', fontSize: '0.78rem', color: '#64748b' }}>
+              *Last sign-in only — no sign-in history exists, so frequency is unknowable.
+              Automated test drives refresh the fixture accounts’ sign-ins (excluded here anyway).
+            </p>
+          </div>
+        ) : (
+          <div className={styles.emptyChart}>Loading…</div>
+        )}
       </div>
 
       {(() => {
@@ -229,7 +346,7 @@ export default function AdminOverviewPage() {
         </div>
 
         <div className={styles.chartCard}>
-          <h3 className={styles.chartTitle}>Jobs Posted (Last 6 Months)</h3>
+          <h3 className={styles.chartTitle}>Jobs Posted by Employers (Last 6 Months)</h3>
           <ResponsiveContainer width="100%" height={280}>
             <BarChart data={jobGrowth}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
@@ -239,25 +356,6 @@ export default function AdminOverviewPage() {
               <Bar dataKey="jobs" fill="#FFE500" radius={[4, 4, 0, 0]} name="Jobs" />
             </BarChart>
           </ResponsiveContainer>
-        </div>
-
-        <div className={styles.chartCard}>
-          <h3 className={styles.chartTitle}>Subscription Distribution</h3>
-          {subsPie.length > 0 ? (
-            <ResponsiveContainer width="100%" height={280}>
-              <PieChart>
-                <Pie data={subsPie} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label>
-                  {subsPie.map((_, i) => (
-                    <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
-          ) : (
-            <div className={styles.emptyChart}>No active subscriptions</div>
-          )}
         </div>
       </div>
     </div>
