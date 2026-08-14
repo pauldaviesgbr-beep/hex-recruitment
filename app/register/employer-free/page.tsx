@@ -157,7 +157,7 @@ export default function RegisterEmployerFreePage() {
           </div>
           <div className={loginStyles.divider}><span>or</span></div>
 
-          <form className={loginStyles.form} onSubmit={handleSubmit}>
+          <form method="post" className={loginStyles.form} onSubmit={handleSubmit}>
             <div className={loginStyles.formGroup}>
               <label htmlFor="companyName">Company name *</label>
               <input

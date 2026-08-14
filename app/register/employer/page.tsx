@@ -179,7 +179,7 @@ function RegisterEmployerPageContent() {
             </p>
           )}
 
-          <form onSubmit={handleSubmit} className={styles.form}>
+          <form method="post" onSubmit={handleSubmit} className={styles.form}>
             {error && <div className={styles.error}>{error}</div>}
 
             <div className={styles.formGroup}>

@@ -195,7 +195,7 @@ export default function ResetPasswordPage() {
               <div className={styles.info}>Verifying your reset link…</div>
             </>
           ) : (
-            <form onSubmit={handleSubmit} className={styles.form}>
+            <form method="post" onSubmit={handleSubmit} className={styles.form}>
               {error && <div className={styles.error}>{error}</div>}
 
               <div className={styles.formGroup}>

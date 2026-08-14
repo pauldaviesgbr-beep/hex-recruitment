@@ -173,7 +173,7 @@ export default function SecuritySettingsPage() {
           </div>
         )}
 
-        <form onSubmit={handlePasswordSubmit} className={styles.form}>
+        <form method="post" onSubmit={handlePasswordSubmit} className={styles.form}>
           <div className={styles.section}>
             <h2 className={styles.sectionTitle}>{hasPassword ? 'Change Password' : 'Set Password'}</h2>
             <p className={styles.sectionDescription}>

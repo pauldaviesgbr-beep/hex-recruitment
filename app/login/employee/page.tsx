@@ -20,6 +20,12 @@ function EmployeeLoginPageContent() {
   const [rememberMe, setRememberMe] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  // The submit control stays disabled until React has hydrated. Before
+  // that, onSubmit is not attached, and a click would fire a NATIVE form
+  // submit; method="post" on the form keeps credentials out of the URL if
+  // that ever happens anyway, but a disabled button stops it happening.
+  const [hydrated, setHydrated] = useState(false)
+  useEffect(() => { setHydrated(true) }, [])
   const [successMessage, setSuccessMessage] = useState('')
   // If the visitor just signed up (unconfirmed) and hit the apply-gate, their
   // email was stashed in localStorage at sign-up — show a "confirm your email to
@@ -266,7 +272,7 @@ function EmployeeLoginPageContent() {
 
           <div className={styles.divider}><span>or</span></div>
 
-          <form onSubmit={handleSubmit} className={styles.form}>
+          <form method="post" onSubmit={handleSubmit} className={styles.form}>
             {/*
               THE OLD LINE HERE WAS FALSE: "Sign in to view job details and
               apply". He had ALREADY read the job details — the job page is
@@ -330,7 +336,7 @@ function EmployeeLoginPageContent() {
               </Link>
             </div>
 
-            <button type="submit" disabled={loading} className={styles.submitBtn}>
+            <button type="submit" disabled={loading || !hydrated} className={styles.submitBtn}>
               {loading ? 'Logging in...' : 'Login'}
             </button>
           </form>

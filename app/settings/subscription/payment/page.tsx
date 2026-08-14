@@ -314,7 +314,7 @@ export default function PaymentMethodPage() {
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className={styles.form}>
+        <form method="post" onSubmit={handleSubmit} className={styles.form}>
           {/* Card Details Section */}
           <div className={styles.section}>
             <h2 className={styles.sectionTitle}>Card Details</h2>

@@ -21,6 +21,12 @@ function EmployerLoginPageContent() {
   const [rememberMe, setRememberMe] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  // The submit control stays disabled until React has hydrated. Before
+  // that, onSubmit is not attached, and a click would fire a NATIVE form
+  // submit; method="post" on the form keeps credentials out of the URL if
+  // that ever happens anyway, but a disabled button stops it happening.
+  const [hydrated, setHydrated] = useState(false)
+  useEffect(() => { setHydrated(true) }, [])
 
   // Friendly "you used the wrong login for this account" notice — amber info
   // tone, not a scary red error. Fires for OAuth sign-ins (error=wrong-role)
@@ -138,7 +144,7 @@ function EmployerLoginPageContent() {
           </div>
           <div className={styles.divider}><span>or</span></div>
 
-          <form onSubmit={handleSubmit} className={styles.form}>
+          <form method="post" onSubmit={handleSubmit} className={styles.form}>
             {error && <div className={styles.error}>{error}</div>}
 
             <div className={styles.formGroup}>
@@ -185,7 +191,7 @@ function EmployerLoginPageContent() {
               </Link>
             </div>
 
-            <button type="submit" disabled={loading} className={styles.submitBtn}>
+            <button type="submit" disabled={loading || !hydrated} className={styles.submitBtn}>
               {loading ? 'Logging in...' : 'Login'}
             </button>
           </form>
