@@ -176,7 +176,7 @@ export default function CandidateSignupForm() {
 
   // ── Minimal signup form ──
   return (
-    <form onSubmit={handleSubmit} className="signup">
+    <form method="post" onSubmit={handleSubmit} className="signup">
       {error && <div className="err">{error}</div>}
 
       <div className="grp">

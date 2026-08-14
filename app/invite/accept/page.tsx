@@ -178,6 +178,7 @@ function AcceptInviteContent() {
         <p className={styles.body}>Create your account to join the team. Your invitation email is locked below.</p>
 
         <form
+          method="post"
           className={styles.actions}
           onSubmit={(e) => { e.preventDefault(); handleSignup() }}
         >

@@ -392,7 +392,7 @@ export default function SubscribePage() {
       {/* Form Section */}
       <section className={styles.formSection}>
         <div className={styles.formContainer}>
-          <form onSubmit={handleSubmit} className={styles.form}>
+          <form method="post" onSubmit={handleSubmit} className={styles.form}>
 
             {/* Section 1: Create Your Account */}
             <div className={styles.formSectionCard}>
