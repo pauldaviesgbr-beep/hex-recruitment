@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
+import { notify } from '@/lib/notify'
 import { getCurrentEmployerOwnerId } from '@/lib/employer'
 import ReviewAndSign from './ReviewAndSign'
 import type { SignatureSlot } from '@/lib/buildOfferPdf'
@@ -413,16 +414,7 @@ export default function MakeOfferModal({
         year: 'numeric',
       })
 
-      await supabase.from('notifications').insert({
-        user_id: candidateId,
-        title: 'Job Offer Received',
-        message: `${company} has sent you a job offer for the ${jobTitle} position starting ${formattedDate}`,
-        type: 'application_update',
-        read: false,
-        related_id: applicationId,
-        related_type: 'application',
-        link: '/applications',
-      })
+      await notify('offer_made', { applicationId, extra: { startDate: formattedDate } })
 
       // Send email to candidate
       if (candidateEmail) {

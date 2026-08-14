@@ -8,6 +8,7 @@ import SignedImage from '@/components/SignedImage'
 import EmptyState from '@/components/EmptyState'
 import { Users } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { notify } from '@/lib/notify'
 import { getCategoryLabel } from '@/lib/categories'
 import styles from './page.module.css'
 
@@ -137,16 +138,7 @@ export default function TalentPoolPage() {
       .eq('id', candidate.applicationId)
 
     // Notify the candidate
-    await supabase.from('notifications').insert({
-      user_id: candidate.candidateId,
-      type: 'application_update',
-      title: 'Application Reconsidered',
-      message: `Great news! Your application for ${candidate.jobTitle} is being reconsidered.`,
-      read: false,
-      related_id: candidate.applicationId,
-      related_type: 'application',
-      link: '/applications',
-    })
+    await notify('reconsidered', { applicationId: candidate.applicationId })
 
     setCandidates(prev => prev.filter(c => c.applicationId !== candidate.applicationId))
   }

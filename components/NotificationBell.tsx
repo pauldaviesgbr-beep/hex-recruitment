@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import { notify } from '@/lib/notify'
 import { useNotifications } from '@/lib/NotificationsContext'
 import {
   getNotificationIcon,
@@ -117,7 +118,6 @@ export default function NotificationBell({ className }: NotificationBellProps) {
 
     const employerId = (appRow as any)?.jobs?.employer_id
     const jobTitle = (appRow as any)?.jobs?.title || (appRow as any)?.job_title || 'the role'
-    const jobId = (appRow as any)?.job_id
     const candidateName = session.user.user_metadata?.full_name || 'A candidate'
 
     // When the candidate confirms interest, also set the interview to 'confirmed'
@@ -210,18 +210,9 @@ export default function NotificationBell({ className }: NotificationBellProps) {
     }
 
     // Notify the employer
-    if (employerId) {
-      await supabase.from('notifications').insert({
-        user_id: employerId,
-        title: response === 'interested' ? 'Interview Confirmed' : 'Interview Invitation Declined',
-        message: response === 'interested'
-          ? `${candidateName} has confirmed the interview for ${jobTitle}`
-          : `${candidateName} has declined the interview invitation for ${jobTitle}`,
-        type: 'application_status_change',
-        read: false,
-        related_id: notification.related_id,
-        related_type: 'application',
-        link: `/my-jobs/${jobId}/applications`,
+    if (notification.related_id) {
+      await notify(response === 'interested' ? 'interview_confirmed' : 'interest_declined', {
+        applicationId: notification.related_id,
       })
     }
   }
