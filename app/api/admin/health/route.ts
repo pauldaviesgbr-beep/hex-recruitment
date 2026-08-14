@@ -22,18 +22,18 @@ export async function GET(req: Request) {
 
   try {
     const [candProfiles, cvRows, apps, jobs, employers] = await Promise.all([
-      db.from('candidate_profiles').select('user_id, cv_url, is_test'),
+      db.from('candidate_profiles').select('user_id, cv_url, is_test, is_house'),
       db.from('candidate_cvs').select('user_id'),
       db.from('job_applications').select('id, candidate_id, job_id, status, viewed_at, applied_at'),
       db.from('jobs').select('id, employer_id, is_recruiter_posting'),
-      db.from('employer_profiles').select('user_id, company_name, is_test, created_at'),
+      db.from('employer_profiles').select('user_id, company_name, is_test, is_house, created_at'),
     ])
 
-    const testCandidates = new Set((candProfiles.data || []).filter(c => c.is_test).map(c => c.user_id))
-    const testEmployers = new Set((employers.data || []).filter(e => e.is_test).map(e => e.user_id))
+    const testCandidates = new Set((candProfiles.data || []).filter(c => c.is_test || c.is_house).map(c => c.user_id))
+    const testEmployers = new Set((employers.data || []).filter(e => e.is_test || e.is_house).map(e => e.user_id))
     const jobById = new Map((jobs.data || []).map(j => [j.id, j]))
 
-    const realCandidates = (candProfiles.data || []).filter(c => !c.is_test)
+    const realCandidates = (candProfiles.data || []).filter(c => !c.is_test && !c.is_house)
     const cvSet = new Set((cvRows.data || []).map(r => r.user_id))
     // A real application: real candidate, and not aimed at the test employer.
     const realApps = (apps.data || []).filter(a => {
@@ -67,7 +67,7 @@ export async function GET(req: Request) {
       const job = jobById.get(a.job_id)
       if (!job) continue
       const emp = (employers.data || []).find(e => e.user_id === job.employer_id)
-      if (!emp || emp.is_test) continue
+      if (!emp || emp.is_test || emp.is_house) continue
       let row = byEmployer.get(emp.user_id)
       if (!row) {
         row = { employerId: emp.user_id, company: emp.company_name, received: 0, listOpened: 0, actioned: 0, medianHoursToOpen: null, openLags: [] }
@@ -99,7 +99,7 @@ export async function GET(req: Request) {
       (jobs.data || []).filter(j => !j.is_recruiter_posting && !testEmployers.has(j.employer_id)).map(j => j.employer_id)
     )
     const employersAlive = (employers.data || [])
-      .filter(e => !e.is_test)
+      .filter(e => !e.is_test && !e.is_house)
       .map(e => ({
         company: e.company_name,
         approvedAt: e.created_at,
