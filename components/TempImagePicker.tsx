@@ -2,6 +2,7 @@
 
 import { useRef, useState } from 'react'
 import { compressImage } from '@/lib/compressImage'
+import { supabase } from '@/lib/supabase'
 
 // Effortless photo picker for Temp Work posts: drag-and-drop OR click, a live
 // thumbnail preview with remove/replace, and no size/shape requirement — the
@@ -29,7 +30,13 @@ export default function TempImagePicker({
       const fd = new FormData()
       fd.append('image', prepared)
       fd.append('bucket', 'temp-posts')
-      const res = await fetch('/api/upload-image', { method: 'POST', body: fd })
+      // Requires manage_jobs at the route now, so the session travels with it.
+      const { data: { session } } = await supabase.auth.getSession()
+      const res = await fetch('/api/upload-image', {
+        method: 'POST',
+        headers: session ? { Authorization: `Bearer ${session.access_token}` } : undefined,
+        body: fd,
+      })
       const json = await res.json()
       if (!res.ok) { setError(json.error || 'Upload failed. Please try another photo.'); return }
       onChange(json.url || json.dataUrl || '')

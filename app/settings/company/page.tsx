@@ -428,7 +428,13 @@ export default function CompanySettingsPage() {
       const fd = new FormData()
       fd.append('image', file)
       fd.append('bucket', 'company-logos')
-      const res = await fetch('/api/upload-image', { method: 'POST', body: fd })
+      // Requires edit_company at the route now, so the session has to go with it.
+      const { data: { session } } = await supabase.auth.getSession()
+      const res = await fetch('/api/upload-image', {
+        method: 'POST',
+        headers: session ? { Authorization: `Bearer ${session.access_token}` } : undefined,
+        body: fd,
+      })
       const json = await res.json()
       if (!res.ok) {
         setLogoUploadError(json.error || 'Failed to upload logo.')

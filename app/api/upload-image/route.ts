@@ -6,6 +6,34 @@ import { rateLimit } from '@/lib/rateLimit'
 
 const BANNER_BUCKET = 'job-banners'
 
+/*
+  WHO MAY UPLOAD WHAT.
+
+  This route writes with the SERVICE ROLE, which bypasses every storage policy.
+  So the bucket must never be taken from the request: a bucket name in a form
+  field is the caller telling us what they are entitled to, which is the same
+  coarse-attribute mistake the storage policies had, one layer up.
+
+  Instead the request names a PURPOSE, and the purpose maps to a bucket and to
+  the capability you must hold for it. Naming 'company-logos' does not get you
+  company-logos — holding edit_company does.
+
+  The capabilities are the ones the database policies already use, resolved
+  through the same has_employer_permission() function, so there is one answer to
+  "may this person do this" rather than a second one living in a route.
+
+  Every employer has an owner row in employer_members: trg_create_owner_membership
+  on employer_profiles seeds it. Measured on a brand-new employer before relying
+  on it — has_employer_permission(self, 'edit_company') came back true with no
+  backfill involved — because "all 9 current employers have one" only proved the
+  July backfill ran, not that the next signup gets one.
+*/
+const PURPOSES = {
+  'job-banners': { bucket: 'job-banners', capability: 'manage_jobs', plain: 'post a job' },
+  'temp-posts': { bucket: 'temp-posts', capability: 'manage_jobs', plain: 'post a shift' },
+  'company-logos': { bucket: 'company-logos', capability: 'edit_company', plain: 'edit the company profile' },
+} as const
+
 const MIN_WIDTH = 400
 const MIN_HEIGHT = 300
 // Target a fixed 16:11 landscape — the candidate job-card slot. Every stored
@@ -28,14 +56,91 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
     }
 
+    // ── Who is asking? ──────────────────────────────────
+    // Until this existed the route never established a caller at all, and wrote
+    // to a public bucket with the service role for anyone who asked. Three
+    // unauthenticated requests put objects in three different buckets.
+    //
+    // The refusals below are deliberately legible by CLASS — signed out, not an
+    // employer, or missing one named capability — so a caller can act on the
+    // answer, without naming tables, policies or which employer ids exist.
+    const token = (request.headers.get('authorization') || '').replace(/^Bearer /, '')
+    if (!token) {
+      return NextResponse.json(
+        { error: 'You need to be signed in to upload an image.', reason: 'not_signed_in' },
+        { status: 401 }
+      )
+    }
+    const admin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      { auth: { persistSession: false } }
+    )
+    const { data: { user }, error: authError } = await admin.auth.getUser(token)
+    if (authError || !user) {
+      return NextResponse.json(
+        { error: 'Your session has expired. Sign in again and retry.', reason: 'not_signed_in' },
+        { status: 401 }
+      )
+    }
+
     const formData = await request.formData()
     const file = formData.get('image') as File | null
-    // Optional target bucket (allowlisted). Defaults to job banners so the
-    // existing post-job flow is unchanged; the Temp Work composer passes 'temp-posts'.
-    const bucketParam = (formData.get('bucket') as string) || ''
-    const targetBucket = bucketParam === 'temp-posts' ? 'temp-posts'
-      : bucketParam === 'company-logos' ? 'company-logos'
-      : BANNER_BUCKET
+
+    // The request names a PURPOSE. The bucket comes from our table, never from
+    // the caller. '' stays job-banners so the existing post-job flow is unchanged.
+    const purposeKey = ((formData.get('bucket') as string) || BANNER_BUCKET) as keyof typeof PURPOSES
+    const purpose = PURPOSES[purposeKey]
+    if (!purpose) {
+      return NextResponse.json(
+        { error: 'Unknown upload type.', reason: 'unknown_purpose' },
+        { status: 400 }
+      )
+    }
+    const targetBucket = purpose.bucket
+
+    // ── May they do THIS? ───────────────────────────────
+    // has_employer_permission reads auth.uid() internally, so it has to be asked
+    // AS THE CALLER — asking as the service role would evaluate auth.uid() to
+    // null and refuse everybody. The employer lookup below is plumbing; the
+    // authorisation answer comes only from the function.
+    const { data: memberships } = await admin
+      .from('employer_members')
+      .select('employer_id, employer_profiles!inner(user_id)')
+      .eq('user_id', user.id)
+      .eq('status', 'active')
+
+    if (!memberships?.length) {
+      return NextResponse.json(
+        { error: 'Image uploads are only available to employer accounts.', reason: 'not_an_employer' },
+        { status: 403 }
+      )
+    }
+
+    const asCaller = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      { auth: { persistSession: false }, global: { headers: { Authorization: `Bearer ${token}` } } }
+    )
+    let permitted = false
+    for (const m of memberships) {
+      const ownerId = (m as any).employer_profiles?.user_id
+      if (!ownerId) continue
+      const { data: allowed } = await asCaller.rpc('has_employer_permission', {
+        target: ownerId,
+        cap: purpose.capability,
+      })
+      if (allowed === true) { permitted = true; break }
+    }
+    if (!permitted) {
+      return NextResponse.json(
+        {
+          error: `Your account does not have permission to ${purpose.plain}. An owner can grant it in Team settings.`,
+          reason: 'missing_permission',
+        },
+        { status: 403 }
+      )
+    }
 
     if (!file) {
       return NextResponse.json(
@@ -142,11 +247,11 @@ export async function POST(request: NextRequest) {
     // migrated from base64 to this bucket by scripts/migrate-banners-to-storage.js.)
     let url: string | null = null
     try {
-      const admin = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        { auth: { persistSession: false } }
-      )
+      // Reuses the service-role client built during the auth check above. It used
+      // to be constructed here with a `SERVICE_ROLE_KEY || ANON_KEY` fallback —
+      // removed, because that fallback would silently downgrade an authorised
+      // upload into an anon-key write and fail against the storage policies for
+      // reasons that would look nothing like a missing env var.
       const path = `${randomUUID()}.webp`
       const { error: upErr } = await admin.storage
         .from(targetBucket)
