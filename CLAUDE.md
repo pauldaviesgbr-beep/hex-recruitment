@@ -183,3 +183,32 @@ Standing rules for Claude Code on this project. These override default behaviour
   - **A quiet day and a dead schedule look identical**, so the route logs exactly one receipt line per invocation naming the trigger. Vercel retains under a day of runtime logs here, so that line is only readable for a few hours — checking "did it run" the next morning is already too late.
 
 - **A rule broken five times needs a mechanism, not another line.** "Read the deployment record, don't guess the preview hostname" was written down after the second failure and broken three more times — a DNS error and two 404s, each briefly reading as "the route is broken". `npm run preview-url` now prints the real URLs from the record. Same argument as `migrations:check` and the pre-push hook: discipline is what already failed, so make the correct move the easy one.
+
+## Verification — how checks fail quietly
+
+These are all real, from this project. A check that passes for the
+wrong reason is worse than no check, because it ends the search.
+
+- VERIFY BY PROPERTY, NOT BY THE THING YOU REMOVED. To confirm a
+  yellow box is gone, scan for yellow backgrounds — not for the class
+  you just deleted. Searching for what you removed passes whether or
+  not something else still does it.
+
+- A CHECK THAT FAILS SAFE IS THE DANGEROUS KIND. An anon insert test
+  returned "violates row-level security policy" and nearly got
+  reported as secure — the refusal came from reading the row back,
+  not from the insert. If a refusal surprises you, explain it before
+  accepting it.
+
+- TEST THE STATEMENT THE CODE ACTUALLY RUNS. A passing .insert()
+  proved nothing about an endpoint using .upsert({onConflict}) —
+  different statements, different failures.
+
+- IF A TOOL RETURNS A CLEAN RESULT, CHECK THE TOOL. An emoji grep
+  returned nothing while a pencil sat in the file it had just read.
+  Prove the tool can find a thing you know is there.
+
+- ASK THE QUESTION WITH TWO DIFFERENT ANSWERS. If both the old and
+  new behaviour would produce the same output, the test proves
+  nothing. Production and preview returning different error strings
+  is what proved the dispatcher routing.
