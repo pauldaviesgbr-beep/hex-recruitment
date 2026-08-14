@@ -673,8 +673,12 @@ function PostJobContent() {
       const uploadFormData = new FormData()
       uploadFormData.append('image', file)
 
+      // The route now requires a caller and checks manage_jobs before it writes
+      // anything, so the session token has to travel with the upload.
+      const { data: { session } } = await supabase.auth.getSession()
       const response = await fetch('/api/upload-image', {
         method: 'POST',
+        headers: session ? { Authorization: `Bearer ${session.access_token}` } : undefined,
         body: uploadFormData,
       })
 
