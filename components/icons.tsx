@@ -9,6 +9,14 @@
 // beside it. Beside a label it is decorative, so aria-hidden by default; an
 // icon-only control passes a label and gets role/aria-label instead.
 //
+// THE MONOCHROME GLYPHS (✓ ✕ ★ ☆ ➤ ⚠ and the CSS content ticks) ARE
+// TYPOGRAPHY, NOT ICONS — Paul's decision, 14 Aug 2026. They inherit
+// currentColor already, half of them sit inside prose ("Applied ✓",
+// "Email sent ✓", the ★★★ rating rows), and swapping them for SVGs
+// shifts baselines in two hundred places for no visible gain. The design
+// spec maps ✓→check and ✕→x, so it will look like an unfinished job:
+// it is not. Do not "finish" it without a new decision from Paul.
+//
 // Every emoji-as-iconography in the product routes through here now. If a new
 // surface needs an icon, it gets an entry in this table — not an emoji, and
 // not a one-off import of lucide-react somewhere else.
