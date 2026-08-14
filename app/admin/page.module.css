@@ -172,3 +172,87 @@
     flex-direction: column;
   }
 }
+
+/* ── Phase 3: tile hierarchy (14 Aug handoff). Two headline tiles + a
+   four-cell reference strip replace six equal tiles. The 4px left border is
+   the ONLY tile ornament — yellow for the healthy headline, alert-red for
+   the thing that is wrong. Reference cells get none. No icons on any tile. */
+.headlineGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.headlineTile {
+  background: #fff;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  border-left-width: 4px;
+  padding: 22px 24px;
+}
+.headlineTileYellow { border-left-color: #FFE500; }
+.headlineTileAlert { border-left-color: #B42318; }
+.headlineEyebrow {
+  font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #6B7688;
+  margin: 0 0 6px;
+}
+.headlineValueRow {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.headlineValue {
+  font-size: 44px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  color: #0F172A;
+  margin: 0;
+}
+.headlineDelta { font-size: 14px; font-weight: 600; }
+.headlineDeltaUp { color: #8A7A00; }
+.headlineDeltaDown { color: #B42318; }
+.headlineNote {
+  font-size: 13px;
+  font-weight: 400;
+  color: #64748B;
+  margin: 6px 0 0;
+}
+.refStrip {
+  display: flex;
+  gap: 1px;
+  background: #E2E8F0;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+.refCell {
+  flex: 1 1 0;
+  background: #fff;
+  padding: 15px 18px;
+}
+.refValue {
+  font-size: 21px;
+  font-weight: 600;
+  color: #0F172A;
+  margin: 0;
+}
+.refLabel {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: #64748B;
+  margin: 2px 0 0;
+}
+@media (max-width: 768px) {
+  .headlineGrid { grid-template-columns: 1fr; }
+  .headlineValue { font-size: 36px; }
+  .refStrip { display: grid; grid-template-columns: 1fr 1fr; }
+  .refValue { font-size: 19px; }
+}
