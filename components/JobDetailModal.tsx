@@ -14,6 +14,7 @@ import CompanyReviewsSummary from '@/components/CompanyReviewsSummary'
 import { useAnalyticsTracking, ViewSource } from '@/hooks/useAnalyticsTracking'
 import ApplyNowModal from '@/components/ApplyNowModal'
 import styles from './JobDetailModal.module.css'
+import { Ico } from '@/components/icons'
 
 interface JobDetailModalProps {
   job: Job
@@ -270,7 +271,7 @@ export default function JobDetailModal({
                     className={styles.websiteLink}
                     onClick={(e) => e.stopPropagation()}
                   >
-                    🌐 {job.companyWebsite.replace(/^https?:\/\//, '')}
+                    <Ico name="globe" size={16} /> {job.companyWebsite.replace(/^https?:\/\//, '')}
                   </a>
                 )}
                 <div className={styles.headerMeta}>
@@ -281,7 +282,7 @@ export default function JobDetailModal({
                     className={`${styles.metaItem} ${styles.locationLink}`}
                     onClick={(e) => e.stopPropagation()}
                   >
-                    <span className={styles.metaIcon}>📍</span>
+                    <span className={styles.metaIcon}><Ico name="map-pin" size={20} /></span>
                     {job.fullLocation?.addressLine1
                       ? `${job.fullLocation.addressLine1}, ${job.fullLocation.city} ${job.fullLocation.postcode}`
                       : [job.location, job.area].filter(Boolean).join(', ')}
@@ -345,13 +346,13 @@ export default function JobDetailModal({
               {showShareMenu && (
                 <div className={styles.shareMenu}>
                   <button onClick={() => handleShare('copy')}>
-                    {copySuccess ? '✓ Copied!' : '🔗 Copy link'}
+                    {copySuccess ? '✓ Copied!' : 'Copy link'}
                   </button>
                   <button onClick={() => handleShare('email')}>
-                    📧 Email
+                    <Ico name="mail" size={16} /> Email
                   </button>
                   <button onClick={() => handleShare('whatsapp')}>
-                    💬 WhatsApp
+                    <Ico name="message-square" size={16} /> WhatsApp
                   </button>
                 </div>
               )}
@@ -392,7 +393,7 @@ export default function JobDetailModal({
               rel="noopener noreferrer"
               className={`${styles.locationInfo} ${styles.locationLink}`}
             >
-              <span className={styles.locationIcon}>📍</span>
+              <span className={styles.locationIcon}><Ico name="map-pin" size={20} /></span>
               <div className={styles.locationDetails}>
                 {job.fullLocation?.addressLine1 ? (
                   <>
@@ -534,7 +535,7 @@ export default function JobDetailModal({
               {job.category && `Category: ${job.category}`}
             </p>
             <button className={styles.reportBtn}>
-              🚩 Report this job
+              <Ico name="flag" size={16} /> Report this job
             </button>
           </div>
         </div>

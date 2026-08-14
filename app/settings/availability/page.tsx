@@ -9,6 +9,7 @@ import { getCurrentEmployerOwnerId } from '@/lib/employer'
 import { employerLoginPath } from '@/lib/loginRedirect'
 import DatePicker from '@/components/DatePicker'
 import styles from './page.module.css'
+import { Ico } from '@/components/icons'
 
 const DAYS: Array<{ value: number; label: string }> = [
   { value: 0, label: 'Monday' },
@@ -515,7 +516,7 @@ function AvailabilitySettingsContent() {
         </nav>
 
         <div className={styles.header}>
-          <div className={styles.headerIcon}>📅</div>
+          <div className={styles.headerIcon}><Ico name="calendar" size={20} /></div>
           <div>
             <h1 className={styles.title}>Interview Availability</h1>
             <p className={styles.subtitle}>Set your available days and hours for candidate interview bookings</p>
@@ -810,7 +811,7 @@ function AvailabilitySettingsContent() {
                   className={styles.blockBtn}
                   style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
                 >
-                  📅 Connect Google Calendar
+                  <Ico name="calendar" size={16} /> Connect Google Calendar
                 </button>
               </>
             )}
@@ -850,7 +851,7 @@ function AvailabilitySettingsContent() {
               {!gcalConnected && (
               <details className={styles.feedDetails} open>
                 <summary className={styles.feedSummary}>
-                  <span className={styles.feedSummaryIcon} aria-hidden="true">📅</span>
+                  <span className={styles.feedSummaryIcon} aria-hidden="true"><Ico name="calendar" size={20} /></span>
                   Google Calendar
                 </summary>
                 <ol className={styles.feedSteplist}>
@@ -882,7 +883,7 @@ function AvailabilitySettingsContent() {
 
               <details className={styles.feedDetails}>
                 <summary className={styles.feedSummary}>
-                  <span className={styles.feedSummaryIcon} aria-hidden="true">🍎</span>
+                  <span className={styles.feedSummaryIcon} aria-hidden="true"><Ico name="apple" size={20} /></span>
                   Apple Calendar (Mac / iPhone / iPad)
                 </summary>
                 <ol className={styles.feedSteplist}>
@@ -909,7 +910,7 @@ function AvailabilitySettingsContent() {
 
               <details className={styles.feedDetails}>
                 <summary className={styles.feedSummary}>
-                  <span className={styles.feedSummaryIcon} aria-hidden="true">📧</span>
+                  <span className={styles.feedSummaryIcon} aria-hidden="true"><Ico name="mail" size={20} /></span>
                   Outlook
                 </summary>
                 <ol className={styles.feedSteplist}>

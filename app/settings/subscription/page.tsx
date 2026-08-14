@@ -20,6 +20,7 @@ import {
   formatTrialCountdown,
 } from '@/lib/trialUtils'
 import styles from './page.module.css'
+import { Ico } from '@/components/icons'
 
 interface SubscriptionData {
   status: 'trial' | 'active' | 'expired' | 'cancelling'
@@ -385,7 +386,7 @@ export default function SubscriptionSettingsPage() {
         </Link>
 
         <div className={styles.header}>
-          <div className={styles.headerIcon}>💳</div>
+          <div className={styles.headerIcon}><Ico name="credit-card" size={20} /></div>
           <div>
             <h1 className={styles.title}>Subscription & Billing</h1>
             <p className={styles.subtitle}>Manage your plan, payment method, and billing history</p>
@@ -401,7 +402,7 @@ export default function SubscriptionSettingsPage() {
         {/* Notice Period Banner */}
         {isCancelling && subscription.accessEndsAt && (
           <div className={styles.noticeBanner}>
-            <span className={styles.noticeBannerIcon}>⚠️</span>
+            <span className={styles.noticeBannerIcon}><Ico name="alert-triangle" size={20} /></span>
             <p className={styles.noticeBannerText}>
               Your subscription has been cancelled. You have <strong>full access until {formatExpiryDate(subscription.accessEndsAt)}</strong> (14-day notice period).
               After this date, you will lose access to posting jobs, browsing candidates, and messaging.
@@ -646,7 +647,7 @@ export default function SubscriptionSettingsPage() {
         <div className={styles.modalOverlay} onClick={() => setShowCancelModal(false)}>
           <div className={styles.modal} onClick={e => e.stopPropagation()}>
             <div className={styles.modalHeader}>
-              <div className={styles.modalIcon}>⚠️</div>
+              <div className={styles.modalIcon}><Ico name="alert-triangle" size={20} /></div>
               <h3 className={styles.modalTitle}>Cancel Subscription</h3>
             </div>
 

@@ -14,6 +14,7 @@ import { supabase } from '@/lib/supabase'
 import { getTagCategory, WORK_STYLE_TAGS } from '@/lib/jobTags'
 import { useAnalyticsTracking } from '@/hooks/useAnalyticsTracking'
 import styles from './page.module.css'
+import { Ico } from '@/components/icons'
 
 export default function JobDetailPage() {
   const params = useParams()
@@ -287,7 +288,7 @@ export default function JobDetailPage() {
                 rel="noopener noreferrer"
                 className={styles.locationLink}
               >
-                <span className={styles.metaIcon}>📍</span>
+                <span className={styles.metaIcon}><Ico name="map-pin" size={20} /></span>
                 {job.fullLocation?.addressLine1
                   ? `${job.fullLocation.addressLine1}, ${job.fullLocation.city} ${job.fullLocation.postcode}`
                   : [job.location, job.area].filter(Boolean).join(', ')}
@@ -359,7 +360,7 @@ export default function JobDetailPage() {
                 rel="noopener noreferrer"
                 className={styles.locationBlock}
               >
-                <span className={styles.locationIcon}>📍</span>
+                <span className={styles.locationIcon}><Ico name="map-pin" size={20} /></span>
                 <div className={styles.locationDetails}>
                   {job.fullLocation?.addressLine1 ? (
                     <>
@@ -381,7 +382,6 @@ export default function JobDetailPage() {
                 <ul className={styles.benefitsList}>
                   {job.benefits.map((benefit, i) => (
                     <li key={i} className={styles.benefitItem}>
-                      <span className={styles.checkIcon}>✓</span>
                       {benefit}
                     </li>
                   ))}
@@ -545,13 +545,13 @@ export default function JobDetailPage() {
                     {showShareMenu && (
                       <div className={styles.shareMenu}>
                         <button onClick={() => handleShare('copy')}>
-                          {copySuccess ? '✓ Copied!' : '🔗 Copy link'}
+                          {copySuccess ? '✓ Copied!' : 'Copy link'}
                         </button>
                         <button onClick={() => handleShare('email')}>
-                          📧 Email
+                          <Ico name="mail" size={16} /> Email
                         </button>
                         <button onClick={() => handleShare('whatsapp')}>
-                          💬 WhatsApp
+                          <Ico name="message-square" size={16} /> WhatsApp
                         </button>
                       </div>
                     )}

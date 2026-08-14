@@ -11,6 +11,7 @@ import {
   type Notification
 } from '@/lib/mockNotifications'
 import styles from './NotificationBell.module.css'
+import { Ico, type IconName } from '@/components/icons'
 
 interface NotificationBellProps {
   className?: string
@@ -276,7 +277,7 @@ export default function NotificationBell({ className }: NotificationBellProps) {
               </div>
             ) : notifications.filter(n => !dismissedIds.has(n.id)).length === 0 ? (
               <div className={styles.emptyState}>
-                <span className={styles.emptyIcon}>🔔</span>
+                <span className={styles.emptyIcon}><Ico name="bell" size={20} /></span>
                 <p className={styles.emptyText}>No notifications yet</p>
               </div>
             ) : (
@@ -293,7 +294,7 @@ export default function NotificationBell({ className }: NotificationBellProps) {
                     style={{ cursor: 'pointer' }}
                   >
                     <span className={styles.notificationIcon}>
-                      {getNotificationIcon(notification.type)}
+                      <Ico name={getNotificationIcon(notification.type) as IconName} size={20} />
                     </span>
                     <div className={styles.notificationContent}>
                       <span className={styles.notificationTitle}>
@@ -343,7 +344,7 @@ export default function NotificationBell({ className }: NotificationBellProps) {
                               cursor: 'pointer',
                             }}
                           >
-                            ✅ Yes
+                            <Ico name="check" size={16} /> Yes
                           </button>
                           <button
                             type="button"
@@ -360,7 +361,7 @@ export default function NotificationBell({ className }: NotificationBellProps) {
                               cursor: 'pointer',
                             }}
                           >
-                            ❌ No
+                            <Ico name="x" size={16} /> No
                           </button>
                         </div>
                       )}

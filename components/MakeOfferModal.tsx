@@ -7,6 +7,7 @@ import { getCurrentEmployerOwnerId } from '@/lib/employer'
 import ReviewAndSign from './ReviewAndSign'
 import type { SignatureSlot } from '@/lib/buildOfferPdf'
 import styles from './MakeOfferModal.module.css'
+import { Ico } from '@/components/icons'
 
 interface MakeOfferModalProps {
   isOpen: boolean
@@ -595,10 +596,10 @@ export default function MakeOfferModal({
             {offerMode === 'none' && (
               <div style={{ display: 'flex', gap: '0.5rem' }}>
                 <button type="button" onClick={() => { setOfferMode('generate'); setGenerateStep('idle') }} style={{ flex: 1, padding: '0.625rem', border: '1px solid #e2e8f0', borderRadius: 8, background: '#f8fafc', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem' }}>
-                  ✨ Generate with AI
+                  <Ico name="sparkles" size={16} /> Generate with AI
                 </button>
                 <button type="button" onClick={() => setOfferMode('upload')} style={{ flex: 1, padding: '0.625rem', border: '1px solid #e2e8f0', borderRadius: 8, background: '#fff', cursor: 'pointer', fontSize: '0.85rem' }}>
-                  📎 Upload your own
+                  <Ico name="paperclip" size={16} /> Upload your own
                 </button>
               </div>
             )}
@@ -652,7 +653,7 @@ export default function MakeOfferModal({
 
                 <button type="button" onClick={handleGenerateOfferLetter} disabled={generating || !salary}
                   style={{ width: '100%', padding: '0.625rem', background: generating ? '#94a3b8' : '#0f172a', color: '#FFE500', border: 'none', borderRadius: 6, fontWeight: 600, fontSize: '0.85rem', cursor: generating ? 'not-allowed' : 'pointer' }}>
-                  {generating ? 'Generating...' : '✨ Generate Offer Letter'}
+                  {generating ? 'Generating...' : 'Generate Offer Letter'}
                 </button>
 
                 <p style={{ fontSize: '0.7rem', color: '#64748b', margin: '0.5rem 0 0', textAlign: 'center' }}>

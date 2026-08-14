@@ -7,6 +7,7 @@ import { Bot } from 'lucide-react'
 import { getKeywordResponse } from '@/lib/chatbot/keywordFallback'
 import { detectHighStakes, interceptsEnabled } from '@/lib/chatbot/intercepts'
 import styles from './ChatBot.module.css'
+import { Ico } from '@/components/icons'
 
 // Robot chatbot head — reads as "assistant" without the gardening
 // metaphor. Earlier passes used <Sprout/>; the brand mark stays
@@ -362,9 +363,7 @@ export default function ChatBot() {
               onClick={handleNewConversation}
               aria-label="Start new conversation"
               title="New conversation"
-            >
-              🔄
-            </button>
+            ><Ico name="refresh-cw" size={20} /></button>
             <button
               className={styles.closeBtn}
               onClick={() => setIsOpen(false)}

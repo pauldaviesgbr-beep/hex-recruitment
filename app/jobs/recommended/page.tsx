@@ -19,6 +19,7 @@ import { useSavedJobs } from '@/lib/useSavedJobs'
 import { getTagCategory, WORK_STYLE_TAGS } from '@/lib/jobTags'
 import { useAnalyticsTracking } from '@/hooks/useAnalyticsTracking'
 import styles from './page.module.css'
+import { Ico } from '@/components/icons'
 
 export default function RecommendedJobsPage() {
   const { jobs, loading: jobsLoading } = useJobs()
@@ -314,7 +315,7 @@ export default function RecommendedJobsPage() {
             {/* Incomplete profile banner */}
             {(!profileComplete || needsPreferences) && (
               <div className={styles.profileBanner}>
-                <span className={styles.profileBannerIcon}>💡</span>
+                <span className={styles.profileBannerIcon}><Ico name="lightbulb" size={20} /></span>
                 <div className={styles.profileBannerText}>
                   <p>
                     {needsPreferences
@@ -452,7 +453,7 @@ export default function RecommendedJobsPage() {
                             rel="noopener noreferrer"
                             className={styles.detailWebsite}
                           >
-                            🌐 {selectedJob.companyWebsite.replace(/^https?:\/\//, '')}
+                            <Ico name="globe" size={16} /> {selectedJob.companyWebsite.replace(/^https?:\/\//, '')}
                           </a>
                         )}
                         <a
@@ -461,7 +462,7 @@ export default function RecommendedJobsPage() {
                           rel="noopener noreferrer"
                           className={styles.detailLocation}
                         >
-                          📍 {selectedJob.fullLocation?.addressLine1
+                          <Ico name="map-pin" size={16} /> {selectedJob.fullLocation?.addressLine1
                             ? `${selectedJob.fullLocation.addressLine1}, ${selectedJob.fullLocation.city} ${selectedJob.fullLocation.postcode}`
                             : [selectedJob.location, selectedJob.area].filter(Boolean).join(', ')}
                         </a>

@@ -27,6 +27,7 @@ import JobCardLink from '@/components/JobCardLink'
 import CandidateCard from '@/components/CandidateCard'
 import type { Candidate } from '@/lib/mockCandidates'
 import styles from './page.module.css'
+import { Ico } from '@/components/icons'
 
 // ── Helpers ─────────────────────────────────────────────
 
@@ -304,10 +305,10 @@ function CandidateCardSlider({ apps, totalApplications, styles }: {
               <span style={{ display: 'inline-block', fontSize: '0.62rem', fontWeight: 600, padding: '0.1rem 0.4rem', borderRadius: 4, background: sc.bg, color: sc.text, marginTop: '0.2rem' }}>{label}</span>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '0.4rem', flexShrink: 0, textAlign: 'right' as const }}>
-              {app.candidate_city && <span style={{ fontSize: '0.72rem', color: '#64748b' }}>📍 {app.candidate_city}</span>}
+              {app.candidate_city && <span style={{ fontSize: '0.72rem', color: '#64748b' }}><Ico name="map-pin" size={16} /> {app.candidate_city}</span>}
               {app.candidate_years_exp && <span style={{ fontSize: '0.72rem', color: '#64748b' }}>⏳ {app.candidate_years_exp} yrs exp</span>}
-              {app.candidate_availability && <span style={{ fontSize: '0.72rem', color: '#64748b' }}>✅ {app.candidate_availability}</span>}
-              {app.candidate_sector && <span style={{ fontSize: '0.72rem', color: '#64748b' }}>🏢 {app.candidate_sector}</span>}
+              {app.candidate_availability && <span style={{ fontSize: '0.72rem', color: '#64748b' }}><Ico name="check" size={16} /> {app.candidate_availability}</span>}
+              {app.candidate_sector && <span style={{ fontSize: '0.72rem', color: '#64748b' }}><Ico name="building" size={16} /> {app.candidate_sector}</span>}
             </div>
           </div>
 

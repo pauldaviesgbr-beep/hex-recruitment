@@ -18,6 +18,7 @@ import {
 } from '@/lib/mockNotifications'
 import { useNotifications } from '@/lib/NotificationsContext'
 import styles from './page.module.css'
+import { Ico, type IconName } from '@/components/icons'
 
 export default function NotificationsPage() {
   const router = useRouter()
@@ -191,7 +192,7 @@ export default function NotificationsPage() {
         {/* Notifications List */}
         {filteredNotifications.length === 0 ? (
           <div className={styles.emptyState}>
-            <span className={styles.emptyIcon}>🔔</span>
+            <span className={styles.emptyIcon}><Ico name="bell" size={20} /></span>
             <h2 className={styles.emptyTitle}>
               {filter === 'unread' ? 'No unread notifications' : 'No notifications yet'}
             </h2>
@@ -218,7 +219,7 @@ export default function NotificationsPage() {
                         onClick={() => handleMarkAsRead(notification)}
                       >
                         <span className={styles.notificationIcon}>
-                          {getNotificationIcon(notification.type)}
+                          <Ico name={getNotificationIcon(notification.type) as IconName} size={20} />
                         </span>
                         <div className={styles.notificationContent}>
                           <span className={styles.notificationTitle}>

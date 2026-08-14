@@ -116,8 +116,8 @@ export default function AdminMessagesPage() {
 
       {stats && (
         <div className={styles.statsGrid}>
-          <StatsCard title="Conversations" value={stats.totalConversations} icon="💬" color="#3b82f6" />
-          <StatsCard title="Messages Sent" value={stats.totalMessages} icon="📨" color="#8b5cf6" />
+          <StatsCard title="Conversations" value={stats.totalConversations} />
+          <StatsCard title="Messages Sent" value={stats.totalMessages} />
         </div>
       )}
 

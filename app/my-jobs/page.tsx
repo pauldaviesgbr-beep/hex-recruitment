@@ -17,6 +17,7 @@ import { RowInlineFields } from '@/components/RowInlineFields'
 import { MoreHorizontal } from 'lucide-react'
 import { Boost, JOB_BOOST_TIERS, getDaysRemaining, isBoostActive } from '@/lib/boostTypes'
 import styles from './page.module.css'
+import { Ico } from '@/components/icons'
 
 interface PostedJob {
   id: string
@@ -801,7 +802,7 @@ function MyJobsContent() {
             {PAID_SURFACES_ENABLED && job.status !== 'archived' && job.status !== 'filled' && (
               <button type="button" role="menuitem" className={styles.kebabItem}
                 onClick={(e) => choose(e, () => { setBoostTargetJob(job); setBoostModalOpen(true) })}>
-                <span className={styles.kebabItemIcon} aria-hidden="true">⚡</span>
+                <span className={styles.kebabItemIcon} aria-hidden="true"><Ico name="zap" size={20} /></span>
                 <span>{isBoosted ? 'Boosted (manage)' : 'Boost this job'}</span>
               </button>
             )}
@@ -993,7 +994,7 @@ function MyJobsContent() {
 
           {postedJobs.length === 0 ? (
             <div className={styles.emptyState}>
-              <span className={styles.emptyIcon}>📋</span>
+              <span className={styles.emptyIcon}><Ico name="file-text" size={20} /></span>
               <h2 className={styles.emptyTitle}>No jobs posted yet</h2>
               <p className={styles.emptyText}>
                 Start posting jobs to find the perfect candidates for your team.
@@ -1046,7 +1047,7 @@ function MyJobsContent() {
               )}
               {activeTab === 'offers' && detailedOffers.filter(o => o.status === 'pending' || o.status === 'declined').length === 0 && (
                 <div style={{ textAlign: 'center', padding: '3rem 1rem', color: '#94a3b8' }}>
-                  <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>📋</div>
+                  <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}><Ico name="file-text" size={20} /></div>
                   <p>No pending offers. Make an offer from the applicant view.</p>
                 </div>
               )}
@@ -1083,7 +1084,7 @@ function MyJobsContent() {
               )}
               {activeTab === 'hired' && detailedOffers.filter(o => o.status === 'accepted').length === 0 && (
                 <div style={{ textAlign: 'center', padding: '3rem 1rem', color: '#94a3b8' }}>
-                  <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🎉</div>
+                  <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}><Ico name="party-popper" size={20} /></div>
                   <p>No hires yet. Candidates will appear here once they accept an offer.</p>
                 </div>
               )}
@@ -1141,7 +1142,7 @@ function MyJobsContent() {
                               <h3 key="t" className={styles.rowTitle}>{job.title}</h3>,
                               job.venue ? <span key="v" className={styles.rowVenue}>{job.venue}</span> : null,
                               job.location ? <span key="l" className={styles.rowLocation}>{job.location}</span> : null,
-                              interviewMeta ? <span key="i" className={styles.rowInterview}>📅 Interview {formatInterviewDate(interviewMeta.date, interviewMeta.time)}</span> : null,
+                              interviewMeta ? <span key="i" className={styles.rowInterview}><Ico name="calendar" size={16} /> Interview {formatInterviewDate(interviewMeta.date, interviewMeta.time)}</span> : null,
                               job.hiredCandidate ? <span key="h" className={styles.rowHired}>✓ Hired {job.hiredCandidate.name}</span> : null,
                             ]}
                           />
@@ -1238,7 +1239,7 @@ function MyJobsContent() {
 
         {appliedJobs.length === 0 ? (
           <div className={styles.emptyState}>
-            <span className={styles.emptyIcon}>📋</span>
+            <span className={styles.emptyIcon}><Ico name="file-text" size={20} /></span>
             <h2 className={styles.emptyTitle}>You haven't applied to any jobs yet</h2>
             <p className={styles.emptyText}>
               Start exploring opportunities and apply to jobs that match your skills.
@@ -1273,7 +1274,7 @@ function MyJobsContent() {
 
                     <div className={styles.cardBody}>
                       <div className={styles.appliedDate}>
-                        <span className={styles.dateIcon}>📅</span>
+                        <span className={styles.dateIcon}><Ico name="calendar" size={20} /></span>
                         Applied: {formatDate(job.appliedAt)}
                       </div>
                     </div>

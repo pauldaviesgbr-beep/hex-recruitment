@@ -141,6 +141,7 @@ const PROFILE_FIELDS: ProfileField[] = [
 
 // Sector display labels
 import { getCategoryLabel } from '@/lib/categories'
+import { Ico } from '@/components/icons'
 const JOB_SECTOR_LABELS: Record<string, string> = new Proxy({} as Record<string, string>, {
   get: (_target, key: string) => getCategoryLabel(key),
 })
@@ -982,7 +983,7 @@ export default function DashboardPage() {
                     const needsAction = iv.status === 'scheduled'
                     return (
                       <div key={iv.id} style={{ padding: '0.625rem 0', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                        <span style={{ fontSize: '1.25rem' }}>📅</span>
+                        <span style={{ fontSize: '1.25rem' }}><Ico name="calendar" size={20} /></span>
                         <div style={{ flex: 1 }}>
                           <div style={{ fontWeight: 600, fontSize: '0.9rem', color: '#0f172a' }}>{job?.title || 'Interview'}</div>
                           <div style={{ fontSize: '0.8rem', color: '#64748b' }}>{dateStr} at {timeStr} · {job?.company || ''}</div>

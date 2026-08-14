@@ -116,9 +116,9 @@ export default function AdminSubscriptionsPage() {
 
       {revenue && (
         <div className={styles.revenueGrid}>
-          <StatsCard title="Monthly Recurring Revenue" value={`£${revenue.mrr.toFixed(2)}`} icon="💰" color="#16a34a" />
-          <StatsCard title="Active Subscriptions" value={revenue.totalActive} icon="📦" />
-          <StatsCard title="Total Trials" value={revenue.totalTrialing} icon="⏳" color="#f59e0b" />
+          <StatsCard title="Monthly Recurring Revenue" value={`£${revenue.mrr.toFixed(2)}`} />
+          <StatsCard title="Active Subscriptions" value={revenue.totalActive} />
+          <StatsCard title="Total Trials" value={revenue.totalTrialing} />
         </div>
       )}
 

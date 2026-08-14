@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import Header from '@/components/Header'
 import styles from '../login/page.module.css'
+import { Ico } from '@/components/icons'
 
 export default function VerifyEmailPage() {
   const router = useRouter()
@@ -68,7 +69,7 @@ export default function VerifyEmailPage() {
         <div className={styles.formCard}>
           <div className={styles.loginHeader}>
             <span className={styles.loginIcon}>
-              {status === 'success' ? '✅' : status === 'error' ? '❌' : '📧'}
+              <Ico name={status === 'success' ? 'check' : status === 'error' ? 'x' : 'mail'} size={24} />
             </span>
             <h1 className={styles.title}>
               {status === 'success'

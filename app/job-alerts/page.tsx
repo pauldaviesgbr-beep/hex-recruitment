@@ -12,6 +12,7 @@ import { ALL_TAGS, TAG_CATEGORIES, getTagsByCategory, type TagCategory } from '@
 import { type JobAlert, supabaseRowToJobAlert } from '@/lib/jobAlerts'
 import { EMPLOYMENT_TYPES, CONTRACT_TYPES } from '@/lib/workTypes'
 import styles from './page.module.css'
+import { Ico, type IconName } from '@/components/icons'
 
 // These two were right all along — they matched the board while the profile
 // form didn't. They now come from the shared module so they cannot drift apart
@@ -404,7 +405,7 @@ export default function JobAlertsPage() {
                 return (
                   <div key={catKey} className={styles.tagCategoryGroup}>
                     <div className={styles.tagCategoryTitle}>
-                      {TAG_CATEGORIES[catKey].icon} {TAG_CATEGORIES[catKey].title}
+                      <Ico name={TAG_CATEGORIES[catKey].icon as IconName} size={16} /> {TAG_CATEGORIES[catKey].title}
                     </div>
                     <div className={styles.checkboxGroup}>
                       {catTags.map(tag => (

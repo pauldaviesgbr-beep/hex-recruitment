@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { notify } from '@/lib/notify'
 import { getCurrentEmployerOwnerId } from '@/lib/employer'
 import styles from './ScheduleInterviewModal.module.css'
+import { Ico } from '@/components/icons'
 
 const INTERVIEW_TYPES = [
   { value: 'in-person', label: 'In-Person' },
@@ -263,7 +264,7 @@ export default function ScheduleInterviewModal({
       if (existing && existing.length > 0) {
         const clash = existing.find(i => i.interview_time === time && i.candidate_id !== candidateId)
         if (clash) {
-          setConflictWarning(`⚠️ You already have an interview scheduled at this time on ${date}. You can still proceed but consider rescheduling.`)
+          setConflictWarning(`You already have an interview scheduled at this time on ${date}. You can still proceed but consider rescheduling.`)
         } else {
           setConflictWarning('')
         }
@@ -862,7 +863,7 @@ export default function ScheduleInterviewModal({
           {/* No availability — prominent CTA to set up */}
           {!slotsLoading && !hasCalendarSlots && mode !== 'manual' && (
             <div style={{ textAlign: 'center', padding: '1.5rem 1rem' }}>
-              <div style={{ fontSize: '2.5rem', marginBottom: '0.75rem' }}>📅</div>
+              <div style={{ fontSize: '2.5rem', marginBottom: '0.75rem' }}><Ico name="calendar" size={20} /></div>
               <h3 style={{ margin: '0 0 0.5rem', fontSize: '1.05rem', fontWeight: 700 }}>No interview slots available</h3>
               <p style={{ color: '#64748b', fontSize: '0.9rem', margin: '0 0 1.25rem', lineHeight: 1.5 }}>
                 {hasGcal
@@ -901,7 +902,7 @@ export default function ScheduleInterviewModal({
                 className={`${styles.modeBtn} ${mode === 'calendar' ? styles.modeBtnActive : ''}`}
                 onClick={() => setMode('calendar')}
               >
-                📅 My availability
+                <Ico name="calendar" size={16} /> My availability
               </button>
               <button
                 type="button"
@@ -910,7 +911,7 @@ export default function ScheduleInterviewModal({
                 className={`${styles.modeBtn} ${mode === 'manual' ? styles.modeBtnActive : ''}`}
                 onClick={() => setMode('manual')}
               >
-                ✏️ Enter manually
+                <Ico name="pencil" size={16} /> Enter manually
               </button>
             </div>
           )}

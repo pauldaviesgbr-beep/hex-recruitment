@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import Header from '@/components/Header'
 import styles from '../login/page.module.css'
+import { Ico } from '@/components/icons'
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('')
@@ -37,7 +38,7 @@ export default function ForgotPasswordPage() {
       <div className={styles.container}>
         <div className={styles.formCard}>
           <div className={styles.loginHeader}>
-            <span className={styles.loginIcon}>🔑</span>
+            <span className={styles.loginIcon}><Ico name="key" size={20} /></span>
             <h1 className={styles.title}>Forgot Password</h1>
           </div>
           <p className={styles.subtitle}>

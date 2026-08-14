@@ -102,7 +102,7 @@ export function cardModelFromJob(job: Job): FeedCardModel {
       ...employmentBadges.map(label => ({ label })),
       ...(job.workLocationType ? [{ label: job.workLocationType }] : []),
       ...(job.urgent ? [{ label: 'Urgent' }] : []),
-      ...(easyApply ? [{ label: '⚡ Easy apply', accent: true }] : []),
+      ...(easyApply ? [{ label: 'Easy apply', accent: true }] : []),
     ],
   }
 }

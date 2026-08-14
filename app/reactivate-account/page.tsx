@@ -10,6 +10,7 @@ import { supabase } from '@/lib/supabase'
 import { DEV_MODE } from '@/lib/mockAuth'
 import { JOB_SEEKER_REACTIVATION_PRICE, formatExpiryDate, calculateTrialExpiry } from '@/lib/trialUtils'
 import styles from './page.module.css'
+import { Ico } from '@/components/icons'
 
 export default function ReactivateAccountPage() {
   // Billing is off — see lib/paidSurfaces. Returns before any hook runs, which
@@ -205,7 +206,7 @@ export default function ReactivateAccountPage() {
           </button>
 
           <div className={styles.secureNote}>
-            <span className={styles.lockIcon}>🔒</span>
+            <span className={styles.lockIcon}><Ico name="lock" size={20} /></span>
             <span>Secure payment via Stripe</span>
           </div>
 

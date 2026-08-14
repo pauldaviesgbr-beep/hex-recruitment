@@ -11,6 +11,7 @@ import { supabase } from '@/lib/supabase'
 import { notify } from '@/lib/notify'
 import { getCategoryLabel } from '@/lib/categories'
 import styles from './page.module.css'
+import { Ico } from '@/components/icons'
 
 interface PoolCandidate {
   applicationId: string
@@ -207,8 +208,8 @@ export default function TalentPoolPage() {
                   <div className={styles.cardInfo}>
                     <div className={styles.cardName}>{c.candidateName}</div>
                     <div className={styles.cardMeta}>
-                      {c.location && <span>📍 {c.location}</span>}
-                      {c.experience > 0 && <span>💼 {c.experience}yr{c.experience !== 1 ? 's' : ''} exp</span>}
+                      {c.location && <span><Ico name="map-pin" size={16} /> {c.location}</span>}
+                      {c.experience > 0 && <span><Ico name="briefcase" size={16} /> {c.experience}yr{c.experience !== 1 ? 's' : ''} exp</span>}
                     </div>
                     {c.skills.length > 0 && (
                       <div className={styles.cardSkills}>

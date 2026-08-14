@@ -9,6 +9,7 @@ import { useMessages } from '@/lib/MessagesContext'
 import PushPriming from '@/components/PushPriming'
 import type { Conversation } from '@/lib/mockMessages'
 import styles from './ApplyNowModal.module.css'
+import { Ico } from '@/components/icons'
 
 interface ApplyNowModalProps {
   job: Job
@@ -314,7 +315,7 @@ export default function ApplyNowModal({ job, isOpen, onClose, onSuccess }: Apply
                   <div className={cvRequired ? styles.cvWarning : styles.cvNoCv}>
                     {cvRequired ? (
                       <>
-                        <span className={styles.cvWarningIcon}>⚠️</span>
+                        <span className={styles.cvWarningIcon}><Ico name="alert-triangle" size={20} /></span>
                         <div>
                           <p className={styles.cvWarningTitle}>No CV saved</p>
                           <p className={styles.cvWarningText}>

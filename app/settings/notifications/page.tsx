@@ -12,6 +12,7 @@ import {
 } from '@/lib/notificationPrefs'
 import PushToggle from '@/components/PushToggle'
 import styles from './page.module.css'
+import { Ico } from '@/components/icons'
 
 // UI config — maps each canonical nested key to its label/description, per role.
 // The toggle rows are rendered from these, so the UI can never drift from the
@@ -201,7 +202,7 @@ export default function NotificationsSettingsPage() {
         </nav>
 
         <div className={styles.header}>
-          <div className={styles.headerIcon}>🔔</div>
+          <div className={styles.headerIcon}><Ico name="bell" size={20} /></div>
           <div>
             <h1 className={styles.title}>Notification Settings</h1>
             <p className={styles.subtitle}>Choose how and when you want to be notified</p>
@@ -229,7 +230,7 @@ export default function NotificationsSettingsPage() {
         */}
         <div className={styles.section}>
           <div className={styles.sectionHeader}>
-            <span className={styles.sectionIcon}>🔔</span>
+            <span className={styles.sectionIcon}><Ico name="bell" size={20} /></span>
             <h2 className={styles.sectionTitle}>Push Notifications</h2>
           </div>
           <div className={styles.settingsList}>
@@ -264,7 +265,7 @@ export default function NotificationsSettingsPage() {
           {/* Email Notifications */}
           <div className={styles.section}>
             <div className={styles.sectionHeader}>
-              <span className={styles.sectionIcon}>📧</span>
+              <span className={styles.sectionIcon}><Ico name="mail" size={20} /></span>
               <h2 className={styles.sectionTitle}>Email Notifications</h2>
             </div>
             <div className={styles.settingsList}>
@@ -283,7 +284,7 @@ export default function NotificationsSettingsPage() {
           {/* SMS Notifications */}
           <div className={styles.section}>
             <div className={styles.sectionHeader}>
-              <span className={styles.sectionIcon}>📱</span>
+              <span className={styles.sectionIcon}><Ico name="smartphone" size={20} /></span>
               <h2 className={styles.sectionTitle}>SMS Notifications</h2>
             </div>
             <p className={styles.sectionDescription}>Standard messaging rates may apply</p>

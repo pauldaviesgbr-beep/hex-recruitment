@@ -30,7 +30,7 @@ export interface Notification {
 
 // Get icon for notification type
 export function getNotificationIcon(_type: NotificationType): string {
-  return '🔔'
+  return 'bell'  // an IconName for components/icons.tsx, no longer an emoji
 }
 
 // Format relative time

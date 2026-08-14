@@ -281,7 +281,7 @@ export default function PrepNotesModal({
                   ? `Daily limit reached (${aiLimit}/day)`
                   : `Generate AI interview questions — ${aiRemaining} left today`}
               >
-                {generating ? 'Generating…' : '✨ Generate questions'}
+                {generating ? 'Generating…' : 'Generate questions'}
               </button>
             )}
             {generating

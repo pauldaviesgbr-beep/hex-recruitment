@@ -20,6 +20,7 @@ import { Interview, Offer } from '@/lib/types'
 import { confirmHire } from '@/lib/confirmHire'
 import { headerThemeForStatus, stageForStatus, STAGE_LABELS, STAGE_COLORS, stageSoftTint, stageSoftBorder } from '@/lib/constants/pipelineStages'
 import styles from './page.module.css'
+import { Ico } from '@/components/icons'
 
 interface Application {
   id: string
@@ -786,7 +787,7 @@ export default function JobApplicationsPage() {
         {/* Applications List */}
         {applications.length === 0 ? (
           <div className={styles.emptyState}>
-            <span className={styles.emptyIcon}>📭</span>
+            <span className={styles.emptyIcon}><Ico name="inbox" size={20} /></span>
             <h2 className={styles.emptyTitle}>No applications yet</h2>
             <p className={styles.emptyText}>
               No candidates have applied to this position yet.
@@ -800,7 +801,7 @@ export default function JobApplicationsPage() {
                   alert('Job link copied to clipboard!')
                 }}
               >
-                📋 Copy Job Link
+                <Ico name="file-text" size={16} /> Copy Job Link
               </button>
               <button className={styles.backBtn} onClick={() => router.push(fromPipeline ? '/pipeline' : '/my-jobs')}>
                 {fromPipeline ? 'Back to Pipeline' : 'Back to Manage Job Ads'}
@@ -884,12 +885,12 @@ export default function JobApplicationsPage() {
                     <div className={styles.interviewSection}>
                       <h4 className={styles.interviewTitle}>
                         {application.interview.status === 'completed'
-                          ? '✅ Interview Completed'
+                          ? 'Interview Completed'
                           : application.interview.status === 'pending_selection'
                           ? '⏳ Awaiting Time Selection'
                           : application.interview.status === 'confirmed'
-                          ? '📅 Confirmed Interview'
-                          : '📅 Scheduled — Awaiting Confirmation'}
+                          ? 'Confirmed Interview'
+                          : 'Scheduled — Awaiting Confirmation'}
                       </h4>
                       {application.interview.status === 'pending_selection' && (
                         <p className={styles.pendingSlot}>Waiting for candidate to select a time</p>
@@ -994,12 +995,12 @@ export default function JobApplicationsPage() {
                     <div className={styles.offerSection}>
                       <h4 className={styles.offerTitle}>
                         {application.status === 'hired'
-                          ? '✅ Hired'
+                          ? 'Hired'
                           : application.offer.status === 'accepted'
-                          ? '🤝 Offer Accepted — Awaiting Confirmation'
+                          ? 'Offer Accepted — Awaiting Confirmation'
                           : application.offer.status === 'declined'
-                          ? '❌ Offer Declined'
-                          : '📋 Job Offer Sent'}
+                          ? 'Offer Declined'
+                          : 'Job Offer Sent'}
                       </h4>
                       <div className={styles.offerDetails}>
                         <p><strong>Salary:</strong> {application.offer.salary}</p>

@@ -9,6 +9,7 @@ import { supabase } from '@/lib/supabase'
 import { getEmployerCapabilities } from '@/lib/employer'
 import type { PermissionKey } from '@/lib/teamPermissions'
 import { DEV_MODE, getMockUser, getMockUserType } from '@/lib/mockAuth'
+import { Ico, type IconName } from '@/components/icons'
 import styles from './page.module.css'
 
 interface SettingCard {
@@ -28,7 +29,7 @@ const settingsCards: SettingCard[] = [
     id: 'account',
     title: 'Account Settings',
     description: 'Update your contact information, email, and phone number',
-    icon: '👤',
+    icon: 'user',
     href: '/settings/account',
     forUserTypes: ['employer', 'employee'],
   },
@@ -36,7 +37,7 @@ const settingsCards: SettingCard[] = [
     id: 'security',
     title: 'Security',
     description: 'Change your password and manage account security',
-    icon: '🔒',
+    icon: 'lock',
     href: '/settings/security',
     forUserTypes: ['employer', 'employee'],
   },
@@ -44,7 +45,7 @@ const settingsCards: SettingCard[] = [
     id: 'profile',
     title: 'Profile Settings',
     description: 'Control what employers can see on your profile',
-    icon: '⚙️',
+    icon: 'settings',
     href: '/settings/profile',
     forUserTypes: ['employee'],
   },
@@ -52,7 +53,7 @@ const settingsCards: SettingCard[] = [
     id: 'company',
     title: 'Company Profile',
     description: 'Update your company information and branding',
-    icon: '🏢',
+    icon: 'building',
     href: '/settings/company',
     forUserTypes: ['employer'],
     requiresCap: 'edit_company',
@@ -61,7 +62,7 @@ const settingsCards: SettingCard[] = [
     id: 'availability',
     title: 'Interview Availability',
     description: 'Set your available days and hours for candidate interview bookings',
-    icon: '📅',
+    icon: 'calendar',
     href: '/settings/availability',
     forUserTypes: ['employer'],
   },
@@ -69,7 +70,7 @@ const settingsCards: SettingCard[] = [
     id: 'email-templates',
     title: 'Email Templates',
     description: 'Customise the emails sent to candidates at each stage of your hiring pipeline',
-    icon: '✉️',
+    icon: 'mail',
     href: '/settings/email-templates',
     forUserTypes: ['employer'],
   },
@@ -77,7 +78,7 @@ const settingsCards: SettingCard[] = [
     id: 'team',
     title: 'Team',
     description: 'Invite colleagues and manage what each teammate can do',
-    icon: '👥',
+    icon: 'users',
     href: '/settings/team',
     forUserTypes: ['employer'],
     requiresCap: 'manage_team',
@@ -86,7 +87,7 @@ const settingsCards: SettingCard[] = [
     id: 'notifications',
     title: 'Notifications',
     description: 'Manage email and SMS notification preferences',
-    icon: '🔔',
+    icon: 'bell',
     href: '/settings/notifications',
     forUserTypes: ['employer', 'employee'],
   },
@@ -94,7 +95,7 @@ const settingsCards: SettingCard[] = [
     id: 'privacy',
     title: 'Privacy',
     description: 'Control your profile visibility and data settings',
-    icon: '🛡️',
+    icon: 'shield',
     href: '/settings/privacy',
     forUserTypes: ['employer', 'employee'],
   },
@@ -102,7 +103,7 @@ const settingsCards: SettingCard[] = [
       id: 'subscription',
     title: 'Subscription & Billing',
     description: 'View your plan, trial status, and payment history',
-    icon: '💳',
+    icon: 'credit-card',
     href: '/settings/subscription',
     forUserTypes: ['employer', 'employee'],
     requiresCap: 'manage_billing',
@@ -197,7 +198,7 @@ export default function SettingsPage() {
               href={card.href}
               className={styles.settingCard}
             >
-              <div className={styles.cardIcon}>{card.icon}</div>
+              <div className={styles.cardIcon}><Ico name={card.icon as IconName} size={24} /></div>
               <div className={styles.cardContent}>
                 <h3 className={styles.cardTitle}>{card.title}</h3>
                 <p className={styles.cardDescription}>{card.description}</p>

@@ -7,6 +7,7 @@ import Header from '@/components/Header'
 import { supabase } from '@/lib/supabase'
 import { DEV_MODE, getMockUser, getMockUserType } from '@/lib/mockAuth'
 import styles from './page.module.css'
+import { Ico } from '@/components/icons'
 
 interface PrivacySettings {
   // Profile Visibility - Job Seekers
@@ -302,7 +303,7 @@ export default function PrivacySettingsPage() {
         </nav>
 
         <div className={styles.header}>
-          <div className={styles.headerIcon}>🔒</div>
+          <div className={styles.headerIcon}><Ico name="lock" size={20} /></div>
           <div>
             <h1 className={styles.title}>Privacy Settings</h1>
             <p className={styles.subtitle}>Control who can see your information and how your data is used</p>
@@ -324,7 +325,7 @@ export default function PrivacySettingsPage() {
           {/* Profile Visibility */}
           <div className={styles.section}>
             <div className={styles.sectionHeader}>
-              <span className={styles.sectionIcon}>👁️</span>
+              <span className={styles.sectionIcon}><Ico name="eye" size={20} /></span>
               <h2 className={styles.sectionTitle}>Profile Visibility</h2>
             </div>
             <p className={styles.sectionDescription}>
@@ -421,7 +422,7 @@ export default function PrivacySettingsPage() {
           {/* Data & Privacy */}
           <div className={styles.section}>
             <div className={styles.sectionHeader}>
-              <span className={styles.sectionIcon}>📊</span>
+              <span className={styles.sectionIcon}><Ico name="bar-chart-3" size={20} /></span>
               <h2 className={styles.sectionTitle}>Data & Privacy</h2>
             </div>
             <p className={styles.sectionDescription}>
@@ -517,7 +518,7 @@ export default function PrivacySettingsPage() {
         {/* Danger Zone */}
         <div className={styles.dangerSection}>
           <div className={styles.sectionHeader}>
-            <span className={styles.sectionIcon}>⚠️</span>
+            <span className={styles.sectionIcon}><Ico name="alert-triangle" size={20} /></span>
             <h2 className={styles.dangerTitle}>Your Data</h2>
           </div>
           <p className={styles.sectionDescription}>

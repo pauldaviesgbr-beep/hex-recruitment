@@ -7,6 +7,7 @@ import SignedLink from '@/components/SignedLink'
 import { supabase } from '@/lib/supabase'
 import { getSessionWithRetry } from '@/lib/getSessionWithRetry'
 import { getCurrentEmployerOwnerId } from '@/lib/employer'
+import { Ico } from '@/components/icons'
 
 type OfferStatus = 'pending' | 'accepted' | 'declined' | 'withdrawn'
 
@@ -321,7 +322,7 @@ export default function OffersPage() {
             style={{ flex: '1 1 160px', padding: '0.5rem 0.75rem', border: '1px solid #cbd5e1', borderRadius: 8, fontSize: '0.85rem', background: '#fff' }}
           >
             <option value="all">All tags</option>
-            <option value="stale">🕐 Stale (pending &gt;{STALE_PENDING_DAYS}d)</option>
+            <option value="stale"><Ico name="clock" size={16} /> Stale (pending &gt;{STALE_PENDING_DAYS}d)</option>
             {tagOptions.length > 0 && <option disabled>──────</option>}
             {tagOptions.map(t => (
               <option key={t} value={t}>{tagStyle(t).label}</option>
@@ -405,7 +406,7 @@ export default function OffersPage() {
                         </span>
                         {stale && (
                           <span title={`Pending > ${STALE_PENDING_DAYS} days`} style={{ marginLeft: 6, display: 'inline-block', padding: '0.15rem 0.5rem', borderRadius: 99, background: '#fff7ed', color: '#c2410c', fontSize: '0.7rem', fontWeight: 600 }}>
-                            🕐 Stale
+                            <Ico name="clock" size={16} /> Stale
                           </span>
                         )}
                       </td>

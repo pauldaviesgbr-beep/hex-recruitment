@@ -25,6 +25,7 @@ function normalizeUrl(url: string): string {
 
 // Job sector labels lookup
 import { getCategoryLabel } from '@/lib/categories'
+import { Ico } from '@/components/icons'
 const JOB_SECTOR_LABELS: Record<string, string> = new Proxy({} as Record<string, string>, {
   get: (_target, key: string) => getCategoryLabel(key),
 })
@@ -295,13 +296,13 @@ export default function ProfilePage() {
               <div className={styles.profileMeta}>
                 {profileData?.city && (
                   <span className={styles.metaItem}>
-                    <span className={styles.metaIcon}>📍</span>
+                    <span className={styles.metaIcon}><Ico name="map-pin" size={20} /></span>
                     {profileData.city}{profileData.postcode ? `, ${profileData.postcode}` : ''}
                   </span>
                 )}
                 {profileData?.yearsExperience > 0 && (
                   <span className={styles.metaItem}>
-                    <span className={styles.metaIcon}>⏱️</span>
+                    <span className={styles.metaIcon}><Ico name="timer" size={20} /></span>
                     {profileData.yearsExperience} {profileData.yearsExperience === 1 ? 'year' : 'years'} experience
                   </span>
                 )}
@@ -316,7 +317,7 @@ export default function ProfilePage() {
               className={`${styles.previewBtn} ${employerPreview ? styles.previewBtnActive : ''}`}
               onClick={() => setEmployerPreview(p => !p)}
             >
-              {employerPreview ? '👁 Viewing as employer' : '👁 Preview as employer'}
+              {employerPreview ? 'Viewing as employer' : 'Preview as employer'}
             </button>
             <button
               className={styles.editBtn}
@@ -329,7 +330,7 @@ export default function ProfilePage() {
 
         {employerPreview && (
           <div className={styles.previewBanner}>
-            👁 Employer preview — this is what recruiters see on your profile. Private fields are hidden.
+            <Ico name="eye" size={16} /> Employer preview — this is what recruiters see on your profile. Private fields are hidden.
             <button className={styles.previewBannerClose} onClick={() => setEmployerPreview(false)}>Exit preview</button>
           </div>
         )}
@@ -501,7 +502,7 @@ export default function ProfilePage() {
               <div className={styles.contactList}>
                 {profileData?.email && (
                   <div className={styles.contactItem}>
-                    <span className={styles.contactIcon}>📧</span>
+                    <span className={styles.contactIcon}><Ico name="mail" size={20} /></span>
                     <div>
                       <span className={styles.contactLabel}>Email</span>
                       <span className={styles.contactValue}>{profileData.email}</span>
@@ -510,7 +511,7 @@ export default function ProfilePage() {
                 )}
                 {profileData?.phone && (
                   <div className={styles.contactItem}>
-                    <span className={styles.contactIcon}>📱</span>
+                    <span className={styles.contactIcon}><Ico name="smartphone" size={20} /></span>
                     <div>
                       <span className={styles.contactLabel}>Phone</span>
                       <span className={styles.contactValue}>{profileData.phone}</span>
@@ -519,7 +520,7 @@ export default function ProfilePage() {
                 )}
                 {profileData?.addressLine1 && (
                   <div className={styles.contactItem}>
-                    <span className={styles.contactIcon}>🏠</span>
+                    <span className={styles.contactIcon}><Ico name="home" size={20} /></span>
                     <div>
                       <span className={styles.contactLabel}>Address</span>
                       <span className={styles.contactValue}>

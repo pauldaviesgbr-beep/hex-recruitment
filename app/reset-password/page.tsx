@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase'
 import Header from '@/components/Header'
 import PasswordInput from '@/components/PasswordInput'
 import styles from '../login/page.module.css'
+import { Ico } from '@/components/icons'
 
 // Password reset — the "set a new password" step.
 //
@@ -160,7 +161,7 @@ export default function ResetPasswordPage() {
       <div className={styles.container}>
         <div className={styles.formCard}>
           <div className={styles.loginHeader}>
-            <span className={styles.loginIcon}>🔒</span>
+            <span className={styles.loginIcon}><Ico name="lock" size={20} /></span>
             <h1 className={styles.title}>Reset Password</h1>
           </div>
           <p className={styles.subtitle}>Enter your new password below.</p>

@@ -12,6 +12,7 @@ import { employerLoginPath } from '@/lib/loginRedirect'
 import { focusField } from '@/lib/focusField'
 import FieldError from '@/components/FieldError'
 import styles from './page.module.css'
+import { Ico } from '@/components/icons'
 
 const INDUSTRY_OPTIONS = [
   'Accountancy, Banking & Finance',
@@ -663,7 +664,7 @@ export default function CompanySettingsPage() {
         </nav>
 
         <div className={styles.header}>
-          <div className={styles.headerIcon}>🏢</div>
+          <div className={styles.headerIcon}><Ico name="building" size={20} /></div>
           <div>
             <h1 className={styles.title}>Company Profile</h1>
             <p className={styles.subtitle}>Manage your company information and branding</p>
@@ -751,7 +752,7 @@ export default function CompanySettingsPage() {
                   <span>Processing logo...</span>
                 ) : (
                   <>
-                    <span className={styles.uploadIcon}>📁</span>
+                    <span className={styles.uploadIcon}><Ico name="folder" size={20} /></span>
                     <span>Choose a logo image</span>
                     <span className={styles.uploadHint}>PNG or JPG — resized to 200x200px square</span>
                   </>

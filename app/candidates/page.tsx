@@ -54,6 +54,7 @@ const candidateFilterSections = [
 ]
 
 import { categories as sharedCategories, getCategoryLabel } from '@/lib/categories'
+import { Ico } from '@/components/icons'
 const categories = [{ id: 'all', label: 'All Candidates' }, ...sharedCategories]
 
 const JOB_SECTOR_LABELS: Record<string, string> = new Proxy({} as Record<string, string>, {
@@ -570,7 +571,7 @@ function CandidatesContent() {
         <Header />
         <div className={styles.container}>
           <div className={styles.accessDenied}>
-            <div className={styles.accessIcon}>🔒</div>
+            <div className={styles.accessIcon}><Ico name="lock" size={20} /></div>
             <h2>Employer Access Only</h2>
             <p>
               Only employers can browse candidate profiles. Sign up free to
@@ -592,7 +593,7 @@ function CandidatesContent() {
         <Header />
         <div className={styles.container}>
           <div className={styles.accessDenied}>
-            <div className={styles.accessIcon}>📋</div>
+            <div className={styles.accessIcon}><Ico name="file-text" size={20} /></div>
             <h2>Subscription Required</h2>
             <p>Redirecting to subscription page...</p>
           </div>

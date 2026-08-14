@@ -113,9 +113,9 @@ export default function AdminWaitlistPage() {
       <h1 className={styles.pageTitle}>Waitlist</h1>
 
       <div className={styles.statsGrid}>
-        <StatsCard title="Waitlist Signups" value={stats.total} icon="📋" />
-        <StatsCard title="Free Spots Claimed" value={freeSpotsClaimed} icon="🎉" color="#d97706" />
-        <StatsCard title="Spots Remaining" value={spotsRemaining} icon="🔓" color={spotsRemaining > 0 ? '#16a34a' : '#dc2626'} />
+        <StatsCard title="Waitlist Signups" value={stats.total} />
+        <StatsCard title="Free Spots Claimed" value={freeSpotsClaimed} />
+        <StatsCard title="Spots Remaining" value={spotsRemaining} color={spotsRemaining > 0 ? '#16a34a' : '#dc2626'} />
       </div>
 
       <AdminTable
