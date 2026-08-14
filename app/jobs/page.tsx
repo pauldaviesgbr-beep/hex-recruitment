@@ -81,6 +81,7 @@ const getPostedDaysAgo = (postedAt: string): number => {
 }
 
 import { categories as sharedCategories } from '@/lib/categories'
+import { Ico } from '@/components/icons'
 const categories = [{ id: 'all', label: 'All Jobs' }, ...sharedCategories]
 
 // Map job data to sector categories
@@ -1000,7 +1001,7 @@ function JobsPageContent() {
                 className={`${styles.filterPill} ${quickWorkStyle === ws ? styles.filterPillActive : ''}`}
                 onClick={() => setQuickWorkStyle(quickWorkStyle === ws ? null : ws)}
               >
-                {ws === 'Remote' && '🌐 '}{ws === 'Hybrid' && '🏠 '}{ws === 'On-site' && '🏢 '}{ws}
+                {ws === 'Remote' && ''}{ws === 'Hybrid' && ''}{ws === 'On-site' && ''}{ws}
               </button>
             ))}
             <select
@@ -1219,11 +1220,11 @@ function JobsPageContent() {
                 <p className={styles.detailCompany}>{selectedJob.company}</p>
                 {selectedJob.companyWebsite && (
                   <a href={selectedJob.companyWebsite.startsWith('http') ? selectedJob.companyWebsite : `https://${selectedJob.companyWebsite}`} target="_blank" rel="noopener noreferrer" className={styles.detailWebsite}>
-                    🌐 {selectedJob.companyWebsite.replace(/^https?:\/\//, '')}
+                    <Ico name="globe" size={16} /> {selectedJob.companyWebsite.replace(/^https?:\/\//, '')}
                   </a>
                 )}
                 <a href={getGoogleMapsUrl(selectedJob)} target="_blank" rel="noopener noreferrer" className={styles.detailLocation}>
-                  📍 {selectedJob.fullLocation?.addressLine1
+                  <Ico name="map-pin" size={16} /> {selectedJob.fullLocation?.addressLine1
                     ? `${selectedJob.fullLocation.addressLine1}, ${selectedJob.fullLocation.city} ${selectedJob.fullLocation.postcode}`
                     : [selectedJob.location, selectedJob.area].filter(Boolean).join(', ')}
                 </a>

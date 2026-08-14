@@ -8,6 +8,7 @@ import { ThumbsUp } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { getCurrentEmployerOwnerId, getEmployerCapabilities } from '@/lib/employer'
 import { roleMeta, formatWhen, formatRate, timeAgo, initialsOf, type TempPost, type TempComment } from '@/lib/tempWork'
+import { Ico } from '@/components/icons'
 
 const C = { border: '#e2e8f0', sub: '#64748b', ink: '#0f172a', yellow: '#ffe500' }
 
@@ -203,7 +204,7 @@ export default function ManageTempWorkPage() {
                       {formatWhen(post)} · {post.location_area}{rate ? ` · ${rate}` : ''} · posted {timeAgo(post.created_at)}
                     </div>
                     <div style={{ fontSize: '0.82rem', color: C.sub, marginTop: 4, display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                      <ThumbsUp size={13} strokeWidth={2.4} style={{ color: '#2563eb' }} /> {post.like_count} like{post.like_count === 1 ? '' : 's'} · 💬 {post.comment_count} comment{post.comment_count === 1 ? '' : 's'}
+                      <ThumbsUp size={13} strokeWidth={2.4} style={{ color: '#2563eb' }} /> {post.like_count} like{post.like_count === 1 ? '' : 's'} · <Ico name="message-square" size={16} /> {post.comment_count} comment{post.comment_count === 1 ? '' : 's'}
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexShrink: 0 }}>

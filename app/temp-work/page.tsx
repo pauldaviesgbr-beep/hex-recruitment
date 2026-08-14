@@ -648,7 +648,7 @@ export default function TempWorkPage() {
                         badges: [
                           ...cardModelFromShift(post).badges,
                           // THE ACTION, ON THE CARD. One tap, mirroring
-                          // "⚡ Easy apply" on a job. Four viewer states, which
+                          // "Easy apply" on a job. Four viewer states, which
                           // collapse to three visible ones: the owner simply
                           // gets no action badge rather than a fourth label.
                           ...(isEx || post.status === 'filled' || isOwner ? [] : [
@@ -671,7 +671,7 @@ export default function TempWorkPage() {
                                   onClick: () => openComments(post),
                                 }
                               : {
-                                  label: busyInterest === post.id ? 'Sending…' : '⚡ I’m available',
+                                  label: busyInterest === post.id ? 'Sending…' : 'I’m available',
                                   accent: true,
                                   disabled: busyInterest === post.id,
                                   onClick: () => expressInterest(post),
@@ -810,7 +810,7 @@ export default function TempWorkPage() {
                               disabled={busyInterest === post.id}
                               onClick={() => expressInterest(post, true)}
                             >
-                              {busyInterest === post.id ? 'Sending…' : '⚡ I’m available'}
+                              {busyInterest === post.id ? 'Sending…' : 'I’m available'}
                             </button>
                           </div>
                         )

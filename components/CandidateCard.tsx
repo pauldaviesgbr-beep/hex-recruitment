@@ -8,6 +8,7 @@ import { Candidate } from '@/lib/mockCandidates'
 import { fallbackVariant } from '@/lib/jobBanner'
 import { joinedAgo } from '@/lib/joinedAgo'
 import styles from './CandidateCard.module.css'
+import { Ico } from '@/components/icons'
 
 function initialsOf(name: string) {
   return name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
@@ -98,7 +99,7 @@ export default function CandidateCard(props: {
         {(props.matchScore || props.featured) && (
           <div className={styles.dirTopBadges}>
             {props.matchScore ? <span className={styles.matchBadge}>{props.matchScore}% match</span> : null}
-            {props.featured ? <span className={styles.dirFeatured}>⚡ Featured</span> : null}
+            {props.featured ? <span className={styles.dirFeatured}><Ico name="zap" size={16} /> Featured</span> : null}
           </div>
         )}
 
@@ -202,7 +203,7 @@ export default function CandidateCard(props: {
         {(props.matchScore || props.featured) && (
           <div className={styles.topBadges}>
             {props.matchScore ? <span className={styles.matchBadge}>{props.matchScore}% match</span> : null}
-            {props.featured ? <span className={styles.featuredBadge}>⚡ Featured</span> : null}
+            {props.featured ? <span className={styles.featuredBadge}><Ico name="zap" size={16} /> Featured</span> : null}
           </div>
         )}
 

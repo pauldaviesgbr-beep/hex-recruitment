@@ -12,6 +12,7 @@ import { EMPLOYER_COHORT_CAP } from '@/lib/constants/cohort'
 import { foundingPhraseShort } from '@/lib/trialUtils'
 import { safeInternalPath } from '@/lib/safeRedirect'
 import styles from '../page.module.css'
+import { Ico } from '@/components/icons'
 
 function EmployerLoginPageContent() {
   const router = useRouter()
@@ -127,7 +128,7 @@ function EmployerLoginPageContent() {
       <div className={styles.container}>
         <div className={styles.formCard}>
           <div className={styles.loginHeader}>
-            <span className={styles.loginIcon}>🏢</span>
+            <span className={styles.loginIcon}><Ico name="building" size={20} /></span>
             <h1 className={styles.title}>Employer Login</h1>
           </div>
           <p className={styles.subtitle}>Access your recruitment dashboard</p>

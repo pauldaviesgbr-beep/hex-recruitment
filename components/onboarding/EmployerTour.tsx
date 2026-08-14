@@ -14,6 +14,7 @@ import { driver, type DriveStep } from 'driver.js'
 import 'driver.js/dist/driver.css'
 import { supabase } from '@/lib/supabase'
 import './tour.css'
+import { Ico } from '@/components/icons'
 
 // Show/hide the example showcase so it appears ONLY while the tour runs — the
 // dashboard listens for these and mounts/unmounts <ExampleShowcase/>.
@@ -163,7 +164,7 @@ export default function EmployerTour({ isEmpty }: { isEmpty: boolean }) {
 
   return (
     <button type="button" className="thrive-tour-trigger" onClick={startTour}>
-      <span aria-hidden>🧭</span> Take the tour
+      <span aria-hidden><Ico name="compass" size={20} /></span> Take the tour
     </button>
   )
 }

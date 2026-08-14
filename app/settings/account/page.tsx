@@ -8,6 +8,7 @@ import PostcodeLookup, { type AddressData } from '@/components/PostcodeLookup'
 import { supabase } from '@/lib/supabase'
 import { DEV_MODE, getMockUser, getMockUserType } from '@/lib/mockAuth'
 import styles from './page.module.css'
+import { Ico } from '@/components/icons'
 
 interface AccountFormData {
   firstName: string
@@ -238,7 +239,7 @@ export default function AccountSettingsPage() {
         </Link>
 
         <div className={styles.header}>
-          <div className={styles.headerIcon}>👤</div>
+          <div className={styles.headerIcon}><Ico name="user" size={20} /></div>
           <div>
             <h1 className={styles.title}>Account Settings</h1>
             <p className={styles.subtitle}>Update your contact information and address</p>

@@ -10,6 +10,7 @@ import Header from '@/components/Header'
 import { supabase } from '@/lib/supabase'
 import { DEV_MODE } from '@/lib/mockAuth'
 import styles from './page.module.css'
+import { Ico } from '@/components/icons'
 
 interface WorkEntry {
   id: string
@@ -1176,7 +1177,7 @@ export default function CVBuilderPage() {
             onMouseEnter={e => (e.currentTarget.style.borderColor = '#16a34a')}
             onMouseLeave={e => (e.currentTarget.style.borderColor = '#d1d5db')}
           >
-            <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>📄</div>
+            <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}><Ico name="file" size={20} /></div>
             <div style={{ fontWeight: 600, fontSize: '1rem' }}>Upload your CV</div>
             <div style={{ color: '#64748b', fontSize: '0.85rem', marginTop: '0.25rem' }}>PDF or Word — max 5 MB</div>
             {uploading && <div style={{ marginTop: '0.75rem', color: '#16a34a', fontWeight: 500 }}>Uploading...</div>}

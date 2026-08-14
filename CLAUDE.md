@@ -220,3 +220,10 @@ wrong reason is worse than no check, because it ends the search.
   new behaviour would produce the same output, the test proves
   nothing. Production and preview returning different error strings
   is what proved the dispatcher routing.
+
+- A POSITIVE CONTROL MUST LIVE OUTSIDE THE THING BEING CHANGED. The
+  emoji detector's control pointed at a file the sweep then
+  legitimately emptied — so the control began failing ON SUCCESS,
+  and for twenty minutes that read as a broken detector. The fixture
+  was part of the population under change. Controls come from inline
+  literals or fixtures the operation cannot reach.

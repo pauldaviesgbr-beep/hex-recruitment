@@ -34,29 +34,11 @@ export default function LiveJobCount({ className, style }: { className?: string;
       className={className}
       style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontSize: '0.95rem', ...style }}
     >
-      <span aria-hidden="true" className="liveDot" />
+      {/* The pulsing green dot is GONE — design phase 1: green is retired
+          from the product, and the number does the work by itself. */}
       <span>
         <strong>{count.toLocaleString('en-GB')}</strong> roles live now
       </span>
-      <style jsx>{`
-        .liveDot {
-          width: 9px;
-          height: 9px;
-          border-radius: 50%;
-          background: #22c55e;
-          box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.6);
-          animation: livePulse 2s infinite;
-          flex: none;
-        }
-        @keyframes livePulse {
-          0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.55); }
-          70% { box-shadow: 0 0 0 7px rgba(34, 197, 94, 0); }
-          100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
-        }
-        @media (prefers-reduced-motion: reduce) {
-          .liveDot { animation: none; }
-        }
-      `}</style>
     </div>
   )
 }

@@ -20,6 +20,7 @@ import { focusField } from '@/lib/focusField'
 import FormError from '@/components/FormError'
 import FieldError from '@/components/FieldError'
 import styles from './JobSeekerProfileForm.module.css'
+import { Ico, type IconName } from '@/components/icons'
 
 // Normalize URL to ensure it has https:// prefix
 function normalizeUrl(url: string): string {
@@ -35,11 +36,11 @@ function normalizeUrl(url: string): string {
 
 // Form step definitions (5 steps - no payment required for free trial)
 const STEPS = [
-  { id: 1, title: 'Personal Details', icon: '👤' },
-  { id: 2, title: 'Contact Info', icon: '📞' },
-  { id: 3, title: 'Professional', icon: '💼' },
-  { id: 4, title: 'Documents', icon: '📋' },
-  { id: 5, title: 'Account', icon: '🔐' },
+  { id: 1, title: 'Personal Details', icon: 'user' },
+  { id: 2, title: 'Contact Info', icon: 'phone' },
+  { id: 3, title: 'Professional', icon: 'briefcase' },
+  { id: 4, title: 'Documents', icon: 'file-text' },
+  { id: 5, title: 'Account', icon: 'lock' },
 ]
 
 // Maps a dashboard "Profile Completion" deep-link slug (?section=<slug>) to the
@@ -1183,7 +1184,7 @@ export default function JobSeekerProfileForm({ mode, existingData, userId }: Job
           onClick={() => currentStep > step.id && setCurrentStep(step.id)}
         >
           <div className={styles.stepIcon}>
-            {currentStep > step.id ? '✓' : step.icon}
+            {currentStep > step.id ? '✓' : <Ico name={step.icon as IconName} size={20} />}
           </div>
           <span className={styles.stepTitle}>{step.title}</span>
           {index < totalSteps - 1 && <div className={styles.stepConnector} />}
@@ -1206,7 +1207,7 @@ export default function JobSeekerProfileForm({ mode, existingData, userId }: Job
             <img src={formData.photoPreview} alt="Profile" />
           ) : (
             <div className={styles.photoPlaceholder}>
-              <span className={styles.photoIcon}>📷</span>
+              <span className={styles.photoIcon}><Ico name="camera" size={20} /></span>
               <span>Add Photo</span>
             </div>
           )}
@@ -1320,7 +1321,7 @@ export default function JobSeekerProfileForm({ mode, existingData, userId }: Job
             {nationalityOpen && (
               <div className={styles.nationalityPanel}>
                 <div className={styles.nationalitySearchWrap}>
-                  <span className={styles.nationalitySearchIcon}>🔍</span>
+                  <span className={styles.nationalitySearchIcon}><Ico name="search" size={20} /></span>
                   <input
                     type="text"
                     className={styles.nationalitySearchInput}
@@ -2198,7 +2199,7 @@ export default function JobSeekerProfileForm({ mode, existingData, userId }: Job
           className={styles.fileUpload}
           onClick={() => cvInputRef.current?.click()}
         >
-          <span className={styles.fileIcon}>📄</span>
+          <span className={styles.fileIcon}><Ico name="file" size={20} /></span>
           <span className={styles.fileText}>
             {formData.cvFileName || 'Click to upload CV (PDF or Word format, max 5MB)'}
           </span>
@@ -2379,7 +2380,7 @@ export default function JobSeekerProfileForm({ mode, existingData, userId }: Job
       </div>
 
       <div className={styles.infoBox}>
-        <span className={styles.infoIcon}>ℹ️</span>
+        <span className={styles.infoIcon}><Ico name="info" size={20} /></span>
         <p>Don't worry if you don't have all documents yet. You can update your profile later.</p>
       </div>
     </div>
@@ -2422,7 +2423,7 @@ export default function JobSeekerProfileForm({ mode, existingData, userId }: Job
             className={styles.changePasswordBtn}
             onClick={() => setShowChangePassword(true)}
           >
-            🔐 Change Password
+            <Ico name="lock" size={16} /> Change Password
           </button>
         </div>
       ) : (
@@ -2531,7 +2532,7 @@ export default function JobSeekerProfileForm({ mode, existingData, userId }: Job
     <div className={styles.formContainer}>
       {isTestingMode && (
         <div className={styles.testingBanner}>
-          <span>🧪</span>
+          <span><Ico name="flask" size={20} /></span>
           <span>Testing Mode Active - Supabase bypassed, data saved to localStorage</span>
         </div>
       )}
@@ -2541,7 +2542,7 @@ export default function JobSeekerProfileForm({ mode, existingData, userId }: Job
       <FormError message={error} className={styles.error} />
       {success && mode === 'register' && (
         <div style={{ textAlign: 'center', padding: '3rem 1.5rem' }}>
-          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📧</div>
+          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}><Ico name="mail" size={20} /></div>
           <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#1e293b', margin: '0 0 0.75rem' }}>Check your email</h2>
           <p style={{ fontSize: '1rem', color: '#475569', lineHeight: 1.6, margin: '0 0 1rem', maxWidth: '400px', marginLeft: 'auto', marginRight: 'auto' }}>
             We&apos;ve sent a confirmation link to <strong>{formData.email}</strong>. Click it to activate your account and access your dashboard.

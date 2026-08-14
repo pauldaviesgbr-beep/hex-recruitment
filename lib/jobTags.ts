@@ -6,11 +6,11 @@ export interface TagDefinition {
 }
 
 export const TAG_CATEGORIES: Record<TagCategory, { title: string; icon: string }> = {
-  urgency:     { title: 'Urgency',     icon: '🔥' },
-  experience:  { title: 'Experience',  icon: '📊' },
-  workStyle:   { title: 'Work Style',  icon: '🕐' },
-  benefits:    { title: 'Benefits',    icon: '🎁' },
-  application: { title: 'Application', icon: '📋' },
+  urgency:     { title: 'Urgency',     icon: 'flame' },
+  experience:  { title: 'Experience',  icon: 'bar-chart-3' },
+  workStyle:   { title: 'Work Style',  icon: 'clock' },
+  benefits:    { title: 'Benefits',    icon: 'gift' },
+  application: { title: 'Application', icon: 'file-text' },
 }
 
 export const ALL_TAGS: TagDefinition[] = [

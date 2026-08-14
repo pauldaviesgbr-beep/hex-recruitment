@@ -9,6 +9,7 @@ import PostcodeLookup, { type AddressData } from '@/components/PostcodeLookup'
 import { supabase } from '@/lib/supabase'
 import { calculateTrialExpiry, EMPLOYER_SUBSCRIPTION_PRICE, TRIAL_MONTHS, trialPhraseFormal } from '@/lib/trialUtils'
 import styles from './page.module.css'
+import { Ico } from '@/components/icons'
 
 interface FormData {
   // Account Registration
@@ -351,7 +352,7 @@ export default function SubscribePage() {
         <Header />
         <div className={styles.successContainer}>
           <div className={styles.successCard}>
-            <div className={styles.successIcon}>🎉</div>
+            <div className={styles.successIcon}><Ico name="party-popper" size={20} /></div>
             <h1>Welcome to Thrive!</h1>
             <p className={styles.successMessage}>Your free trial has started.</p>
             <div className={styles.successDetails}>
@@ -997,7 +998,7 @@ export default function SubscribePage() {
                 )}
               </button>
               <div className={styles.securityBadge}>
-                <span className={styles.lockIcon}>🔒</span>
+                <span className={styles.lockIcon}><Ico name="lock" size={20} /></span>
                 Secure payment • 256-bit SSL encryption
               </div>
             </div>

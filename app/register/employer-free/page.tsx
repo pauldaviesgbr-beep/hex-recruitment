@@ -14,6 +14,7 @@ import { EMPLOYER_COHORT_CAP } from '@/lib/constants/cohort'
 import { foundingPhraseShort } from '@/lib/trialUtils'
 import loginStyles from '../../login/page.module.css'
 import styles from './page.module.css'
+import { Ico } from '@/components/icons'
 
 export default function RegisterEmployerFreePage() {
   const router = useRouter()
@@ -135,7 +136,7 @@ export default function RegisterEmployerFreePage() {
 
           {emailSent ? (
             <div style={{ textAlign: 'center', padding: '3rem 1.5rem' }}>
-              <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📧</div>
+              <div style={{ fontSize: '3rem', marginBottom: '1rem' }}><Ico name="mail" size={20} /></div>
               <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#1e293b', margin: '0 0 0.75rem' }}>Check your email</h2>
               <p style={{ fontSize: '1rem', color: '#475569', lineHeight: 1.6, margin: '0 0 1rem', maxWidth: 400, marginLeft: 'auto', marginRight: 'auto' }}>
                 We&apos;ve sent a confirmation link to <strong>{email}</strong>. Click it to activate your account and start hiring.

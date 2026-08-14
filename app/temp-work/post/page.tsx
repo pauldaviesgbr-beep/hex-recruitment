@@ -138,7 +138,7 @@ export default function PostTempWorkPage() {
           <select id="tw-category" style={input} value={category} onChange={e => setCategory(e.target.value)}>
             <option value="">Choose a role…</option>
             {ROLE_GROUPS.map(g => (
-              <optgroup key={g.key} label={`${g.icon} ${g.label}`}>
+              <optgroup key={g.key} label={g.label}>
                 {g.roles.map(r => <option key={r.key} value={r.key}>{r.label}</option>)}
               </optgroup>
             ))}

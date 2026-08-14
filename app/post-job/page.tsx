@@ -25,6 +25,7 @@ import { getEmployerCapabilities, getCurrentEmployerOwnerId } from '@/lib/employ
 import { FlowAppBar, Stepper, StepProgress } from './FlowChrome'
 import styles from './page.module.css'
 import flow from './flow.module.css'
+import { Ico, type IconName } from '@/components/icons'
 
 const RichTextEditor = dynamic(() => import('@/components/RichTextEditor'), { ssr: false })
 
@@ -1351,7 +1352,7 @@ function PostJobContent() {
         <Header />
         <div className={styles.container}>
           <div className={styles.formCard} style={{ textAlign: 'center', padding: '3rem' }}>
-            <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>🔒</div>
+            <div style={{ fontSize: '4rem', marginBottom: '1rem' }}><Ico name="lock" size={20} /></div>
             <h2 style={{ marginBottom: '1rem' }}>Employer Account Required</h2>
             <p style={{ color: '#666', marginBottom: '2rem' }}>
               You need an employer account to post jobs on Thrive.
@@ -1482,7 +1483,7 @@ function PostJobContent() {
           <div className={styles.section} style={stepped && !(step === 1 && editingCompany) ? { display: 'none' } : undefined}>
             <div className={styles.sectionHeader}>
               <h2 className={styles.sectionTitle}>
-                <span className={styles.sectionIcon}>🏢</span>
+                <span className={styles.sectionIcon}><Ico name="building" size={20} /></span>
                 Company Information
               </h2>
             </div>
@@ -1585,13 +1586,13 @@ function PostJobContent() {
                     <span>Processing logo...</span>
                   ) : formData.companyLogo ? (
                     <>
-                      <span className={styles.uploadIcon}>🔄</span>
+                      <span className={styles.uploadIcon}><Ico name="refresh-cw" size={20} /></span>
                       <span>Replace logo image</span>
                       <span className={styles.uploadHint}>A logo is already set — choose a new image to replace it</span>
                     </>
                   ) : (
                     <>
-                      <span className={styles.uploadIcon}>📁</span>
+                      <span className={styles.uploadIcon}><Ico name="folder" size={20} /></span>
                       <span>Choose a logo image</span>
                       <span className={styles.uploadHint}>PNG or JPG — resized to 200x200px square</span>
                     </>
@@ -1665,7 +1666,7 @@ function PostJobContent() {
           <div className={stepped ? flow.formCard : styles.section}>
             {!stepped && (
             <h2 className={styles.sectionTitle}>
-              <span className={styles.sectionIcon}>💼</span>
+              <span className={styles.sectionIcon}><Ico name="briefcase" size={20} /></span>
               Job Details
             </h2>
             )}
@@ -1945,7 +1946,7 @@ function PostJobContent() {
           {/* Description */}
           <div className={styles.section}>
             <h2 className={styles.sectionTitle}>
-              <span className={styles.sectionIcon}>📄</span>
+              <span className={styles.sectionIcon}><Ico name="file" size={20} /></span>
               Job Description
             </h2>
 
@@ -2023,7 +2024,7 @@ function PostJobContent() {
                     className={styles.aiPanelReopen}
                     onClick={() => setAiPanelOpen(true)}
                   >
-                    ✨ Draft it for me instead
+                    <Ico name="sparkles" size={16} /> Draft it for me instead
                   </button>
                 )}
 
@@ -2087,7 +2088,7 @@ function PostJobContent() {
                     {enhancing ? (
                       <><span className={styles.enhanceSpinner} />Enhancing...</>
                     ) : (
-                      <>✨ Enhance with AI</>
+                      <><Ico name="sparkles" size={16} /> Enhance with AI</>
                     )}
                   </button>
                 </div>
@@ -2141,7 +2142,7 @@ function PostJobContent() {
                     {enhancing ? (
                       <><span className={styles.enhanceSpinner} />Enhancing...</>
                     ) : (
-                      <>✨ Enhance with AI</>
+                      <><Ico name="sparkles" size={16} /> Enhance with AI</>
                     )}
                   </button>
                 </div>
@@ -2193,7 +2194,7 @@ function PostJobContent() {
               </>
             ) : (
               <h2 className={styles.sectionTitle}>
-                <span className={styles.sectionIcon}>🖼️</span>
+                <span className={styles.sectionIcon}><Ico name="image" size={20} /></span>
                 Job Banner Image
               </h2>
             )}
@@ -2216,7 +2217,7 @@ function PostJobContent() {
             {(!stepped || showPhotoTips) && (
             <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 10, padding: '0.75rem 0.9rem', marginBottom: '0.9rem' }}>
               <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#92400e', marginBottom: '0.4rem' }}>
-                📸 A great photo gets more applicants
+                <Ico name="camera" size={16} /> A great photo gets more applicants
               </div>
               <ul style={{ margin: 0, paddingLeft: '1.1rem', display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
                 {PHOTO_TIPS.map((tip, i) => (
@@ -2247,7 +2248,7 @@ function PostJobContent() {
                     <span>Processing image...</span>
                   ) : (
                     <>
-                      <span className={styles.uploadIcon}>📁</span>
+                      <span className={styles.uploadIcon}><Ico name="folder" size={20} /></span>
                       <span>Choose a banner image</span>
                       <span className={styles.uploadHint}>JPEG, PNG, WebP or GIF — landscape, ideally 1200×825px. We crop to fit.</span>
                     </>
@@ -2285,7 +2286,7 @@ function PostJobContent() {
             )}
             {!formData.companyBanner && !stepped && (
               <p style={{ fontSize: '0.82rem', color: '#6b7280', margin: '0.5rem 0 0', lineHeight: 1.5 }}>
-                💡 A cover photo and a few lines of description make your job stand out — candidates see them first. Both are optional (we&apos;ll use a tasteful default image if you skip the photo), but they really help.
+                <Ico name="lightbulb" size={16} /> A cover photo and a few lines of description make your job stand out — candidates see them first. Both are optional (we&apos;ll use a tasteful default image if you skip the photo), but they really help.
               </p>
             )}
             </div>
@@ -2320,7 +2321,7 @@ function PostJobContent() {
           <div className={stepped ? flow.extrasCard : styles.section}>
             {!stepped && (
             <h2 className={styles.sectionTitle}>
-              <span className={styles.sectionIcon}>ℹ️</span>
+              <span className={styles.sectionIcon}><Ico name="info" size={20} /></span>
               Requirements & Details
             </h2>
             )}
@@ -2455,7 +2456,7 @@ function PostJobContent() {
               <h3 className={flow.extrasHeading}>Ask one screening question</h3>
             ) : (
             <h2 className={styles.sectionTitle}>
-              <span className={styles.sectionIcon}>❓</span>
+              <span className={styles.sectionIcon}><Ico name="help-circle" size={20} /></span>
               Pre-screening Questions (optional)
             </h2>
             )}
@@ -2537,7 +2538,7 @@ function PostJobContent() {
               <h3 className={flow.extrasHeading}>Tag the role</h3>
             ) : (
             <h2 className={styles.sectionTitle}>
-              <span className={styles.sectionIcon}>🏷️</span>
+              <span className={styles.sectionIcon}><Ico name="tag" size={20} /></span>
               Job Tags
             </h2>
             )}
@@ -2618,7 +2619,7 @@ function PostJobContent() {
             {(Object.keys(TAG_CATEGORIES) as TagCategory[]).map(catKey => (
               <div key={catKey} className={styles.tagCategoryGroup}>
                 <h4 className={styles.tagCategoryTitle}>
-                  {TAG_CATEGORIES[catKey].icon} {TAG_CATEGORIES[catKey].title}
+                  <Ico name={TAG_CATEGORIES[catKey].icon as IconName} size={16} /> {TAG_CATEGORIES[catKey].title}
                 </h4>
                 <div className={styles.checkboxGroup}>
                   {tagsByCategory[catKey].map(tagDef => (
@@ -2649,7 +2650,7 @@ function PostJobContent() {
             <div className={styles.previewSection}>
               <div className={styles.previewSectionHeader}>
                 <h2 className={styles.sectionTitle}>
-                  <span className={styles.sectionIcon}>👁️</span>
+                  <span className={styles.sectionIcon}><Ico name="eye" size={20} /></span>
                   Job Preview
                 </h2>
                 <button
@@ -2678,12 +2679,12 @@ function PostJobContent() {
                 </div>
 
                 <div className={styles.previewDetails}>
-                  <span className={styles.previewDetail}>📍 {formData.location || 'Location'}{formData.area ? `, ${formData.area}` : ''}</span>
+                  <span className={styles.previewDetail}><Ico name="map-pin" size={16} /> {formData.location || 'Location'}{formData.area ? `, ${formData.area}` : ''}</span>
                   {/* Collapses to one figure exactly as the board and the detail
                       page do. It printed "£0 - £0" before either box was
                       touched, and would have contradicted the helper text
                       underneath the field it previews. */}
-                  <span className={styles.previewDetail}>💰 {hideSalary
+                  <span className={styles.previewDetail}><Ico name="banknote" size={16} /> {hideSalary
                     ? 'Competitive salary'
                     : !formData.salaryMin
                       ? 'Pay not set yet'
@@ -2691,8 +2692,8 @@ function PostJobContent() {
                         ? `£${formData.salaryMin}${formData.salaryPeriod ? ` / ${formData.salaryPeriod}` : ''}`
                         : `£${formData.salaryMin} - £${formData.salaryMax}${formData.salaryPeriod ? ` / ${formData.salaryPeriod}` : ''}`
                   }{salaryNegotiable ? ' (negotiable)' : ''}</span>
-                  <span className={styles.previewDetail}>📋 {formData.employmentType} · {formData.contractType}</span>
-                  <span className={styles.previewDetail}>🏢 {formData.workLocationType}</span>
+                  <span className={styles.previewDetail}><Ico name="file-text" size={16} /> {formData.employmentType} · {formData.contractType}</span>
+                  <span className={styles.previewDetail}><Ico name="building" size={16} /> {formData.workLocationType}</span>
                 </div>
 
                 {formData.tags.size > 0 && (
@@ -2754,7 +2755,7 @@ function PostJobContent() {
               onClick={() => setShowPreview(!showPreview)}
               className={styles.previewBtn}
             >
-              {showPreview ? '✏️ Back to Edit' : '👁️ Preview Job'}
+              {showPreview ? 'Back to Edit' : 'Preview Job'}
             </button>
             <button type="submit" className={styles.submitBtn} disabled={loading || success || loadingJobData}>
               {loading

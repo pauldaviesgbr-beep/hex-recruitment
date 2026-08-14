@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabase'
 import { DEV_MODE, getMockUser } from '@/lib/mockAuth'
 import { EMPLOYER_SUBSCRIPTION_PRICE, formatExpiryDate, calculateTrialExpiry } from '@/lib/trialUtils'
 import styles from './page.module.css'
+import { Ico } from '@/components/icons'
 
 export default function RenewSubscriptionPage() {
   const router = useRouter()
@@ -204,7 +205,7 @@ export default function RenewSubscriptionPage() {
           </button>
 
           <div className={styles.secureNote}>
-            <span className={styles.lockIcon}>🔒</span>
+            <span className={styles.lockIcon}><Ico name="lock" size={20} /></span>
             <span>Secure payment via Stripe</span>
           </div>
 

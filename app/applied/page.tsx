@@ -10,6 +10,7 @@ import { Inbox } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { notify } from '@/lib/notify'
 import styles from './page.module.css'
+import { Ico } from '@/components/icons'
 
 interface Applicant {
   id: string
@@ -207,8 +208,8 @@ export default function AppliedPage() {
                 </div>
                 <span className={styles.colJob}>{a.jobTitle}</span>
                 <span className={styles.colDocs}>
-                  {a.hasCv && <span className={styles.docBadge} title="CV attached">📄</span>}
-                  {a.hasCoverLetter && <span className={styles.docBadge} title="Cover letter">✉️</span>}
+                  {a.hasCv && <span className={styles.docBadge} title="CV attached"><Ico name="file" size={20} /></span>}
+                  {a.hasCoverLetter && <span className={styles.docBadge} title="Cover letter"><Ico name="mail" size={20} /></span>}
                   {!a.hasCv && !a.hasCoverLetter && <span style={{ color: '#cbd5e1' }}>—</span>}
                 </span>
                 <span className={styles.colTime}>{formatTime(a.appliedAt)}</span>

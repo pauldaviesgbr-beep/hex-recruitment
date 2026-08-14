@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import { Ico } from '@/components/icons'
 
 /**
  * Status-aware modal for terminating an offer. Three scenarios:
@@ -266,7 +267,7 @@ function UnconditionalBody({
 }) {
   return (
     <div style={{ padding: '1.5rem 1.5rem 0' }}>
-      <h2 style={{ ...titleStyle, color: '#b91c1c' }}>⚠ Rescind binding offer</h2>
+      <h2 style={{ ...titleStyle, color: '#b91c1c' }}><Ico name="alert-triangle" size={16} /> Rescind binding offer</h2>
       <p style={paragraphStyle}>
         {candidateName} has counter-signed this offer for {jobTitle}, creating a binding contract of employment. The offer letter does not appear to contain pre-employment conditions (right-to-work, references, DBS, or probation completion) that would give you a contractual right to rescind.
       </p>

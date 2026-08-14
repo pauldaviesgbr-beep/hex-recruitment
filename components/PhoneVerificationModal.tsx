@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import styles from './PhoneVerificationModal.module.css'
+import { Ico } from '@/components/icons'
 
 interface PhoneVerificationModalProps {
   onComplete: () => void
@@ -74,7 +75,7 @@ export default function PhoneVerificationModal({ onComplete }: PhoneVerification
     <div className={styles.overlay}>
       <div className={styles.modal}>
         <div className={styles.header}>
-          <span className={styles.icon}>📱</span>
+          <span className={styles.icon}><Ico name="smartphone" size={20} /></span>
           <h1 className={styles.title}>Verify phone</h1>
           <p className={styles.subtitle}>You only have to do this once</p>
         </div>

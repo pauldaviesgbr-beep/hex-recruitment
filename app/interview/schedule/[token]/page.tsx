@@ -5,6 +5,7 @@ import { useRouter, useParams, usePathname } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import Header from '@/components/Header'
 import CalendarSlotPicker from '@/components/CalendarSlotPicker'
+import { Ico } from '@/components/icons'
 
 type Slot = { date: string; time: string; duration: number }
 
@@ -142,7 +143,7 @@ export default function CandidateSelfSchedulePage() {
       <main>
         <Header />
         <div style={{ maxWidth: 520, margin: '4rem auto', textAlign: 'center', padding: '0 1rem' }}>
-          <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>📅</div>
+          <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}><Ico name="calendar" size={20} /></div>
           <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.5rem' }}>{error}</h2>
           <p style={{ color: '#64748b', marginBottom: '1.5rem' }}>
             {error.includes('already') ? 'Check your dashboard for details.' : 'Please contact the employer if you think this is a mistake.'}
@@ -160,7 +161,7 @@ export default function CandidateSelfSchedulePage() {
       <main>
         <Header />
         <div style={{ maxWidth: 520, margin: '4rem auto', textAlign: 'center', padding: '0 1rem' }}>
-          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🎉</div>
+          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}><Ico name="party-popper" size={20} /></div>
           <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#15803d', marginBottom: '0.5rem' }}>Interview Booked!</h2>
           <p style={{ color: '#64748b', marginBottom: '0.25rem' }}>
             Your interview for <strong>{context?.jobTitle}</strong> at <strong>{context?.company}</strong> has been confirmed.

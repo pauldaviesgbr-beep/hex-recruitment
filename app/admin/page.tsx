@@ -9,6 +9,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from 'recharts'
 import styles from './page.module.css'
+import { Ico } from '@/components/icons'
 
 // Every number on this page excludes the two is_test fixture accounts —
 // enforced in /api/admin/stats and /api/admin/health, not here.
@@ -154,19 +155,19 @@ export default function AdminOverviewPage() {
       {hasAlerts && stats.alerts && (
         <div className={styles.alertsBar}>
           <div className={`${styles.alert} ${styles.alertInfo}`}>
-            <span className={styles.alertIcon}>🚩</span>
+            <span className={styles.alertIcon}><Ico name="flag" size={20} /></span>
             <span>{stats.alerts.flaggedReviews} flagged review{stats.alerts.flaggedReviews !== 1 ? 's' : ''}</span>
           </div>
         </div>
       )}
 
       <div className={styles.statsGrid}>
-        <StatsCard title="Real Users" value={stats.totalUsers.toLocaleString()} change={`+${stats.newUsersWeek} this week`} icon="👥" />
-        <StatsCard title="New This Month" value={stats.newUsersMonth.toLocaleString()} icon="📈" color="#3b82f6" />
-        <StatsCard title="Live Board" value={stats.jobs.liveBoard.toLocaleString()} icon="🟢" color="#16a34a" />
-        <StatsCard title="Employer-Posted Jobs" value={stats.jobs.employerPosted.toLocaleString()} icon="💼" color="#8b5cf6" />
-        <StatsCard title="Applications" value={stats.totalApplications.toLocaleString()} icon="📋" color="#f59e0b" />
-        <StatsCard title="Founding Seats" value={`${stats.foundingSeats.taken} of ${stats.foundingSeats.of}`} icon="🪑" color="#0ea5e9" />
+        <StatsCard title="Real Users" value={stats.totalUsers.toLocaleString()} change={`+${stats.newUsersWeek} this week`} />
+        <StatsCard title="New This Month" value={stats.newUsersMonth.toLocaleString()} />
+        <StatsCard title="Live Board" value={stats.jobs.liveBoard.toLocaleString()} />
+        <StatsCard title="Employer-Posted Jobs" value={stats.jobs.employerPosted.toLocaleString()} />
+        <StatsCard title="Applications" value={stats.totalApplications.toLocaleString()} />
+        <StatsCard title="Founding Seats" value={`${stats.foundingSeats.taken} of ${stats.foundingSeats.of}`} />
       </div>
 
       <p style={{ margin: '-0.5rem 0 1.5rem', fontSize: '0.8rem', color: '#64748b' }}>

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { BoostTier } from '@/lib/boostTypes'
 import styles from './BoostModal.module.css'
+import { Ico } from '@/components/icons'
 
 interface BoostModalProps {
   isOpen: boolean
@@ -85,7 +86,7 @@ export default function BoostModal({
       <div className={styles.modal} onClick={e => e.stopPropagation()}>
         <div className={styles.header}>
           <h2 className={styles.title}>
-            ⚡ Boost {boostType === 'job' ? 'Job' : 'Profile'}
+            <Ico name="zap" size={16} /> Boost {boostType === 'job' ? 'Job' : 'Profile'}
           </h2>
           <button className={styles.closeBtn} onClick={onClose}>&times;</button>
         </div>

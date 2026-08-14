@@ -24,6 +24,7 @@ import { VisibilitySettings, DEFAULT_VISIBILITY } from '@/lib/profileVisibility'
 import CandidateDetail from '@/components/CandidateDetail'
 
 import { getCategoryLabel } from '@/lib/categories'
+import { Ico } from '@/components/icons'
 const JOB_SECTOR_LABELS: Record<string, string> = new Proxy({} as Record<string, string>, {
   get: (_target, key: string) => getCategoryLabel(key),
 })
@@ -173,7 +174,7 @@ export default function CandidateDetailPage() {
       <main className={styles.page}>
         <Header />
         <div className={styles.accessDenied}>
-          <div className={styles.accessIcon}>🔒</div>
+          <div className={styles.accessIcon}><Ico name="lock" size={20} /></div>
           <h2>Employer Access Only</h2>
           <p>Only employers with a subscription can view candidate profiles.</p>
           {PAID_SURFACES_ENABLED && (<Link href="/subscribe" className={styles.backBtnPrimary}>

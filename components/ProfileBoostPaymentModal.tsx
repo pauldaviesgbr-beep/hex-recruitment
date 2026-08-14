@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js'
 import { loadStripe, type Stripe } from '@stripe/stripe-js'
 import { PROFILE_BOOST_TIERS, type BoostTier } from '@/lib/boostTypes'
+import { Ico } from '@/components/icons'
 
 // Lazy: don't fetch Stripe.js until the modal actually opens. Module-level
 // `loadStripe()` would inject the script tag at import time, which is what
@@ -304,7 +305,7 @@ export default function ProfileBoostPaymentModal({
 
         {step === 'success' && (
           <div style={{ textAlign: 'center', padding: '1rem 0' }}>
-            <div style={{ fontSize: '3rem', marginBottom: '0.75rem' }}>🚀</div>
+            <div style={{ fontSize: '3rem', marginBottom: '0.75rem' }}><Ico name="rocket" size={20} /></div>
             <p style={{ fontWeight: 600, fontSize: '1.1rem', color: '#15803d', marginBottom: '0.5rem' }}>
               Your profile is now boosted!
             </p>

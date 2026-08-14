@@ -183,9 +183,9 @@ export default function AdminJobsPage() {
 
       {stats && (
         <div className={styles.statsGrid}>
-          <StatsCard title="Active" value={stats.active} icon="🟢" color="#16a34a" />
-          <StatsCard title="Filled" value={stats.filled} icon="✅" color="#3b82f6" />
-          <StatsCard title="Archived" value={stats.archived} icon="📦" color="#64748b" />
+          <StatsCard title="Active" value={stats.active} />
+          <StatsCard title="Filled" value={stats.filled} />
+          <StatsCard title="Archived" value={stats.archived} />
         </div>
       )}
 

@@ -15,6 +15,7 @@ import {
   UserType
 } from '@/lib/trialUtils'
 import styles from './TrialStatusBanner.module.css'
+import { Ico } from '@/components/icons'
 
 interface TrialStatusBannerProps {
   userType?: UserType
@@ -126,7 +127,7 @@ export default function TrialStatusBanner({ userType: propUserType }: TrialStatu
     return (
       <div className={`${styles.banner} ${styles.expired}`}>
         <div className={styles.content}>
-          <span className={styles.icon}>⚠️</span>
+          <span className={styles.icon}><Ico name="alert-triangle" size={20} /></span>
           <div className={styles.textContent}>
             <span className={styles.title}>Your trial has expired</span>
             <span className={styles.message}>

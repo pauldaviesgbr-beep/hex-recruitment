@@ -8,6 +8,7 @@ import PasswordInput from '@/components/PasswordInput'
 import { supabase } from '@/lib/supabase'
 import { DEV_MODE, getMockUserType } from '@/lib/mockAuth'
 import styles from './page.module.css'
+import { Ico } from '@/components/icons'
 
 export default function SecuritySettingsPage() {
   const router = useRouter()
@@ -160,7 +161,7 @@ export default function SecuritySettingsPage() {
         </Link>
 
         <div className={styles.header}>
-          <div className={styles.headerIcon}>🔒</div>
+          <div className={styles.headerIcon}><Ico name="lock" size={20} /></div>
           <div>
             <h1 className={styles.title}>Security Settings</h1>
             <p className={styles.subtitle}>Manage your password and account security</p>
@@ -298,7 +299,7 @@ export default function SecuritySettingsPage() {
             Manage devices where you're currently logged in.
           </p>
           <div className={styles.sessionItem}>
-            <div className={styles.sessionIcon}>💻</div>
+            <div className={styles.sessionIcon}><Ico name="laptop" size={20} /></div>
             <div className={styles.sessionInfo}>
               <span className={styles.sessionDevice}>Current Session</span>
               <span className={styles.sessionDetails}>This device • Active now</span>

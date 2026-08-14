@@ -8,7 +8,7 @@ export interface RoleDef { key: string; label: string }
 export interface RoleGroup { key: string; label: string; icon: string; roles: RoleDef[] }
 
 export const ROLE_GROUPS: RoleGroup[] = [
-  { key: 'kitchen', label: 'Kitchen', icon: '👨‍🍳', roles: [
+  { key: 'kitchen', label: 'Kitchen', icon: 'chef-hat', roles: [
     { key: 'head_chef', label: 'Head Chef' },
     { key: 'sous_chef', label: 'Sous Chef' },
     { key: 'chef_de_partie', label: 'Chef de Partie' },
@@ -16,29 +16,29 @@ export const ROLE_GROUPS: RoleGroup[] = [
     { key: 'pastry_chef', label: 'Pastry Chef' },
     { key: 'kitchen_porter', label: 'Kitchen Porter' },
   ] },
-  { key: 'foh', label: 'Front of House', icon: '🍽️', roles: [
+  { key: 'foh', label: 'Front of House', icon: 'utensils', roles: [
     { key: 'waiting_staff', label: 'Waiting Staff' },
     { key: 'runner', label: 'Runner' },
     { key: 'host', label: 'Host/Hostess' },
     { key: 'barista', label: 'Barista' },
     { key: 'foh_supervisor', label: 'FOH Supervisor' },
   ] },
-  { key: 'bar', label: 'Bar', icon: '🍸', roles: [
+  { key: 'bar', label: 'Bar', icon: 'martini', roles: [
     { key: 'bartender', label: 'Bartender' },
     { key: 'barback', label: 'Barback' },
     { key: 'bar_supervisor', label: 'Bar Supervisor' },
   ] },
-  { key: 'events', label: 'Events & Banqueting', icon: '🎪', roles: [
+  { key: 'events', label: 'Events & Banqueting', icon: 'tent', roles: [
     { key: 'events_staff', label: 'Events Staff' },
     { key: 'banqueting_staff', label: 'Banqueting Staff' },
     { key: 'catering_assistant', label: 'Catering Assistant' },
   ] },
-  { key: 'management', label: 'Management', icon: '📋', roles: [
+  { key: 'management', label: 'Management', icon: 'file-text', roles: [
     { key: 'duty_manager', label: 'Duty Manager' },
     { key: 'restaurant_manager', label: 'Restaurant Manager' },
     { key: 'general_manager', label: 'General Manager' },
   ] },
-  { key: 'other', label: 'Other / General', icon: '💼', roles: [
+  { key: 'other', label: 'Other / General', icon: 'briefcase', roles: [
     { key: 'other', label: 'Other / General' },
   ] },
 ]
@@ -52,7 +52,7 @@ const ROLE_INDEX: Record<string, { role: RoleDef; group: RoleGroup }> = (() => {
 export function roleMeta(key: string): { key: string; label: string; groupKey: string; groupLabel: string; icon: string } {
   const hit = ROLE_INDEX[key]
   if (hit) return { key, label: hit.role.label, groupKey: hit.group.key, groupLabel: hit.group.label, icon: hit.group.icon }
-  return { key, label: key, groupKey: 'other', groupLabel: 'Other', icon: '💼' }
+  return { key, label: key, groupKey: 'other', groupLabel: 'Other', icon: 'briefcase' }
 }
 
 export function rolesInGroup(groupKey: string): string[] {

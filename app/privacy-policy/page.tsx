@@ -4,6 +4,7 @@ import Link from 'next/link'
 import Header from '@/components/Header'
 import ThriveMark from '@/components/ThriveMark'
 import styles from './page.module.css'
+import { Ico } from '@/components/icons'
 
 const sections = [
   { id: 'data-we-collect', label: 'Data We Collect' },
@@ -384,32 +385,32 @@ export default function PrivacyPolicyPage() {
 
             <div className={styles.rightsGrid}>
               <div className={styles.rightCard}>
-                <span className={styles.rightIcon}>📄</span>
+                <span className={styles.rightIcon}><Ico name="file" size={20} /></span>
                 <h3 className={styles.rightTitle}>Right to Access</h3>
                 <p>Request a copy of all personal data we hold about you</p>
               </div>
               <div className={styles.rightCard}>
-                <span className={styles.rightIcon}>✏️</span>
+                <span className={styles.rightIcon}><Ico name="pencil" size={20} /></span>
                 <h3 className={styles.rightTitle}>Right to Rectify</h3>
                 <p>Request correction of any inaccurate or incomplete data</p>
               </div>
               <div className={styles.rightCard}>
-                <span className={styles.rightIcon}>🗑️</span>
+                <span className={styles.rightIcon}><Ico name="trash" size={20} /></span>
                 <h3 className={styles.rightTitle}>Right to Erase</h3>
                 <p>Request deletion of your personal data (&quot;right to be forgotten&quot;)</p>
               </div>
               <div className={styles.rightCard}>
-                <span className={styles.rightIcon}>⏸️</span>
+                <span className={styles.rightIcon}><Ico name="pause" size={20} /></span>
                 <h3 className={styles.rightTitle}>Right to Restrict</h3>
                 <p>Request that we limit how we process your data</p>
               </div>
               <div className={styles.rightCard}>
-                <span className={styles.rightIcon}>📦</span>
+                <span className={styles.rightIcon}><Ico name="package" size={20} /></span>
                 <h3 className={styles.rightTitle}>Right to Portability</h3>
                 <p>Receive your data in a structured, machine-readable format</p>
               </div>
               <div className={styles.rightCard}>
-                <span className={styles.rightIcon}>🚫</span>
+                <span className={styles.rightIcon}><Ico name="ban" size={20} /></span>
                 <h3 className={styles.rightTitle}>Right to Object</h3>
                 <p>Object to processing based on legitimate interests or for marketing</p>
               </div>

@@ -9,6 +9,7 @@ import SignedImage from '@/components/SignedImage'
 import { supabase } from '@/lib/supabase'
 import { chooserLoginPath } from '@/lib/loginRedirect'
 import styles from './page.module.css'
+import { Ico } from '@/components/icons'
 import {
   formatRelativeTime,
   formatMessageTime,
@@ -514,7 +515,7 @@ export default function MessagesPage() {
               Messages
             </h1>
             <div className={styles.searchBox}>
-              <span className={styles.searchIcon}>🔍</span>
+              <span className={styles.searchIcon}><Ico name="search" size={20} /></span>
               <input
                 type="text"
                 id="messageSearch"
@@ -538,7 +539,7 @@ export default function MessagesPage() {
                  which is employer copy on a candidate's page. */
               conversations.length === 0 ? (
                 <div className={styles.emptyState}>
-                  <span className={styles.emptyIcon}>💬</span>
+                  <span className={styles.emptyIcon}><Ico name="message-square" size={20} /></span>
                   <h3 className={styles.emptyTitle}>No conversations yet</h3>
                   <p className={styles.emptyText}>
                     {isEmployer
@@ -548,7 +549,7 @@ export default function MessagesPage() {
                 </div>
               ) : (
                 <div className={styles.emptyState}>
-                  <span className={styles.emptyIcon}>🔍</span>
+                  <span className={styles.emptyIcon}><Ico name="search" size={20} /></span>
                   <h3 className={styles.emptyTitle}>No matches</h3>
                   <p className={styles.emptyText}>
                     Nothing here matches “{searchQuery.trim()}”.
@@ -715,7 +716,7 @@ export default function MessagesPage() {
           </div>
         ) : (
           <div className={styles.noChatSelected}>
-            <span className={styles.noChatIcon}>💬</span>
+            <span className={styles.noChatIcon}><Ico name="message-square" size={20} /></span>
             <h2 className={styles.noChatTitle}>Select a conversation</h2>
             <p className={styles.noChatText}>
               Choose a conversation from the list to start messaging

@@ -12,6 +12,7 @@ import { getSessionWithRetry } from '@/lib/getSessionWithRetry'
 import { MapPin, Video, Phone, MoreHorizontal } from 'lucide-react'
 import { RowInlineFields } from '@/components/RowInlineFields'
 import styles from './page.module.css'
+import { Ico } from '@/components/icons'
 
 interface InterviewItem {
   interviewId: string
@@ -446,7 +447,7 @@ export default function InterviewsPage() {
         {upcoming.length === 0 ? (
           past.length > 0 ? (
             <div className={styles.emptyState}>
-              <span className={styles.emptyIcon}>📅</span>
+              <span className={styles.emptyIcon}><Ico name="calendar" size={20} /></span>
               <h2 className={styles.emptyTitle}>Nothing coming up</h2>
               <p className={styles.emptyText}>
                 Your {past.length === 1 ? 'interview has' : `${past.length} interviews have`} all
@@ -455,7 +456,7 @@ export default function InterviewsPage() {
             </div>
           ) : (
             <div className={styles.emptyState}>
-              <span className={styles.emptyIcon}>📅</span>
+              <span className={styles.emptyIcon}><Ico name="calendar" size={20} /></span>
               <h2 className={styles.emptyTitle}>No interviews yet</h2>
               <p className={styles.emptyText}>
                 When you schedule interviews with candidates they will appear here.
@@ -465,7 +466,7 @@ export default function InterviewsPage() {
           )
         ) : filteredUpcoming.length === 0 ? (
           <div className={styles.emptyState}>
-            <span className={styles.emptyIcon}>📅</span>
+            <span className={styles.emptyIcon}><Ico name="calendar" size={20} /></span>
             <h2 className={styles.emptyTitle}>No interviews {activeFilter === 'today' ? 'today' : 'this week'}</h2>
             <p className={styles.emptyText}>
               Try viewing all upcoming interviews.

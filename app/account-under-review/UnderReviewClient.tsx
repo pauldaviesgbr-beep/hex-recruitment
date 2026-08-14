@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { Ico } from '@/components/icons'
 
 // Client subcomponent: renders the friendly status copy and polls
 // /api/me/approval-status every 20s so a freshly-approved user gets
@@ -48,7 +49,7 @@ export default function UnderReviewClient({
     <div style={{ maxWidth: 520, margin: '4rem auto', padding: '0 1rem', textAlign: 'center' }}>
       {(status === 'pending' || status === null || status === 'legacy_or_missing') && (
         <>
-          <div style={{ fontSize: '3rem', marginBottom: '0.75rem' }}>🕒</div>
+          <div style={{ fontSize: '3rem', marginBottom: '0.75rem' }}><Ico name="clock" size={20} /></div>
           <h1 style={{ fontSize: '1.5rem', fontWeight: 700, margin: '0 0 0.75rem' }}>Account under review</h1>
           <p style={{ color: '#475569', lineHeight: 1.6 }}>
             Thanks for signing up! Your founding-cohort account needs a quick manual check{email ? <> on <strong>{email}</strong></> : null} before we open up posting and candidate access.
@@ -73,7 +74,7 @@ export default function UnderReviewClient({
       )}
       {status === 'rejected' && (
         <>
-          <div style={{ fontSize: '3rem', marginBottom: '0.75rem' }}>⚠️</div>
+          <div style={{ fontSize: '3rem', marginBottom: '0.75rem' }}><Ico name="alert-triangle" size={20} /></div>
           <h1 style={{ fontSize: '1.5rem', fontWeight: 700, margin: '0 0 0.75rem' }}>Account not approved</h1>
           <p style={{ color: '#475569', lineHeight: 1.6 }}>
             We weren&apos;t able to approve your founding-cohort signup. If you think this is a mistake, please reply to your confirmation email or contact <a href="mailto:support@thrivecareer.co.uk" style={{ color: '#16a34a' }}>support@thrivecareer.co.uk</a> with your company name and we&apos;ll take another look.
@@ -82,7 +83,7 @@ export default function UnderReviewClient({
       )}
       {status === 'waitlisted' && (
         <>
-          <div style={{ fontSize: '3rem', marginBottom: '0.75rem' }}>📋</div>
+          <div style={{ fontSize: '3rem', marginBottom: '0.75rem' }}><Ico name="file-text" size={20} /></div>
           <h1 style={{ fontSize: '1.5rem', fontWeight: 700, margin: '0 0 0.75rem' }}>You&apos;re on the waitlist</h1>
           <p style={{ color: '#475569', lineHeight: 1.6 }}>
             The founding cohort is currently full, but we&apos;ve reserved your spot in the waitlist. We&apos;ll email you the moment a place opens up.

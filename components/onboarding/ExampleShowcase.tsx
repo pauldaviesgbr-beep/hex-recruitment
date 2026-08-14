@@ -16,18 +16,19 @@ import {
   exampleJob, exampleApplicants, EXAMPLE_PIPELINE_STAGES, exampleInterview, exampleOffer, exampleQuestions, exampleImageTips,
 } from '@/lib/example-data'
 import styles from './ExampleShowcase.module.css'
+import { Ico } from '@/components/icons'
 
 // Compact "what else you can do" tiles. Display-only teasers; each links to the
 // real page so the employer can go there after the tour.
 const FEATURE_TILES: { anchor: string; icon: string; title: string; blurb: string; href: string; cta: string }[] = [
-  { anchor: 'feat-calendar', icon: '📅', title: 'Sync your calendar', blurb: 'Connect Google Calendar so candidates book interview slots straight into your diary — no back-and-forth.', href: '/settings/availability', cta: 'Set availability' },
-  { anchor: 'feat-analytics', icon: '📈', title: 'See your analytics', blurb: 'Track views, applications and conversion for every job so you know what\'s working.', href: '/dashboard/analytics', cta: 'View analytics' },
-  { anchor: 'feat-boost', icon: '🚀', title: 'Boost a listing', blurb: 'Feature a job to rank higher in search and get a Featured badge for more applicants.', href: '/my-jobs', cta: 'Boost a job' },
-  { anchor: 'feat-candidates', icon: '🔎', title: 'Search candidates', blurb: 'Don\'t wait to be found — browse candidates and reach out to the ones you like.', href: '/candidates', cta: 'Browse candidates' },
-  { anchor: 'feat-message', icon: '💬', title: 'Message candidates', blurb: 'Chat with candidates in real time, right inside Thrive — ask a quick question or arrange a call.', href: '/messages', cta: 'Open messages' },
-  { anchor: 'feat-email', icon: '✉️', title: 'Email candidates', blurb: 'Branded emails go out automatically at each stage — customise the wording to sound like you.', href: '/settings/email-templates', cta: 'Edit email templates' },
-  { anchor: 'feat-jobs', icon: '🧭', title: 'Browse other jobs', blurb: 'See what other hospitality venues are hiring for and how they pitch their roles.', href: '/jobs', cta: 'Browse jobs' },
-  { anchor: 'feat-team', icon: '👥', title: 'Invite your team', blurb: 'Add colleagues with the right permissions so hiring is a team effort.', href: '/settings/team', cta: 'Manage team' },
+  { anchor: 'feat-calendar', icon: 'calendar', title: 'Sync your calendar', blurb: 'Connect Google Calendar so candidates book interview slots straight into your diary — no back-and-forth.', href: '/settings/availability', cta: 'Set availability' },
+  { anchor: 'feat-analytics', icon: 'trending-up', title: 'See your analytics', blurb: 'Track views, applications and conversion for every job so you know what\'s working.', href: '/dashboard/analytics', cta: 'View analytics' },
+  { anchor: 'feat-boost', icon: 'rocket', title: 'Boost a listing', blurb: 'Feature a job to rank higher in search and get a Featured badge for more applicants.', href: '/my-jobs', cta: 'Boost a job' },
+  { anchor: 'feat-candidates', icon: 'search', title: 'Search candidates', blurb: 'Don\'t wait to be found — browse candidates and reach out to the ones you like.', href: '/candidates', cta: 'Browse candidates' },
+  { anchor: 'feat-message', icon: 'message-square', title: 'Message candidates', blurb: 'Chat with candidates in real time, right inside Thrive — ask a quick question or arrange a call.', href: '/messages', cta: 'Open messages' },
+  { anchor: 'feat-email', icon: 'mail', title: 'Email candidates', blurb: 'Branded emails go out automatically at each stage — customise the wording to sound like you.', href: '/settings/email-templates', cta: 'Edit email templates' },
+  { anchor: 'feat-jobs', icon: 'compass', title: 'Browse other jobs', blurb: 'See what other hospitality venues are hiring for and how they pitch their roles.', href: '/jobs', cta: 'Browse jobs' },
+  { anchor: 'feat-team', icon: 'users', title: 'Invite your team', blurb: 'Add colleagues with the right permissions so hiring is a team effort.', href: '/settings/team', cta: 'Manage team' },
 ]
 
 const JOB_FIELDS = 4 // title, pay, location, description
@@ -164,7 +165,7 @@ export default function ExampleShowcase() {
         </p>
         <ul className={styles.qList}>
           {exampleQuestions.map((q, i) => (
-            <li key={i} className={styles.qItem}><span className={styles.qMark}>✨</span>{q}</li>
+            <li key={i} className={styles.qItem}><span className={styles.qMark}><Ico name="sparkles" size={20} /></span>{q}</li>
           ))}
         </ul>
         <Link href="/pipeline" className={styles.ctaGhost}>Review your candidates →</Link>
@@ -179,7 +180,7 @@ export default function ExampleShowcase() {
           </div>
           <div className={styles.miniTitle}>{exampleInterview.candidate}</div>
           <div className={styles.miniSub}>{exampleInterview.role}</div>
-          <div className={styles.miniLine}>📅 {exampleInterview.when}</div>
+          <div className={styles.miniLine}><Ico name="calendar" size={16} /> {exampleInterview.when}</div>
           <div className={styles.miniLine}>{exampleInterview.type}</div>
           <Link href="/settings/availability" className={styles.ctaGhost}>Set your availability →</Link>
         </div>

@@ -8,6 +8,7 @@ import PostcodeLookup, { type AddressData } from '@/components/PostcodeLookup'
 import { supabase } from '@/lib/supabase'
 import { DEV_MODE, getMockUserType } from '@/lib/mockAuth'
 import styles from './page.module.css'
+import { Ico } from '@/components/icons'
 
 type CardBrand = 'visa' | 'mastercard' | 'amex' | 'unknown'
 
@@ -307,7 +308,7 @@ export default function PaymentMethodPage() {
         </Link>
 
         <div className={styles.header}>
-          <div className={styles.headerIcon}>💳</div>
+          <div className={styles.headerIcon}><Ico name="credit-card" size={20} /></div>
           <div>
             <h1 className={styles.title}>Update Payment Method</h1>
             <p className={styles.subtitle}>Enter your card details below. Your full card number is never stored.</p>
@@ -505,7 +506,7 @@ export default function PaymentMethodPage() {
 
           {/* Security Note */}
           <div className={styles.securityNote}>
-            <span className={styles.lockIcon}>🔒</span>
+            <span className={styles.lockIcon}><Ico name="lock" size={20} /></span>
             <p>Your payment details are encrypted and secure. Full card numbers are never stored — only the last 4 digits and card type are saved for your reference.</p>
           </div>
 

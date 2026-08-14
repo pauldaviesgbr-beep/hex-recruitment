@@ -11,6 +11,7 @@ import { supabase } from '@/lib/supabase'
 import { notify } from '@/lib/notify'
 import { Interview, Offer } from '@/lib/types'
 import styles from './page.module.css'
+import { Ico, type IconName } from '@/components/icons'
 
 type ApplicationStatus = 'applied' | 'viewed' | 'shortlisted' | 'interview' | 'offer' | 'hired' | 'rejected' | 'withdrawn'
 
@@ -31,13 +32,13 @@ interface JobApplication {
 }
 
 const STATUS_CONFIG: Record<ApplicationStatus, { label: string; icon: string; className: string }> = {
-  applied: { label: 'Applied', icon: '📨', className: 'statusApplied' },
-  viewed: { label: 'Viewed', icon: '👁', className: 'statusViewed' },
-  shortlisted: { label: 'Shortlisted', icon: '⭐', className: 'statusShortlisted' },
+  applied: { label: 'Applied', icon: 'inbox', className: 'statusApplied' },
+  viewed: { label: 'Viewed', icon: 'eye', className: 'statusViewed' },
+  shortlisted: { label: 'Shortlisted', icon: 'star', className: 'statusShortlisted' },
   interview: { label: 'Interview Scheduled', icon: '', className: 'statusInterview' },
-  offer: { label: 'Offer Received', icon: '📋', className: 'statusOffer' },
-  hired: { label: 'Hired', icon: '✅', className: 'statusHired' },
-  rejected: { label: 'Rejected', icon: '✗', className: 'statusRejected' },
+  offer: { label: 'Offer Received', icon: 'file-text', className: 'statusOffer' },
+  hired: { label: 'Hired', icon: 'check', className: 'statusHired' },
+  rejected: { label: 'Rejected', icon: 'x', className: 'statusRejected' },
   withdrawn: { label: 'Withdrawn', icon: '', className: 'statusWithdrawn' },
 }
 
@@ -745,7 +746,7 @@ export default function MyJobsPage() {
                           </div>
                         ) : (
                           <div className={`${styles.statusBanner} ${styles[config.className]}`}>
-                            {config.icon && <span className={styles.bannerIcon}>{config.icon}</span>}
+                            {config.icon && <span className={styles.bannerIcon}><Ico name={config.icon as IconName} size={16} /></span>}
                             <span className={styles.bannerLabel}>{config.label}</span>
                             {!application.interview && application.interviewInterestStatus === 'pending' && (
                               <span className={styles.actionRequiredDot} aria-label="Action required" title="Action required" />
@@ -782,7 +783,7 @@ export default function MyJobsPage() {
                         <div className={styles.interestCard}>
                           <div className={styles.interestCardContent}>
                             <h4 className={styles.interestCardTitle}>
-                              <span aria-hidden>🎉</span> Interview Invitation
+                              <span aria-hidden><Ico name="party-popper" size={20} /></span> Interview Invitation
                             </h4>
                             <p className={styles.interestCardSub}>
                               {application.company} would like to interview you for {application.jobTitle}
@@ -794,14 +795,14 @@ export default function MyJobsPage() {
                               className={styles.interestBtnYes}
                               onClick={() => handleAcceptInterest(application)}
                             >
-                              ✅ Yes, I&apos;m interested!
+                              <Ico name="check" size={16} /> Yes, I&apos;m interested!
                             </button>
                             <button
                               type="button"
                               className={styles.interestBtnNo}
                               onClick={() => handleDeclineInterest(application)}
                             >
-                              ❌ No thanks
+                              <Ico name="x" size={16} /> No thanks
                             </button>
                           </div>
                         </div>
@@ -851,7 +852,7 @@ export default function MyJobsPage() {
                       {application.interview && (
                         <div className={styles.interviewSection}>
                           <h4 className={styles.interviewTitle}>
-                            {application.interview.status === 'cancelled' ? '❌ ' : application.interview.status === 'confirmed' ? '✅ ' : application.interview.status === 'pending_selection' ? '📅 ' : '📅 '}
+                            {application.interview.status === 'cancelled' ? '' : application.interview.status === 'confirmed' ? '' : application.interview.status === 'pending_selection' ? '' : ''}
                             {application.interview.status === 'cancelled' ? 'Cancelled Interview' : application.interview.status === 'pending_selection' ? 'Select Interview Time' : 'Scheduled Interview'}
                           </h4>
 
@@ -898,10 +899,10 @@ export default function MyJobsPage() {
                               <p className={styles.interviewType}>
                                 <strong>Type:</strong>{' '}
                                 {application.interview.interviewType === 'in-person'
-                                  ? '🏢 In-Person'
+                                  ? 'In-Person'
                                   : application.interview.interviewType === 'video'
-                                  ? '📹 Video Call'
-                                  : '📞 Phone Call'}
+                                  ? 'Video Call'
+                                  : 'Phone Call'}
                               </p>
                               {application.interview.locationOrLink && (
                                 <p className={styles.interviewLocation}>
@@ -936,10 +937,10 @@ export default function MyJobsPage() {
                             <p className={styles.interviewType} style={{ marginTop: '0.5rem' }}>
                               <strong>Type:</strong>{' '}
                               {application.interview.interviewType === 'in-person'
-                                ? '🏢 In-Person'
+                                ? 'In-Person'
                                 : application.interview.interviewType === 'video'
-                                ? '📹 Video Call'
-                                : '📞 Phone Call'}
+                                ? 'Video Call'
+                                : 'Phone Call'}
                             </p>
                           )}
 
@@ -970,10 +971,10 @@ export default function MyJobsPage() {
                         <div className={styles.offerSection}>
                           <h4 className={styles.offerTitle}>
                             {application.offer.status === 'accepted'
-                              ? '✅ Offer Accepted'
+                              ? 'Offer Accepted'
                               : application.offer.status === 'declined'
-                              ? '❌ Offer Declined'
-                              : '📋 Job Offer Received'}
+                              ? 'Offer Declined'
+                              : 'Job Offer Received'}
                           </h4>
                           <div className={styles.offerDetails}>
                             <p><strong>Salary:</strong> {application.offer.salary}</p>

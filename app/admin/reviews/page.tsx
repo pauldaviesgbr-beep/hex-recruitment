@@ -110,9 +110,9 @@ export default function AdminReviewsPage() {
 
       {stats && (
         <div className={styles.statsGrid}>
-          <StatsCard title="Total Reviews" value={stats.total} icon="⭐" />
-          <StatsCard title="Flagged" value={stats.flagged} icon="🚩" color="#dc2626" />
-          <StatsCard title="Avg Rating" value={stats.avgRating.toFixed(1)} icon="📊" color="#f59e0b" />
+          <StatsCard title="Total Reviews" value={stats.total} />
+          <StatsCard title="Flagged" value={stats.flagged} />
+          <StatsCard title="Avg Rating" value={stats.avgRating.toFixed(1)} />
         </div>
       )}
 

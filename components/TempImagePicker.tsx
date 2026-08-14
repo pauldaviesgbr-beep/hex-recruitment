@@ -3,6 +3,7 @@
 import { useRef, useState } from 'react'
 import { compressImage } from '@/lib/compressImage'
 import { supabase } from '@/lib/supabase'
+import { Ico } from '@/components/icons'
 
 // Effortless photo picker for Temp Work posts: drag-and-drop OR click, a live
 // thumbnail preview with remove/replace, and no size/shape requirement — the
@@ -99,7 +100,7 @@ export default function TempImagePicker({
           <span style={{ color: c.sub, fontSize: '0.9rem' }}>Adding your photo…</span>
         ) : (
           <>
-            <div style={{ fontSize: '1.6rem', lineHeight: 1 }} aria-hidden>📷</div>
+            <div style={{ fontSize: '1.6rem', lineHeight: 1 }} aria-hidden><Ico name="camera" size={20} /></div>
             <div style={{ fontWeight: 600, color: c.ink, fontSize: '0.9rem', marginTop: 6 }}>
               Drag a photo here, or click to choose
             </div>

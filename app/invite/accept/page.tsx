@@ -7,6 +7,7 @@ import Image from 'next/image'
 import { supabase } from '@/lib/supabase'
 import PasswordInput from '@/components/PasswordInput'
 import styles from './page.module.css'
+import { Ico } from '@/components/icons'
 
 type Phase =
   | 'loading'
@@ -246,7 +247,7 @@ function AcceptInviteContent() {
 
   return (
     <Shell>
-      <div className={styles.errorIcon}>{phase === 'used' ? '✅' : '⚠️'}</div>
+      <div className={styles.errorIcon}><Ico name={phase === 'used' ? 'check' : 'alert-triangle'} size={24} /></div>
       <h1 className={styles.title}>{heading}</h1>
       <p className={styles.body}>{message}</p>
       <Link className={styles.link} href="/">Back to Thrive</Link>

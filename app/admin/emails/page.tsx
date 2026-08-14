@@ -61,10 +61,10 @@ export default function AdminEmailsPage() {
       <h1 className={styles.pageTitle}>Email Logs</h1>
 
       <div className={styles.statsGrid}>
-        <StatsCard title="Total Sent" value={emails.length} icon="📧" />
-        <StatsCard title="Delivered" value={delivered} icon="✅" color="#16a34a" />
-        <StatsCard title="Opened" value={opened} icon="👁️" color="#3b82f6" />
-        <StatsCard title="Bounced" value={bounced} icon="⚠️" color="#dc2626" />
+        <StatsCard title="Total Sent" value={emails.length} />
+        <StatsCard title="Delivered" value={delivered} />
+        <StatsCard title="Opened" value={opened} />
+        <StatsCard title="Bounced" value={bounced} />
       </div>
 
       {error && (

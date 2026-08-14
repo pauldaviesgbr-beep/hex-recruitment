@@ -6,6 +6,7 @@ import Link from 'next/link'
 import Header from '@/components/Header'
 import { supabase } from '@/lib/supabase'
 import { DEV_MODE, getMockUserType } from '@/lib/mockAuth'
+import { Ico, type IconName } from '@/components/icons'
 import styles from './page.module.css'
 
 interface VisibilitySettings {
@@ -46,61 +47,61 @@ const VISIBILITY_TOGGLES: ToggleItem[] = [
     key: 'show_email',
     label: 'Email Address',
     description: 'Allow employers to see your email address',
-    icon: '📧',
+    icon: 'mail',
   },
   {
     key: 'show_phone',
     label: 'Phone Number',
     description: 'Allow employers to see your phone number',
-    icon: '📱',
+    icon: 'smartphone',
   },
   {
     key: 'show_address',
     label: 'Home Address',
     description: 'Show your full address to employers',
-    icon: '🏠',
+    icon: 'home',
   },
   {
     key: 'show_date_of_birth',
     label: 'Date of Birth / Age',
     description: 'Show your age on your public profile',
-    icon: '🎂',
+    icon: 'cake',
   },
   {
     key: 'show_nationality',
     label: 'Nationality',
     description: 'Show your nationality to employers',
-    icon: '🌍',
+    icon: 'globe',
   },
   {
     key: 'show_desired_salary',
     label: 'Desired Salary',
     description: 'Show your salary expectations to employers',
-    icon: '💷',
+    icon: 'banknote',
   },
   {
     key: 'show_social_links',
     label: 'Social Links',
     description: 'Show LinkedIn and Instagram links on your profile',
-    icon: '🔗',
+    icon: 'link',
   },
   {
     key: 'show_availability',
     label: 'Availability',
     description: 'Show your notice period / availability status',
-    icon: '📅',
+    icon: 'calendar',
   },
   {
     key: 'show_verification_badges',
     label: 'Verification Badges',
     description: 'Show NI Number, Right to Work, and other verified documents',
-    icon: '✅',
+    icon: 'check',
   },
   {
     key: 'show_cv',
     label: 'CV / Resume',
     description: 'Allow employers to download your CV',
-    icon: '📄',
+    icon: 'file',
   },
 ]
 
@@ -225,7 +226,7 @@ export default function ProfileVisibilityPage() {
         </Link>
 
         <div className={styles.header}>
-          <div className={styles.headerIcon}>🔒</div>
+          <div className={styles.headerIcon}><Ico name="lock" size={20} /></div>
           <div>
             <h1 className={styles.title}>Profile Settings</h1>
             <p className={styles.subtitle}>Control what employers can see when they view your profile</p>
@@ -233,7 +234,7 @@ export default function ProfileVisibilityPage() {
         </div>
 
         <div className={styles.infoBox}>
-          <span className={styles.infoBoxIcon}>ℹ️</span>
+          <span className={styles.infoBoxIcon}><Ico name="info" size={20} /></span>
           <div>
             <strong>Your profile data is managed on the Profile page.</strong>
             <p className={styles.infoBoxText}>
@@ -243,7 +244,7 @@ export default function ProfileVisibilityPage() {
         </div>
 
         <div className={styles.bankNote}>
-          <span>🔒</span>
+          <span><Ico name="lock" size={20} /></span>
           <span>Bank details are <strong>always private</strong> and never shown to employers, regardless of these settings.</span>
         </div>
 
@@ -254,7 +255,7 @@ export default function ProfileVisibilityPage() {
             {VISIBILITY_TOGGLES.map(item => (
               <div key={item.key} className={styles.toggleCard}>
                 <div className={styles.toggleInfo}>
-                  <span className={styles.toggleIcon}>{item.icon}</span>
+                  <span className={styles.toggleIcon}><Ico name={item.icon as IconName} size={20} /></span>
                   <div>
                     <span className={styles.toggleLabel}>{item.label}</span>
                     <span className={styles.toggleDesc}>{item.description}</span>

@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { normalizePostcode, isValidPostcodeFormat } from '@/lib/postcodeLookup'
 import styles from './PostcodeLookup.module.css'
+import { Ico } from '@/components/icons'
 
 export interface AddressData {
   addressLine1: string
@@ -186,7 +187,7 @@ export default function PostcodeLookup({
             </>
           ) : (
             <>
-              <span className={styles.searchIcon}>🔍</span>
+              <span className={styles.searchIcon}><Ico name="search" size={20} /></span>
               Find Address
             </>
           )}
@@ -212,7 +213,7 @@ export default function PostcodeLookup({
                 tabIndex={0}
                 onKeyDown={e => { if (e.key === 'Enter') selectAddress(addr) }}
               >
-                <span className={styles.suggestionIcon}>📍</span>
+                <span className={styles.suggestionIcon}><Ico name="map-pin" size={20} /></span>
                 {addr.formatted}
               </li>
             ))}

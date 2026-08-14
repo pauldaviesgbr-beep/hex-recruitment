@@ -10,6 +10,7 @@ import { isValidEmail, isDisposableEmail } from '@/lib/validateEmail'
 import { safeInternalPath } from '@/lib/safeRedirect'
 import PasswordInput from './PasswordInput'
 import LiveJobCount from './LiveJobCount'
+import { Ico } from '@/components/icons'
 
 // Minimal candidate signup: full name + email + password ONLY (Phase 2, section A).
 // Everything else the old 5-step wizard collected is now deferred to post-login
@@ -138,7 +139,7 @@ export default function CandidateSignupForm() {
   if (submitted) {
     return (
       <div className="hold">
-        <div className="holdIcon" aria-hidden="true">📧</div>
+        <div className="holdIcon" aria-hidden="true"><Ico name="mail" size={20} /></div>
         <h2 className="holdTitle">Confirm your email to finish</h2>
         <p className="holdText">
           We've sent a confirmation link to <strong>{email}</strong>. Click it and you'll be

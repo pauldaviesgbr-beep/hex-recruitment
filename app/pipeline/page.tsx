@@ -22,6 +22,7 @@ import { getCurrentEmployerOwnerId } from '@/lib/employer'
 import { STAGE_COLORS, STAGE_LABELS } from '@/lib/constants/pipelineStages'
 import { confirmHire } from '@/lib/confirmHire'
 import styles from './page.module.css'
+import { Ico } from '@/components/icons'
 
 // DECLINED is appended at the end and rendered with a muted neutral
 // accent — the column reads as an outcome (end-state), not punishment.
@@ -702,8 +703,8 @@ export default function PipelinePage() {
                                 <div className={styles.cardDetails}>
                                   {(card.location || card.experience > 0) && (
                                     <div className={styles.cardMeta}>
-                                      {card.location && <span className={styles.metaBadge}>📍 {card.location}</span>}
-                                      {card.experience > 0 && <span className={styles.metaBadge}>💼 {card.experience}yr{card.experience !== 1 ? 's' : ''}</span>}
+                                      {card.location && <span className={styles.metaBadge}><Ico name="map-pin" size={16} /> {card.location}</span>}
+                                      {card.experience > 0 && <span className={styles.metaBadge}><Ico name="briefcase" size={16} /> {card.experience}yr{card.experience !== 1 ? 's' : ''}</span>}
                                     </div>
                                   )}
                                   <div className={styles.cardSecondaryActions}>

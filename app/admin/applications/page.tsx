@@ -85,10 +85,10 @@ export default function AdminApplicationsPage() {
 
       {stats && (
         <div className={styles.statsGrid}>
-          <StatsCard title="Total" value={stats.total} icon="📋" />
-          <StatsCard title="Pending" value={stats.pending} icon="⏳" color="#f59e0b" />
-          <StatsCard title="Interview" value={stats.interview} icon="🎤" color="#8b5cf6" />
-          <StatsCard title="Offered" value={stats.offered} icon="🎉" color="#16a34a" />
+          <StatsCard title="Total" value={stats.total} />
+          <StatsCard title="Pending" value={stats.pending} />
+          <StatsCard title="Interview" value={stats.interview} />
+          <StatsCard title="Offered" value={stats.offered} />
         </div>
       )}
 
