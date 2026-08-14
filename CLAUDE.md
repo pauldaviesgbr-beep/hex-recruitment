@@ -23,6 +23,11 @@ Standing rules for Claude Code on this project. These override default behaviour
 - **Before publishing a test job with `status = 'active'`, check `job_alerts` is empty — and if it isn't, STOP and ask.** Posting fires `/api/job-alerts/match`, so the moment that table has rows a test post can email real candidates. It is empty today, which is the only reason publishing a throwaway ad to verify step 3 is safe; the marketing push is what will put rows in it. The rule is "check first", not "test posts are fine". Keep the row live for seconds, count dependents before deleting, and prove the board is back to 247 afterwards.
 - **Clean up what you create**, and state in every report what was made and whether it still exists.
 - **A test account is not two rows — enumerate the dependents BEFORE deleting, not after.** Creating one auth user on 5 Aug 2026 also created a row in `employees`, a table neither of us would have named. It was found by checking all sixteen tables carrying a candidate id, not by deleting the two that were obvious. `information_schema.columns` will list them: `candidate_id`, `user_id`, `sender_id`, `viewer_id`.
+- **THERE ARE EXACTLY TWO TEST ACCOUNTS. USE THEM. DO NOT MINT ANOTHER.** Decided 14 Aug 2026, when the census found four aliases and deleted two:
+  - `pauldavies.gbr+employer@gmail.com` — the employer side. Owns **Thrive Test Employer** and its 4 `filled` ads (none on the live board; leave them, several drives assert against them).
+  - `pauldavies.gbr+candidate@gmail.com` — the candidate side. Carries 3 applications, all against Thrive Test Employer's own ads, none against a real employer.
+  - Passwords come from the environment (`TEST_ACCOUNT_PASSWORD` / `TEST_EMPLOYER_PASSWORD` in `.env.local`), never a literal in a script. A permission test that needs a **limited member** creates a throwaway member under Thrive Test Employer and deletes it in the same run — membership rows live in `employer_members` keyed by the employer PROFILE id, not the owner's user id.
+  - `pauldavies.gbr@gmail.com` (no plus) and `paul@thrivecareer.co.uk` are **Paul's real accounts**, not fixtures. Never delete, never drive, never write to.
 
 ## Previews and secrets
 
