@@ -8,6 +8,7 @@ import SignedLink from '@/components/SignedLink'
 import SignedImage from '@/components/SignedImage'
 import DeclineOfferModal from '@/components/DeclineOfferModal'
 import { supabase } from '@/lib/supabase'
+import { notify } from '@/lib/notify'
 import { Interview, Offer } from '@/lib/types'
 import styles from './page.module.css'
 
@@ -306,18 +307,7 @@ export default function MyJobsPage() {
       return
     }
 
-    if (application.employerId) {
-      await supabase.from('notifications').insert({
-        user_id: application.employerId,
-        title: 'Candidate Interested',
-        message: `${candidateName} is interested in interviewing for ${application.jobTitle}`,
-        type: 'application_status_change',
-        read: false,
-        related_id: application.id,
-        related_type: 'application',
-        link: `/my-jobs/${application.jobId}/applications`,
-      })
-    }
+    await notify('interest_accepted', { applicationId: application.id })
 
     setApplications(prev => prev.map(a => a.id === application.id ? { ...a, interviewInterestStatus: 'interested' } : a))
   }
@@ -339,18 +329,7 @@ export default function MyJobsPage() {
       return
     }
 
-    if (application.employerId) {
-      await supabase.from('notifications').insert({
-        user_id: application.employerId,
-        title: 'Interview Invitation Declined',
-        message: `${candidateName} has declined the interview invitation for ${application.jobTitle}`,
-        type: 'application_status_change',
-        read: false,
-        related_id: application.id,
-        related_type: 'application',
-        link: `/my-jobs/${application.jobId}/applications`,
-      })
-    }
+    await notify('interest_declined', { applicationId: application.id })
 
     setApplications(prev => prev.map(a => a.id === application.id ? { ...a, interviewInterestStatus: 'not_interested' } : a))
   }
@@ -413,19 +392,15 @@ export default function MyJobsPage() {
           : 'awaiting scheduling'
         const displayTime = interviewTime || 'TBC'
 
-        // Send notification to employer
-        await supabase
-          .from('notifications')
-          .insert({
-            user_id: employerId,
-            title: 'Interview Confirmed',
-            message: `${candidateName} has confirmed their interview for ${jobTitle || 'the role'} on ${friendlyDate} at ${displayTime}`,
-            type: 'application_status_change',
-            read: false,
-            related_id: interviewRow?.application_id || null,
-            related_type: 'application',
-            link: interviewRow?.job_id ? `/my-jobs/${interviewRow.job_id}/applications` : '/my-jobs',
+        // Send notification to employer. The route derives the recipient and
+        // link from the application row; without an application id there is no
+        // relationship to authorise against, so no notification is sent.
+        if (interviewRow?.application_id) {
+          await notify('interview_confirmed', {
+            applicationId: interviewRow.application_id,
+            extra: { date: friendlyDate, time: displayTime },
           })
+        }
 
         // Send candidate-facing confirmation ("Hi Gianna, your interview is confirmed")
         fetch('/api/email/send', {
@@ -555,15 +530,7 @@ export default function MyJobsPage() {
       }
 
       // Send notification
-      await supabase
-        .from('notifications')
-        .insert({
-          user_id: employerId,
-          title: 'Reschedule Requested',
-          message: `Candidate has requested to reschedule interview for ${application.jobTitle}`,
-          type: 'application_status_change',
-          read: false,
-        })
+      await notify('reschedule_requested', { applicationId: application.id })
 
       alert('Reschedule request sent to employer')
     } catch (error) {
@@ -599,15 +566,9 @@ export default function MyJobsPage() {
         .eq('id', application.interview.id)
 
       // Notify employer
-      await supabase.from('notifications').insert({
-        user_id: application.interview.employerId,
-        title: 'Interview Time Confirmed',
-        message: `${session.user.user_metadata?.full_name || 'Candidate'} has selected ${formatSlotDate(slot.date)} at ${formatSlotTime(slot.time)} for the ${application.jobTitle} interview.`,
-        type: 'application_update',
-        read: false,
-        related_id: application.id,
-        related_type: 'application',
-        link: '/my-jobs',
+      await notify('interview_slot_selected', {
+        applicationId: application.id,
+        extra: { date: formatSlotDate(slot.date), time: formatSlotTime(slot.time) },
       })
 
       // Send email to employer

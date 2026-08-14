@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { Job } from '@/lib/mockJobs'
 import { supabase } from '@/lib/supabase'
+import { notify } from '@/lib/notify'
 import { useMessages } from '@/lib/MessagesContext'
 import PushPriming from '@/components/PushPriming'
 import type { Conversation } from '@/lib/mockMessages'
@@ -167,22 +168,9 @@ export default function ApplyNowModal({ job, isOpen, onClose, onSuccess }: Apply
       setSubmitted(true)
       onSuccess(job.id)
 
-      // 2. Notify employer
-      if (job.employerId) {
-        try {
-          await supabase.from('notifications').insert({
-            user_id: job.employerId,
-            type: 'new_application',
-            title: 'New application received',
-            message: `${candidateName} applied for ${job.title}`,
-            link: '/my-jobs',
-            related_id: job.id,
-            related_type: 'application',
-          })
-        } catch {
-          // Non-blocking
-        }
-      }
+      // 2. Notify employer (the route finds the application this caller just
+      //    created from the job + candidate relationship)
+      await notify('applied', { jobId: job.id })
 
       // 3. Send email (non-blocking)
       fetch('/api/send-application-email', {

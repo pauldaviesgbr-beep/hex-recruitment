@@ -12,6 +12,7 @@ import WithdrawOrRescindModal, { type WithdrawScenario, type WithdrawConfirmPayl
 import DeclineModal from '@/components/DeclineModal'
 import { isOfferConditional } from '@/lib/offerConditional'
 import { supabase } from '@/lib/supabase'
+import { notify } from '@/lib/notify'
 import { getSessionWithRetry } from '@/lib/getSessionWithRetry'
 import { getCurrentEmployerOwnerId } from '@/lib/employer'
 import { useJobs } from '@/lib/JobsContext'
@@ -108,18 +109,8 @@ export default function JobApplicationsPage() {
             .update({ viewed_at: new Date().toISOString() })
             .in('id', unviewedIds)
 
-          // Send "Application Viewed" notifications to candidates (batch insert)
-          await supabase.from('notifications').insert(
-            unviewedRows.map((row: any) => ({
-              user_id: row.candidate_id,
-              type: 'application_update',
-              title: 'Application Viewed',
-              message: `Your application for ${foundJob?.title || 'a position'} at ${foundJob?.company || 'a company'} has been viewed by the employer.`,
-              read: false,
-              related_id: row.id,
-              related_type: 'application',
-            }))
-          )
+          // Send "Application Viewed" notifications to candidates (batch)
+          await notify('application_viewed', { applicationIds: unviewedIds })
         }
 
         // Fetch candidate profiles for all applicants
@@ -406,16 +397,7 @@ export default function JobApplicationsPage() {
       }
       const notif = notifMap[newStatus]
       if (notif) {
-        await supabase.from('notifications').insert({
-          user_id: application.candidateId,
-          type: 'application_update',
-          title: notif.title,
-          message: notif.message,
-          read: false,
-          related_id: applicationId,
-          related_type: 'application',
-          link: '/applications',
-        })
+        await notify('status_changed', { applicationId, extra: { status: newStatus } })
 
         if (application.candidateEmail) {
           fetch('/api/email/send', {
@@ -467,16 +449,7 @@ export default function JobApplicationsPage() {
       .eq('id', application.id)
 
     // Send notification to candidate
-    await supabase.from('notifications').insert({
-      user_id: application.candidateId,
-      type: 'application_update',
-      title: 'Application Shortlisted',
-      message: `Great news! Your application for ${application.jobTitle} at ${application.company} has been shortlisted.`,
-      read: false,
-      related_id: application.id,
-      related_type: 'application',
-      link: '/applications',
-    })
+    await notify('status_changed', { applicationId: application.id, extra: { status: 'shortlisted' } })
 
     // Send email notification
     fetch('/api/email/send', {
@@ -514,17 +487,8 @@ export default function JobApplicationsPage() {
       return
     }
 
-    // 2. Insert notification for candidate
-    await supabase.from('notifications').insert({
-      user_id: application.candidateId,
-      title: 'Interview Invitation',
-      message: `${application.company} would like to invite you to interview for ${application.jobTitle}. Are you interested?`,
-      type: 'interview_interest',
-      read: false,
-      related_id: application.id,
-      related_type: 'application',
-      link: '/applications',
-    })
+    // 2. Notify the candidate
+    await notify('interview_invite_interest', { applicationId: application.id })
 
     // 3. Send in-app message via find-or-create conversation
     const firstName = (application.candidateName || 'there').split(' ')[0]
@@ -677,18 +641,9 @@ export default function JobApplicationsPage() {
       body: JSON.stringify({ interviewId }),
     }).catch(() => {})
 
-    // Notify candidate in-app
+    // Notify candidate in-app (fire-and-forget, as before)
     if (application) {
-      supabase.from('notifications').insert({
-        user_id: application.candidateId,
-        title: 'Interview Cancelled',
-        message: `Your interview for ${application.jobTitle} has been cancelled.`,
-        type: 'application_update',
-        read: false,
-        related_id: applicationId,
-        related_type: 'application',
-        link: '/applications',
-      }).then(() => {})
+      notify('interview_cancelled', { applicationId })
 
       // Send email to candidate
       if (application.candidateEmail) {

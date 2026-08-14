@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import { supabase } from '@/lib/supabase'
+import { notify } from '@/lib/notify'
 import { getCurrentEmployerOwnerId } from '@/lib/employer'
 import styles from './ScheduleInterviewModal.module.css'
 
@@ -544,17 +545,9 @@ export default function ScheduleInterviewModal({
       const siteUrl = process.env.NEXT_PUBLIC_BASE_URL || window.location.origin
       const scheduleLink = `${siteUrl}/interview/schedule/${schedulingToken}`
 
-      // Notify candidate with scheduling link
-      await supabase.from('notifications').insert({
-        user_id: candidateId,
-        title: 'Interview Invitation',
-        message: `${company || 'An employer'} has invited you to schedule an interview for ${jobTitle || 'a role'}. Pick a time that works for you.`,
-        type: 'interview_interest',
-        read: false,
-        related_id: applicationId,
-        related_type: 'application',
-        link: `/interview/schedule/${schedulingToken}`,
-      })
+      // Notify candidate with the scheduling link — the route reads the token
+      // from the interview row itself, so the link cannot be forged.
+      await notify('interview_self_schedule', { applicationId, interviewId: interviewIdForLink })
 
       // Update application status. stage_entered_at anchors the new
       // "N days in [Stage]" badge and the "Oldest in stage" sort order.
@@ -682,9 +675,10 @@ export default function ScheduleInterviewModal({
         weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
       })
 
+      // The bell-notification title/message are now composed by
+      // /api/notifications/notify from these same flags; only the
+      // conversation message is still built here.
       let messageContent: string
-      let notificationTitle: string
-      let notificationMessage: string
 
       const trimmedMeetingLink = interviewType === 'video' ? meetingLink.trim() : ''
 
@@ -718,10 +712,6 @@ export default function ScheduleInterviewModal({
           rescheduleLines.push('', 'Please let me know if you have any questions.', '', 'Best regards,', company)
           messageContent = rescheduleLines.join('\n')
         }
-        notificationTitle = 'Interview Rescheduled'
-        notificationMessage = isMultiSlot
-          ? `${company} has rescheduled your interview for ${jobTitle}. Please select a time that works for you.`
-          : `${company} has rescheduled your interview for ${jobTitle}. New date: ${formattedDate} at ${interviewTime}.`
       } else {
         if (isMultiSlot) {
           const slotLines = proposedSlots.map((s, i) => {
@@ -761,21 +751,16 @@ export default function ScheduleInterviewModal({
           messageLines.push('', 'Best regards,', company)
           messageContent = messageLines.join('\n')
         }
-        notificationTitle = 'Interview Invitation'
-        notificationMessage = isMultiSlot
-          ? `${company} has invited you to interview for ${jobTitle}. Please select a time that works for you.`
-          : `${company} has invited you for an interview for the ${jobTitle} position on ${formattedDate} at ${interviewTime}.`
       }
 
-      await supabase.from('notifications').insert({
-        user_id: candidateId,
-        title: notificationTitle,
-        message: notificationMessage,
-        type: 'application_update',
-        read: false,
-        related_id: applicationId,
-        related_type: 'application',
-        link: '/applications',
+      await notify('interview_scheduled', {
+        applicationId,
+        extra: {
+          date: formattedDate,
+          time: interviewTime,
+          multiSlot: isMultiSlot ? 'true' : 'false',
+          isReschedule: isReschedule ? 'true' : 'false',
+        },
       })
 
       if (candidateEmail) {

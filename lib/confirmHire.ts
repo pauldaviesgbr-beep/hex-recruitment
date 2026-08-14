@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { notify } from './notify'
 
 export interface ConfirmHireParams {
   applicationId: string
@@ -37,16 +38,7 @@ export async function confirmHire(p: ConfirmHireParams): Promise<void> {
     .eq('id', p.jobId)
 
   // Send notification to candidate
-  await supabase.from('notifications').insert({
-    user_id: p.candidateId,
-    title: 'Hire Confirmed!',
-    message: `Congratulations! Your hire has been confirmed for ${p.jobTitle} at ${p.company}.`,
-    type: 'application_update',
-    read: false,
-    related_id: p.applicationId,
-    related_type: 'application',
-    link: '/applications',
-  })
+  await notify('hire_confirmed', { applicationId: p.applicationId })
 
   // Send email notification (fire-and-forget)
   fetch('/api/email/send', {

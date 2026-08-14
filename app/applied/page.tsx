@@ -8,6 +8,7 @@ import SignedImage from '@/components/SignedImage'
 import EmptyState from '@/components/EmptyState'
 import { Inbox } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { notify } from '@/lib/notify'
 import styles from './page.module.css'
 
 interface Applicant {
@@ -107,12 +108,7 @@ export default function AppliedPage() {
       .update({ status: 'reviewing', status_updated_at: new Date().toISOString(), stage_entered_at: new Date().toISOString() })
       .eq('id', applicant.id)
 
-    await supabase.from('notifications').insert({
-      user_id: applicant.candidateId, type: 'application_update',
-      title: 'Application Under Review',
-      message: `Your application for ${applicant.jobTitle} is being reviewed.`,
-      read: false, related_id: applicant.id, related_type: 'application', link: '/applications',
-    })
+    await notify('status_changed', { applicationId: applicant.id, extra: { status: 'reviewing' } })
 
     setApplicants(prev => prev.filter(a => a.id !== applicant.id))
     setProcessing(prev => { const n = new Set(prev); n.delete(applicant.id); return n })
@@ -124,12 +120,7 @@ export default function AppliedPage() {
       .update({ status: 'rejected', status_updated_at: new Date().toISOString(), stage_entered_at: new Date().toISOString() })
       .eq('id', applicant.id)
 
-    await supabase.from('notifications').insert({
-      user_id: applicant.candidateId, type: 'application_update',
-      title: 'Application Update',
-      message: `Your application for ${applicant.jobTitle} was not selected to move forward.`,
-      read: false, related_id: applicant.id, related_type: 'application', link: '/applications',
-    })
+    await notify('status_changed', { applicationId: applicant.id, extra: { status: 'rejected' } })
 
     setApplicants(prev => prev.filter(a => a.id !== applicant.id))
     setProcessing(prev => { const n = new Set(prev); n.delete(applicant.id); return n })

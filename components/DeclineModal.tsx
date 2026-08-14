@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
+import { notify } from '@/lib/notify'
 
 // Default decline copy used when an employer has not saved a custom
 // "rejected" template. {{jobTitle}} and {{companyName}} are substituted
@@ -100,16 +101,7 @@ export default function DeclineModal({
       }
 
       // 2. Bell-notification for the candidate.
-      await supabase.from('notifications').insert({
-        user_id: candidateId,
-        type: 'application_update',
-        title: 'Application Update',
-        message: `Your application for ${jobTitle} at ${companyName} was not selected to move forward.`,
-        read: false,
-        related_id: applicationId,
-        related_type: 'application',
-        link: '/applications',
-      })
+      await notify('status_changed', { applicationId, extra: { status: 'rejected' } })
 
       // 3. Send the decline email with the user-edited body. bodyOverride
       //    forces /api/email/send to use this exact text (and HTML-escape

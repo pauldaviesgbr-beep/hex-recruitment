@@ -10,6 +10,7 @@ import { useJobs } from '@/lib/JobsContext'
 import { useMessages } from '@/lib/MessagesContext'
 import type { Conversation } from '@/lib/mockMessages'
 import { supabase } from '@/lib/supabase'
+import { notify } from '@/lib/notify'
 import { useSavedJobs } from '@/lib/useSavedJobs'
 import { getTagCategory } from '@/lib/jobTags'
 import { Boost } from '@/lib/boostTypes'
@@ -746,22 +747,9 @@ function JobsPageContent() {
       // and aborts the rest of this function. Use .then(_, errHandler) instead.
       ;(supabase as any).rpc('increment_application_count', { p_job_id: selectedJob.id }).then(undefined, () => {})
 
-      // 2. Send notification to employer
-      if (selectedJob.employerId) {
-        try {
-          await supabase.from('notifications').insert({
-            user_id: selectedJob.employerId,
-            type: 'new_application',
-            title: 'New application received',
-            message: `${candidateName} applied for ${selectedJob.title}`,
-            link: '/my-jobs',
-            related_id: selectedJob.id,
-            related_type: 'application',
-          })
-        } catch {
-          // Notification failure is non-blocking
-        }
-      }
+      // 2. Send notification to employer (the route finds the application this
+      //    caller just created from the job + candidate relationship)
+      await notify('applied', { jobId: selectedJob.id })
 
       // 3. Send email to employer via API route (non-blocking)
       fetch('/api/send-application-email', {

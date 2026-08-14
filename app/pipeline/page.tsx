@@ -17,6 +17,7 @@ import StageDurationBadge from '@/components/StageDurationBadge'
 import SortOrderControl, { type PipelineSortOrder } from '@/components/SortOrderControl'
 import Toast from '@/components/Toast'
 import { supabase } from '@/lib/supabase'
+import { notify } from '@/lib/notify'
 import { getCurrentEmployerOwnerId } from '@/lib/employer'
 import { STAGE_COLORS, STAGE_LABELS } from '@/lib/constants/pipelineStages'
 import { confirmHire } from '@/lib/confirmHire'
@@ -352,11 +353,7 @@ export default function PipelinePage() {
       }
       const notif = notifMap[newStatus]
       if (notif) {
-        supabase.from('notifications').insert({
-          user_id: card.candidateId, type: 'application_update',
-          title: notif.title, message: notif.message, read: false,
-          related_id: card.id, related_type: 'application', link: '/applications',
-        }).then()
+        notify('status_changed', { applicationId: card.id, extra: { status: newStatus } })
       }
     }
 

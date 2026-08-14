@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
+import { notify } from '@/lib/notify'
 
 // Mirrors components/DeclineModal — same template-aware structure, but
 // fires on the employer marking a candidate as 'withdrawn' (dropped out,
@@ -106,16 +107,7 @@ export default function WithdrawModal({
       }
 
       // 2. Bell-notification for the candidate.
-      await supabase.from('notifications').insert({
-        user_id: candidateId,
-        type: 'application_update',
-        title: 'Application Withdrawn',
-        message: `Your application for ${jobTitle} at ${companyName} has been marked as withdrawn.`,
-        read: false,
-        related_id: applicationId,
-        related_type: 'application',
-        link: '/applications',
-      })
+      await notify('marked_withdrawn', { applicationId })
 
       // 3. Send the email with the user-edited body. bodyOverride forces
       //    /api/email/send to use this exact text (HTML-escaped server-

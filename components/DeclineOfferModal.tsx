@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
+import { notify } from '@/lib/notify'
 import styles from './DeclineOfferModal.module.css'
 
 interface DeclineOfferModalProps {
@@ -70,21 +71,9 @@ export default function DeclineOfferModal({
         return
       }
 
-      // Notify employer
-      const notificationMessage = reason.trim()
-        ? `${candidateName} has declined the offer for ${jobTitle}. Reason: ${reason.trim()}`
-        : `${candidateName} has declined the offer for ${jobTitle}.`
-
-      await supabase.from('notifications').insert({
-        user_id: employerId,
-        title: 'Offer Declined',
-        message: notificationMessage,
-        type: 'application_status_change',
-        read: false,
-        related_id: applicationId,
-        related_type: 'application',
-        link: '/my-jobs',
-      })
+      // Notify employer (the decline reason is the one piece of caller text
+      // that passes through — length-capped by the route)
+      await notify('offer_declined', { applicationId, extra: { reason: reason.trim() } })
 
       // Send email to employer
       fetch('/api/email/send', {
