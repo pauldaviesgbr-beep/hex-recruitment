@@ -62,6 +62,12 @@ const ALL = [
   // has watched fail open is an intention, not a mechanism. This manufactures
   // an eight-day-old hold and watches it release itself.
   { name: 'hold:prove', cmd: process.execPath, args: [path.join(ROOT, 'scripts', 'prove-hold.js')] },
+  // The positive control for the edit-assertion helper (scripts/lib/
+  // assert-changed.mjs): proves it still REFUSES a check that cannot
+  // distinguish before from after, and still catches a missed anchor. A
+  // helper other checks lean on gets watched hardest of all. Milliseconds,
+  // filesystem only, so it runs in the fast tier too.
+  { name: 'assertchanged:prove', cmd: process.execPath, args: [path.join(ROOT, 'scripts', 'prove-assert-changed.mjs')] },
 ]
 const CHECKS = FAST ? ALL.filter(c => !c.slow) : ALL
 
