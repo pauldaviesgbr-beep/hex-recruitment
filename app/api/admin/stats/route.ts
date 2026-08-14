@@ -34,8 +34,8 @@ export async function GET(req: Request) {
     // The fixture ids, resolved once — application and job filters need them
     // because those tables carry no flag of their own.
     const [testCands, testEmps] = await Promise.all([
-      db.from('candidate_profiles').select('user_id').eq('is_test', true),
-      db.from('employer_profiles').select('user_id').eq('is_test', true),
+      db.from('candidate_profiles').select('user_id').or('is_test.eq.true,is_house.eq.true'),
+      db.from('employer_profiles').select('user_id').or('is_test.eq.true,is_house.eq.true'),
     ])
     const testCandIds = (testCands.data || []).map(r => r.user_id)
     const testEmpIds = (testEmps.data || []).map(r => r.user_id)
@@ -61,19 +61,19 @@ export async function GET(req: Request) {
       manualJobGrowth,
       flaggedReviews,
     ] = await Promise.all([
-      db.from('candidate_profiles').select('*', { count: 'exact', head: true }).eq('is_test', false),
-      db.from('candidate_profiles').select('*', { count: 'exact', head: true }).eq('is_test', false).gte('created_at', weekAgo),
-      db.from('candidate_profiles').select('*', { count: 'exact', head: true }).eq('is_test', false).gte('created_at', monthAgo),
-      db.from('employer_profiles').select('*', { count: 'exact', head: true }).eq('is_test', false),
-      db.from('employer_profiles').select('*', { count: 'exact', head: true }).eq('is_test', false).gte('created_at', weekAgo),
-      db.from('employer_profiles').select('*', { count: 'exact', head: true }).eq('is_test', false).gte('created_at', monthAgo),
+      db.from('candidate_profiles').select('*', { count: 'exact', head: true }).eq('is_test', false).eq('is_house', false),
+      db.from('candidate_profiles').select('*', { count: 'exact', head: true }).eq('is_test', false).eq('is_house', false).gte('created_at', weekAgo),
+      db.from('candidate_profiles').select('*', { count: 'exact', head: true }).eq('is_test', false).eq('is_house', false).gte('created_at', monthAgo),
+      db.from('employer_profiles').select('*', { count: 'exact', head: true }).eq('is_test', false).eq('is_house', false),
+      db.from('employer_profiles').select('*', { count: 'exact', head: true }).eq('is_test', false).eq('is_house', false).gte('created_at', weekAgo),
+      db.from('employer_profiles').select('*', { count: 'exact', head: true }).eq('is_test', false).eq('is_house', false).gte('created_at', monthAgo),
       db.from('jobs').select('*', { count: 'exact', head: true }).eq('status', 'active'),
       notTestEmployerJob(db.from('jobs').select('*', { count: 'exact', head: true }).eq('is_recruiter_posting', false)),
       db.from('jobs').select('*', { count: 'exact', head: true }).eq('is_recruiter_posting', true),
       db.from('jobs').select('*', { count: 'exact', head: true }).eq('is_recruiter_posting', true).eq('status', 'filled'),
       notTestCandidate(db.from('job_applications').select('*', { count: 'exact', head: true })),
-      db.from('candidate_profiles').select('created_at').eq('is_test', false).gte('created_at', sixMonthsAgo).order('created_at'),
-      db.from('employer_profiles').select('created_at').eq('is_test', false).gte('created_at', sixMonthsAgo).order('created_at'),
+      db.from('candidate_profiles').select('created_at').eq('is_test', false).eq('is_house', false).gte('created_at', sixMonthsAgo).order('created_at'),
+      db.from('employer_profiles').select('created_at').eq('is_test', false).eq('is_house', false).gte('created_at', sixMonthsAgo).order('created_at'),
       // The postings chart shows what EMPLOYERS did, so the importer's rows
       // (scrape cadence) stay out of it.
       notTestEmployerJob(db.from('jobs').select('posted_at').eq('is_recruiter_posting', false).gte('posted_at', sixMonthsAgo).order('posted_at')),
