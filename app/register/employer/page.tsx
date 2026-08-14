@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
+import { getStoredAttribution, attributionColumns } from '@/lib/attribution'
 import Header from '@/components/Header'
 import PasswordInput from '@/components/PasswordInput'
 import PostcodeLookup, { type AddressData } from '@/components/PostcodeLookup'
@@ -127,6 +128,7 @@ function RegisterEmployerPageContent() {
         // Create employer profile (fallback in case DB trigger doesn't fire)
         await supabase.from('employer_profiles').upsert({
           user_id: authData.user.id,
+          ...attributionColumns(getStoredAttribution()),
           company_name: formData.companyName,
           contact_name: formData.contactName,
           email: formData.email,
