@@ -273,7 +273,7 @@ export default function AdminDeliveryPage() {
             <strong>What this table cannot see.</strong> The on-device test route
             (<code>/api/diag-push/send</code>) deliberately writes no row here, so a test push
             that genuinely reached a handset leaves no trace — a real one did on 13 August
-            2026. <strong>&ldquo;0 delivered&rdquo; therefore means no <em>automatic</em>
+            2026. <strong>&ldquo;0 delivered&rdquo; therefore means no <em>automatic</em>{' '}
             notification has been delivered, not that push is broken.</strong> The delivery
             chain itself has been proven on a real device.
           </p>
