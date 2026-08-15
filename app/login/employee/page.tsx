@@ -282,13 +282,14 @@ function EmployeeLoginPageContent() {
               paywall. It now says what is actually true: an account is needed
               to APPLY, not to look.
             */}
-            {safeRedirect && !successMessage && (
-              <div className={styles.info}>
-                {arrivingToApply
-                  ? 'Already have an account? Log in and we’ll take you back to the role.'
-                  : 'Log in to continue'}
-              </div>
-            )}
+            {/* THE BLUE INFO PANEL IS GONE. It was a coloured box explaining
+                something that fits in one quiet line, sitting between the
+                primary action and the form. The promise it carried — that we
+                bring you back to the role — is the one sentence on this screen
+                that answers the question actually in the user's head, so it is
+                NOT deleted: it stays in the sub-head above, and returns as
+                plain text beside the log-in sentence at the bottom. */}
+            {successMessage && <div className={styles.success}>{successMessage}</div>}
             {successMessage && <div className={styles.success}>{successMessage}</div>}
             {error && <div className={styles.error}>{error}</div>}
 
@@ -336,7 +337,12 @@ function EmployeeLoginPageContent() {
               </Link>
             </div>
 
-            <button type="submit" disabled={loading || !hydrated} className={styles.submitBtn}>
+            {/* LEVEL 2, NOT YELLOW. Yellow is the primary on Apply Now, where
+                the user has already committed — "the action you came here to
+                take". Signing in is not that. A yellow button here competed
+                with the navy LinkedIn primary above it and put two primaries
+                on one card, which is the problem this screen exists to fix. */}
+            <button type="submit" disabled={loading || !hydrated} className={styles.authSecondary}>
               {loading ? 'Logging in...' : 'Login'}
             </button>
           </form>
