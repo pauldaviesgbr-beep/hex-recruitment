@@ -259,3 +259,48 @@
   .refStrip { display: grid; grid-template-columns: 1fr 1fr; }
   .refValue { font-size: 19px; }
 }
+
+/* ── Phase 4: at phone width the two health tables become one card per row.
+   Controls wrap, content stacks, NOTHING scrolls sideways — the house rule,
+   and the reason the desktop tables keep their own overflow container while
+   the cards need none. The column header travels with its cell, so a value
+   is never orphaned from what it means. */
+.tableWrap { overflow-x: auto; }
+.cardStack { display: none; }
+
+.rowCard {
+  border: 1px solid #E2E8F0;
+  border-radius: 10px;
+  padding: 13px 14px;
+  margin-bottom: 10px;
+}
+/* An ALARMING row keeps its own wash so the worst rows still surface first
+   when the sort order is invisible in a stack. Same rule as the red values:
+   see isAlarming in page.tsx — one source, two renderings. */
+.rowCardAlarm {
+  background: #FFF9F8;
+  border-color: #F3D0CB;
+}
+.rowCardName {
+  font-size: 14px;
+  font-weight: 600;
+  color: #0F172A;
+  margin: 0 0 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rowCardGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 12px;
+  font-size: 12.5px;
+}
+.rowCardLabel { color: #64748B; }
+.rowCardValue { color: #0F172A; font-weight: 600; }
+.rowCardValueAlarm { color: #B42318; font-weight: 700; }
+
+@media (max-width: 768px) {
+  .tableWrap { display: none; }
+  .cardStack { display: block; }
+}

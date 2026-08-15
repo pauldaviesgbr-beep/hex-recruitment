@@ -29,6 +29,13 @@
   gap: 0.5rem;
 }
 
+/* The mark only appears once the rail collapses (see the 768 block). */
+.logoMark {
+  display: none;
+  width: 26px;
+  height: 26px;
+}
+
 .logoText {
   font-size: 1.5rem;
   font-weight: 900;
@@ -180,6 +187,26 @@
   .sidebar .logo {
     text-align: center;
     padding: 1rem 0.5rem;
+  }
+  /* PHASE 5(a), 15 Aug 2026 — AND A NOTE FOR WHOEVER READS THE DESIGN
+     HANDOFF NEXT: THE 56px RAIL BELOW IS DELIBERATE. The handoff says
+     "a 56px aside holding 106px of wordmark can't be fixed by clipping —
+     remove it below 768" and proposes a Menu sheet instead. That was
+     written without knowing this collapse is designed: labels hide, items
+     centre, one-tap nav survives. The ONLY thing that ever clipped was the
+     WORDMARK, which now swaps for the 26px mark. Do not remove a working
+     navigation to fix a problem one glyph wide. If the designer still wants
+     the sheet after seeing the rail, it ships WITH its replacement in the
+     same commit — these twelve links exist nowhere else. */
+  .sidebar .logoText {
+    display: none;
+  }
+  .sidebar .logoMark {
+    display: block;
+    margin: 0 auto;
+  }
+  .sidebar .logoLink {
+    justify-content: center;
   }
   .main {
     margin-left: 56px;

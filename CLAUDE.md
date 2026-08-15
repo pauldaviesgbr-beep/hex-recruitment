@@ -221,6 +221,17 @@ wrong reason is worse than no check, because it ends the search.
   nothing. Production and preview returning different error strings
   is what proved the dispatcher routing.
 
+- A CHECK'S SELECTOR IS PART OF THE CHECK, AND IT IS THE PART THAT IS
+  WRONG. When a drive comes back red, the first question is not "what
+  did I break" but "is my instrument measuring what I named". Five in
+  one week: `aside a[href^="/admin"]` counting the LOGO's link as a
+  thirteenth nav item; a wrap check matching the value's parent row;
+  an emoji grep finding nothing in a file it had just written; an RLS
+  refusal that came from the read-back, not the insert; a card count
+  that predated my own is_house change. Every one read as a product
+  fault and was the instrument. Stopping at red would have "fixed"
+  working code.
+
 - A POSITIVE CONTROL MUST LIVE OUTSIDE THE THING BEING CHANGED. The
   emoji detector's control pointed at a file the sweep then
   legitimately emptied — so the control began failing ON SUCCESS,
