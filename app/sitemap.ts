@@ -32,7 +32,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${SITE_URL}/login/employee`, lastModified: now, changeFrequency: 'monthly', priority: 0.3 },
     { url: `${SITE_URL}/login/employer`, lastModified: now, changeFrequency: 'monthly', priority: 0.3 },
     { url: `${SITE_URL}/register/employee`, lastModified: now, changeFrequency: 'monthly', priority: 0.5 },
-    { url: `${SITE_URL}/register/employer`, lastModified: now, changeFrequency: 'monthly', priority: 0.5 },
+    // /register/employer IS NOT LISTED. It now only exists as a redirect to
+    // /register/employer-free, which is listed below — advertising a URL whose
+    // sole behaviour is to send you somewhere else is how /pricing,
+    // /for-employers and /employers came to serve 404s under index,follow.
+    // The destination is the page worth indexing.
     { url: `${SITE_URL}/waitlist`, lastModified: now, changeFrequency: 'weekly', priority: 0.8 },
     { url: `${SITE_URL}/register/employer-free`, lastModified: now, changeFrequency: 'monthly' as const, priority: 0.8 },
     { url: `${SITE_URL}/candidates`, lastModified: now, changeFrequency: 'daily', priority: 0.7 },
