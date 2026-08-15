@@ -432,3 +432,61 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ── Phase 2: the button hierarchy. Four levels, no exceptions.
+   L1 is navy and there is exactly ONE per screen — LinkedIn, because that is
+   where arrivals come from and they are already authenticated there, so it is
+   genuinely one tap. Yellow is NOT a level here: it is the primary on the job
+   page's Apply Now, where the user has already committed. Signing in is not
+   the thing they came to do; applying is. Green is retired from the product. */
+.authPrimary {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 16px;
+  background: #0F172A;
+  color: #fff;
+  border: 1px solid #0F172A;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  min-height: 48px;
+}
+.authPrimary:hover { background: #1B2740; }
+.authPrimary:disabled { opacity: 0.75; cursor: default; }
+/* The brand glyph keeps its own colour — a trust mark, not an icon — and must
+   stay legible on navy, so LinkedIn's blue mark sits on a white chip. */
+.authPrimary svg {
+  width: 20px;
+  height: 20px;
+  background: #fff;
+  border-radius: 3px;
+  padding: 1px;
+  box-sizing: content-box;
+}
+
+/* The eyebrow that earns the primary its position. */
+.authEyebrow {
+  font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: #6B7688;
+  margin: 0 0 6px;
+  text-align: left;
+}
+
+/* Level 4 — the escape hatch. Quiet and findable: naming the SYMPTOM is what
+   makes it visible to the people who need it and invisible to everyone else. */
+.escapeHatch {
+  margin: 14px 0 0;
+  font-size: 12.5px;
+  color: #94A3B8;
+  text-align: center;
+  line-height: 1.45;
+}
+.escapeHatch u { cursor: default; }
