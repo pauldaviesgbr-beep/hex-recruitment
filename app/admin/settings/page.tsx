@@ -9,7 +9,6 @@ interface Settings {
   tags: string[]
   featuredJobs: { id: string; title: string; company: string }[]
   featuredCount: number
-  announcement: { text: string; active: boolean }
   adminEmails: string[]
 }
 
@@ -17,10 +16,6 @@ export default function AdminSettingsPage() {
   const token = useAdminToken()
   const [settings, setSettings] = useState<Settings | null>(null)
   const [loading, setLoading] = useState(true)
-  const [announcementText, setAnnouncementText] = useState('')
-  const [announcementActive, setAnnouncementActive] = useState(false)
-  const [saving, setSaving] = useState(false)
-  const [saveMessage, setSaveMessage] = useState('')
 
   useEffect(() => {
     if (!token) return
@@ -30,33 +25,10 @@ export default function AdminSettingsPage() {
       .then(r => r.json())
       .then(data => {
         setSettings(data)
-        setAnnouncementText(data.announcement?.text || '')
-        setAnnouncementActive(data.announcement?.active || false)
         setLoading(false)
       })
       .catch(() => setLoading(false))
   }, [token])
-
-  const handleSaveAnnouncement = async () => {
-    if (!token) return
-    setSaving(true)
-    setSaveMessage('')
-    const res = await fetch('/api/admin/settings', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        action: 'update_announcement',
-        data: { text: announcementText, active: announcementActive },
-      }),
-    })
-    const data = await res.json()
-    setSaving(false)
-    setSaveMessage(data.success ? 'Announcement saved!' : data.error || 'Failed to save')
-    setTimeout(() => setSaveMessage(''), 3000)
-  }
 
   if (loading) {
     return <div className={styles.loading}>Loading settings...</div>
@@ -81,45 +53,26 @@ export default function AdminSettingsPage() {
         <p className={styles.adminNote}>To add or remove admin users, update the ADMIN_EMAILS list in lib/admin-client.ts</p>
       </div>
 
-      {/* Announcement */}
-      <div className={styles.card}>
-        <h2 className={styles.cardTitle}>Platform Announcement</h2>
-        <p className={styles.cardDesc}>Display a banner message to all users across the platform.</p>
+      {/* THE PLATFORM ANNOUNCEMENT PANEL IS GONE, AND IT WAS WORSE THAN
+          BROKEN — IT LIED. Removed 15 Aug 2026, dead end to end:
 
-        <div className={styles.formGroup}>
-          <label className={styles.label}>Banner Message</label>
-          <textarea
-            className={styles.textarea}
-            value={announcementText}
-            onChange={(e) => setAnnouncementText(e.target.value)}
-            placeholder="Enter an announcement message..."
-            rows={3}
-          />
-        </div>
+            · READ: the route did .from('platform_settings').select('key, value').
+              That table is a SINGLE-ROW table with named columns (site_name,
+              tagline, support_email, …). It has no key and no value, so
+              PostgREST rejected the WHOLE request — the /insights fault — and
+              the error was never checked, so the banner was always empty.
+            · WRITE: the upsert had the same problem and its error was also
+              never checked. The route then returned { success: true } and the
+              page displayed "Announcement saved!".
+            · READER: nothing user-facing rendered an announcement anywhere in
+              the product. There was no banner to show.
 
-        <div className={styles.toggleRow}>
-          <label className={styles.toggleLabel}>
-            <input
-              type="checkbox"
-              checked={announcementActive}
-              onChange={(e) => setAnnouncementActive(e.target.checked)}
-              className={styles.checkbox}
-            />
-            <span>Active — show banner to all users</span>
-          </label>
-        </div>
-
-        <div className={styles.btnRow}>
-          <button
-            className={styles.saveBtn}
-            onClick={handleSaveAnnouncement}
-            disabled={saving}
-          >
-            {saving ? 'Saving...' : 'Save Announcement'}
-          </button>
-          {saveMessage && <span className={styles.saveMsg}>{saveMessage}</span>}
-        </div>
-      </div>
+          So an admin could type a maintenance notice, be told it saved, and it
+          would reach nobody — the failure mode this project cares most about.
+          Repairing it would have meant inventing storage AND a reader for a
+          feature nothing asked for; removing the lie is the smaller, honest
+          change. If a real announcement banner is wanted it is a fresh build:
+          two columns and a component that reads them. */}
 
       {/* Sectors */}
       <div className={styles.card}>
