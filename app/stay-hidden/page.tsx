@@ -15,7 +15,7 @@ type Status = 'ok' | 'already' | 'invalid' | 'notfound' | 'error'
 const MESSAGES: Record<Status, { heading: string; body: string }> = {
   ok: {
     heading: "Done — you'll stay hidden",
-    body: 'Your profile will not be shown to employers. Nothing else changes, and you can turn visibility on whenever you want with the "Hide my profile" switch on your dashboard.',
+    body: 'Your profile will not be shown to employers. Nothing else changes, and you can turn visibility on whenever you want with the visibility switch at the top of your dashboard.',
   },
   already: {
     heading: "You're already hidden",
@@ -35,7 +35,7 @@ const MESSAGES: Record<Status, { heading: string; body: string }> = {
     // every one of those cases, including the ones not yet found — and it still
     // gets the person to the thing that always works.
     heading: "That link didn't work",
-    body: 'Sorry — we couldn’t action that one. You can do it yourself in a couple of taps: sign in and use the "Hide my profile" switch at the top of your dashboard.',
+    body: 'Sorry — we couldn’t action that one. You can do it yourself in a couple of taps: sign in and turn off the visibility switch at the top of your dashboard.',
   },
   notfound: {
     heading: "We couldn't find that profile",
@@ -43,7 +43,7 @@ const MESSAGES: Record<Status, { heading: string; body: string }> = {
   },
   error: {
     heading: 'Something went wrong at our end',
-    body: 'Your profile has not been changed. Please try the link again in a few minutes, or use the "Hide my profile" switch on your dashboard.',
+    body: 'Your profile has not been changed. Please try the link again in a few minutes, or turn off the visibility switch at the top of your dashboard.',
   },
 }
 

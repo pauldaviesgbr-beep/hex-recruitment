@@ -295,18 +295,39 @@ export default function CandidateCard(props: {
             <span className={styles.identityName}>{c.fullName}</span>
           </div>
 
-          {/* Reads as the action it performs. The switch is ON when the profile
-              is hidden, so the label stays true in both positions instead of
-              flipping between two different statements. It hides you from ALL
-              employers, not just recruiters — the copy says so. */}
-          <label className={styles.dashToggleCompact} title="When on, your profile is hidden from every employer — nobody can find you in candidate search or contact you.">
+          {/* THE LABEL NAMES THE STATE, NOT THE ACTION — Paul, 15 Aug 2026,
+              looking at it on a new account. It used to read "Hide my profile"
+              in both positions, which is the classic negatively-labelled
+              switch: the words describe an ACTION while the control shows a
+              STATE, so the reader has to work out whether ON means hidden or
+              shown. Two people can look at the same switch and disagree about
+              what it is currently doing, and the cost of being wrong here is
+              a candidate who thinks employers can see them when they cannot.
+
+              So the switch is now ON when you are FINDABLE — the conventional
+              direction, on = the good thing happening — and the label changes
+              with it. `is_discoverable` is untouched: this is a reading of the
+              same value, not a new one.
+
+              The label says EMPLOYERS rather than headhunters, deliberately.
+              Being discoverable exposes you to every employer hiring on
+              Thrive, not only to recruiters, and a label naming the narrower
+              group would understate what the switch actually does. */}
+          <label
+            className={styles.dashToggleCompact}
+            title={props.isDiscoverable
+              ? 'Employers hiring on Thrive can find your profile in candidate search and approach you about roles. Turn this off to hide it from everyone.'
+              : 'Your profile is hidden from every employer — nobody can find you in candidate search or contact you. Turn this on to be found.'}
+          >
             <input
               type="checkbox"
-              checked={!props.isDiscoverable}
-              onChange={(e) => props.onToggleDiscoverable?.(!e.target.checked)}
+              checked={!!props.isDiscoverable}
+              onChange={(e) => props.onToggleDiscoverable?.(e.target.checked)}
             />
             <span className={styles.dashToggleTrack}><span className={styles.dashToggleThumb} /></span>
-            <span className={styles.dashToggleLabel}>Hide my profile</span>
+            <span className={styles.dashToggleLabel}>
+              {props.isDiscoverable ? 'Employers can find you' : 'Profile hidden'}
+            </span>
           </label>
         </div>
 
