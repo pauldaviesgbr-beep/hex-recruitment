@@ -488,7 +488,11 @@
   letter-spacing: 0.07em;
   text-transform: uppercase;
   color: #6B7688;
-  margin: 0 0 6px;
+  /* 6px sat the label on the button's lid — it read as part of the control
+     rather than a line about it. 10px is enough to separate them and still
+     close enough to belong to the button below rather than the sub-head
+     above, which is what an eyebrow has to do. */
+  margin: 0 0 10px;
   text-align: left;
 }
 

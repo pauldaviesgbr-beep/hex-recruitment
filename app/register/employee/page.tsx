@@ -31,7 +31,11 @@ function RegisterEmployeePageContent() {
             leaked-password check that trips people up on the email path. */}
         <div style={{ maxWidth: 480, margin: '0 auto 1.5rem' }}>
           <p style={{ textAlign: 'center', margin: '0 0 0.5rem', fontSize: '0.85rem', color: '#6b7280', fontWeight: 600 }}>
-            Fastest way in — one tap, no password
+            {/* Same correction as /login/employee — "no password" is a claim
+                we cannot keep, because LinkedIn asks for one when you are
+                signed out on that device. What is always true is that Thrive
+                never makes you invent another. */}
+            Fastest way in — no new password to create
           </p>
           <LinkedInSignInButton role="employee" className={loginStyles.googleBtn} label="Sign up with LinkedIn" next={redirectTo || undefined} />
           <div style={{ marginTop: '0.6rem' }}>
