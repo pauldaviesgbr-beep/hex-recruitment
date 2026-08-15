@@ -22,7 +22,10 @@ interface SubscriptionData {
   stripe_customer_id: string | null
 }
 
-const PLAN_PRICE = SUBSCRIPTION_TIERS.standard.price
+// NO PLAN_PRICE. The tiers file no longer carries one — the model is tiered
+// and undecided, so there is no single number to show. The two priced blocks
+// below are DELETED rather than blanked: a price row with nothing in it makes
+// the same claim, quietly.
 const PLAN_NAME = SUBSCRIPTION_TIERS.standard.name
 const PLAN_FEATURES = SUBSCRIPTION_TIERS.standard.features
 
@@ -254,10 +257,6 @@ function SubscriptionContent() {
                   {isTrial ? `Trial — ${trialDaysRemaining} days left` : 'Active'}
                 </span>
               </div>
-              <div className={styles.planPrice}>
-                <span className={styles.priceAmount}>£{PLAN_PRICE}</span>
-                <span className={styles.pricePeriod}>/month</span>
-              </div>
             </div>
 
             <div className={styles.planDetails}>
@@ -307,10 +306,6 @@ function SubscriptionContent() {
               <div className={styles.pricingCard}>
                 <h3 className={styles.cardTitle}>{PLAN_NAME}</h3>
                 <p className={styles.cardSubtitle}>For Employers</p>
-                <div className={styles.cardPrice}>
-                  <span className={styles.cardPriceAmount}>£{PLAN_PRICE}</span>
-                  <span className={styles.cardPricePeriod}>/month</span>
-                </div>
                 <ul className={styles.cardFeatures}>
                   <li><span className={styles.checkMark}>&#10003;</span> {trialPhraseFormal()}</li>
                   {PLAN_FEATURES.map((f) => (

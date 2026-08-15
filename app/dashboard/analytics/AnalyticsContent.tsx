@@ -6,7 +6,12 @@ import Link from 'next/link'
 import Header from '@/components/Header'
 import { supabase } from '@/lib/supabase'
 import { getCategoryLabel } from '@/lib/categories'
-import { EMPLOYER_SUBSCRIPTION_PRICE } from '@/lib/trialUtils'
+// EMPLOYER_SUBSCRIPTION_PRICE and the Cost Per Hire panel are both deleted.
+// The panel did not merely DISPLAY the price, it COMPUTED from it — spend fed
+// cost-per-hire and a "saving vs industry average" line — so a number we have
+// decided not to publish was being laundered through arithmetic. Every employer
+// is on a free founding place and no Stripe transaction has ever settled, so
+// the honest figure was £0 and the panel reported a fiction.
 import { PAID_SURFACES_ENABLED, BILLING_NOT_LIVE_MESSAGE } from '@/lib/paidSurfaces'
 import { employerLoginPath } from '@/lib/loginRedirect'
 import { annualisedOrNull } from '@/lib/salaryInput'
@@ -1546,64 +1551,6 @@ export default function AnalyticsContent() {
     }
   }, [applications, candidateProfiles, jobs])
 
-  // Cost Per Hire
-  const costPerHire = useMemo(() => {
-    const MONTHLY_COST = EMPLOYER_SUBSCRIPTION_PRICE
-
-    if (!employerCreatedAt) return null
-
-    const createdDate = new Date(employerCreatedAt)
-    const now = new Date()
-
-    // Calculate total months subscribed (minimum 1)
-    const diffMs = now.getTime() - createdDate.getTime()
-    const totalMonths = Math.max(1, Math.ceil(diffMs / (30.44 * 86400000))) // avg days per month
-    const totalCost = totalMonths * MONTHLY_COST
-
-    // Total hires
-    const hiredApps = applications.filter((a: any) => ['hired', 'retained', 'left'].includes(a.status))
-    const totalHires = hiredApps.length
-    const cph = totalHires > 0 ? totalCost / totalHires : null
-
-    // Build cumulative chart data: month by month from creation to now
-    const chartData: { month: string; cost: number; hires: number }[] = []
-    const startYear = createdDate.getFullYear()
-    const startMonth = createdDate.getMonth()
-    let cumulativeCost = 0
-    let cumulativeHires = 0
-
-    const iter = new Date(startYear, startMonth, 1)
-    while (iter <= now) {
-      const y = iter.getFullYear()
-      const m = iter.getMonth()
-      cumulativeCost += MONTHLY_COST
-
-      // Count hires made in this month
-      const hiresThisMonth = hiredApps.filter((a: any) => {
-        const hiredDate = new Date(a.status_updated_at || a.applied_at)
-        return hiredDate.getFullYear() === y && hiredDate.getMonth() === m
-      }).length
-      cumulativeHires += hiresThisMonth
-
-      const monthLabel = iter.toLocaleDateString('en-GB', { month: 'short', year: '2-digit' })
-      chartData.push({
-        month: monthLabel,
-        cost: Math.round(cumulativeCost * 100) / 100,
-        hires: cumulativeHires,
-      })
-
-      iter.setMonth(iter.getMonth() + 1)
-    }
-
-    return {
-      totalMonths,
-      totalCost,
-      totalHires,
-      costPerHire: cph,
-      chartData,
-      memberSince: createdDate.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' }),
-    }
-  }, [applications, employerCreatedAt])
 
   // Job Description Performance
   const descriptionPerformance = useMemo(() => {
@@ -2776,7 +2723,7 @@ export default function AnalyticsContent() {
                 sentence above still explains why the panel is limited. */}
             {PAID_SURFACES_ENABLED ? (
               <Link href="/dashboard/subscription" className={styles.upgradeBtnLink}>
-                Subscribe — £{EMPLOYER_SUBSCRIPTION_PRICE}/month
+                Subscribe
               </Link>
             ) : (
               <p className={styles.upgradeText} style={{ margin: 0 }}>
@@ -4222,105 +4169,6 @@ export default function AnalyticsContent() {
         </div>
         )}
 
-        {/* Cost Per Hire.
-            HIDDEN ENTIRELY while billing is off, not stripped of its numbers.
-            This panel does not merely DISPLAY the subscription price — it
-            computes from it (MONTHLY_COST feeds totalCost, which feeds cost
-            per hire and the "saving vs industry average" line). A panel
-            silently deriving figures from a price we have decided not to
-            publish is worse than no panel: the number would still be on the
-            screen, just laundered through arithmetic. */}
-        {PAID_SURFACES_ENABLED && activeTab === 'market' && costPerHire && (
-          <div className={`${styles.sectionCard}`} style={{ marginBottom: '1.5rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-              <h2 className={styles.sectionTitle} style={{ margin: 0 }}>Cost Per Hire</h2>
-            </div>
-            <div className={styles.cphTopRow}>
-              {/* Main figure */}
-              <div className={styles.cphMainFigure}>
-                {costPerHire.costPerHire !== null ? (
-                  <>
-                    <div className={styles.cphBigNumber}>
-                      £{costPerHire.costPerHire.toFixed(2)}
-                    </div>
-                    <div className={styles.cphBigLabel}>per hire</div>
-                    <div className={styles.cphComparison}>
-                      Industry average: <strong>£3,000–£5,000</strong> per hire
-                    </div>
-                    {costPerHire.costPerHire < 3000 && (
-                      <div className={styles.cphSaving}>
-                        You&apos;re saving up to <strong>£{Math.round(3000 - costPerHire.costPerHire).toLocaleString()}</strong> per hire vs industry average
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <>
-                    <div className={styles.cphBigNumber} style={{ fontSize: '1.4rem', color: '#64748b' }}>
-                      £{costPerHire.totalCost.toFixed(2)} spent
-                    </div>
-                    <div className={styles.cphBigLabel}>Make your first hire to see your cost per hire</div>
-                  </>
-                )}
-              </div>
-
-              {/* Breakdown cards */}
-              <div className={styles.cphBreakdown}>
-                <div className={styles.cphBreakdownCard}>
-                  <div className={styles.cphBreakdownLabel}>Total Spent</div>
-                  <div className={styles.cphBreakdownValue}>£{costPerHire.totalCost.toFixed(2)}</div>
-                  <div className={styles.cphBreakdownSub}>{costPerHire.totalMonths} month{costPerHire.totalMonths !== 1 ? 's' : ''} × £{EMPLOYER_SUBSCRIPTION_PRICE}</div>
-                </div>
-                <div className={styles.cphBreakdownCard}>
-                  <div className={styles.cphBreakdownLabel}>Total Hires</div>
-                  <div className={styles.cphBreakdownValue} style={{ color: costPerHire.totalHires > 0 ? '#16a34a' : '#64748b' }}>
-                    {costPerHire.totalHires}
-                  </div>
-                  <div className={styles.cphBreakdownSub}>Through the platform</div>
-                </div>
-                <div className={styles.cphBreakdownCard}>
-                  <div className={styles.cphBreakdownLabel}>Member Since</div>
-                  <div className={styles.cphBreakdownValue} style={{ fontSize: '1rem' }}>{costPerHire.memberSince}</div>
-                  <div className={styles.cphBreakdownSub}>£{EMPLOYER_SUBSCRIPTION_PRICE}/month subscription</div>
-                </div>
-              </div>
-            </div>
-
-            {/* Cumulative chart */}
-            {mounted && costPerHire.chartData.length > 1 && (
-              <div style={{ marginTop: '1.25rem' }}>
-                <h3 className={styles.demographicsSubtitle}>Cumulative Cost vs Hires</h3>
-                <ResponsiveContainer width="100%" height={220}>
-                  <LineChart data={costPerHire.chartData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                    <XAxis dataKey="month" tick={{ fontSize: 10, fill: '#64748b' }} />
-                    <YAxis
-                      yAxisId="cost"
-                      tick={{ fontSize: 10, fill: '#64748b' }}
-                      tickFormatter={(v: number) => `£${v}`}
-                    />
-                    <YAxis
-                      yAxisId="hires"
-                      orientation="right"
-                      tick={{ fontSize: 10, fill: '#16a34a' }}
-                      allowDecimals={false}
-                    />
-                    <Tooltip
-                      contentStyle={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', color: '#1e293b', fontSize: '0.85rem', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
-                      formatter={(value: any, name: any) => [
-                        name === 'cost' ? `£${value}` : value,
-                        name === 'cost' ? 'Total Cost' : 'Total Hires',
-                      ]}
-                    />
-                    <Legend wrapperStyle={{ fontSize: '0.75rem' }} />
-                    <Line yAxisId="cost" type="monotone" dataKey="cost" stroke="#FFE500" strokeWidth={2} dot={false} name="Total Cost" isAnimationActive={true} animationDuration={800} animationEasing="ease-out" />
-                    <Line yAxisId="hires" type="stepAfter" dataKey="hires" stroke="#16a34a" strokeWidth={2} dot={false} name="Total Hires" isAnimationActive={true} animationDuration={800} animationEasing="ease-out" animationBegin={200} />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            )}
-
-          </div>
-        )}
 
         {/* Job Description Performance */}
         {activeTab === 'jobs' && (

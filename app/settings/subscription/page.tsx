@@ -12,7 +12,6 @@ import { getEmployerCapabilities } from '@/lib/employer'
 import { DEV_MODE, getMockUserType, getSubscriptionStatus, getTrialExpiryDate } from '@/lib/mockAuth'
 import { employerLoginPath } from '@/lib/loginRedirect'
 import {
-  EMPLOYER_SUBSCRIPTION_PRICE,
   TRIAL_DURATION_DAYS,
   calculateDaysRemaining,
   calculateTrialExpiry,
@@ -92,23 +91,15 @@ export default function SubscriptionSettingsPage() {
 
         setSubscription(subData)
 
-        // Mock invoices for active subscriptions
-        if (subStatus === 'active') {
-          const now = new Date()
-          const mockInvoices: Invoice[] = []
-          for (let i = 0; i < 3; i++) {
-            const invoiceDate = new Date(now)
-            invoiceDate.setMonth(invoiceDate.getMonth() - i)
-            mockInvoices.push({
-              id: `INV-${String(now.getFullYear()).slice(2)}${String(invoiceDate.getMonth() + 1).padStart(2, '0')}-${1000 + i}`,
-              date: invoiceDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
-              amount: `£${EMPLOYER_SUBSCRIPTION_PRICE.toFixed(2)}`,
-              status: 'paid',
-              downloadUrl: '#',
-            })
-          }
-          setInvoices(mockInvoices)
-        }
+        // THE MOCK INVOICE GENERATOR IS DELETED. It fabricated three "paid"
+        // invoices with invented ids, invented dates and an invented amount —
+        // for an employer who has never been charged anything, since no Stripe
+        // transaction has ever settled. A believable invoice for a payment that
+        // did not happen is the worst thing on this page, and it is worse than
+        // the price it carried: a price is a claim about the future, a receipt
+        // is a claim about the past.
+        //
+        // Real invoices, when there are any, come from Stripe.
 
         setLoading(false)
         return
@@ -420,14 +411,9 @@ export default function SubscriptionSettingsPage() {
                 <h2 className={styles.planName}>
                   {isExpired ? 'Expired' : isTrial ? 'Free Trial' : 'Monthly Plan'}
                 </h2>
-                <p className={styles.planPrice}>
-                  {isExpired
-                    ? 'Your trial has ended'
-                    : isTrial
-                    ? `£${EMPLOYER_SUBSCRIPTION_PRICE.toFixed(2)}/month after trial`
-                    : `£${EMPLOYER_SUBSCRIPTION_PRICE.toFixed(2)}/month`
-                  }
-                </p>
+                {/* The two priced branches are gone; the expired one still
+                    says something true and needs no number. */}
+                {isExpired && <p className={styles.planPrice}>Your trial has ended</p>}
               </div>
               <span className={`${styles.planBadge} ${
                 isExpired ? styles.badgeExpired :
@@ -459,22 +445,10 @@ export default function SubscriptionSettingsPage() {
                     <span className={styles.detailValue}>{subscription.trialEndDate ? formatExpiryDate(subscription.trialEndDate) : 'N/A'}</span>
                   </div>
                 )}
-                {isTrial && (
-                  <div className={styles.planDetail}>
-                    <span className={styles.detailLabel}>Amount After Trial</span>
-                    <span className={styles.detailValue}>£{EMPLOYER_SUBSCRIPTION_PRICE.toFixed(2)}/month</span>
-                  </div>
-                )}
                 {(isActive || isCancelling) && subscription.nextBillingDate && (
                   <div className={styles.planDetail}>
                     <span className={styles.detailLabel}>{isCancelling ? 'Final Billing Date' : 'Next Billing Date'}</span>
                     <span className={styles.detailValue}>{formatExpiryDate(subscription.nextBillingDate)}</span>
-                  </div>
-                )}
-                {isActive && (
-                  <div className={styles.planDetail}>
-                    <span className={styles.detailLabel}>Monthly Amount</span>
-                    <span className={styles.detailValue}>£{EMPLOYER_SUBSCRIPTION_PRICE.toFixed(2)} inc. VAT</span>
                   </div>
                 )}
                 {isCancelling && subscription.accessEndsAt && (
@@ -487,12 +461,6 @@ export default function SubscriptionSettingsPage() {
                   <div className={styles.planDetail}>
                     <span className={styles.detailLabel}>Trial Ended</span>
                     <span className={styles.detailValue}>{formatExpiryDate(subscription.trialEndDate)}</span>
-                  </div>
-                )}
-                {isExpired && (
-                  <div className={styles.planDetail}>
-                    <span className={styles.detailLabel}>Subscription Price</span>
-                    <span className={styles.detailValue}>£{EMPLOYER_SUBSCRIPTION_PRICE.toFixed(2)}/month</span>
                   </div>
                 )}
               </div>
@@ -541,11 +509,6 @@ export default function SubscriptionSettingsPage() {
                   <button className={styles.resubscribeBtn} onClick={handleResubscribe}>
                     Resubscribe
                   </button>
-                )}
-                {isExpired && (
-                  <Link href="/renew-subscription" className={styles.resubscribeBtn}>
-                    Resubscribe — £{EMPLOYER_SUBSCRIPTION_PRICE.toFixed(2)}/month
-                  </Link>
                 )}
               </div>
             </div>
