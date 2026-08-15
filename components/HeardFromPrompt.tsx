@@ -26,7 +26,26 @@ import { Ico } from '@/components/icons'
       self-report, which is the priority normalizeSource already encodes.
 */
 
-const DISMISS_KEY = 'thrive_heard_from_dismissed'
+/*
+  THE DISMISSAL IS PER USER, NOT PER BROWSER — found 15 Aug 2026 by
+  registering a second account on the same phone and watching the prompt
+  never appear. The key used to be one global string, so localStorage said
+  "already answered" for a person who had never been asked:
+
+    · a shared device — family, work machine, library — asks the first
+      person and never the second
+    · anyone who dismisses once and later makes another account is never
+      asked again
+    · and it fails SILENTLY, suppressing the only attribution signal that
+      actually works. Nothing logs. The row just stays null forever.
+
+  LEGACY_KEY is honoured once and migrated: whoever dismissed it on this
+  browser was almost certainly the person now signed in, so they keep the
+  "asked once" promise instead of being asked a second time. Everyone
+  after them gets asked on their own account, which is the point.
+*/
+const LEGACY_KEY = 'thrive_heard_from_dismissed'
+const dismissKey = (userId: string) => `thrive_heard_from_dismissed:${userId}`
 
 export default function HeardFromPrompt() {
   const [show, setShow] = useState(false)
@@ -39,9 +58,23 @@ export default function HeardFromPrompt() {
     let cancelled = false
     ;(async () => {
       try {
-        if (typeof window !== 'undefined' && window.localStorage.getItem(DISMISS_KEY)) return
+        // The session has to come FIRST now — the dismissal is keyed by user,
+        // so there is nothing to look up until we know who this is.
         const { data: { session } } = await supabase.auth.getSession()
         if (!session || cancelled) return
+        const uid = session.user.id
+        if (typeof window !== 'undefined') {
+          if (window.localStorage.getItem(dismissKey(uid))) return
+          // One-time migration off the old global key, so the person who
+          // dismissed it on this browser is not asked a second time.
+          if (window.localStorage.getItem(LEGACY_KEY)) {
+            try {
+              window.localStorage.setItem(dismissKey(uid), '1')
+              window.localStorage.removeItem(LEGACY_KEY)
+            } catch { /* private mode */ }
+            return
+          }
+        }
         const { data } = await supabase
           .from('candidate_profiles')
           .select('heard_from, signup_ref, utm_source')
@@ -58,7 +91,12 @@ export default function HeardFromPrompt() {
   }, [])
 
   const dismiss = () => {
-    try { window.localStorage.setItem(DISMISS_KEY, '1') } catch { /* private mode */ }
+    // userId is always set before show becomes true, so the X cannot be
+    // reachable without one — but fall back rather than throw if that ever
+    // stops being true, because this must never break the dashboard.
+    if (userId) {
+      try { window.localStorage.setItem(dismissKey(userId), '1') } catch { /* private mode */ }
+    }
     setShow(false)
   }
 
@@ -73,7 +111,7 @@ export default function HeardFromPrompt() {
         patch.signup_source = normalizeSource({ heard_from: choice })
       }
       await supabase.from('candidate_profiles').update(patch).eq('user_id', userId)
-      try { window.localStorage.setItem(DISMISS_KEY, '1') } catch { /* private mode */ }
+      try { window.localStorage.setItem(dismissKey(userId), '1') } catch { /* private mode */ }
       setSaved(true)
       setTimeout(() => setShow(false), 1600)
     } catch {

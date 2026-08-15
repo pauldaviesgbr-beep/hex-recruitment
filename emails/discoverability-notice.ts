@@ -55,7 +55,7 @@ export function discoverabilityNoticeEmail(opts: {
     </p>
 
     <p style="margin:24px 0 0;padding-top:18px;border-top:1px solid #eef0f3;font-size:13px;color:#94a3b8;line-height:1.6;">
-      You can change this whenever you like: the <strong>&ldquo;Hide my profile&rdquo;</strong> switch at the
+      You can change this whenever you like: the <strong>visibility switch</strong> at the
       top of <a href="${BASE_URL}/dashboard" style="color:#64748b;">your dashboard</a> turns visibility
       off and on at any time, before or after ${opts.deadlineText}.
     </p>

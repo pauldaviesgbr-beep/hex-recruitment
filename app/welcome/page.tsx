@@ -173,7 +173,8 @@ function WelcomeContent() {
           <p className={styles.noticeBody}>
             Your profile is visible to employers hiring on Thrive, so they can approach you
             about roles. You can turn this off at any time with the{' '}
-            <strong>&ldquo;Hide my profile&rdquo;</strong> switch on your dashboard.
+            <strong>visibility switch</strong> at the top of your dashboard — it reads
+            &ldquo;Employers can find you&rdquo; while it is on.
           </p>
         </div>
 
