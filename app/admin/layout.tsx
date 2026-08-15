@@ -26,7 +26,13 @@ const NAV_ITEMS = [
   { href: '/admin/messages', label: 'Messages', icon: MessageSquare },
   { href: '/admin/reviews', label: 'Reviews', icon: Star },
   { href: '/admin/analytics', label: 'Analytics', icon: BarChart3 },
-  { href: '/admin/emails', label: 'Emails', icon: Mail },
+  // DELIVERY, not "Emails" — the page covers email AND push since 15 Aug 2026,
+  // and a nav label that names half of what a page holds is the reason nobody
+  // finds the other half. Push stays a tab here rather than taking a thirteenth
+  // nav slot: it is the same question — did our messages reach anyone — asked
+  // of a second transport, and it has 45 rows and one subscriber. Promote it to
+  // /admin/push when it earns the slot.
+  { href: '/admin/emails', label: 'Delivery', icon: Mail },
   { href: '/admin/waitlist', label: 'Waitlist', icon: ListChecks },
   { href: '/admin/settings', label: 'Settings', icon: Settings },
 ]
