@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useAdminToken } from '@/lib/admin-context'
-import StatsCard from '@/components/admin/StatsCard'
 import {
   LineChart, Line, BarChart, Bar,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
@@ -161,17 +160,67 @@ export default function AdminOverviewPage() {
         </div>
       )}
 
-      <div className={styles.statsGrid}>
-        <StatsCard title="Real Users" value={stats.totalUsers.toLocaleString()} change={`+${stats.newUsersWeek} this week`} />
-        <StatsCard title="New This Month" value={stats.newUsersMonth.toLocaleString()} />
-        <StatsCard title="Live Board" value={stats.jobs.liveBoard.toLocaleString()} />
-        <StatsCard title="Employer-Posted Jobs" value={stats.jobs.employerPosted.toLocaleString()} />
-        <StatsCard title="Applications" value={stats.totalApplications.toLocaleString()} />
-        <StatsCard title="Founding Seats" value={`${stats.foundingSeats.taken} of ${stats.foundingSeats.of}`} />
+      {/* ── Phase 3 hierarchy: two headline numbers, then a reference strip.
+          MESS TOLERANCE per the spec: a headline tile with no value does not
+          render at all — never an em-dash in a 44px number; the delta is
+          ABSENT (not zero) when there is nothing to compare; reference cells
+          may show an em-dash.
+          ONE SOURCE, TWO RENDERINGS: the second headline is health.funnel —
+          the exact object the funnel section below renders from. No second
+          query computes this fact. */}
+      <div className={styles.headlineGrid}>
+        {typeof stats.totalUsers === 'number' && (
+          <div className={`${styles.headlineTile} ${styles.headlineTileYellow}`}>
+            <p className={styles.headlineEyebrow}>Real users</p>
+            <div className={styles.headlineValueRow}>
+              <p className={styles.headlineValue}>{stats.totalUsers.toLocaleString()}</p>
+              {typeof stats.newUsersWeek === 'number' && stats.newUsersWeek !== 0 && (
+                <span className={`${styles.headlineDelta} ${stats.newUsersWeek > 0 ? styles.headlineDeltaUp : styles.headlineDeltaDown}`}>
+                  {stats.newUsersWeek > 0 ? '+' : ''}{stats.newUsersWeek} this week
+                </span>
+              )}
+            </div>
+            <p className={styles.headlineNote}>Candidates and employers, fixtures excluded</p>
+          </div>
+        )}
+        {health && typeof health.funnel.gotResponse === 'number' && (
+          <div className={`${styles.headlineTile} ${styles.headlineTileAlert}`}>
+            <p className={styles.headlineEyebrow}>Applications that got a response</p>
+            <div className={styles.headlineValueRow}>
+              <p className={styles.headlineValue}>{health.funnel.gotResponse} of {health.funnel.applied}</p>
+              {health.funnel.applied > 0 && (
+                <span className={`${styles.headlineDelta} ${styles.headlineDeltaDown}`}>
+                  {Math.round(((health.funnel.applied - health.funnel.gotResponse) / health.funnel.applied) * 100)}% lost
+                </span>
+              )}
+            </div>
+            <p className={styles.headlineNote}>The same fact as the funnel&apos;s red row, from the same query</p>
+          </div>
+        )}
       </div>
 
-      <p style={{ margin: '-0.5rem 0 1.5rem', fontSize: '0.8rem', color: '#64748b' }}>
+      <div className={styles.refStrip}>
+        <div className={styles.refCell}>
+          <p className={styles.refValue}>{typeof stats.newUsersMonth === 'number' ? stats.newUsersMonth.toLocaleString() : '—'}</p>
+          <p className={styles.refLabel}>New this month</p>
+        </div>
+        <div className={styles.refCell}>
+          <p className={styles.refValue}>{typeof stats.jobs?.liveBoard === 'number' ? stats.jobs.liveBoard.toLocaleString() : '—'}</p>
+          <p className={styles.refLabel}>Live board</p>
+        </div>
+        <div className={styles.refCell}>
+          <p className={styles.refValue}>{typeof stats.jobs?.employerPosted === 'number' ? stats.jobs.employerPosted.toLocaleString() : '—'}</p>
+          <p className={styles.refLabel}>Employer-posted</p>
+        </div>
+        <div className={styles.refCell}>
+          <p className={styles.refValue}>{stats.foundingSeats ? `${stats.foundingSeats.taken} of ${stats.foundingSeats.of}` : '—'}</p>
+          <p className={styles.refLabel}>Founding seats</p>
+        </div>
+      </div>
+
+      <p style={{ margin: '0.5rem 0 1.5rem', fontSize: '0.8rem', color: '#64748b' }}>
         Imported listings: {stats.jobs.imported.toLocaleString()} ({stats.jobs.importedRetired.toLocaleString()} retired).
+        Applications: {stats.totalApplications.toLocaleString()}.
         All user, application and posting numbers exclude the two test fixture accounts.
       </p>
 
