@@ -70,7 +70,15 @@ const SUPABASE_URL = 'https://aaljufxcniacfggqiuls.supabase.co'
 const PROJECT_REF = 'aaljufxcniacfggqiuls'
 const ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-const PASSWORD = 'TheMunch2017!'
+// FROM THE ENVIRONMENT, NEVER A LITERAL. This was a hardcoded password that
+// sat in a public repo from 10 May 2026. It opened nothing by then — the
+// accounts were long gone — but a credential in a commit is a credential in a
+// commit, and this file is one of four that published the same string.
+const PASSWORD = process.env.E2E_PASSWORD
+if (!PASSWORD) {
+  console.error('SKIP  set E2E_PASSWORD in the environment — this script no longer carries one.')
+  process.exit(2)
+}
 const EMPLOYER_EMAIL_TPL = (suffix) => `pauldavies.gbr+e2e-employer-${suffix}@gmail.com`
 const CANDIDATE_EMAIL_TPL = (suffix) => `pauldavies.gbr+e2e-candidate-${suffix}@gmail.com`
 
