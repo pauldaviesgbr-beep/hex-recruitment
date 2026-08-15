@@ -6,7 +6,16 @@
 // below. Keep these untouched so the Stripe trial path still reads
 // correctly if FREE_FOUNDING_MODE is ever flipped off.
 export const TRIAL_DURATION_DAYS = 91 // 3-month free trial
-export const EMPLOYER_SUBSCRIPTION_PRICE = 99
+// EMPLOYER_SUBSCRIPTION_PRICE IS DELETED, DELIBERATELY, SO THE COMPILER IS THE
+// GUARD. It was 99. Paul, 15 Aug 2026: subscriptions are six to twelve months
+// away and TIER-BASED, structure undecided — so a single flat price is not an
+// unset value, it is the wrong shape. A comment saying "do not publish this"
+// stops nobody; a missing symbol stops the build.
+//
+// DO NOT REINSTATE IT TO MAKE tsc HAPPY, and do not substitute 0, null, TBD or
+// "£—" — a placeholder recreates the fault in a quieter form and removes the
+// compile error that was the entire point. When there is a real model, add
+// whatever it needs and write the copy fresh against it.
 export const JOB_SEEKER_REACTIVATION_PRICE = 1.00
 export const WARNING_PERIOD_DAYS = 7
 
@@ -155,19 +164,11 @@ export function formatExpiryDate(expiresAt: Date | string | null): string {
   })
 }
 
-/**
- * Get payment redirect URL based on user type
- */
-export function getPaymentRedirectUrl(userType: UserType): string {
-  return userType === 'employer' ? '/renew-subscription' : '/reactivate-account'
-}
-
-/**
- * Get price label for user type
- */
-export function getPriceLabel(userType: UserType): string {
-  if (userType === 'employer') {
-    return `£${EMPLOYER_SUBSCRIPTION_PRICE}/month`
-  }
-  return `£${JOB_SEEKER_REACTIVATION_PRICE.toFixed(2)} one-time`
-}
+// getPaymentRedirectUrl AND getPriceLabel ARE BOTH DELETED. Their only caller
+// was components/TrialStatusBanner, which was itself imported and rendered
+// NOWHERE — ungated code that was safe purely by accident of never being
+// mounted. getPriceLabel produced "£99/month"; getPaymentRedirectUrl pointed
+// employers at /renew-subscription, a route deleted in the same change.
+//
+// If a trial banner is ever wanted again it needs writing against the real
+// tier model, not restoring from here.

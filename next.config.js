@@ -45,6 +45,14 @@ const nextConfig = {
     { source: '/subscribe', destination: '/register/employer-free', permanent: false },
     { source: '/register/employer/payment', destination: '/register/employer-free', permanent: false },
     { source: '/renew-subscription', destination: '/register/employer-free', permanent: false },
+    // ADDED 15 Aug 2026, AND IT BELONGS TO THE SAME SWITCH AS THE FOUR ABOVE.
+    // /register/employer used to redirect ITSELF, from an unconditional
+    // useEffect inside app/register/employer/page.tsx. That page was deleted
+    // with the rest of the paid-signup surfaces, which turned the path into a
+    // 404 — and tsc reported nothing, because a dead href is a string.
+    // Requested and confirmed: 404 before this line, 307 after.
+    // When billing revives, this entry comes out WITH the other four.
+    { source: '/register/employer', destination: '/register/employer-free', permanent: false },
   ],
   headers: async () => [
     {
