@@ -107,7 +107,7 @@ export default function CandidateSignupForm() {
       const msg = err?.message || ''
       if (code === 'weak_password' || /weak and easy to guess|pwned|leaked|data breach/i.test(msg)) {
         setError(
-          "That password has turned up in an online data breach, so it can't be used here — even though it looks strong. Try a longer passphrase (three random words like copper-anvil-mango7 works well), or tap 'Sign up with LinkedIn' above for one-tap access, no password needed."
+          "That password has turned up in an online data breach, so it can't be used here — even though it looks strong. Try a longer passphrase (three random words like copper-anvil-mango7 works well), or tap 'Sign up with LinkedIn' above — there's no new password to create."
         )
       } else {
         setError(msg || 'Something went wrong. Please try again.')

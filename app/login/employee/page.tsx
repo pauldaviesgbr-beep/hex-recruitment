@@ -241,10 +241,20 @@ function EmployeeLoginPageContent() {
 
           {/* LINKEDIN IS THE ONE PRIMARY, AND THE ORDER IS THE POINT.
               Arrivals come from LinkedIn on a phone; they are already
-              authenticated there, so it is genuinely one tap and no password.
-              Google follows as level 2. DOM order is LinkedIn -> Google ->
+              authenticated there, so for most of them it IS one tap — but
+              "most" is why the eyebrow no longer says so. Google follows as
+              level 2. DOM order is LinkedIn -> Google ->
               email so the keyboard order matches the visual hierarchy. */}
-          <p className={styles.authEyebrow}>Fastest — one tap, no password</p>
+          {/* "ONE TAP, NO PASSWORD" WAS A CLAIM WE CANNOT KEEP — Paul, 15 Aug
+              2026, reading it on his own phone. OAuth removes the password you
+              would CREATE for Thrive; it does not remove LinkedIn's. Signed out
+              on that device, LinkedIn asks for one — so the line was false for
+              precisely the person it would annoy most, and "one tap" was true
+              only for someone already authenticated. Same family as the
+              employmentType default: a sentence that asserts something only
+              sometimes true, in our voice. What IS true in every case is that
+              Thrive never asks you to invent and remember another password. */}
+          <p className={styles.authEyebrow}>Fastest — no new password to create</p>
           <LinkedInSignInButton role="employee" className={styles.authPrimary} next={safeRedirect || undefined} />
           <div style={{ marginTop: '0.6rem' }}>
             <GoogleSignInButton role="employee" className={styles.googleBtn} next={safeRedirect || undefined} />
