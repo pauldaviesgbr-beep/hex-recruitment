@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
 import { verifyAdmin, createAdminClient } from '@/lib/admin'
-import { EMPLOYER_SUBSCRIPTION_PRICE } from '@/lib/trialUtils'
 
 const PAGE_SIZE = 20
 
@@ -95,8 +94,12 @@ export async function GET(req: Request) {
       total: count || 0,
       page,
       totalPages: Math.ceil((count || 0) / PAGE_SIZE),
+      // NO mrr. It was totalActive × EMPLOYER_SUBSCRIPTION_PRICE — a single
+      // flat constant, on a product with no published price, for a model Paul
+      // has confirmed will be TIERED and is six to twelve months away. The
+      // counts below are facts; the multiplication was a fiction that happened
+      // to read £0.00 while every row is inactive.
       revenue: {
-        mrr: totalActive * EMPLOYER_SUBSCRIPTION_PRICE,
         totalActive,
         totalTrialing,
       },

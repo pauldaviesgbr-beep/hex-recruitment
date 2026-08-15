@@ -18,8 +18,21 @@ interface Subscription {
   updated_at: string
 }
 
+// MRR IS GONE FROM HERE — the third and last place it lived. Paul deleted it
+// from Overview on 14 Aug and Analytics was retired with it on 15 Aug; this
+// page was still rendering it.
+//
+// It was totalActive × EMPLOYER_SUBSCRIPTION_PRICE, a single flat constant on
+// a product with no published price. Two reasons it cannot stay:
+//   · it read £0.00 only because all eight subscription rows are 'inactive'.
+//     The moment one activates it becomes a confident, invented figure.
+//   · THE MODEL WILL BE TIERED. Paul, 15 Aug: subscriptions are six to twelve
+//     months away and tier-based, structure undecided. A single-price
+//     multiplication can never be right under the model that is actually
+//     coming, so this is not "wrong until we set the price" — it is the wrong
+//     shape entirely.
+// The counts stay; they are real.
 interface Revenue {
-  mrr: number
   totalActive: number
   totalTrialing: number
 }
@@ -116,7 +129,6 @@ export default function AdminSubscriptionsPage() {
 
       {revenue && (
         <div className={styles.revenueGrid}>
-          <StatsCard title="Monthly Recurring Revenue" value={`£${revenue.mrr.toFixed(2)}`} />
           <StatsCard title="Active Subscriptions" value={revenue.totalActive} />
           <StatsCard title="Total Trials" value={revenue.totalTrialing} />
         </div>
