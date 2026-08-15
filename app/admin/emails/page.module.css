@@ -9,7 +9,7 @@
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 1rem;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
 }
 
 .errorBanner {
@@ -36,6 +36,128 @@
 .badge_bounced { background: #fef2f2; color: #dc2626; }
 .badge_complained { background: #fef3c7; color: #92400e; }
 .badge_sent { background: #f1f5f9; color: #64748b; }
+.badge_ok { background: #dcfce7; color: #166534; }
+.badge_fail { background: #fef2f2; color: #b91c1c; }
+
+/* THE TWO SURFACES. push_log is not a second email table — different shape,
+   addressed to a user id, and it carries `outcome`, which is where its real
+   information is. A tab rather than a new route keeps the admin nav at twelve
+   items; promote it to /admin/push if it earns a place there. */
+.tabBar {
+  display: flex;
+  flex-wrap: wrap;          /* NEVER overflow-x on a control row — a tab you
+                               cannot see is a tab that does not exist. */
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+.tab {
+  padding: 8px 14px;
+  border: 1px solid #CBD5E1;
+  border-radius: 999px;
+  background: #fff;
+  color: #0F172A;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  min-height: 40px;
+}
+.tabActive { background: #0F172A; border-color: #0F172A; color: #fff; }
+
+/* Filters wrap too, for the same reason. */
+.filterRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+.filterInput,
+.filterSelect {
+  padding: 8px 10px;
+  border: 1px solid #CBD5E1;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  background: #fff;
+  color: #0F172A;
+  min-height: 40px;
+}
+.filterInput { min-width: 180px; flex: 1 1 180px; }
+
+/* FAILED-ONLY IS ONE TAP, not a dropdown default. It is the reason the page
+   exists: three separate investigations in one week wanted exactly this. */
+.failedToggle {
+  padding: 8px 14px;
+  border: 1px solid #CBD5E1;
+  border-radius: 8px;
+  background: #fff;
+  color: #0F172A;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  min-height: 40px;
+}
+.failedToggleOn { background: #fef2f2; border-color: #fca5a5; color: #b91c1c; }
+.clearBtn {
+  background: none;
+  border: none;
+  color: #64748b;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 8px 4px;
+  min-height: 40px;
+}
+
+/* The answer line — a sentence, because for push a sentence says more than
+   forty-five rows do. */
+.answerLine {
+  background: #fff;
+  border: 1px solid #E2E8F0;
+  border-left: 3px solid #0F172A;
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 1rem;
+}
+.answerHead {
+  margin: 0 0 6px;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #0F172A;
+  line-height: 1.45;
+}
+.answerBody { margin: 0; font-size: 0.87rem; color: #475569; line-height: 1.55; }
+.answerAlarm { border-left-color: #dc2626; }
+
+.outcomeRow { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 10px 0 0; }
+.outcomeChip {
+  border: 1px solid #E2E8F0;
+  border-radius: 999px;
+  padding: 5px 11px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #0F172A;
+  background: #F8FAFC;
+}
+
+/* FOOTNOTES SAY WHAT THE NUMBERS ARE NOT. Same voice as the Overview
+   footnotes, and not optional here: both of these pages are readable as
+   something worse than the truth without them. */
+.footnote {
+  margin: 0.75rem 0 1.5rem;
+  font-size: 0.8rem;
+  color: #64748b;
+  line-height: 1.55;
+}
+.footnote strong { color: #475569; }
+
+.msgId {
+  font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+  font-size: 0.72rem;
+  color: #64748b;
+  word-break: break-all;
+}
+.errCell { color: #b91c1c; font-size: 0.78rem; }
+.muted { color: #94a3b8; }
 
 @media (max-width: 1024px) {
   .statsGrid { grid-template-columns: repeat(2, 1fr); }
@@ -43,4 +165,8 @@
 
 @media (max-width: 640px) {
   .statsGrid { grid-template-columns: 1fr; }
+  /* Going column means stretch, not centre — a centred column keeps every
+     child at its intrinsic width and pushes the widest one off both edges. */
+  .filterRow { flex-direction: column; align-items: stretch; }
+  .filterInput, .filterSelect, .failedToggle { width: 100%; }
 }
