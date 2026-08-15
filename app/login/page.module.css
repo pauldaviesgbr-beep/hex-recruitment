@@ -229,19 +229,25 @@
 }
 
 /* Google sign-in button */
+/* LEVEL 2 METRICS, matching .authSecondary — 15px padding, 15px/600, radius
+   10, #CBD5E1. This button predated the hierarchy and sat at 12px/14.4px,
+   which made the level-1 above it look a full 4px taller rather than the
+   intended hair's breadth. The primary should read as slightly weightier,
+   not as a different species. */
 .googleBtn {
   width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.75rem;
-  padding: 0.75rem 1rem;
+  padding: 15px;
   background: #fff;
-  border: 1px solid #dadce0;
-  border-radius: 8px;
-  font-size: 0.9rem;
-  font-weight: 500;
-  color: #3c4043;
+  border: 1px solid #CBD5E1;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #0F172A;
+  min-height: 48px;
   cursor: pointer;
   transition: background 0.15s ease, box-shadow 0.15s ease;
 }
