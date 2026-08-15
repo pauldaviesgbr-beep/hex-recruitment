@@ -5,7 +5,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import {
   LayoutDashboard, Users, Briefcase, FileText, CreditCard,
-  MessageSquare, Star, BarChart3, Mail, ListChecks, Settings, ArrowLeft,
+  MessageSquare, Star, Mail, ListChecks, Settings, ArrowLeft,
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { ADMIN_EMAILS } from '@/lib/admin-client'
@@ -25,7 +25,13 @@ const NAV_ITEMS = [
   { href: '/admin/subscriptions', label: 'Subscriptions', icon: CreditCard },
   { href: '/admin/messages', label: 'Messages', icon: MessageSquare },
   { href: '/admin/reviews', label: 'Reviews', icon: Star },
-  { href: '/admin/analytics', label: 'Analytics', icon: BarChart3 },
+  // ANALYTICS IS RETIRED (15 Aug 2026). It contradicted Overview — no
+  // is_test/is_house filter anywhere, so it counted fixtures and reported
+  // different totals for the same facts — and it published MRR on its landing
+  // tab for a product with no price. Its one useful section, acquisition
+  // sources, already fed Overview's "Where candidates came from" card and
+  // survives as /api/admin/analytics?section=sources. Do not re-add a second
+  // dashboard without deciding which one is authoritative.
   // DELIVERY, not "Emails" — the page covers email AND push since 15 Aug 2026,
   // and a nav label that names half of what a page holds is the reason nobody
   // finds the other half. Push stays a tab here rather than taking a thirteenth

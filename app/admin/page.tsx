@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import Link from 'next/link'
 import { useAdminToken } from '@/lib/admin-context'
 import {
   LineChart, Line, BarChart, Bar,
@@ -49,8 +48,11 @@ interface Health {
   }[]
 }
 
-// Shape returned by /api/admin/analytics?section=sources — reused as-is rather
-// than recomputed here, so the Overview card and the Source tab can never disagree.
+// Shape returned by /api/admin/analytics?section=sources. That endpoint is now
+// the ONLY surviving part of the retired Analytics page, and this card is its
+// only consumer — the two can no longer disagree because there is nothing left
+// to disagree with. As of 15 Aug 2026 it also excludes is_test/is_house, so
+// this card finally counts the same population as every other number here.
 interface SourceRow {
   source: string
   count: number
@@ -390,9 +392,10 @@ export default function AdminOverviewPage() {
               <h3 className={styles.chartTitle} style={{ marginBottom: 0 }}>
                 Where candidates came from (last 30 days)
               </h3>
-              <Link href="/admin/analytics?tab=sources" style={{ fontSize: '0.85rem', fontWeight: 600, color: '#3b82f6' }}>
-                Full breakdown →
-              </Link>
+              {/* The "Full breakdown" link pointed at /admin/analytics?tab=sources,
+                  which is retired — it would now 404. This card IS the breakdown:
+                  it renders the same rows from the same endpoint, and the tab it
+                  linked to showed nothing this does not. */}
             </div>
             <p style={{ margin: '0.25rem 0 1rem', fontSize: '0.85rem', color: '#64748b' }}>
               {total} candidate signup{total === 1 ? '' : 's'} in range
