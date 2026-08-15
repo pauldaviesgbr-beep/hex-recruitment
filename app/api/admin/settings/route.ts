@@ -28,25 +28,16 @@ export async function GET(req: Request) {
       .eq('urgent', true)
       .eq('status', 'active')
 
-    let announcement = { text: '', active: false }
-    const { data: settings } = await db
-      .from('platform_settings')
-      .select('key, value')
-      .in('key', ['announcement_text', 'announcement_active'])
-
-    if (settings && settings.length > 0) {
-      settings.forEach(s => {
-        if (s.key === 'announcement_text') announcement.text = s.value || ''
-        if (s.key === 'announcement_active') announcement.active = s.value === 'true'
-      })
-    }
-
+    // THE ANNOUNCEMENT READ IS GONE. It did .select('key, value') on
+    // platform_settings, which is a SINGLE-ROW table with named columns and has
+    // neither — so PostgREST rejected the whole request, the error was never
+    // checked, and the banner was empty forever. Nothing rendered it anyway.
+    // See the note on /admin/settings for the full account.
     return NextResponse.json({
       sectors: uniqueSectors,
       tags: Array.from(allTags).sort(),
       featuredJobs: featuredJobs || [],
       featuredCount: featuredCount || 0,
-      announcement,
       adminEmails: ADMIN_EMAILS,
     })
   } catch (error: any) {
@@ -56,40 +47,18 @@ export async function GET(req: Request) {
       tags: [],
       featuredJobs: [],
       featuredCount: 0,
-      announcement: { text: '', active: false },
       adminEmails: ADMIN_EMAILS,
     })
   }
 }
 
-export async function POST(req: Request) {
-  const { authorized, token } = await verifyAdmin(req)
-  if (!authorized) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
-  }
-
-  const body = await req.json()
-  const { action, data } = body
-  const db = createAdminClient(token)
-
-  try {
-    switch (action) {
-      case 'update_announcement': {
-        await db.from('platform_settings').upsert(
-          { key: 'announcement_text', value: data.text },
-          { onConflict: 'key' }
-        )
-        await db.from('platform_settings').upsert(
-          { key: 'announcement_active', value: String(data.active) },
-          { onConflict: 'key' }
-        )
-        return NextResponse.json({ success: true, message: 'Announcement updated' })
-      }
-      default:
-        return NextResponse.json({ error: `Unknown action: ${action}` }, { status: 400 })
-    }
-  } catch (error: any) {
-    console.error('[Admin Settings Action]', error.message)
-    return NextResponse.json({ error: error.message || 'Action failed' }, { status: 500 })
-  }
-}
+// THE POST HANDLER IS GONE. Its only action was 'update_announcement', which
+// upserted { key, value } into a table that has neither column, never checked
+// the error, and returned { success: true } — so the page displayed
+// "Announcement saved!" while nothing was written and nothing anywhere would
+// have rendered it. A write that cannot succeed and reports success is worse
+// than no write at all: an admin could post a maintenance notice, be told it
+// saved, and it would reach nobody.
+//
+// This route is now READ-ONLY. If Settings ever needs to write, add a handler
+// that checks its error and returns the real outcome.
