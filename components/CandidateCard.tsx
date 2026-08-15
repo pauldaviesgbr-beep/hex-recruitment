@@ -309,10 +309,12 @@ export default function CandidateCard(props: {
               with it. `is_discoverable` is untouched: this is a reading of the
               same value, not a new one.
 
-              The label says EMPLOYERS rather than headhunters, deliberately.
-              Being discoverable exposes you to every employer hiring on
-              Thrive, not only to recruiters, and a label naming the narrower
-              group would understate what the switch actually does. */}
+              The label says EMPLOYERS rather than headhunters. Paul asked for
+              "available for headhunters" and then confirmed employers is right
+              (15 Aug 2026), because being discoverable exposes you to every
+              employer hiring on Thrive, not only to recruiters — the narrower
+              word would understate what the switch actually does. Settled, not
+              an oversight: do not "correct" it back without a new decision. */}
           <label
             className={styles.dashToggleCompact}
             title={props.isDiscoverable
