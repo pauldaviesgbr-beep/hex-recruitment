@@ -147,6 +147,13 @@ export default function AdminOverviewPage() {
 
   const hasAlerts = stats.alerts && stats.alerts.flaggedReviews > 0
 
+  // ONE RULE, TWO RENDERINGS — the red value in the desktop table and the
+  // wash on the phone card both ask these, and nothing else decides "this row
+  // is a problem". A second condition meaning the same thing is how two
+  // surfaces start disagreeing about the same employer.
+  const isUnresponsive = (r: Health['responsiveness'][number]) => r.listOpened === 0
+  const isDormant = (e: Health['employersAlive'][number]) => !e.hasPosted && !e.hasOpenedApplications
+
   return (
     <div>
       <h1 className={styles.pageTitle}>Dashboard Overview</h1>
@@ -263,29 +270,52 @@ export default function AdminOverviewPage() {
       <div className={styles.chartCard} style={{ marginBottom: '1.5rem' }}>
         <h3 className={styles.chartTitle}>Employer responsiveness — worst first</h3>
         {health ? (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.86rem' }}>
-              <thead>
-                <tr style={{ textAlign: 'left', color: '#64748b', borderBottom: '1px solid #e2e8f0' }}>
-                  <th style={{ padding: '0.4rem 0.5rem' }}>Employer</th>
-                  <th style={{ padding: '0.4rem 0.5rem' }}>Received</th>
-                  <th style={{ padding: '0.4rem 0.5rem' }}>List opened*</th>
-                  <th style={{ padding: '0.4rem 0.5rem' }}>Actioned</th>
-                  <th style={{ padding: '0.4rem 0.5rem' }}>Median hrs to open</th>
-                </tr>
-              </thead>
-              <tbody>
-                {health.responsiveness.map(r => (
-                  <tr key={r.employerId} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                    <td style={{ padding: '0.4rem 0.5rem', fontWeight: 700, color: '#1e293b' }}>{r.company}</td>
-                    <td style={{ padding: '0.4rem 0.5rem' }}>{r.received}</td>
-                    <td style={{ padding: '0.4rem 0.5rem', color: r.listOpened === 0 ? '#dc2626' : undefined, fontWeight: r.listOpened === 0 ? 700 : undefined }}>{r.listOpened}</td>
-                    <td style={{ padding: '0.4rem 0.5rem' }}>{r.actioned}</td>
-                    <td style={{ padding: '0.4rem 0.5rem' }}>{r.medianHoursToOpen ?? '—'}</td>
+          <div>
+            <div className={styles.tableWrap}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.86rem' }}>
+                <thead>
+                  <tr style={{ textAlign: 'left', color: '#64748b', borderBottom: '1px solid #e2e8f0' }}>
+                    <th style={{ padding: '0.4rem 0.5rem' }}>Employer</th>
+                    <th style={{ padding: '0.4rem 0.5rem' }}>Received</th>
+                    <th style={{ padding: '0.4rem 0.5rem' }}>List opened*</th>
+                    <th style={{ padding: '0.4rem 0.5rem' }}>Actioned</th>
+                    <th style={{ padding: '0.4rem 0.5rem' }}>Median hrs to open</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {health.responsiveness.map(r => (
+                    <tr key={r.employerId} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                      <td style={{ padding: '0.4rem 0.5rem', fontWeight: 700, color: '#1e293b' }}>{r.company}</td>
+                      <td style={{ padding: '0.4rem 0.5rem' }}>{r.received}</td>
+                      <td style={{ padding: '0.4rem 0.5rem', color: isUnresponsive(r) ? '#dc2626' : undefined, fontWeight: isUnresponsive(r) ? 700 : undefined }}>{r.listOpened}</td>
+                      <td style={{ padding: '0.4rem 0.5rem' }}>{r.actioned}</td>
+                      <td style={{ padding: '0.4rem 0.5rem' }}>{r.medianHoursToOpen ?? '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Phone: one card per row. Each cell carries its own label, so a
+                value is never orphaned from its column header. */}
+            <div className={styles.cardStack}>
+              {health.responsiveness.map(r => (
+                <div key={r.employerId} className={`${styles.rowCard} ${isUnresponsive(r) ? styles.rowCardAlarm : ''}`}>
+                  <p className={styles.rowCardName}>{r.company}</p>
+                  <div className={styles.rowCardGrid}>
+                    <span className={styles.rowCardLabel}>Received</span>
+                    <span className={styles.rowCardValue}>{r.received}</span>
+                    <span className={styles.rowCardLabel}>List opened*</span>
+                    <span className={isUnresponsive(r) ? styles.rowCardValueAlarm : styles.rowCardValue}>{r.listOpened}</span>
+                    <span className={styles.rowCardLabel}>Actioned</span>
+                    <span className={styles.rowCardValue}>{r.actioned}</span>
+                    <span className={styles.rowCardLabel}>Median hrs to open</span>
+                    <span className={styles.rowCardValue}>{r.medianHoursToOpen ?? '—'}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
             <p style={{ margin: '0.5rem 0 0', fontSize: '0.78rem', color: '#64748b' }}>
               *“List opened” means the employer loaded their applicant list — it does NOT mean this
               application was read. Nothing currently records opening an individual application.
@@ -300,27 +330,46 @@ export default function AdminOverviewPage() {
       <div className={styles.chartCard} style={{ marginBottom: '1.5rem' }}>
         <h3 className={styles.chartTitle}>Employers alive — stalest first</h3>
         {health ? (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.86rem' }}>
-              <thead>
-                <tr style={{ textAlign: 'left', color: '#64748b', borderBottom: '1px solid #e2e8f0' }}>
-                  <th style={{ padding: '0.4rem 0.5rem' }}>Employer</th>
-                  <th style={{ padding: '0.4rem 0.5rem' }}>Last sign-in*</th>
-                  <th style={{ padding: '0.4rem 0.5rem' }}>Ever posted</th>
-                  <th style={{ padding: '0.4rem 0.5rem' }}>Ever opened applicants</th>
-                </tr>
-              </thead>
-              <tbody>
-                {health.employersAlive.map(e => (
-                  <tr key={e.company} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                    <td style={{ padding: '0.4rem 0.5rem', fontWeight: 700, color: '#1e293b' }}>{e.company}</td>
-                    <td style={{ padding: '0.4rem 0.5rem' }}>{fmtSignIn(e.lastSignIn)}</td>
-                    <td style={{ padding: '0.4rem 0.5rem' }}>{e.hasPosted ? 'yes' : <span style={{ color: '#dc2626' }}>no</span>}</td>
-                    <td style={{ padding: '0.4rem 0.5rem' }}>{e.hasOpenedApplications ? 'yes' : <span style={{ color: '#dc2626' }}>no</span>}</td>
+          <div>
+            <div className={styles.tableWrap}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.86rem' }}>
+                <thead>
+                  <tr style={{ textAlign: 'left', color: '#64748b', borderBottom: '1px solid #e2e8f0' }}>
+                    <th style={{ padding: '0.4rem 0.5rem' }}>Employer</th>
+                    <th style={{ padding: '0.4rem 0.5rem' }}>Last sign-in*</th>
+                    <th style={{ padding: '0.4rem 0.5rem' }}>Ever posted</th>
+                    <th style={{ padding: '0.4rem 0.5rem' }}>Ever opened applicants</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {health.employersAlive.map(e => (
+                    <tr key={e.company} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                      <td style={{ padding: '0.4rem 0.5rem', fontWeight: 700, color: '#1e293b' }}>{e.company}</td>
+                      <td style={{ padding: '0.4rem 0.5rem' }}>{fmtSignIn(e.lastSignIn)}</td>
+                      <td style={{ padding: '0.4rem 0.5rem' }}>{e.hasPosted ? 'yes' : <span style={{ color: '#dc2626' }}>no</span>}</td>
+                      <td style={{ padding: '0.4rem 0.5rem' }}>{e.hasOpenedApplications ? 'yes' : <span style={{ color: '#dc2626' }}>no</span>}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className={styles.cardStack}>
+              {health.employersAlive.map(e => (
+                <div key={e.company} className={`${styles.rowCard} ${isDormant(e) ? styles.rowCardAlarm : ''}`}>
+                  <p className={styles.rowCardName}>{e.company}</p>
+                  <div className={styles.rowCardGrid}>
+                    <span className={styles.rowCardLabel}>Last sign-in*</span>
+                    <span className={styles.rowCardValue}>{fmtSignIn(e.lastSignIn)}</span>
+                    <span className={styles.rowCardLabel}>Ever posted</span>
+                    <span className={e.hasPosted ? styles.rowCardValue : styles.rowCardValueAlarm}>{e.hasPosted ? 'yes' : 'no'}</span>
+                    <span className={styles.rowCardLabel}>Ever opened applicants</span>
+                    <span className={e.hasOpenedApplications ? styles.rowCardValue : styles.rowCardValueAlarm}>{e.hasOpenedApplications ? 'yes' : 'no'}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
             <p style={{ margin: '0.5rem 0 0', fontSize: '0.78rem', color: '#64748b' }}>
               *Last sign-in only — no sign-in history exists, so frequency is unknowable.
               Automated test drives refresh the fixture accounts’ sign-ins (excluded here anyway).

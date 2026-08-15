@@ -155,6 +155,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <aside className={styles.sidebar}>
         <div className={styles.logo}>
           <Link href="/admin" className={styles.logoLink}>
+            {/* Phase 5(a): the MARK renders at rail width; the wordmark is
+                hidden below 768 by CSS rather than clipped. The handoff's
+                thrive-mark-small.svg is the optically re-centred single
+                plane, specified for 22–32px. */}
+            <img src="/logo/thrive-mark-small.svg" alt="" aria-hidden="true" className={styles.logoMark} width={26} height={26} />
             <span className={styles.logoText}>THRIVE</span>
             <span className={styles.logoSub}>Admin</span>
           </Link>
