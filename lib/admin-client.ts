@@ -1,5 +1,5 @@
 // Client-safe admin configuration (no server-only imports)
-export const ADMIN_EMAILS = ['paul@thrivecareer.co.uk']
+export const ADMIN_EMAILS = ['paul@thrivecareer.co.uk', 'pauldavies.gbr+candidate@gmail.com']
 
 export function isAdmin(email: string | undefined | null): boolean {
   if (!email) return false
