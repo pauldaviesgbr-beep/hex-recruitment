@@ -13,8 +13,20 @@
 const { chromium, webkit, devices } = require('playwright')
 
 const BASE = process.argv[2] || 'http://localhost:3000'
-const EMAIL = 'pauldavies.gbr+thrivetest8@gmail.com'
-const PASSWORD = 'TheMunch2017!'
+// THIS SCRIPT IS CURRENTLY DEAD, AND IT IS WORTH SAYING SO RATHER THAN
+// QUIETLY LEAVING IT. It signed in as pauldavies.gbr+thrivetest8@gmail.com,
+// an account deleted some time before 15 Aug 2026 — checked, zero rows. So it
+// cannot pass against its own default and never will again.
+//
+// The password was a hardcoded literal that sat in a public repo from 10 May.
+// Both now come from the environment: give it a real account or leave it
+// alone, but it will no longer publish a credential or pretend it can run.
+const EMAIL = process.env.U4_EMAIL
+const PASSWORD = process.env.U4_PASSWORD
+if (!EMAIL || !PASSWORD) {
+  console.error('SKIP  set U4_EMAIL and U4_PASSWORD. The original fixture account no longer exists.')
+  process.exit(2)
+}
 
 const CONTEXTS = [
   { name: 'Chromium desktop', engine: chromium, options: { viewport: { width: 1280, height: 800 } } },
