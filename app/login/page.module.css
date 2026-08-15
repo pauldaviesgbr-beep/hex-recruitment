@@ -432,3 +432,89 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ── Phase 2: the button hierarchy. Four levels, no exceptions.
+   L1 is navy and there is exactly ONE per screen — LinkedIn, because that is
+   where arrivals come from and they are already authenticated there, so it is
+   genuinely one tap. Yellow is NOT a level here: it is the primary on the job
+   page's Apply Now, where the user has already committed. Signing in is not
+   the thing they came to do; applying is. Green is retired from the product. */
+/* ONE WHOLE BRANDED BUTTON. LinkedIn's own blue with the reversed white
+   mark and white label — the official "Sign in with LinkedIn" treatment,
+   instantly recognisable, rather than our navy with a logo stuck on it.
+   It is still the single level-1 on this screen: LinkedIn blue is nobody
+   else's colour here, so it reads as primary without competing with the
+   yellow that means "the action you came to take" elsewhere. */
+.authPrimary {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 16px;
+  background: #0A66C2;
+  color: #fff;
+  border: 1px solid #0A66C2;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  min-height: 48px;
+}
+.authPrimary:hover { background: #004182; }
+.authPrimary:disabled { opacity: 0.75; cursor: default; }
+/* The reversed (white) mark, which is what LinkedIn publishes for use on its
+   own blue. No white chip: a white square floating inside the button read as
+   a rendering fault rather than a logo. */
+.authPrimary svg {
+  width: 20px;
+  height: 20px;
+}
+.authPrimary svg path {
+  fill: #fff;
+}
+
+/* The eyebrow that earns the primary its position. */
+.authEyebrow {
+  font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: #6B7688;
+  margin: 0 0 6px;
+  text-align: left;
+}
+
+/* Level 4 — the escape hatch. Quiet and findable: naming the SYMPTOM is what
+   makes it visible to the people who need it and invisible to everyone else. */
+.escapeHatch {
+  margin: 14px 0 0;
+  font-size: 12.5px;
+  color: #94A3B8;
+  text-align: center;
+  line-height: 1.45;
+}
+.escapeHatch u { cursor: default; }
+
+/* Level 2 — white, bordered, 15px/600. Used for Google, "Create account with
+   email", and the email Login submit. There is exactly one level-1 per screen
+   and on auth it is LinkedIn. */
+.authSecondary {
+  width: 100%;
+  padding: 15px;
+  background: #fff;
+  color: #0F172A;
+  border: 1px solid #CBD5E1;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  min-height: 48px;
+}
+.authSecondary:hover { background: #F8FAFC; }
+.authSecondary:disabled { opacity: 0.6; cursor: default; }
+
+/* The L1 label must not wrap — "Continue with LinkedIn" broke to two lines at
+   390 and made the primary look like a paragraph. */
+.authPrimary { white-space: nowrap; }

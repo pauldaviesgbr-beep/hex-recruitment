@@ -8,7 +8,6 @@ import Header from '@/components/Header'
 import PasswordInput from '@/components/PasswordInput'
 import GoogleSignInButton from '@/components/GoogleSignInButton'
 import LinkedInSignInButton from '@/components/LinkedInSignInButton'
-import LiveJobCount from '@/components/LiveJobCount'
 import { safeInternalPath } from '@/lib/safeRedirect'
 import styles from '../page.module.css'
 
@@ -211,21 +210,15 @@ function EmployeeLoginPageContent() {
               ? 'It takes a minute, and we’ll bring you straight back to the role.'
               : 'Find your next opportunity'}
           </p>
-          <LiveJobCount style={{ margin: '0 0 1rem', color: '#374151' }} />
-
-          {arrivingToApply && (
-            <Link
-              href={`/register/employee?redirect=${encodeURIComponent(safeRedirect!)}`}
-              style={{
-                display: 'block', width: '100%', textAlign: 'center',
-                background: '#16a34a', color: '#fff', fontWeight: 700, fontSize: '1rem',
-                padding: '0.95rem 1rem', borderRadius: 10, textDecoration: 'none',
-                minHeight: 48, marginBottom: '0.9rem',
-              }}
-            >
-              Create a free account
-            </Link>
-          )}
+          {/* "247 roles live now" AND THE GREEN BUTTON BOTH LEFT THIS SCREEN.
+              The live count is a good line on the wrong screen — it argues for
+              a product the visitor has already chosen, and it pushed the
+              primary action further down. It stays on the job page and the
+              board. The green "Create a free account" button is gone with it:
+              green is retired from the product, and three competing actions on
+              one card is what made this read as a menu rather than a door.
+              Creating an account with email is now a level-2 action below the
+              divider, where it belongs. */}
 
           {pendingEmail && (
             <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 10, padding: '0.9rem 1rem', margin: '0 0 1rem', textAlign: 'left' }}>
@@ -246,9 +239,15 @@ function EmployeeLoginPageContent() {
             </div>
           )}
 
-          <GoogleSignInButton role="employee" className={styles.googleBtn} next={safeRedirect || undefined} />
+          {/* LINKEDIN IS THE ONE PRIMARY, AND THE ORDER IS THE POINT.
+              Arrivals come from LinkedIn on a phone; they are already
+              authenticated there, so it is genuinely one tap and no password.
+              Google follows as level 2. DOM order is LinkedIn -> Google ->
+              email so the keyboard order matches the visual hierarchy. */}
+          <p className={styles.authEyebrow}>Fastest — one tap, no password</p>
+          <LinkedInSignInButton role="employee" className={styles.authPrimary} next={safeRedirect || undefined} />
           <div style={{ marginTop: '0.6rem' }}>
-            <LinkedInSignInButton role="employee" className={styles.googleBtn} next={safeRedirect || undefined} />
+            <GoogleSignInButton role="employee" className={styles.googleBtn} next={safeRedirect || undefined} />
           </div>
 
           {/*
@@ -265,8 +264,9 @@ function EmployeeLoginPageContent() {
             because we still cannot show that OAuth fails in a webview.
           */}
           {inAppBrowser && (
-            <p className={styles.webviewHint}>
-              Opened this inside another app? Open it in your browser if sign-in doesn&rsquo;t work.
+            <p className={styles.escapeHatch}>
+              Opened this from an app and the buttons won&rsquo;t work?{' '}
+              <u>Open in your browser</u>
             </p>
           )}
 
@@ -282,13 +282,14 @@ function EmployeeLoginPageContent() {
               paywall. It now says what is actually true: an account is needed
               to APPLY, not to look.
             */}
-            {safeRedirect && !successMessage && (
-              <div className={styles.info}>
-                {arrivingToApply
-                  ? 'Already have an account? Log in and we’ll take you back to the role.'
-                  : 'Log in to continue'}
-              </div>
-            )}
+            {/* THE BLUE INFO PANEL IS GONE. It was a coloured box explaining
+                something that fits in one quiet line, sitting between the
+                primary action and the form. The promise it carried — that we
+                bring you back to the role — is the one sentence on this screen
+                that answers the question actually in the user's head, so it is
+                NOT deleted: it stays in the sub-head above, and returns as
+                plain text beside the log-in sentence at the bottom. */}
+            {successMessage && <div className={styles.success}>{successMessage}</div>}
             {successMessage && <div className={styles.success}>{successMessage}</div>}
             {error && <div className={styles.error}>{error}</div>}
 
@@ -336,7 +337,12 @@ function EmployeeLoginPageContent() {
               </Link>
             </div>
 
-            <button type="submit" disabled={loading || !hydrated} className={styles.submitBtn}>
+            {/* LEVEL 2, NOT YELLOW. Yellow is the primary on Apply Now, where
+                the user has already committed — "the action you came here to
+                take". Signing in is not that. A yellow button here competed
+                with the navy LinkedIn primary above it and put two primaries
+                on one card, which is the problem this screen exists to fix. */}
+            <button type="submit" disabled={loading || !hydrated} className={styles.authSecondary}>
               {loading ? 'Logging in...' : 'Login'}
             </button>
           </form>
