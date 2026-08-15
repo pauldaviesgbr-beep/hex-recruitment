@@ -252,6 +252,9 @@
 }
 @media (max-width: 768px) {
   .headlineGrid { grid-template-columns: 1fr; }
+  /* ON A PHONE THE WOUND LEADS. Desktop keeps users-left/response-right;
+     stacked, the alert tile comes first — Paul's call, 14 Aug 2026. */
+  .headlineTileAlert { order: -1; }
   .headlineValue { font-size: 36px; }
   .refStrip { display: grid; grid-template-columns: 1fr 1fr; }
   .refValue { font-size: 19px; }
