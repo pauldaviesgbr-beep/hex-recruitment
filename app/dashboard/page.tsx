@@ -29,6 +29,7 @@ const ProfileBoostPaymentModal = dynamic(() => import('@/components/ProfileBoost
 import SignedImage from '@/components/SignedImage'
 import CandidateCard from '@/components/CandidateCard'
 import ProfileNudge from '@/components/ProfileNudge'
+import HeardFromPrompt from '@/components/HeardFromPrompt'
 import { STAGE_COLORS } from '@/lib/constants/pipelineStages'
 // The SAME component the employer dashboard uses, with a different sentence
 // table — which is what item 1 was built as table-plus-presentation for.
@@ -740,6 +741,14 @@ export default function DashboardPage() {
         {/* At most one contextual nudge, in the flow rather than over it. Renders
             nothing unless the rules in lib/nudges.ts allow it. */}
         <ProfileNudge candidate={candidate} onNudge={setNudgedKey} />
+
+        {/* The attribution question, moved OFF signup step one by the design
+            handoff and re-homed here — asked once, after the account exists,
+            never blocking anything. It renders nothing if already answered or
+            dismissed. The pairing is deliberate: the dropdown was the only
+            attribution layer that works, so it does not leave signup without
+            this. */}
+        <HeardFromPrompt />
 
         <div className={styles.grid}>
           {/* ════════════════════ LEFT COLUMN ═════════════════ */}

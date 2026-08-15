@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { calculateTrialExpiry } from '@/lib/trialUtils'
-import { getStoredAttribution, attributionColumns, HEARD_FROM_OPTIONS } from '@/lib/attribution'
+import { getStoredAttribution, attributionColumns } from '@/lib/attribution'
 import { isValidEmail, isDisposableEmail } from '@/lib/validateEmail'
 import { safeInternalPath } from '@/lib/safeRedirect'
 import PasswordInput from './PasswordInput'
@@ -24,11 +24,6 @@ export default function CandidateSignupForm() {
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  // "How did you hear about us?" — OPTIONAL. The only acquisition signal we get
-  // for channels we can't tag with ?ref (word of mouth, WhatsApp groups, someone
-  // retyping the domain). Employers are already asked the same question on
-  // /register/employer-free; this mirrors it rather than inventing a second scheme.
-  const [heardFrom, setHeardFrom] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [submitted, setSubmitted] = useState(false)
@@ -88,10 +83,11 @@ export default function CandidateSignupForm() {
             account_status: 'trial',
             trial_start_date: now.toISOString(),
             trial_expires_at: trialExpiresAt.toISOString(),
-            // A tagged arrival (?ref / ?utm_*) still wins over the self-reported
-            // answer — normalizeSource ranks ref/utm above heard_from — so this
-            // only fills the gap when we have no tag.
-            ...attributionColumns({ ...getStoredAttribution(), heard_from: heardFrom || null }),
+            // The tag layer only. heard_from is asked on the dashboard now
+            // (components/HeardFromPrompt.tsx) and fills the gap there when no
+            // ?ref / ?utm_* was carried — normalizeSource ranks tags above the
+            // self-report, and the prompt honours that same priority.
+            ...attributionColumns(getStoredAttribution()),
           },
         }),
       }).catch(() => {})
@@ -223,21 +219,13 @@ export default function CandidateSignupForm() {
         <p className="pwHint">Tip: three random words make a password that's strong and easy to remember.</p>
       </div>
 
-      <div className="grp">
-        <label htmlFor="heardFrom">
-          How did you hear about us? <span className="optional">(optional)</span>
-        </label>
-        <select
-          id="heardFrom"
-          name="heardFrom"
-          value={heardFrom}
-          onChange={e => setHeardFrom(e.target.value)}
-          className="authInput"
-        >
-          <option value="">Prefer not to say</option>
-          {HEARD_FROM_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
-        </select>
-      </div>
+      {/* "How did you hear about us?" USED TO SIT HERE and now lives on the
+          dashboard (components/HeardFromPrompt.tsx) — asked once, after the
+          account exists. It is our attribution problem, not something to put
+          between a person and the thing they came to do. The two changes
+          shipped together on purpose: this dropdown is the only attribution
+          layer that actually works, so removing it without the replacement
+          would have quietly killed the one signal we have. */}
 
       <button type="submit" disabled={loading} className="submit">
         {loading ? 'Creating your account…' : 'Create account'}
