@@ -47,6 +47,11 @@
   line-height: 1.2;
 }
 
+/* No claim to make — loading, or the request failed. Design: #94A3B8. */
+.valueUnknown {
+  color: #94a3b8;
+}
+
 .change {
   font-size: 0.8rem;
   font-weight: 600;

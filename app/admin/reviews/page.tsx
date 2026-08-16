@@ -27,9 +27,12 @@ export default function AdminReviewsPage() {
   const [loading, setLoading] = useState(true)
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
-  const [totalCount, setTotalCount] = useState(0)
+  const [totalCount, setTotalCount] = useState<number | null>(0)
   const [search, setSearch] = useState('')
   const [flagged, setFlagged] = useState('')
+  // A NUMBER IS A CLAIM — see components/admin/AdminTable.tsx.
+  const [tableState, setTableState] = useState<'loading' | 'ok' | 'empty' | 'error'>('loading')
+  const [loadError, setLoadError] = useState('')
   const [sortField, setSortField] = useState('created_at')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
   const [actionLoading, setActionLoading] = useState<string | null>(null)
@@ -40,6 +43,8 @@ export default function AdminReviewsPage() {
   const fetchData = useCallback(async () => {
     if (!token) return
     setLoading(true)
+    setTableState('loading')
+    setLoadError('')
     const params = new URLSearchParams({
       page: String(page),
       search,
@@ -47,15 +52,29 @@ export default function AdminReviewsPage() {
       sort: sortField,
       dir: sortDir,
     })
-    const res = await fetch(`/api/admin/reviews?${params}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-    const data = await res.json()
-    setReviews(data.reviews || [])
-    setTotalPages(data.totalPages || 1)
-    setTotalCount(data.total || 0)
-    if (data.stats) setStats(data.stats)
-    setLoading(false)
+    try {
+      const res = await fetch(`/api/admin/reviews?${params}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      const data = await res.json()
+      // CHECK THE STATUS — a 403 returns valid JSON and `|| []` would turn the
+      // refusal into a confident zero. "Flagged 0" is the dangerous one here:
+      // it reads as "nothing needs moderating".
+      if (!res.ok) throw new Error(data.error || 'Failed to load reviews')
+      setReviews(data.reviews || [])
+      setTotalPages(data.totalPages || 1)
+      setTotalCount(typeof data.total === 'number' ? data.total : null)
+      if (data.stats) setStats(data.stats)
+      setTableState((data.reviews || []).length === 0 ? 'empty' : 'ok')
+    } catch (e: any) {
+      setReviews([])
+      setTotalCount(null)
+      setStats(null)
+      setLoadError(e.message || 'Failed to load reviews')
+      setTableState('error')
+    } finally {
+      setLoading(false)
+    }
   }, [token, page, search, flagged, sortField, sortDir])
 
   useEffect(() => { fetchData() }, [fetchData])
@@ -108,13 +127,11 @@ export default function AdminReviewsPage() {
     <div>
       <h1 className={styles.pageTitle}>Reviews</h1>
 
-      {stats && (
-        <div className={styles.statsGrid}>
-          <StatsCard title="Total Reviews" value={stats.total} />
-          <StatsCard title="Flagged" value={stats.flagged} />
-          <StatsCard title="Avg Rating" value={stats.avgRating.toFixed(1)} />
-        </div>
-      )}
+      <div className={styles.statsGrid}>
+        <StatsCard title="Total Reviews" value={stats ? stats.total : null} />
+        <StatsCard title="Flagged" value={stats ? stats.flagged : null} />
+        <StatsCard title="Avg Rating" value={stats ? stats.avgRating.toFixed(1) : null} />
+      </div>
 
       <div className={styles.filters}>
         <select className={styles.select} value={flagged} onChange={(e) => setFlagged(e.target.value)}>
@@ -133,6 +150,19 @@ export default function AdminReviewsPage() {
         page={page}
         totalPages={totalPages}
         onPageChange={setPage}
+        status={tableState}
+        query={search}
+        filtersActive={(search ? 1 : 0) + (flagged ? 1 : 0)}
+        filterSummary={flagged ? `Flagged: ${flagged === 'true' ? 'Flagged only' : 'Not flagged'}` : undefined}
+        onClearSearch={() => { setSearch(''); setFlagged(''); setPage(1) }}
+        onRetry={fetchData}
+        errorMessage={loadError || undefined}
+        entityName="reviews"
+        emptyTitle="No reviews yet."
+        /* The literal character, not `&rsquo;` — a prop is a string, not
+           markup, and the entity leak on /post-job is what that mistake
+           looks like when it reaches a page. */
+        emptyBody="They’ll appear here once candidates start leaving them."
         searchValue={search}
         onSearch={setSearch}
         searchPlaceholder="Search by company or review title..."

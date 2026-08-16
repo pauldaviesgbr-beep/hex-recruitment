@@ -25,9 +25,12 @@ export default function AdminApplicationsPage() {
   const [loading, setLoading] = useState(true)
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
-  const [totalCount, setTotalCount] = useState(0)
+  const [totalCount, setTotalCount] = useState<number | null>(0)
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState('')
+  // A NUMBER IS A CLAIM — see components/admin/AdminTable.tsx.
+  const [tableState, setTableState] = useState<'loading' | 'ok' | 'empty' | 'error'>('loading')
+  const [loadError, setLoadError] = useState('')
   const [sortField, setSortField] = useState('applied_at')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
   const [stats, setStats] = useState<{ total: number; pending: number; interview: number; offered: number } | null>(null)
@@ -35,6 +38,8 @@ export default function AdminApplicationsPage() {
   const fetchData = useCallback(async () => {
     if (!token) return
     setLoading(true)
+    setTableState('loading')
+    setLoadError('')
     const params = new URLSearchParams({
       page: String(page),
       search,
@@ -42,15 +47,29 @@ export default function AdminApplicationsPage() {
       sort: sortField,
       dir: sortDir,
     })
-    const res = await fetch(`/api/admin/applications?${params}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-    const data = await res.json()
-    setApplications(data.applications || [])
-    setTotalPages(data.totalPages || 1)
-    setTotalCount(data.total || 0)
-    if (data.stats) setStats(data.stats)
-    setLoading(false)
+    try {
+      const res = await fetch(`/api/admin/applications?${params}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      const data = await res.json()
+      // CHECK THE STATUS — a 403 returns valid JSON and `|| []` would turn the
+      // refusal into a confident zero.
+      if (!res.ok) throw new Error(data.error || 'Failed to load applications')
+      setApplications(data.applications || [])
+      setTotalPages(data.totalPages || 1)
+      setTotalCount(typeof data.total === 'number' ? data.total : null)
+      if (data.stats) setStats(data.stats)
+      setTableState((data.applications || []).length === 0 ? 'empty' : 'ok')
+    } catch (e: any) {
+      setApplications([])
+      setTotalCount(null)
+      // The stat cards make claims too — em-dash, not a stale or zero number.
+      setStats(null)
+      setLoadError(e.message || 'Failed to load applications')
+      setTableState('error')
+    } finally {
+      setLoading(false)
+    }
   }, [token, page, search, status, sortField, sortDir])
 
   useEffect(() => { fetchData() }, [fetchData])
@@ -83,14 +102,15 @@ export default function AdminApplicationsPage() {
     <div>
       <h1 className={styles.pageTitle}>Applications</h1>
 
-      {stats && (
-        <div className={styles.statsGrid}>
-          <StatsCard title="Total" value={stats.total} />
-          <StatsCard title="Pending" value={stats.pending} />
-          <StatsCard title="Interview" value={stats.interview} />
-          <StatsCard title="Offered" value={stats.offered} />
-        </div>
-      )}
+      {/* Rendered in every state, values nullable. Hiding the strip while
+          loading and showing it on arrival moves the whole page down as the
+          request lands; an em-dash holds the space and states nothing. */}
+      <div className={styles.statsGrid}>
+        <StatsCard title="Total" value={stats ? stats.total : null} />
+        <StatsCard title="Pending" value={stats ? stats.pending : null} />
+        <StatsCard title="Interview" value={stats ? stats.interview : null} />
+        <StatsCard title="Offered" value={stats ? stats.offered : null} />
+      </div>
 
       <div className={styles.filters}>
         <select className={styles.select} value={status} onChange={(e) => setStatus(e.target.value)}>
@@ -114,6 +134,16 @@ export default function AdminApplicationsPage() {
         page={page}
         totalPages={totalPages}
         onPageChange={setPage}
+        status={tableState}
+        query={search}
+        filtersActive={(search ? 1 : 0) + (status ? 1 : 0)}
+        filterSummary={status ? `Status: ${status.charAt(0).toUpperCase()}${status.slice(1)}` : undefined}
+        onClearSearch={() => { setSearch(''); setStatus(''); setPage(1) }}
+        onRetry={fetchData}
+        errorMessage={loadError || undefined}
+        entityName="applications"
+        emptyTitle="No applications yet."
+        emptyBody="They appear here as candidates apply to live roles."
         searchValue={search}
         onSearch={setSearch}
         searchPlaceholder="Search by job title or company..."

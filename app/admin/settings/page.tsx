@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAdminToken } from '@/lib/admin-context'
 import styles from './page.module.css'
 
@@ -16,22 +16,52 @@ export default function AdminSettingsPage() {
   const token = useAdminToken()
   const [settings, setSettings] = useState<Settings | null>(null)
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
 
-  useEffect(() => {
+  // THIS PAGE DID NOT PRINT A CONFIDENT ZERO — IT CRASHED. The old code was
+  // `.then(r => r.json()).then(setSettings)` with no status check, so a 403
+  // put `{error:'Unauthorized'}` into `settings`. `settings?.sectors.length`
+  // then reads `.length` of undefined — the optional chain guards the OBJECT,
+  // not the field — and the whole page throws. Found by sweeping the estate
+  // for the class of fault rather than for the six pages already named.
+  const load = useCallback(async () => {
     if (!token) return
-    fetch('/api/admin/settings', {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then(r => r.json())
-      .then(data => {
-        setSettings(data)
-        setLoading(false)
+    setLoading(true)
+    setLoadError('')
+    try {
+      const r = await fetch('/api/admin/settings', {
+        headers: { Authorization: `Bearer ${token}` },
       })
-      .catch(() => setLoading(false))
+      const data = await r.json()
+      if (!r.ok) throw new Error(data.error || 'Failed to load settings')
+      setSettings(data)
+    } catch (e: any) {
+      setSettings(null)
+      setLoadError(e.message || 'Failed to load settings')
+    } finally {
+      setLoading(false)
+    }
   }, [token])
+
+  useEffect(() => { load() }, [load])
 
   if (loading) {
     return <div className={styles.loading}>Loading settings...</div>
+  }
+
+  if (loadError) {
+    return (
+      <div>
+        <h1 className={styles.pageTitle}>Platform Settings</h1>
+        <div className={styles.card} role="alert">
+          <h2 className={styles.cardTitle}>Couldn&rsquo;t load settings.</h2>
+          <p className={styles.cardDesc}>
+            {loadError} — these aren&rsquo;t empty settings, they weren&rsquo;t reached.
+          </p>
+          <button type="button" className={styles.retryBtn} onClick={load}>Try again</button>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -77,9 +107,15 @@ export default function AdminSettingsPage() {
       {/* Sectors */}
       <div className={styles.card}>
         <h2 className={styles.cardTitle}>Sectors</h2>
-        <p className={styles.cardDesc}>Current job sectors used across the platform ({settings?.sectors.length || 0} sectors).</p>
+        {/* `sectors?.length`, not `sectors.length` — the optional chain has to
+            cover the FIELD, which is what crashed the page on a 403. And the
+            plural agrees: this line has read "(1 sectors)" since it shipped. */}
+        <p className={styles.cardDesc}>
+          Current job sectors used across the platform ({settings?.sectors?.length ?? 0}{' '}
+          {(settings?.sectors?.length ?? 0) === 1 ? 'sector' : 'sectors'}).
+        </p>
         <div className={styles.tagList}>
-          {settings?.sectors.map(s => (
+          {settings?.sectors?.map(s => (
             <span key={s} className={styles.tag}>{s}</span>
           ))}
           {(!settings?.sectors || settings.sectors.length === 0) && (
@@ -91,13 +127,16 @@ export default function AdminSettingsPage() {
       {/* Tags */}
       <div className={styles.card}>
         <h2 className={styles.cardTitle}>Job Tags</h2>
-        <p className={styles.cardDesc}>Tags used in job postings ({settings?.tags.length || 0} unique tags).</p>
+        <p className={styles.cardDesc}>
+          Tags used in job postings ({settings?.tags?.length ?? 0} unique{' '}
+          {(settings?.tags?.length ?? 0) === 1 ? 'tag' : 'tags'}).
+        </p>
         <div className={styles.tagList}>
-          {settings?.tags.slice(0, 50).map(t => (
+          {settings?.tags?.slice(0, 50).map(t => (
             <span key={t} className={styles.tagSmall}>{t}</span>
           ))}
-          {(settings?.tags.length || 0) > 50 && (
-            <span className={styles.emptyText}>...and {(settings?.tags.length || 0) - 50} more</span>
+          {(settings?.tags?.length ?? 0) > 50 && (
+            <span className={styles.emptyText}>&hellip;and {(settings?.tags?.length ?? 0) - 50} more</span>
           )}
           {(!settings?.tags || settings.tags.length === 0) && (
             <span className={styles.emptyText}>No tags found</span>
@@ -108,7 +147,7 @@ export default function AdminSettingsPage() {
       {/* Featured Jobs */}
       <div className={styles.card}>
         <h2 className={styles.cardTitle}>Featured Jobs</h2>
-        <p className={styles.cardDesc}>Currently featured/urgent jobs ({settings?.featuredCount || 0} active).</p>
+        <p className={styles.cardDesc}>Currently featured/urgent jobs ({settings?.featuredCount ?? 0} active).</p>
         {settings?.featuredJobs && settings.featuredJobs.length > 0 ? (
           <div className={styles.featuredList}>
             {settings.featuredJobs.map(j => (
