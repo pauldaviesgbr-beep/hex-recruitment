@@ -178,14 +178,14 @@
   border-radius: 10px;
   display: grid; place-items: center;
   background: #FFE500; color: #0F172A;
-  font-family: var(--font-fraunces, 'Bricolage Grotesque'), var(--font-serif), Georgia, serif;
+  font-family: var(--font-serif), Georgia, serif;
   font-weight: 700; font-size: 19px;
 }
 /* min-width:0 is load-bearing: without it a long scraped title reflows the
    card instead of clipping. */
 .dirNameRole { display: flex; flex-direction: column; min-width: 0; gap: 1px; }
 .dirName {
-  font-family: var(--font-fraunces, 'Bricolage Grotesque'), var(--font-serif), Georgia, serif;
+  font-family: var(--font-serif), Georgia, serif;
   font-weight: 600; font-size: 16px; line-height: 1.2; letter-spacing: -0.01em; color: #0F172A;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
