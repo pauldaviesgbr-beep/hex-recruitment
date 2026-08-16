@@ -56,7 +56,7 @@ export default function AdminJobsPage() {
   const [loading, setLoading] = useState(true)
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
-  const [totalCount, setTotalCount] = useState(0)
+  const [totalCount, setTotalCount] = useState<number | null>(0)
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState('')
   const [sector, setSector] = useState('')
@@ -66,6 +66,11 @@ export default function AdminJobsPage() {
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [stats, setStats] = useState<{ active: number; filled: number; archived: number } | null>(null)
+  // A NUMBER IS A CLAIM — the count is nullable and the state is explicit, so
+  // "loading", "no matches", "genuinely empty" and "the request failed" can
+  // never again render as the same string.
+  const [tableState, setTableState] = useState<'loading' | 'ok' | 'empty' | 'error'>('loading')
+  const [loadError, setLoadError] = useState('')
   const [detailOpen, setDetailOpen] = useState(false)
   const [detailJob, setDetailJob] = useState<JobDetail | null>(null)
   const [detailApps, setDetailApps] = useState<Application[]>([])
@@ -74,6 +79,8 @@ export default function AdminJobsPage() {
   const fetchJobs = useCallback(async () => {
     if (!token) return
     setLoading(true)
+    setTableState('loading')
+    setLoadError('')
     const params = new URLSearchParams({
       page: String(page),
       search,
@@ -82,16 +89,35 @@ export default function AdminJobsPage() {
       sort: sortField,
       dir: sortDir,
     })
-    const res = await fetch(`/api/admin/jobs?${params}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-    const data = await res.json()
-    setJobs(data.jobs || [])
-    setTotalPages(data.totalPages || 1)
-    setTotalCount(data.total || 0)
-    if (data.sectors) setSectors(data.sectors)
-    if (data.stats) setStats(data.stats)
-    setLoading(false)
+    try {
+      const res = await fetch(`/api/admin/jobs?${params}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      const data = await res.json()
+      // CHECK THE STATUS. This one line is the whole difference: a 403 returns
+      // perfectly valid JSON, so a bare try/catch never fires and
+      // `data.jobs || []` turns the refusal into a confident zero. On 16 Aug
+      // this page showed "0 results" against a board of 247 live listings.
+      if (!res.ok) throw new Error(data.error || 'Failed to load jobs')
+      setJobs(data.jobs || [])
+      setTotalPages(data.totalPages || 1)
+      // Nullable, never `|| 0` — a count is a claim and there is none to make
+      // unless the response arrived and succeeded.
+      setTotalCount(typeof data.total === 'number' ? data.total : null)
+      if (data.sectors) setSectors(data.sectors)
+      if (data.stats) setStats(data.stats)
+      setTableState((data.jobs || []).length === 0 ? 'empty' : 'ok')
+    } catch (e: any) {
+      setJobs([])
+      setTotalCount(null)
+      setStats(null)
+      setLoadError(e.message || 'Failed to load jobs')
+      setTableState('error')
+    } finally {
+      // ALWAYS. /admin/jobs sat on skeleton rows forever at 05:18 because its
+      // setLoading(false) was the last line of a function that threw.
+      setLoading(false)
+    }
   }, [token, page, search, status, sector, sortField, sortDir])
 
   useEffect(() => { fetchJobs() }, [fetchJobs])
@@ -211,6 +237,15 @@ export default function AdminJobsPage() {
         page={page}
         totalPages={totalPages}
         onPageChange={setPage}
+        status={tableState}
+        query={search}
+        filtersActive={(search ? 1 : 0) + (status ? 1 : 0) + (sector ? 1 : 0)}
+        onClearSearch={() => { setSearch(''); setStatus(''); setSector(''); setPage(1) }}
+        onRetry={fetchJobs}
+        errorMessage={loadError || undefined}
+        entityName="jobs"
+        emptyTitle="No jobs yet."
+        emptyBody="Roles appear here as employers post them and the weekly import runs."
         searchValue={search}
         onSearch={setSearch}
         searchPlaceholder="Search by job title or company..."
