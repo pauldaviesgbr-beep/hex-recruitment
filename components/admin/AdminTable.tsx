@@ -28,9 +28,37 @@ interface AdminTableProps<T = any> {
   selectedIds?: string[]
   onSelectionChange?: (ids: string[]) => void
   onRowClick?: (row: T) => void
-  totalCount?: number
+  totalCount?: number | null
   onExportCSV?: () => void
   headerActions?: React.ReactNode
+
+  // ── A NUMBER IS A CLAIM ──────────────────────────────────────────────
+  // The estate printed "0 results" in FOUR different states: while loading,
+  // while a search matched nothing, while a table was genuinely empty, and
+  // while the request had FAILED. Four states, one string — and a factual
+  // claim about the data in three cases where no claim can be made. Worse,
+  // filtered-to-nothing and failed rendered identically, so a mistyped
+  // search was indistinguishable from a broken page.
+  //
+  // The cause is `setCount(data.total || 0)`: an error payload has no
+  // `total`, so `|| 0` invents a confident zero. The fix is a nullable
+  // count plus an explicit status — never a fallback.
+  //
+  // Optional, so the pages adopt one at a time; without `status` the table
+  // behaves exactly as before.
+  status?: 'loading' | 'ok' | 'empty' | 'error'
+  /** The active search, so a filtered zero can name what was searched. */
+  query?: string
+  /** How many filters are set, so "Clear search" vs "Clear all filters". */
+  filtersActive?: number
+  onClearSearch?: () => void
+  onRetry?: () => void
+  errorMessage?: string
+  /** Plural noun for the copy: "No jobs match…", "Couldn't load jobs." */
+  entityName?: string
+  /** Terminal-empty copy. Name the cause; don't apologise. */
+  emptyTitle?: string
+  emptyBody?: string
 }
 
 export default function AdminTable<T extends Record<string, any>>({
@@ -54,7 +82,24 @@ export default function AdminTable<T extends Record<string, any>>({
   totalCount,
   onExportCSV,
   headerActions,
+  status,
+  query,
+  filtersActive = 0,
+  onClearSearch,
+  onRetry,
+  errorMessage,
+  entityName = 'results',
+  emptyTitle,
+  emptyBody,
 }: AdminTableProps<T>) {
+  // Derived, not passed, so a caller cannot set two of these inconsistently.
+  const isFilteredEmpty = status === 'empty' && Boolean(query || filtersActive > 0)
+  const isError = status === 'error'
+  const isTerminalEmpty = status === 'empty' && !isFilteredEmpty
+  const isLoadingState = status === 'loading'
+  /** Any state that replaces the rows — and therefore drops the header. */
+  const showsStateRow = isError || status === 'empty'
+  const colCount = columns.length + (actions ? 1 : 0) + (selectable ? 1 : 0)
   const allSelected = data.length > 0 && data.every(row => selectedIds.includes(row.id))
 
   const toggleAll = () => {
@@ -95,9 +140,19 @@ export default function AdminTable<T extends Record<string, any>>({
               />
             </div>
           )}
-          {totalCount !== undefined && (
+          {/* THE COUNT RENDERS FROM (status, total), NEVER FROM `total || 0`.
+              A filtered zero against a real total is a different fact from a
+              bare zero, and neither is a claim we can make while loading or
+              after a failure. */}
+          {isLoadingState || (loading && status === undefined && totalCount === undefined) ? (
+            <span className={styles.countMuted}>Loading…</span>
+          ) : isError ? (
+            <span className={styles.countMuted} aria-label="count unavailable">—</span>
+          ) : isFilteredEmpty && typeof totalCount === 'number' ? (
+            <span className={styles.totalCount}>0 of {totalCount.toLocaleString()}</span>
+          ) : totalCount !== undefined && totalCount !== null ? (
             <span className={styles.totalCount}>{totalCount.toLocaleString()} result{totalCount !== 1 ? 's' : ''}</span>
-          )}
+          ) : null}
         </div>
 
         <div className={styles.toolbarRight}>
@@ -122,6 +177,13 @@ export default function AdminTable<T extends Record<string, any>>({
 
       <div className={styles.tableContainer}>
         <table className={styles.table}>
+          {/* NO HEADER IN A STATE ROW. With a header the table keeps its full
+              scrollable width, so a centred message centres in THAT and lands
+              off to one side of the container — which is why /admin/reviews'
+              "No results found" sits right of centre and clipped at 390.
+              Dropping the header collapses the table to the container width,
+              and the message centres where a reader is looking. */}
+          {!showsStateRow && (
           <thead>
             <tr>
               {selectable && (
@@ -152,8 +214,62 @@ export default function AdminTable<T extends Record<string, any>>({
               {actions && <th className={styles.th} style={{ width: '120px' }}>Actions</th>}
             </tr>
           </thead>
+          )}
           <tbody>
-            {loading ? (
+            {/* FAILED — the state that did not exist. Announced as an alert,
+                because a silent wrong number is the fault being fixed. */}
+            {isError ? (
+              <tr>
+                <td colSpan={colCount} className={styles.stateCell}>
+                  <div className={styles.errorState} role="alert">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         strokeWidth="1.75" strokeLinecap="round" aria-hidden="true">
+                      <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" />
+                      <line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
+                    <p className={styles.errorHeading}>Couldn&rsquo;t load {entityName}.</p>
+                    {/* This clause is the whole point of the state. */}
+                    <p className={styles.errorBody}>
+                      {errorMessage || `The ${entityName} weren't reached — this isn't an empty table.`}
+                    </p>
+                    {onRetry && (
+                      <button type="button" className={styles.retryBtn} onClick={onRetry}>Try again</button>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            ) : isFilteredEmpty ? (
+              /* FILTERED TO NOTHING — recoverable, so it gets the way out. */
+              <tr>
+                <td colSpan={colCount} className={styles.stateCell}>
+                  <div className={styles.emptyState} role="status">
+                    <p className={styles.emptyHeading}>
+                      No {entityName} match{query ? <> &ldquo;{query}&rdquo;</> : ' those filters'}.
+                    </p>
+                    {typeof totalCount === 'number' && query && (
+                      <p className={styles.emptyBody}>
+                        {totalCount.toLocaleString()} {entityName} are here without that search.
+                      </p>
+                    )}
+                    {onClearSearch && (
+                      <button type="button" className={styles.clearBtn} onClick={onClearSearch}>
+                        {filtersActive > 1 ? 'Clear all filters' : 'Clear search'}
+                      </button>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            ) : isTerminalEmpty ? (
+              /* HONESTLY EMPTY — terminal. Nothing to clear, so no action. */
+              <tr>
+                <td colSpan={colCount} className={styles.stateCell}>
+                  <div className={styles.emptyState} role="status">
+                    <p className={styles.emptyHeading}>{emptyTitle || `No ${entityName} yet.`}</p>
+                    {emptyBody && <p className={styles.emptyBody}>{emptyBody}</p>}
+                  </div>
+                </td>
+              </tr>
+            ) : (loading || isLoadingState) ? (
               Array.from({ length: 5 }).map((_, i) => (
                 <tr key={i} className={styles.skeletonRow}>
                   {selectable && (
