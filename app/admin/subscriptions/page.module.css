@@ -1,8 +1,6 @@
+
 .pageTitle {
-  font-size: 1.5rem;
-  font-weight: 800;
-  color: #1e293b;
-  margin-bottom: 1.5rem;
+  composes: pageTitle from '../shared.module.css';
 }
 
 .revenueGrid {
@@ -13,31 +11,13 @@
 }
 
 .filters {
-  display: flex;
-  /* CONTROLS WRAP; CONTENT SCROLLS. Nothing overflows this row today —
-     it is one or two selects in a 302px box at 390 — but the row could
-     neither wrap nor shrink, so the first filter that did not fit would
-     have gone past the edge. html and body carry overflow-x:clip, so that
-     is a control you cannot reach rather than one you can swipe to. */
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  margin-bottom: 1rem;
+  composes: filters from '../shared.module.css';
 }
 
 .select {
-  padding: 0.5rem 0.75rem;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  font-size: 0.875rem;
-  background: white;
-  color: #334155;
-  cursor: pointer;
+  composes: select from '../shared.module.css';
 }
 
-.select:focus {
-  outline: none;
-  border-color: #FFE500;
-}
 
 /* Badges */
 .badge {
@@ -49,9 +29,15 @@
   text-transform: capitalize;
 }
 
-.badgePro { background: #FFE500; color: #1e293b; }
-.badgeStandard { background: #e2e8f0; color: #475569; }
-.badgeNone { background: #f1f5f9; color: #94a3b8; }
+.badgePro {
+  composes: badgePro from '../shared.module.css';
+}
+.badgeStandard {
+  composes: badgeStandard from '../shared.module.css';
+}
+.badgeNone {
+  composes: badgeNone from '../shared.module.css';
+}
 
 /* Status badges */
 .status_active { background: #dcfce7; color: #16a34a; }
@@ -62,22 +48,13 @@
 
 /* Action buttons */
 .actionBtn {
-  padding: 0.25rem 0.6rem;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  font-size: 0.75rem;
-  font-weight: 500;
-  background: white;
-  color: #475569;
-  cursor: pointer;
-  transition: all 0.15s;
+  composes: actionBtn from '../shared.module.css';
 }
 
-.actionBtn:hover { background: #f8fafc; border-color: #cbd5e1; }
-.actionBtn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-.dangerBtn { color: #dc2626; border-color: #fecaca; }
-.dangerBtn:hover { background: #fef2f2; border-color: #fca5a5; }
+.dangerBtn {
+  composes: dangerBtn from '../shared.module.css';
+}
 
 @media (max-width: 1024px) {
   .revenueGrid { grid-template-columns: repeat(2, 1fr); }

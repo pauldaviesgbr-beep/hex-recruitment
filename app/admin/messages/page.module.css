@@ -1,8 +1,6 @@
+
 .pageTitle {
-  font-size: 1.5rem;
-  font-weight: 800;
-  color: #1e293b;
-  margin-bottom: 1.5rem;
+  composes: pageTitle from '../shared.module.css';
 }
 
 .statsGrid {
@@ -30,9 +28,7 @@
 
 /* Detail panel */
 .detailLoading {
-  text-align: center;
-  color: #94a3b8;
-  padding: 3rem 1rem;
+  composes: detailLoading from '../shared.module.css';
 }
 
 .messageList {

@@ -1,8 +1,6 @@
+
 .pageTitle {
-  font-size: 1.5rem;
-  font-weight: 800;
-  color: #1e293b;
-  margin-bottom: 1.5rem;
+  composes: pageTitle from '../shared.module.css';
 }
 
 .statsGrid {
@@ -13,31 +11,13 @@
 }
 
 .filters {
-  display: flex;
-  /* CONTROLS WRAP; CONTENT SCROLLS. Nothing overflows this row today —
-     it is one or two selects in a 302px box at 390 — but the row could
-     neither wrap nor shrink, so the first filter that did not fit would
-     have gone past the edge. html and body carry overflow-x:clip, so that
-     is a control you cannot reach rather than one you can swipe to. */
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  margin-bottom: 1rem;
+  composes: filters from '../shared.module.css';
 }
 
 .select {
-  padding: 0.5rem 0.75rem;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  font-size: 0.875rem;
-  background: white;
-  color: #334155;
-  cursor: pointer;
+  composes: select from '../shared.module.css';
 }
 
-.select:focus {
-  outline: none;
-  border-color: #FFE500;
-}
 
 .jobTitle {
   font-weight: 600;
@@ -71,30 +51,36 @@
 .badge_active { background: #dcfce7; color: #16a34a; }
 .badge_filled { background: #dbeafe; color: #1d4ed8; }
 .badge_archived { background: #f1f5f9; color: #64748b; }
-.badge_pending { background: #fef3c7; color: #92400e; }
-.badge_viewed { background: #e0e7ff; color: #4338ca; }
-.badge_shortlisted { background: #fce7f3; color: #be185d; }
-.badge_interview { background: #cffafe; color: #0e7490; }
-.badge_offered { background: #d1fae5; color: #059669; }
-.badge_rejected { background: #fee2e2; color: #dc2626; }
+.badge_pending {
+  composes: badge_pending from '../shared.module.css';
+}
+.badge_viewed {
+  composes: badge_viewed from '../shared.module.css';
+}
+.badge_shortlisted {
+  composes: badge_shortlisted from '../shared.module.css';
+}
+.badge_interview {
+  composes: badge_interview from '../shared.module.css';
+}
+.badge_offered {
+  composes: badge_offered from '../shared.module.css';
+}
+.badge_rejected {
+  composes: badge_rejected from '../shared.module.css';
+}
 
 /* Action buttons */
 .actionBtn {
-  padding: 0.25rem 0.6rem;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  font-size: 0.75rem;
-  font-weight: 500;
-  background: white;
-  color: #475569;
-  cursor: pointer;
-  transition: all 0.15s;
+  composes: actionBtn from '../shared.module.css';
 }
 
 .actionBtn:hover { background: #f8fafc; border-color: #cbd5e1; }
 .actionBtn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-.dangerBtn { color: #dc2626; border-color: #fecaca; }
+.dangerBtn {
+  composes: dangerBtn from '../shared.module.css';
+}
 .dangerBtn:hover { background: #fef2f2; border-color: #fca5a5; }
 
 .bulkBtn {
@@ -113,17 +99,11 @@
 
 /* Detail panel */
 .detailLoading {
-  text-align: center;
-  color: #94a3b8;
-  padding: 3rem 1rem;
+  composes: detailLoading from '../shared.module.css';
 }
 
 .detailActions {
-  display: flex;
-  gap: 0.5rem;
-  padding-top: 1rem;
-  border-top: 1px solid #e2e8f0;
-  margin-top: 1rem;
+  composes: detailActions from '../shared.module.css';
 }
 
 .descText {

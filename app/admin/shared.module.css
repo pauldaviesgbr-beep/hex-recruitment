@@ -1,0 +1,140 @@
+/* ONE DEFINITION FOR THE RULES THE ADMIN ESTATE ACTUALLY SHARES.
+   A1, 16 August 2026.
+
+   WHY THIS FILE EXISTS. Twelve admin stylesheets were written one page at a
+   time and repeat each other. A measurement of all twelve found 279 distinct
+   selector+media keys, of which 23 are BYTE-IDENTICAL wherever they appear.
+   Those 23 live here now, so the estate can be restyled once instead of
+   twelve times.
+
+   WHAT IS DELIBERATELY *NOT* HERE, because it only looks shared — measured,
+   not assumed, and confirmed as a design decision on 16 Aug:
+
+     .statsGrid   Seven pages, FOUR different definitions. The column count is
+                  not drift: every page's count exactly matches how many cards
+                  it has (applications 4/4, jobs 3/3, messages 2/2, and so on).
+                  Each page is correctly declaring its own shape, so the count
+                  STAYS WITH THE PAGE. Only the skeleton is shareable, and that
+                  is a separate change riding with the stats restyle.
+     .badge       Six pages, two definitions — reviews omits
+                  `text-transform: capitalize`. Unifying it is a visible change
+                  and is queued with the restyle, not smuggled in here.
+     .checkbox    Settings is #FFE500 at 18px; AdminTable is #2563eb at 16px.
+                  Two genuinely different controls, not one duplicated — a
+                  refactor cannot resolve that and must not pretend to.
+
+   HOW IT IS WIRED, AND WHY NO COMPONENT CHANGED. Each page keeps its own
+   class and `composes:` it from here, so every `styles.pageTitle` in every
+   .tsx still resolves. That keeps this commit to stylesheets alone: no
+   component touched, nothing re-imported, and the diff readable.
+
+   THE CHECK THAT MATTERS: these rules are byte-identical to what they
+   replaced, so EVERY ADMIN PAGE MUST RENDER PIXEL-IDENTICALLY AFTERWARDS. A
+   visible change here is a failure, not an improvement. */
+
+/* ── Page frame ─────────────────────────────────────────────────────── */
+
+.pageTitle {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #1e293b;
+  margin-bottom: 1.5rem;
+}
+
+/* ── The filter row ─────────────────────────────────────────────────── */
+/* CONTROLS WRAP; CONTENT SCROLLS. html and body carry overflow-x:clip, so a
+   control past the edge is unreachable rather than swipeable — there is no
+   scroller to find. Nothing overflows this row today; the wrap is what keeps
+   that true when a filter is added. */
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.select {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  background: white;
+  color: #334155;
+  cursor: pointer;
+}
+
+.select:focus {
+  outline: none;
+  border-color: #FFE500;
+}
+
+/* ── Row actions ────────────────────────────────────────────────────── */
+
+.actionBtn {
+  padding: 0.25rem 0.6rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  background: white;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.actionBtn:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.actionBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.dangerBtn {
+  color: #dc2626;
+  border-color: #fecaca;
+}
+
+.dangerBtn:hover {
+  background: #fef2f2;
+  border-color: #fca5a5;
+}
+
+/* ── Detail panel ───────────────────────────────────────────────────── */
+
+.detailLoading {
+  text-align: center;
+  color: #94a3b8;
+  padding: 3rem 1rem;
+}
+
+.detailActions {
+  display: flex;
+  gap: 0.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e2e8f0;
+  margin-top: 1rem;
+}
+
+/* ── Application / job status colours ───────────────────────────────── */
+/* THE SAME SIX STATUSES THE CANDIDATE TRACKER AND THE EMPLOYER PIPELINE USE.
+   One vocabulary across both sides of the marketplace, so an employer's
+   "Shortlisted" and a candidate's "Shortlisted" are legibly the same fact.
+   Only the COLOURS are here; `.badge` itself stays per-page until the
+   capitalize divergence is resolved. */
+
+.badge_pending { background: #fef3c7; color: #92400e; }
+.badge_viewed { background: #e0e7ff; color: #4338ca; }
+.badge_shortlisted { background: #fce7f3; color: #be185d; }
+.badge_interview { background: #cffafe; color: #0e7490; }
+.badge_offered { background: #d1fae5; color: #059669; }
+.badge_rejected { background: #fee2e2; color: #dc2626; }
+
+/* ── Subscription tier badges ───────────────────────────────────────── */
+
+.badgePro { background: #FFE500; color: #1e293b; }
+.badgeStandard { background: #e2e8f0; color: #475569; }
+.badgeNone { background: #f1f5f9; color: #94a3b8; }

@@ -1,8 +1,6 @@
+
 .pageTitle {
-  font-size: 1.5rem;
-  font-weight: 800;
-  color: #1e293b;
-  margin-bottom: 1.5rem;
+  composes: pageTitle from '../shared.module.css';
 }
 
 .statsGrid {
@@ -13,28 +11,13 @@
 }
 
 .filters {
-  display: flex;
-  /* CONTROLS WRAP; CONTENT SCROLLS. Nothing overflows this row today —
-     it is one or two selects in a 302px box at 390 — but the row could
-     neither wrap nor shrink, so the first filter that did not fit would
-     have gone past the edge. html and body carry overflow-x:clip, so that
-     is a control you cannot reach rather than one you can swipe to. */
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  margin-bottom: 1rem;
+  composes: filters from '../shared.module.css';
 }
 
 .select {
-  padding: 0.5rem 0.75rem;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  font-size: 0.875rem;
-  background: white;
-  color: #334155;
-  cursor: pointer;
+  composes: select from '../shared.module.css';
 }
 
-.select:focus { outline: none; border-color: #FFE500; }
 
 .badge {
   display: inline-block;
@@ -45,12 +28,24 @@
   text-transform: capitalize;
 }
 
-.badge_pending { background: #fef3c7; color: #92400e; }
-.badge_viewed { background: #e0e7ff; color: #4338ca; }
-.badge_shortlisted { background: #fce7f3; color: #be185d; }
-.badge_interview { background: #cffafe; color: #0e7490; }
-.badge_offered { background: #d1fae5; color: #059669; }
-.badge_rejected { background: #fee2e2; color: #dc2626; }
+.badge_pending {
+  composes: badge_pending from '../shared.module.css';
+}
+.badge_viewed {
+  composes: badge_viewed from '../shared.module.css';
+}
+.badge_shortlisted {
+  composes: badge_shortlisted from '../shared.module.css';
+}
+.badge_interview {
+  composes: badge_interview from '../shared.module.css';
+}
+.badge_offered {
+  composes: badge_offered from '../shared.module.css';
+}
+.badge_rejected {
+  composes: badge_rejected from '../shared.module.css';
+}
 .badge_withdrawn { background: #f1f5f9; color: #64748b; }
 
 @media (max-width: 1024px) {
