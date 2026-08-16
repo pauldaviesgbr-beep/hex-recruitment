@@ -169,4 +169,14 @@
      child at its intrinsic width and pushes the widest one off both edges. */
   .filterRow { flex-direction: column; align-items: stretch; }
   .filterInput, .filterSelect, .failedToggle { width: 100%; }
+  /* FLEX-BASIS APPLIES TO THE MAIN AXIS, AND THE LINE ABOVE CHANGES WHICH
+     AXIS THAT IS. `.filterInput` carries `flex: 1 1 180px` — a sensible
+     minimum WIDTH for a search box while this row is a row. The moment it
+     becomes a column that same 180px is a minimum HEIGHT, and flex-grow:1
+     is free to take it further: measured at 180px tall against 40px at
+     701px wide, with the whole row going 40px -> 324px. min-height:40px
+     cannot help, being a floor rather than a cap.
+     Nothing about the declaration changed. The axis changed underneath it,
+     which is why nobody spotted it in the rule that caused it. */
+  .filterInput { flex: 0 0 auto; }
 }
