@@ -1,8 +1,6 @@
+
 .pageTitle {
-  font-size: 1.5rem;
-  font-weight: 800;
-  color: #1e293b;
-  margin-bottom: 1.5rem;
+  composes: pageTitle from '../shared.module.css';
 }
 
 .statsGrid {
@@ -13,28 +11,13 @@
 }
 
 .filters {
-  display: flex;
-  /* CONTROLS WRAP; CONTENT SCROLLS. Nothing overflows this row today —
-     it is one or two selects in a 302px box at 390 — but the row could
-     neither wrap nor shrink, so the first filter that did not fit would
-     have gone past the edge. html and body carry overflow-x:clip, so that
-     is a control you cannot reach rather than one you can swipe to. */
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  margin-bottom: 1rem;
+  composes: filters from '../shared.module.css';
 }
 
 .select {
-  padding: 0.5rem 0.75rem;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  font-size: 0.875rem;
-  background: white;
-  color: #334155;
-  cursor: pointer;
+  composes: select from '../shared.module.css';
 }
 
-.select:focus { outline: none; border-color: #FFE500; }
 
 .rating {
   color: #f59e0b;
@@ -54,29 +37,16 @@
 .badgeOk { background: #dcfce7; color: #16a34a; }
 
 .actionBtn {
-  padding: 0.25rem 0.6rem;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  font-size: 0.75rem;
-  font-weight: 500;
-  background: white;
-  color: #475569;
-  cursor: pointer;
-  transition: all 0.15s;
+  composes: actionBtn from '../shared.module.css';
 }
 
-.actionBtn:hover { background: #f8fafc; border-color: #cbd5e1; }
-.actionBtn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-.dangerBtn { color: #dc2626; border-color: #fecaca; }
-.dangerBtn:hover { background: #fef2f2; border-color: #fca5a5; }
+.dangerBtn {
+  composes: dangerBtn from '../shared.module.css';
+}
 
 .detailActions {
-  display: flex;
-  gap: 0.5rem;
-  padding-top: 1rem;
-  border-top: 1px solid #e2e8f0;
-  margin-top: 1rem;
+  composes: detailActions from '../shared.module.css';
 }
 
 .reviewText {
