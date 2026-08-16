@@ -67,6 +67,118 @@
   white-space: nowrap;
 }
 
+/* ── THE FOUR STATES ─────────────────────────────────────────────────────
+   A NUMBER IS A CLAIM. "0 results" used to print while loading, while a
+   search matched nothing, while a table was genuinely empty, and while the
+   request had FAILED — and the last two rendered identically, so a mistyped
+   search looked exactly like a broken page. Tokens below are the handoff's.
+   ──────────────────────────────────────────────────────────────────────── */
+
+/* Loading and failed both refuse to state a number. */
+.countMuted {
+  font-size: 0.8rem;
+  color: #94a3b8;
+  white-space: nowrap;
+}
+
+.stateCell {
+  padding: 0;
+  border-bottom: none;
+}
+
+/* Terminal empty, and filtered-to-nothing. Centred in the CONTAINER: the
+   header row is not rendered in these states, so the table collapses to the
+   container's width and this centres where a reader is actually looking. */
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 36px 22px;
+  text-align: center;
+}
+
+.emptyHeading {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: #0F172A;
+}
+
+.emptyBody {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.5;
+  color: #64748B;
+}
+
+/* Recoverable, so it gets the way out. Outlined, never the primary. */
+.clearBtn {
+  margin-top: 4px;
+  padding: 8px 14px;
+  border: 1px solid #E2E8F0;
+  border-radius: 9px;
+  background: #fff;
+  color: #0F172A;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  min-height: 40px;
+}
+
+.clearBtn:hover { background: #F8FAFC; border-color: #CBD5E1; }
+
+/* FAILED — the state that did not exist. The alert wash is the only thing
+   distinguishing it from an empty table, which was the whole fault. */
+.errorState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 32px 22px;
+  text-align: center;
+  background: #FFF9F8;
+  border: 1px solid #F3D0CB;
+  border-radius: 12px;
+  margin: 16px;
+  color: #B42318;
+}
+
+.errorHeading {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: #8A2018;
+}
+
+.errorBody {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.5;
+  color: #6E3A34;
+}
+
+/* Navy primary — the only filled button in either state. Delete-red is
+   reserved for destructive controls and must not appear here. */
+.retryBtn {
+  margin-top: 4px;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 9px;
+  background: #0F172A;
+  color: #fff;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  min-height: 40px;
+}
+
+.retryBtn:hover { background: #1B2740; }
+
 .bulkActions {
   display: flex;
   align-items: center;

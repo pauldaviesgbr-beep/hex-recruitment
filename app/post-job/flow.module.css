@@ -48,7 +48,7 @@
 .appBarMark { display: inline-flex; line-height: 0; }
 
 .appBarWordmark {
-  font-family: var(--font-fraunces, 'Bricolage Grotesque'), Georgia, serif;
+  font-family: var(--font-serif), Georgia, serif;
   font-size: 17px;
   font-weight: 600;
   letter-spacing: -0.02em;
@@ -127,7 +127,7 @@
 
 /* ── Title block ─────────────────────────────────────────────────────── */
 .screenTitle {
-  font-family: var(--font-fraunces, 'Bricolage Grotesque'), Georgia, serif;
+  font-family: var(--font-serif), Georgia, serif;
   font-size: 30px;
   font-weight: 700;
   line-height: 1.1;
@@ -264,7 +264,7 @@
   align-items: center;
   gap: 10px;
   margin: 0 0 10px;
-  font-family: var(--font-fraunces, 'Bricolage Grotesque'), Georgia, serif;
+  font-family: var(--font-serif), Georgia, serif;
   font-size: 18px;
   font-weight: 600;
   letter-spacing: -0.02em;
