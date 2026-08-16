@@ -238,3 +238,26 @@ wrong reason is worse than no check, because it ends the search.
   and for twenty minutes that read as a broken detector. The fixture
   was part of the population under change. Controls come from inline
   literals or fixtures the operation cannot reach.
+
+- ANY FINDING MEASURED UNDER A TEMPORARY ALLOWLIST OR FIXTURE NAMES
+  THE FIXTURE STATE IT WAS MEASURED IN, AND IS RE-MEASURED AFTER THE
+  REVERT. The /admin/settings clip sat in the queue for a day as a
+  decision Paul owed. It was real as a measurement and it belonged to
+  a fixture: a candidate account temporarily allowlisted into Admin
+  Users put a second, longer address on the list. Revert the
+  allowlist and the fault is gone, because the live list holds one
+  short address.
+  - Nothing was faked. The measurement was honest, the number was
+    right, and the report even said the screenshots were taken with
+    the allowlist still in. What was missing is that THE FINDING DID
+    NOT RECORD WHICH STATE IT WAS MEASURED IN, so it outlived that
+    state and became a property of the page.
+  - This is the same spine as the two rules above, the other way up:
+    there the fixture was inside the population and broke the
+    control; here the fixture created the ONLY state in which the
+    fault existed. Either way, a measurement that does not name its
+    fixture cannot be re-checked by the next person.
+  - It does NOT mean the finding was worthless. A data-driven list is
+    exactly as wide as the data someone adds later, so the fix is
+    still right — it just had to be justified by "the next address is
+    not ours to choose", not by "the page is broken today".

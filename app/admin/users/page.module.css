@@ -7,6 +7,12 @@
 
 .filters {
   display: flex;
+  /* CONTROLS WRAP; CONTENT SCROLLS. Nothing overflows this row today —
+     it is one or two selects in a 302px box at 390 — but the row could
+     neither wrap nor shrink, so the first filter that did not fit would
+     have gone past the edge. html and body carry overflow-x:clip, so that
+     is a control you cannot reach rather than one you can swipe to. */
+  flex-wrap: wrap;
   gap: 0.75rem;
   margin-bottom: 1rem;
 }

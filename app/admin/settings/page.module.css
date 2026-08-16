@@ -47,6 +47,10 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  /* Inert today — space-between already separates two short children by
+     far more than this. It is the floor that stops a truncated address
+     touching the badge once .adminEmail below starts shrinking. */
+  gap: 0.75rem;
   padding: 0.6rem 0.75rem;
   background: #f8fafc;
   border-radius: 8px;
@@ -56,9 +60,24 @@
   font-weight: 500;
   color: #1e293b;
   font-size: 0.875rem;
+  /* A flex item's automatic minimum size is its content width, so a long
+     address refused to shrink and pushed the row past the card edge. At
+     390 the row's content box is 230px; today's single 23-character
+     address wants 152.3px and fits with 77.7px to spare, so this changes
+     nothing now. Add one 34-character address and the text wants 244.4px:
+     the row overflowed by 70.1px and the ADMIN badge landed 18.1px PAST
+     THE VIEWPORT — clipped, because html and body carry overflow-x:clip,
+     so there was nothing to scroll to. That is the whole point: the list
+     is data-driven and the next address added is not ours to choose. */
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .adminBadge {
+  /* Never squash the badge to make room for the address. */
+  flex-shrink: 0;
   padding: 0.15rem 0.5rem;
   background: #FFE500;
   color: #1e293b;
