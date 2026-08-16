@@ -61,6 +61,17 @@
   background: white;
 }
 
+/* A QUERY THAT MATCHES NOTHING MARKS ITS OWN FIELD. The explanation lives in
+   the table body, which at 390 is below the fold — so the control that caused
+   the empty table carries the signal too. Focus already uses #FFE500, so the
+   two states cannot fight: this is the same colour at 1.5px, and a focused
+   no-match field simply stays marked. */
+.searchBarNoMatch .searchInput {
+  border-width: 1.5px;
+  border-color: #FFE500;
+  background: white;
+}
+
 .totalCount {
   font-size: 0.8rem;
   color: #94a3b8;
@@ -224,13 +235,101 @@
   cursor: pointer;
 }
 
+/* CONTENT SCROLLS. A wide table has nowhere else to go, so overflow-x here is
+   correct and stays — the rule against sideways scrolling is about CONTROL
+   rows, where a control off the edge may as well not exist. */
 .tableContainer {
   overflow-x: auto;
 }
 
 .table {
   width: 100%;
-  border-collapse: collapse;
+  /* SEPARATE, NOT COLLAPSE. With border-collapse the borders belong to the
+     TABLE, not the cell, so they do not travel with a sticky cell and the
+     column's right-hand edge is left behind as the rest scrolls under it.
+     border-spacing 0 keeps the rendering identical to collapse. */
+  border-collapse: separate;
+  border-spacing: 0;
+  /* How far the identity column sits from the left edge: the checkbox column's
+     width when there is one, zero when there isn't. Set inline by the
+     component, because only it knows whether the table is selectable. */
+  --sticky-offset: 0px;
+}
+
+/* ── STICKY IDENTITY COLUMN ──────────────────────────────────────────────
+   At 390 today, subscriptions renders Status / Start date / Trial end /
+   Actions with the company and email off-screen left, and jobs renders
+   Status / Apps / Views / Actions with no job title. Rows belonging to
+   nobody. The first column carries the identity, so it stays put.
+
+   THE BACKGROUND MUST BE OPAQUE AND MUST INHERIT: opaque or the scrolling
+   columns show through it, inherit or a hovered or selected row loses its
+   wash under the sticky cell — the one place where the two requirements
+   are actually the same requirement. */
+.stickyCheck,
+.stickyCol {
+  position: sticky;
+  z-index: 1;
+  background: inherit;
+}
+
+/* THE OFFSET BELOW IS A HARD-CODED 40px, SO THIS CELL MUST ACTUALLY BE 40px.
+   It was not: `width: 40px` is content-box by default, the padding is 16px a
+   side, and the cell rendered at 52px — so the identity column stuck 12px too
+   far left and slid UNDER the checkbox as the table scrolled. Exactly the
+   "they stick as one unit, not separately" failure, and invisible to reading:
+   the number in the CSS and the number on screen were different numbers.
+   border-box plus the narrower padding makes the two agree by construction. */
+.stickyCheck {
+  left: 0;
+  box-sizing: border-box;
+  width: 40px;
+  min-width: 40px;
+  max-width: 40px;
+  padding-left: 12px;
+  padding-right: 12px;
+}
+
+.stickyCol {
+  left: var(--sticky-offset);
+  border-right: 1px solid #e2e8f0;
+  /* Reads as a lifted edge, so it is obvious the column is held rather than
+     that the table simply ends there. */
+  box-shadow: 6px 0 6px -4px rgba(15, 23, 42, 0.1);
+}
+
+/* The header cells stick too, or the column's own label scrolls away from it.
+   AND THE HEADER NEEDS ITS OWN OPAQUE BACKGROUND. `background: inherit` on the
+   sticky cell resolves against its row, and a <tr> in <thead> has no
+   background of its own — so the header cell was TRANSPARENT while every body
+   cell was correctly white, and the scrolling column labels read straight
+   through "JOB TITLE" as a pile of overlapping words.
+   Caught by looking at the scrolled screenshot. The measurements all passed:
+   they sampled a body cell's background, so the check could not see this. */
+.th {
+  background: #fff;
+}
+
+.th.stickyCheck,
+.th.stickyCol {
+  z-index: 2;
+}
+
+/* EVERY ROW NEEDS ITS OWN OPAQUE BACKGROUND, because `inherit` on the cell
+   resolves to whatever the row states — and an unstated background is
+   transparent, which is exactly what a sticky cell must never be. White is
+   what these rows already render as against the white wrapper, so this is a
+   no-op everywhere except under the sticky cell. */
+.row,
+.skeletonRow {
+  background: #fff;
+}
+
+/* Identity is the one thing worth the vertical space: wrap to two lines
+   rather than truncate. */
+.td.stickyCol {
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .th {
@@ -375,5 +474,20 @@
   .bulkActions {
     width: 100%;
     justify-content: center;
+  }
+  /* 112px at 390 — wide enough for a name over two lines, narrow enough to
+     leave the scrolling columns something to be. Natural width above this,
+     where nothing is scrolling and the column is just the first column. */
+  .th.stickyCol,
+  .td.stickyCol {
+    /* border-box, or the 16px padding a side turns 112 into 145 — which is
+       what it did, and the CSS still read "112px" the whole time. */
+    box-sizing: border-box;
+    width: 112px;
+    min-width: 112px;
+    max-width: 112px;
+  }
+  .th.stickyCol {
+    white-space: normal;
   }
 }

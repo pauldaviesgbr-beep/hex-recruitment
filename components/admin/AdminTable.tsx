@@ -51,6 +51,12 @@ interface AdminTableProps<T = any> {
   query?: string
   /** How many filters are set, so "Clear search" vs "Clear all filters". */
   filtersActive?: number
+  /**
+   * The select filters in words, e.g. `Status: Archived`, so a filtered zero
+   * names EVERY reason it is empty and not just the search box. Without this
+   * the message blames the query for a select the reader may have forgotten.
+   */
+  filterSummary?: string
   onClearSearch?: () => void
   onRetry?: () => void
   errorMessage?: string
@@ -85,6 +91,7 @@ export default function AdminTable<T extends Record<string, any>>({
   status,
   query,
   filtersActive = 0,
+  filterSummary,
   onClearSearch,
   onRetry,
   errorMessage,
@@ -126,7 +133,12 @@ export default function AdminTable<T extends Record<string, any>>({
       <div className={styles.toolbar}>
         <div className={styles.toolbarLeft}>
           {onSearch && (
-            <div className={styles.searchBar}>
+            /* THE INPUT CAUSED IT, SO THE INPUT SHOWS IT. A query that matches
+               nothing marks the field it was typed into — the message is down
+               in the table body, which on a phone is past the fold. Keyed on
+               the query specifically, not on `isFilteredEmpty`: a select filter
+               that empties the table is not the search box's doing. */
+            <div className={`${styles.searchBar} ${status === 'empty' && query ? styles.searchBarNoMatch : ''}`}>
               <svg className={styles.searchIcon} width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <circle cx="11" cy="11" r="8" />
                 <line x1="21" y1="21" x2="16.65" y2="16.65" />
@@ -176,7 +188,14 @@ export default function AdminTable<T extends Record<string, any>>({
       </div>
 
       <div className={styles.tableContainer}>
-        <table className={styles.table}>
+        {/* The identity column sits at left:0, or clear of the checkbox column
+            when there is one — the two stick as ONE unit, never separately,
+            or the checkbox slides over the name it belongs to. 40px is the
+            checkbox column's declared width below. */}
+        <table
+          className={styles.table}
+          style={{ ['--sticky-offset' as string]: selectable ? '40px' : '0px' }}
+        >
           {/* NO HEADER IN A STATE ROW. With a header the table keeps its full
               scrollable width, so a centred message centres in THAT and lands
               off to one side of the container — which is why /admin/reviews'
@@ -186,8 +205,12 @@ export default function AdminTable<T extends Record<string, any>>({
           {!showsStateRow && (
           <thead>
             <tr>
+              {/* The checkbox column's width lives in .stickyCheck, not in an
+                  inline style — it has to agree with --sticky-offset, and two
+                  numbers in two files is already one more than can be kept
+                  honest. It was three, and they disagreed by 12px. */}
               {selectable && (
-                <th className={styles.th} style={{ width: '40px' }}>
+                <th className={`${styles.th} ${styles.stickyCheck}`}>
                   <input
                     type="checkbox"
                     checked={allSelected}
@@ -196,10 +219,10 @@ export default function AdminTable<T extends Record<string, any>>({
                   />
                 </th>
               )}
-              {columns.map((col) => (
+              {columns.map((col, colIndex) => (
                 <th
                   key={col.key}
-                  className={`${styles.th} ${col.sortable && onSort ? styles.sortable : ''} ${sortField === col.key ? styles.active : ''}`}
+                  className={`${styles.th} ${colIndex === 0 ? styles.stickyCol : ''} ${col.sortable && onSort ? styles.sortable : ''} ${sortField === col.key ? styles.active : ''}`}
                   onClick={() => col.sortable && onSort?.(col.key)}
                   style={col.width ? { width: col.width } : undefined}
                 >
@@ -244,7 +267,8 @@ export default function AdminTable<T extends Record<string, any>>({
                 <td colSpan={colCount} className={styles.stateCell}>
                   <div className={styles.emptyState} role="status">
                     <p className={styles.emptyHeading}>
-                      No {entityName} match{query ? <> &ldquo;{query}&rdquo;</> : ' those filters'}.
+                      No {entityName} match{query ? <> &ldquo;{query}&rdquo;</> : ' those filters'}
+                      {filterSummary ? <> with {filterSummary}</> : null}.
                     </p>
                     {typeof totalCount === 'number' && query && (
                       <p className={styles.emptyBody}>
@@ -273,12 +297,15 @@ export default function AdminTable<T extends Record<string, any>>({
               Array.from({ length: 5 }).map((_, i) => (
                 <tr key={i} className={styles.skeletonRow}>
                   {selectable && (
-                    <td className={styles.td}>
+                    <td className={`${styles.td} ${styles.stickyCheck}`}>
                       <div className={styles.skeleton} style={{ width: '16px' }} />
                     </td>
                   )}
-                  {columns.map((col) => (
-                    <td key={col.key} className={styles.td}>
+                  {/* The skeleton sticks too, so the column does not appear
+                      only once the data lands — the layout must not move
+                      between loading and loaded. */}
+                  {columns.map((col, colIndex) => (
+                    <td key={col.key} className={`${styles.td} ${colIndex === 0 ? styles.stickyCol : ''}`}>
                       <div className={styles.skeleton} />
                     </td>
                   ))}
@@ -303,7 +330,7 @@ export default function AdminTable<T extends Record<string, any>>({
                   onClick={() => onRowClick?.(row)}
                 >
                   {selectable && (
-                    <td className={styles.td} onClick={(e) => e.stopPropagation()}>
+                    <td className={`${styles.td} ${styles.stickyCheck}`} onClick={(e) => e.stopPropagation()}>
                       <input
                         type="checkbox"
                         checked={selectedIds.includes(row.id)}
@@ -312,8 +339,8 @@ export default function AdminTable<T extends Record<string, any>>({
                       />
                     </td>
                   )}
-                  {columns.map((col) => (
-                    <td key={col.key} className={styles.td}>
+                  {columns.map((col, colIndex) => (
+                    <td key={col.key} className={`${styles.td} ${colIndex === 0 ? styles.stickyCol : ''}`}>
                       {col.render ? col.render(row[col.key], row) : row[col.key] ?? '—'}
                     </td>
                   ))}
