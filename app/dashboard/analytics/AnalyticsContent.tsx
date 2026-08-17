@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Header from '@/components/Header'
 import { supabase } from '@/lib/supabase'
+import CandidateActivityInsight from '@/components/CandidateActivityInsight'
 import { getCategoryLabel } from '@/lib/categories'
 // EMPLOYER_SUBSCRIPTION_PRICE and the Cost Per Hire panel are both deleted.
 // The panel did not merely DISPLAY the price, it COMPUTED from it — spend fed
@@ -3060,6 +3061,15 @@ export default function AnalyticsContent() {
         )}
           </>
         )}
+
+          {/* WHEN CANDIDATES ARE LOOKING — first in the Traffic tab, because
+              it is the only thing on this page about candidate behaviour
+              rather than this employer's own numbers, and it changes when you
+              act rather than telling you what already happened.
+              Aggregate only: the RPC behind it is keyed on auth.uid(), takes
+              no parameter, and returns counts per time band. No candidate is
+              identifiable from it. */}
+        {activeTab === 'traffic' && <CandidateActivityInsight />}
 
           {/* Traffic Overview */}
         {activeTab === 'traffic' && (
