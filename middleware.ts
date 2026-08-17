@@ -1,5 +1,6 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { countryFromHeaders, COUNTRY_COOKIE, COUNTRY_MAX_AGE_DAYS } from '@/lib/geo'
 
 // Keeps the SSR auth cookie in step with the browser's localStorage session.
 //
@@ -31,12 +32,40 @@ import { NextResponse, type NextRequest } from 'next/server'
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request: { headers: request.headers } })
 
+  // ── WHERE THE REQUEST CAME FROM ──────────────────────────────────────────
+  // The edge tells us the country on every request and we used to throw it
+  // away. Carried to the client in a first-party cookie because the candidate
+  // and employer signup forms run in the BROWSER and cannot read a request
+  // header — the identical problem `thrive_attr` already solves, solved the
+  // same way rather than with a second mechanism.
+  //
+  // STAMPED AT BOTH EXITS, not once at the top: `response` is REASSIGNED by
+  // the Supabase cookie adapters below, so anything set on the original object
+  // is discarded. And there is an early return above them.
+  const country = countryFromHeaders(request.headers)
+  const withCountry = (res: NextResponse) => {
+    // Absent header means local development, not "unknown" — write nothing,
+    // or a dev session looks like a real signup from nowhere.
+    if (country) {
+      res.cookies.set(COUNTRY_COOKIE, country, {
+        path: '/',
+        maxAge: COUNTRY_MAX_AGE_DAYS * 86400,
+        sameSite: 'lax',
+        // Readable by the signup forms, so NOT httpOnly. It is a two-letter
+        // country code the browser's own request already revealed — there is
+        // nothing here an attacker could not obtain by loading the page.
+        httpOnly: false,
+      })
+    }
+    return res
+  }
+
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   // Mirrors the lazy env guard in lib/supabase.ts: a Preview env without the
   // NEXT_PUBLIC_* vars should degrade to "no refresh", never throw on every
   // request and take the whole site down.
-  if (!url || !key) return response
+  if (!url || !key) return withCountry(response)
 
   const supabase = createServerClient(url, key, {
     cookies: {
@@ -71,7 +100,7 @@ export async function middleware(request: NextRequest) {
   // change cannot introduce a new redirect of its own.
   await supabase.auth.getUser()
 
-  return response
+  return withCountry(response)
 }
 
 export const config = {

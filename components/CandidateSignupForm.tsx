@@ -6,6 +6,7 @@ import { useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { calculateTrialExpiry } from '@/lib/trialUtils'
 import { getStoredAttribution, attributionColumns } from '@/lib/attribution'
+import { countryColumns } from '@/lib/geo'
 import { isValidEmail, isDisposableEmail } from '@/lib/validateEmail'
 import { safeInternalPath } from '@/lib/safeRedirect'
 import PasswordInput from './PasswordInput'
@@ -88,6 +89,9 @@ export default function CandidateSignupForm() {
             // ?ref / ?utm_* was carried — normalizeSource ranks tags above the
             // self-report, and the prompt honours that same priority.
             ...attributionColumns(getStoredAttribution()),
+            // Where the edge said this browser was, at signup. Empty when
+            // unknown, so an existing value is never overwritten.
+            ...countryColumns(),
           },
         }),
       }).catch(() => {})

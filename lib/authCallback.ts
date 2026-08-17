@@ -6,6 +6,7 @@ import { FREE_FOUNDING_MODE } from '@/lib/constants/cohort'
 import { provisionFoundingEmployer } from '@/lib/foundingSignup'
 import type { EmailClass } from '@/lib/emailDomains'
 import { parseAttrCookie, attributionColumns, type Attribution } from '@/lib/attribution'
+import { countryFromHeaders, parseCountryCookie } from '@/lib/geo'
 import { safeInternalPath } from '@/lib/safeRedirect'
 
 // Shared OAuth callback logic. Used by:
@@ -239,6 +240,17 @@ export async function handleAuthCallback(
   const hasAttr = !!(attr.signup_ref || attr.utm_source || attr.utm_medium || attr.utm_campaign || attr.heard_from)
   const attrCols = hasAttr ? attributionColumns(attr) : {}
 
+  // WHERE THEY SIGNED UP FROM. The header first, because this route runs on
+  // the server and the edge has already resolved it; the cookie only as a
+  // fallback for the case where middleware saw the country on an earlier
+  // request but this particular one did not carry the header.
+  //
+  // Same rule as attribution above: write NOTHING when we have nothing. An
+  // absent header is local development, and a returning user re-provisioning
+  // must not have a real value overwritten with a guess.
+  const country = countryFromHeaders(req.headers) || parseCountryCookie(req.headers.get('cookie'))
+  const countryCols: Record<string, string> = country ? { signup_country: country } : {}
+
   if (role === 'employer') {
     // Confirmation-time founding-row provisioning. Runs on EVERY callback
     // hit (not just !existingRole) because email signups stamp the role
@@ -271,7 +283,7 @@ export async function handleAuthCallback(
         contactName: displayName,
         metadataClass,
         siteUrl: siteUrlForProvision,
-        attribution: attrCols,
+        attribution: { ...attrCols, ...countryCols },
       })
     } else {
       // Pre-pivot path preserved for the flag-off future.
@@ -305,6 +317,7 @@ export async function handleAuthCallback(
           // candidate who hid themselves is never flipped back on.
           is_discoverable: true,
           ...attrCols,
+          ...countryCols,
         },
         { onConflict: 'user_id', ignoreDuplicates: true }
       )
