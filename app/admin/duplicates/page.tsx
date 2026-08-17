@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
+import AdminPageHeader from '@/components/admin/AdminPageHeader'
 
 // POSSIBLE DUPLICATES — the exit from the hold.
 //
@@ -67,9 +68,12 @@ export default function DuplicatesPage() {
       <p style={{ fontFamily: 'ui-monospace, monospace', fontSize: 11, letterSpacing: '.08em', textTransform: 'uppercase', color: '#6b7688', margin: '0 0 8px' }}>
         Admin
       </p>
-      <h1 style={{ fontSize: 26, fontWeight: 700, letterSpacing: '-.02em', margin: '0 0 6px', color: '#0f172a' }}>
-        Possible duplicates
-      </h1>
+      {/* Was an inline-styled h1 at 26px/700/-.02em — one of the four
+          dialects that made the estate look assembled rather than designed.
+          The frame's 28px/700/-0.025em replaces it. The eyebrow above and the
+          explainer below are UNCHANGED: adopt the frame, hold the rendering
+          constant. The explainer is four lines, so it is not a subtitle. */}
+      <AdminPageHeader title="Possible duplicates" />
       <p style={{ color: '#475569', fontSize: 14.5, lineHeight: 1.55, maxWidth: '66ch', margin: '0 0 24px' }}>
         Two profiles whose names are the same words. <strong>Held</strong> means a new signup is hidden while
         you decide — and if nobody decides, it becomes visible on its own after seven days rather than

@@ -42,25 +42,38 @@
   flex-shrink: 0;
 }
 
+/* THE FOURTH DIALECT, ADOPTING THE FRAME. This panel set its own type:
+   1.1rem/700 where the page frame is 28px/700, and a 0.8rem subtitle where
+   the frame's is 13.5px. It is a PANEL, not a page, so it takes the spec's
+   panel-heading value (17px/600) rather than the page h1 — the point is
+   that it stops inventing a scale, not that it shouts as loud as a page. */
 .title {
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: #1e293b;
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: #0f172a;
 }
 
 .subtitle {
-  font-size: 0.8rem;
+  font-size: 13.5px;
+  font-weight: 400;
   color: #64748b;
   margin-top: 0.2rem;
 }
 
+/* Icon-only, so it needs a real tap target: 44px at 390 per the spec. The
+   glyph version was a 1.2rem character with 4px of padding. */
 .closeBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background: none;
   border: none;
-  font-size: 1.2rem;
   cursor: pointer;
   color: #94a3b8;
-  padding: 0.25rem;
+  min-width: 44px;
+  min-height: 44px;
+  margin: -0.5rem -0.5rem -0.5rem 0;
   line-height: 1;
 }
 

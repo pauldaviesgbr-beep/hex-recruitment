@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useAdminToken } from '@/lib/admin-context'
+import AdminPageHeader from '@/components/admin/AdminPageHeader'
 import styles from './page.module.css'
 
 interface Settings {
@@ -52,7 +53,7 @@ export default function AdminSettingsPage() {
   if (loadError) {
     return (
       <div>
-        <h1 className={styles.pageTitle}>Platform Settings</h1>
+        <AdminPageHeader title="Platform Settings" />
         <div className={styles.card} role="alert">
           <h2 className={styles.cardTitle}>Couldn&rsquo;t load settings.</h2>
           <p className={styles.cardDesc}>
@@ -66,7 +67,10 @@ export default function AdminSettingsPage() {
 
   return (
     <div>
-      <h1 className={styles.pageTitle}>Platform Settings</h1>
+      <AdminPageHeader
+        title="Platform Settings"
+        subtitle="Read-only. Sectors, tags and featured jobs are derived from the live rows, not configured here."
+      />
 
       {/* Admin Users */}
       <div className={styles.card}>

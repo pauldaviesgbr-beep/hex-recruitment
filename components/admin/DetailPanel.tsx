@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
+import { Ico } from '@/components/icons'
 import styles from './DetailPanel.module.css'
 
 interface DetailPanelProps {
@@ -29,7 +30,13 @@ export default function DetailPanel({ open, onClose, title, subtitle, children }
             <h2 className={styles.title}>{title}</h2>
             {subtitle && <p className={styles.subtitle}>{subtitle}</p>}
           </div>
-          <button className={styles.closeBtn} onClick={onClose}>✕</button>
+          {/* Was a ✕ character. The last glyph left in the estate after the
+              drawer's twelve ticks and crosses became icons, and it is an
+              icon-only control, so it needs the label rather than
+              aria-hidden. */}
+          <button className={styles.closeBtn} onClick={onClose}>
+            <Ico name="x" size={20} label="Close" />
+          </button>
         </div>
         <div className={styles.body}>
           {children}
