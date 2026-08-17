@@ -41,6 +41,7 @@ export async function GET(req: Request) {
     const testEmpIds = (testEmps.data || []).map(r => r.user_id)
     const notTestCandidate = (q: any) =>
       testCandIds.length ? q.not('candidate_id', 'in', `(${testCandIds.join(',')})`) : q
+    const notRejected = (q: any) => q.or('approval_status.is.null,approval_status.neq.rejected')
     const notTestEmployerJob = (q: any) =>
       testEmpIds.length ? q.not('employer_id', 'in', `(${testEmpIds.join(',')})`) : q
 
@@ -49,6 +50,7 @@ export async function GET(req: Request) {
       candidatesWeek,
       candidatesMonth,
       employersTotal,
+      employersApproved,
       employersWeek,
       employersMonth,
       jobsActive,
@@ -64,16 +66,19 @@ export async function GET(req: Request) {
       db.from('candidate_profiles').select('*', { count: 'exact', head: true }).eq('is_test', false).eq('is_house', false),
       db.from('candidate_profiles').select('*', { count: 'exact', head: true }).eq('is_test', false).eq('is_house', false).gte('created_at', weekAgo),
       db.from('candidate_profiles').select('*', { count: 'exact', head: true }).eq('is_test', false).eq('is_house', false).gte('created_at', monthAgo),
-      db.from('employer_profiles').select('*', { count: 'exact', head: true }).eq('is_test', false).eq('is_house', false),
-      db.from('employer_profiles').select('*', { count: 'exact', head: true }).eq('is_test', false).eq('is_house', false).gte('created_at', weekAgo),
-      db.from('employer_profiles').select('*', { count: 'exact', head: true }).eq('is_test', false).eq('is_house', false).gte('created_at', monthAgo),
+      notRejected(db.from('employer_profiles').select('*', { count: 'exact', head: true }).eq('is_test', false).eq('is_house', false)),
+      // Seats are consumed by APPROVAL. Same rule as the public
+      // count_founding_spots_claimed(), minus the fixtures.
+      db.from('employer_profiles').select('*', { count: 'exact', head: true }).eq('is_test', false).eq('is_house', false).eq('approval_status', 'approved'),
+      notRejected(db.from('employer_profiles').select('*', { count: 'exact', head: true }).eq('is_test', false).eq('is_house', false).gte('created_at', weekAgo)),
+      notRejected(db.from('employer_profiles').select('*', { count: 'exact', head: true }).eq('is_test', false).eq('is_house', false).gte('created_at', monthAgo)),
       db.from('jobs').select('*', { count: 'exact', head: true }).eq('status', 'active'),
       notTestEmployerJob(db.from('jobs').select('*', { count: 'exact', head: true }).eq('is_recruiter_posting', false)),
       db.from('jobs').select('*', { count: 'exact', head: true }).eq('is_recruiter_posting', true),
       db.from('jobs').select('*', { count: 'exact', head: true }).eq('is_recruiter_posting', true).eq('status', 'filled'),
       notTestCandidate(db.from('job_applications').select('*', { count: 'exact', head: true })),
       db.from('candidate_profiles').select('created_at').eq('is_test', false).eq('is_house', false).gte('created_at', sixMonthsAgo).order('created_at'),
-      db.from('employer_profiles').select('created_at').eq('is_test', false).eq('is_house', false).gte('created_at', sixMonthsAgo).order('created_at'),
+      notRejected(db.from('employer_profiles').select('created_at').eq('is_test', false).eq('is_house', false).gte('created_at', sixMonthsAgo).order('created_at')),
       // The postings chart shows what EMPLOYERS did, so the importer's rows
       // (scrape cadence) stay out of it.
       notTestEmployerJob(db.from('jobs').select('posted_at').eq('is_recruiter_posting', false).gte('posted_at', sixMonthsAgo).order('posted_at')),
@@ -114,8 +119,20 @@ export async function GET(req: Request) {
       },
       totalApplications: applicationsTotal.count || 0,
       // The founding offer is the one money claim being run: first 100
-      // employers, 12 months free. Seats taken = real employer profiles.
-      foundingSeats: { taken: employersTotal.count || 0, of: 100 },
+      // employers, 12 months free.
+      //
+      // A SEAT IS CONSUMED BY APPROVAL, NOT BY SIGNING UP. This read
+      // `employersTotal`, every employer profile — so two rejected accounts
+      // and one pending one counted as seats taken, and the tile said 9 while
+      // only 6 employers had actually been admitted. That number is PUBLIC on
+      // the homepage, so the admin tile and the public page were quoting
+      // different figures for the same claim.
+      //
+      // Now approved only, and the same rule the public
+      // count_founding_spots_claimed() applies. It still differs from the
+      // homepage by the two test fixtures, which is a known and deliberate
+      // difference Paul has already decided to leave.
+      foundingSeats: { taken: employersApproved.count || 0, of: 100 },
       growth: {
         candidates: groupByMonth(candidateGrowth.data, 'created_at'),
         employers: groupByMonth(employerGrowth.data, 'created_at'),
