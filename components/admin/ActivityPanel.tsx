@@ -19,6 +19,16 @@ export interface ActivityData {
     jobViews: { country: string; n: number }[]
     jobViewsUnknown: number
   }
+  retention?: {
+    accounts: number
+    neverConfirmed: number
+    neverReturned: number
+    returned: number
+    hidden: number
+    departures: number
+    departuresByReason: { reason: string; n: number }[]
+    departuresFrom: string
+  }
 }
 
 /** A few of the codes we are most likely to see, so the panel reads as words
@@ -49,7 +59,7 @@ const BAND_NOTE: Record<string, string> = {
 export default function ActivityPanel({ data }: { data: ActivityData | null }) {
   if (!data) return null
 
-  const { signins, countries } = data
+  const { signins, countries, retention } = data
   const bandMax = Math.max(...signins.byBand.map(b => b.n), 1)
   const dowMax = Math.max(...signins.byDow.map(d => d.n), 1)
   const pct = (n: number) => Math.round((100 * n) / Math.max(signins.total, 1))
@@ -187,6 +197,67 @@ export default function ActivityPanel({ data }: { data: ActivityData | null }) {
           </>
         )}
       </div>
+
+      {/* ── WHO STAYED ────────────────────────────────────────────────── */}
+      {retention && retention.accounts > 0 && (
+        <div className={styles.block}>
+          <div className={styles.blockHead}>
+            <h3 className={styles.blockTitle}>Who came back</h3>
+            <p className={styles.blockMeta}>Candidates · all time</p>
+          </div>
+
+          {/* THE HEADLINE IS THE DROP-OFF, NOT THE DEPARTURES COUNT. Nobody
+              can delete their own account — there is no self-serve path — so
+              a departures figure reads zero and would be mistaken for "no
+              drop-off" when in fact most people never come back at all. */}
+          <p className={styles.retentionLede}>
+            <strong>{retention.neverReturned} of {retention.accounts} candidates have never returned</strong>{' '}
+            since the day they signed up. {retention.returned} came back.
+          </p>
+
+          <ul className={styles.bars}>
+            <li className={styles.barRow}>
+              <span className={styles.barLabel}>Came back</span>
+              <span className={styles.barTrack}>
+                <span className={styles.barFill} style={{ width: `${(100 * retention.returned) / Math.max(retention.accounts, 1)}%` }} />
+              </span>
+              <span className={styles.barValue}>{retention.returned}</span>
+            </li>
+            <li className={styles.barRow}>
+              <span className={styles.barLabel}>Never returned</span>
+              <span className={styles.barTrack}>
+                <span className={styles.barFillMuted} style={{ width: `${(100 * retention.neverReturned) / Math.max(retention.accounts, 1)}%` }} />
+              </span>
+              <span className={styles.barValue}>{retention.neverReturned}</span>
+            </li>
+            <li className={styles.barRow}>
+              <span className={styles.barLabel}>Hidden from employers</span>
+              <span className={styles.barTrack}>
+                <span className={styles.barFillMuted} style={{ width: `${(100 * retention.hidden) / Math.max(retention.accounts, 1)}%` }} />
+              </span>
+              <span className={styles.barValue}>{retention.hidden}</span>
+            </li>
+          </ul>
+
+          {/* ZERO HERE IS NOT "NOBODY HAS LEFT". It is "none recorded since the
+              log started", and the two are entirely different claims. Every
+              account removed before today is gone without trace. */}
+          <p className={styles.caveat}>
+            <strong>
+              {retention.departures === 0
+                ? 'No departures recorded yet.'
+                : `${retention.departures} account${retention.departures === 1 ? '' : 's'} removed.`}
+            </strong>{' '}
+            Departures have only been logged since {retention.departuresFrom} and fill forward
+            only — anything removed before that is unrecorded, not zero. Nobody can delete
+            their own account today, so the only path that removes one is the unconfirmed-signup
+            reaper.
+            {retention.departuresByReason.length > 0 && (
+              <> Reasons: {retention.departuresByReason.map(r => `${r.reason.replace(/_/g, ' ')} ${r.n}`).join(' · ')}.</>
+            )}
+          </p>
+        </div>
+      )}
 
       <p className={styles.footnote}>
         <strong>What these numbers are.</strong> A sign-in is a new session —

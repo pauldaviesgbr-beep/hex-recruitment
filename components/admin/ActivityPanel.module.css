@@ -203,3 +203,23 @@
   .dow { gap: 4px; }
   .dowLabel { font-size: 9.5px; }
 }
+
+/* ── Retention ─────────────────────────────────────────────────────────── */
+.retentionLede {
+  margin: 0 0 12px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #475569;
+}
+
+.retentionLede strong { color: #0f172a; }
+
+/* The "didn't come back" bars are deliberately grey, not red. People not
+   returning is the thing to work on, not an error state — and the estate's
+   alert colours mean something is broken. */
+.barFillMuted {
+  display: block;
+  height: 100%;
+  background: #cbd5e1;
+  border-radius: 999px;
+}
