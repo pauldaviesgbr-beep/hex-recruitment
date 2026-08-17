@@ -6,6 +6,7 @@ import {
   LineChart, Line, BarChart, Bar,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from 'recharts'
+import AdminPageHeader from '@/components/admin/AdminPageHeader'
 import styles from './page.module.css'
 import { Ico } from '@/components/icons'
 
@@ -158,7 +159,11 @@ export default function AdminOverviewPage() {
 
   return (
     <div>
-      <h1 className={styles.pageTitle}>Dashboard Overview</h1>
+      {/* No subtitle. "Candidates and employers, fixtures excluded" already
+          appears on the real-users tile and again in the note below it —
+          the handoff calls that tile note "already correct", so a third copy
+          in the frame would be noise, not clarity. */}
+      <AdminPageHeader title="Dashboard Overview" />
 
       {hasAlerts && stats.alerts && (
         <div className={styles.alertsBar}>
