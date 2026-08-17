@@ -68,6 +68,9 @@ export async function GET(req: Request) {
             created_at: authUser.created_at,
             ...(candidate || {}),
             role: 'candidate',
+            // AFTER the spread: a future candidate_profiles column called
+            // 'banned' must not be able to overwrite the auth fact.
+            banned: Boolean(authUser.banned_until),
             application_count: appCount || 0,
             message_count: msgCount || 0,
             signup_source: signupSource(authUser, candidate),
@@ -107,6 +110,7 @@ export async function GET(req: Request) {
           created_at: authUser.created_at,
           ...(employer || {}),
           role: 'employer',
+          banned: Boolean(authUser.banned_until),
           subscription: subsResult?.data || null,
           job_count: jobsResult.count || 0,
           message_count: msgResult.count || 0,
@@ -167,8 +171,12 @@ export async function GET(req: Request) {
           ).in('user_id', candidateIds)
         : { data: [] },
       employerIds.length > 0
+        // approval_status and contact_name are the two the list could not see.
+        // Without approval_status a REJECTED employer renders identically to an
+        // approved one, which is how a rejection can be made and then leave no
+        // trace on the page you would go to in order to check it.
         ? db.from('employer_profiles').select(
-            'user_id, company_name, email, phone, location, industry, website, description, logo_url'
+            'user_id, company_name, contact_name, approval_status, email, phone, location, industry, website, description, logo_url'
           ).in('user_id', employerIds)
         : { data: [] },
       employerIds.length > 0
@@ -239,6 +247,11 @@ export async function GET(req: Request) {
         location: profile?.location || u.user_metadata?.city || '',
         phone: profile?.phone || '',
         industry: profile?.industry || '',
+        contact_name: profile?.contact_name || '',
+        // NULLABLE ON PURPOSE. null means "no employer row", which is not the
+        // same as pending — and the page must be able to tell those apart
+        // rather than defaulting one into the other.
+        approval_status: (profile?.approval_status as string | null) ?? null,
         tier: sub?.tier || null,
         sub_status: sub?.status || 'inactive',
         status: u.banned_until ? 'suspended' : 'active',
@@ -309,10 +322,30 @@ export async function POST(req: Request) {
         if (error) throw error
         return NextResponse.json({ success: true, message: 'User unsuspended' })
       }
-      case 'delete': {
-        const { error } = await db.auth.admin.deleteUser(userId)
-        if (error) throw error
-        return NextResponse.json({ success: true, message: 'User deleted' })
+      // DELETE REFUSES, AND SAYS WHY.
+      //
+      // `deleteUser` removes exactly one row — the auth user. There is not a
+      // single foreign key from public to auth.users, so nothing cascades:
+      // 43 user-id columns across 40 tables keep pointing at an id that no
+      // longer exists. The profile, the CV, applications, messages,
+      // interviews and offers all survive the "deletion".
+      //
+      // And they survive INVISIBLY, because the admin list is built from
+      // auth.users — the moment the auth row goes, the orphans drop off every
+      // page that could have shown you them.
+      //
+      // Refusing here rather than only removing the buttons: a live endpoint
+      // that quietly orphans a person's data is a trap for whoever wires a
+      // button back up. Erasure is a script that enumerates the dependants
+      // and counts them before and after, the way the account census did.
+      case 'delete':
+      case 'bulk_delete': {
+        return NextResponse.json({
+          error:
+            'Deleting from here is disabled. It would remove only the auth user and orphan ' +
+            'the profile, CV, applications and messages across 40 tables, invisibly. ' +
+            'Use Ban to stop access (reversible), or run a proper erasure script.',
+        }, { status: 400 })
       }
       case 'bulk_suspend': {
         const ids = userIds || []
@@ -320,13 +353,6 @@ export async function POST(req: Request) {
           await db.auth.admin.updateUserById(id, { ban_duration: '876000h' })
         }
         return NextResponse.json({ success: true, message: `${ids.length} users suspended` })
-      }
-      case 'bulk_delete': {
-        const ids = userIds || []
-        for (const id of ids) {
-          await db.auth.admin.deleteUser(id)
-        }
-        return NextResponse.json({ success: true, message: `${ids.length} users deleted` })
       }
       default:
         return NextResponse.json({ error: `Unknown action: ${action}` }, { status: 400 })

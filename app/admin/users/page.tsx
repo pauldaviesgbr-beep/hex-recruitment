@@ -22,6 +22,9 @@ interface User {
   tier: string | null
   sub_status?: string
   status: string
+  /** Employers only. null = no employer row at all, which is not 'pending'. */
+  approval_status?: string | null
+  contact_name?: string
   job_title?: string
   industry?: string
   completeness: number
@@ -52,6 +55,7 @@ interface UserDetail {
   job_count?: number
   review_count?: number
   signup_source?: string
+  banned?: boolean
   completeness?: Completeness
   subscription?: {
     subscription_tier: string
@@ -78,6 +82,7 @@ export default function AdminUsersPage() {
   const [sortField, setSortField] = useState('created_at')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
   const [actionLoading, setActionLoading] = useState<string | null>(null)
+  const [actionError, setActionError] = useState('')
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [detailUser, setDetailUser] = useState<UserDetail | null>(null)
   const [detailOpen, setDetailOpen] = useState(false)
@@ -139,39 +144,61 @@ export default function AdminUsersPage() {
   }
 
   const handleAction = async (action: string, userId: string) => {
-    if (action === 'delete' && !confirm('Are you sure you want to permanently delete this user?')) return
-    if (action === 'suspend' && !confirm('Suspend this user?')) return
+    if (action === 'suspend' && !confirm('Ban this user? They will be unable to sign in. You can undo this.')) return
+    if (action === 'unsuspend' && !confirm('Lift the ban and let this user sign in again?')) return
 
     setActionLoading(userId)
-    await fetch('/api/admin/users', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ action, userId }),
-    })
-    setActionLoading(null)
-    fetchUsers()
+    setActionError('')
+    try {
+      const res = await fetch('/api/admin/users', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ action, userId }),
+      })
+      const data = await res.json().catch(() => ({}))
+      // THE LINE THAT WAS MISSING. Without it a 403, a 500 or an unknown
+      // action all returned quietly, the list refetched, and the row came back
+      // looking exactly as it had — so a ban that never happened was
+      // indistinguishable from one that did.
+      if (!res.ok) throw new Error(data.error || `Action failed (${res.status})`)
+    } catch (e: any) {
+      setActionError(e.message || 'That action failed. Nothing was changed.')
+    } finally {
+      setActionLoading(null)
+      fetchUsers()
+    }
   }
 
   const handleBulkAction = async (action: string) => {
     if (selectedIds.length === 0) return
-    const label = action === 'bulk_suspend' ? 'suspend' : 'delete'
-    if (!confirm(`${label} ${selectedIds.length} selected user(s)?`)) return
+    // Ban is the only bulk action now, so the label is not a ternary over a
+    // branch that can no longer be reached.
+    if (!confirm(`Ban ${selectedIds.length} selected user(s)? They will be unable to sign in. You can undo this per user.`)) return
 
     setActionLoading('bulk')
-    await fetch('/api/admin/users', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ action, userIds: selectedIds }),
-    })
-    setActionLoading(null)
-    setSelectedIds([])
-    fetchUsers()
+    setActionError('')
+    try {
+      const res = await fetch('/api/admin/users', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ action, userIds: selectedIds }),
+      })
+      const data = await res.json().catch(() => ({}))
+      // Same missing check as the single-row handler had.
+      if (!res.ok) throw new Error(data.error || `Bulk action failed (${res.status})`)
+      setSelectedIds([])
+    } catch (e: any) {
+      setActionError(e.message || 'That action failed. Nothing was changed.')
+    } finally {
+      setActionLoading(null)
+      fetchUsers()
+    }
   }
 
   const openDetail = async (row: User) => {
@@ -193,6 +220,10 @@ export default function AdminUsersPage() {
       render: (val: string, row: User) => (
         <div>
           <span className={styles.userName}>{val}</span>
+          {/* The contact name was in the data and never rendered, so two
+              employers who entered no company name both read "My Company" —
+              the freemail fallback — and the row identified nobody. */}
+          {row.contact_name && <span className={styles.userSub}>{row.contact_name}</span>}
           {row.job_title && <span className={styles.userSub}>{row.job_title}</span>}
           {row.industry && <span className={styles.userSub}>{row.industry}</span>}
         </div>
@@ -275,6 +306,35 @@ export default function AdminUsersPage() {
       render: (val: string) => val ? new Date(val).toLocaleDateString('en-GB') : '—',
     },
     {
+      // THE COLUMN THAT MAKES THE ACTIONS MEAN ANYTHING. Ban wrote to the
+      // database and the page rendered nothing, so the only way to tell a ban
+      // had worked was to go and look in the database. Two independent facts
+      // live here and neither implies the other: whether they can SIGN IN, and
+      // whether an employer has been APPROVED.
+      key: 'status',
+      label: 'Status',
+      render: (val: string, row: User) => (
+        <div className={styles.statusCell}>
+          {val === 'suspended'
+            ? <span className={`${styles.badge} ${styles.badgeBanned}`}>banned</span>
+            : <span className={styles.statusOk}>active</span>}
+          {row.role === 'employer' && (
+            row.approval_status === 'rejected'
+              ? <span className={`${styles.badge} ${styles.badgeRejected}`}>rejected</span>
+              : row.approval_status === 'pending'
+              ? <span className={`${styles.badge} ${styles.badgePending}`}>pending</span>
+              : row.approval_status === 'waitlisted'
+              ? <span className={`${styles.badge} ${styles.badgePending}`}>waitlisted</span>
+              : row.approval_status === 'approved'
+              ? <span className={styles.statusMuted}>approved</span>
+              // null is not pending — it means no employer row exists at all,
+              // and saying "pending" here would invent a state.
+              : <span className={styles.statusMuted}>no employer row</span>
+          )}
+        </div>
+      ),
+    },
+    {
       key: 'tier',
       label: 'Tier',
       render: (val: string | null, row: User) =>
@@ -313,6 +373,18 @@ export default function AdminUsersPage() {
           </button>
         }
       />
+
+      {/* A FAILED ACTION HAS TO SAY SO. Checking res.ok is only half of it —
+          without somewhere to render the failure the check would be silent,
+          and silent is exactly the state this replaces. */}
+      {actionError && (
+        <div className={styles.actionError} role="alert">
+          {actionError}
+          <button type="button" className={styles.actionErrorClose} onClick={() => setActionError('')}>
+            Dismiss
+          </button>
+        </div>
+      )}
 
       <AdminTable
         columns={columns}
@@ -356,45 +428,48 @@ export default function AdminUsersPage() {
             <option value="candidate">Candidates</option>
           </select>
         }
+        /* BULK DELETE IS GONE FOR THE SAME REASON AS THE ROW ONE, and it was
+           the more dangerous of the two: the same orphaning, multiplied by
+           however many boxes were ticked, reached in one click. The divider
+           that used to separate it goes with it — there is nothing
+           irreversible left in this row to separate. */
         headerActions={
-          <>
-            <button
-              className={styles.bulkBtn}
-              onClick={() => handleBulkAction('bulk_suspend')}
-              disabled={actionLoading === 'bulk'}
-            >
-              Suspend
-            </button>
-            {/* The rule. Delete is irreversible, on a real person's account,
-                reached by ticking boxes — it does not sit flush against
-                Suspend. */}
-            <span className={styles.destructiveDivider} aria-hidden="true" />
-            <button
-              className={`${styles.bulkBtn} ${styles.dangerBtn}`}
-              onClick={() => handleBulkAction('bulk_delete')}
-              disabled={actionLoading === 'bulk'}
-            >
-              Delete
-            </button>
-          </>
+          <button
+            className={styles.bulkBtn}
+            onClick={() => handleBulkAction('bulk_suspend')}
+            disabled={actionLoading === 'bulk'}
+          >
+            Ban selected
+          </button>
         }
+        /* DELETE IS GONE FROM HERE, DELIBERATELY.
+           `deleteUser` removes exactly one row — the auth user — and there is
+           NOT A SINGLE foreign key from public to auth.users, so it orphans
+           everything: 43 user-id columns across 40 tables, including the
+           profile, the CV, applications, messages and interviews. And because
+           this list is built FROM auth.users, the orphans become invisible the
+           moment they are created — you would never see what you had left.
+           Real erasure is an enumerated, ordered cascade with counts before
+           and after, which is a script, not a button beside Ban.
+           Ban does the job this was reached for, and undoes. */
         actions={(row) => (
-          <>
+          row.status === 'suspended' ? (
             <button
               className={styles.actionBtn}
+              onClick={() => handleAction('unsuspend', row.id)}
+              disabled={actionLoading === row.id}
+            >
+              Unban
+            </button>
+          ) : (
+            <button
+              className={`${styles.actionBtn} ${styles.dangerBtn}`}
               onClick={() => handleAction('suspend', row.id)}
               disabled={actionLoading === row.id}
             >
               Ban
             </button>
-            <button
-              className={`${styles.actionBtn} ${styles.dangerBtn}`}
-              onClick={() => handleAction('delete', row.id)}
-              disabled={actionLoading === row.id}
-            >
-              Delete
-            </button>
-          </>
+          )
         )}
       />
 
@@ -500,27 +575,28 @@ export default function AdminUsersPage() {
               <DetailRow label="Messages Sent" value={detailUser.message_count} />
             </DetailSection>
 
-            {/* ONE LABEL PER ACTION. The toolbar says "Suspend"; this said
-                "Suspend User". The drawer is headed with the person's name,
-                so the noun is redundant — and two names for one action is
-                how an operator ends up unsure whether they are the same
-                thing. Delete goes to the far right behind the same rule the
-                toolbar uses. */}
+            {/* ONE LABEL PER ACTION, and one word across the whole page:
+                "Ban". The row said Ban, the toolbar said Suspend and this said
+                "Suspend User" — three names for one thing, which is how an
+                operator ends up unsure whether they are the same action. They
+                all call the same endpoint.
+                Delete is gone from here too; see the table actions above. */}
             <div className={styles.detailActions}>
-              <button
-                className={styles.actionBtn}
-                onClick={() => handleAction('suspend', detailUser.user_id)}
-              >
-                Suspend
-              </button>
-              <span className={styles.detailActionsSpacer} />
-              <span className={styles.destructiveDivider} aria-hidden="true" />
-              <button
-                className={`${styles.actionBtn} ${styles.dangerBtn}`}
-                onClick={() => handleAction('delete', detailUser.user_id)}
-              >
-                Delete
-              </button>
+              {detailUser.banned ? (
+                <button
+                  className={styles.actionBtn}
+                  onClick={() => handleAction('unsuspend', detailUser.user_id)}
+                >
+                  Unban
+                </button>
+              ) : (
+                <button
+                  className={`${styles.actionBtn} ${styles.dangerBtn}`}
+                  onClick={() => handleAction('suspend', detailUser.user_id)}
+                >
+                  Ban
+                </button>
+              )}
             </div>
           </>
         ) : (
