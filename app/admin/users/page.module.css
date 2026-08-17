@@ -120,6 +120,9 @@
   gap: 0.35rem 0.75rem;
 }
 
+/* EMPHASIS INVERTED. The old panel greyed out the six MISSING fields and
+   gave full ink to the one thing already done — backwards, because the
+   reader is scanning for gaps. */
 .checkOn, .checkOff {
   font-size: 0.8rem;
   display: flex;
@@ -127,15 +130,27 @@
   gap: 0.35rem;
 }
 
-.checkOn { color: #334155; }
-.checkOff { color: #cbd5e1; }
+/* Present: quiet. It is done; it does not need attention. */
+.checkOn { color: #94a3b8; font-weight: 400; }
 
-.checkMark {
-  font-weight: 800;
+/* Missing: the dark one. This is what the reader came for. */
+.checkOff { color: #0f172a; font-weight: 500; }
+
+/* NOTHING IN THIS GRID IS ALERT-COLOURED, and the old #ef4444 cross is why
+   the rule is written down: an unfilled field is a thing not yet done, not
+   an error. With most profiles part-empty, a wall of red says the product is
+   broken rather than young. The retired green #16a34a goes with it. */
+.checkMark { flex-shrink: 0; }
+.checkOn .checkMark { color: #cbd5e1; }
+.checkOff .checkMark { color: #0f172a; }
+
+/* The line that says which gaps the matcher actually weights. */
+.checklistLede {
+  margin: 0 0 0.7rem;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: #475569;
 }
-
-.checkOn .checkMark { color: #16a34a; }
-.checkOff .checkMark { color: #ef4444; }
 
 /* Badges */
 .badge {
@@ -209,4 +224,9 @@
 
 .detailActions {
   composes: detailActions from '../shared.module.css';
+}
+
+/* Pushes Delete to the far right of the drawer footer. */
+.detailActionsSpacer {
+  flex: 1;
 }
