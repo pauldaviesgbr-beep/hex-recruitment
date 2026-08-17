@@ -7,6 +7,8 @@ import AdminPageHeader from '@/components/admin/AdminPageHeader'
 import DetailPanel, { DetailRow, DetailSection, DetailBadge } from '@/components/admin/DetailPanel'
 import SignedLink from '@/components/SignedLink'
 import type { Completeness } from '@/lib/profileCompleteness'
+import { completenessSummary, sortByGapThenWeight } from '@/lib/profileCompleteness'
+import { Ico } from '@/components/icons'
 import styles from './page.module.css'
 
 interface User {
@@ -234,9 +236,16 @@ export default function AdminUsersPage() {
               <span className={styles.barPct}>{pct}%</span>
             </div>
             {row.role === 'candidate' && (
+              /* Same two glyphs as the drawer, in the table. Icons here too,
+                 or the estate keeps a ✓/✗ in the one place a reader sees
+                 first — and #16a34a is the retired green. */
               <div className={styles.flags}>
-                <span className={row.has_cv ? styles.flagOn : styles.flagOff}>{row.has_cv ? '✓' : '✗'} CV</span>
-                <span className={row.has_photo ? styles.flagOn : styles.flagOff}>{row.has_photo ? '✓' : '✗'} Photo</span>
+                <span className={row.has_cv ? styles.flagOn : styles.flagOff}>
+                  <Ico name={row.has_cv ? 'check' : 'x'} size={16} /> CV
+                </span>
+                <span className={row.has_photo ? styles.flagOn : styles.flagOff}>
+                  <Ico name={row.has_photo ? 'check' : 'x'} size={16} /> Photo
+                </span>
               </div>
             )}
           </div>
@@ -436,10 +445,30 @@ export default function AdminUsersPage() {
                     style={{ width: `${detailUser.completeness.percent}%` }}
                   />
                 </div>
+                {/* WHAT IS MISSING, AND WHICH GAPS THE MATCHER ACTUALLY
+                    WEIGHTS — derived from the scorer's own per-component
+                    maxima, not from a fixed sentence. See matchWeight in
+                    lib/profileCompleteness.ts for why the handoff's
+                    "CV and work history" is half wrong. */}
+                {completenessSummary(detailUser.completeness.signals) && (
+                  <p className={styles.checklistLede}>
+                    {completenessSummary(detailUser.completeness.signals)}
+                  </p>
+                )}
                 <div className={styles.checklist}>
-                  {detailUser.completeness.signals.map(s => (
+                  {/* MISSING FIRST, AND MISSING IS THE DARK ONE. The reader is
+                      scanning for gaps; the old panel greyed the gaps out and
+                      gave full ink to the one thing already done. */}
+                  {sortByGapThenWeight(detailUser.completeness.signals).map(s => (
                     <div key={s.key} className={s.filled ? styles.checkOn : styles.checkOff}>
-                      <span className={styles.checkMark}>{s.filled ? '✓' : '✗'}</span> {s.label}
+                      {/* Lucide geometry at 16px, stroke 2.4 — the last place
+                          in the estate still using ✓/✗ glyphs. NEITHER STATE
+                          IS ALERT-COLOURED: an unfilled field is a thing not
+                          yet done, not an error, and with most profiles part
+                          empty a wall of red says the product is broken
+                          rather than young. */}
+                      <Ico name={s.filled ? 'check' : 'x'} size={16} strokeWidth={2.4} className={styles.checkMark} />
+                      <span>{s.label}</span>
                     </div>
                   ))}
                 </div>
@@ -471,18 +500,26 @@ export default function AdminUsersPage() {
               <DetailRow label="Messages Sent" value={detailUser.message_count} />
             </DetailSection>
 
+            {/* ONE LABEL PER ACTION. The toolbar says "Suspend"; this said
+                "Suspend User". The drawer is headed with the person's name,
+                so the noun is redundant — and two names for one action is
+                how an operator ends up unsure whether they are the same
+                thing. Delete goes to the far right behind the same rule the
+                toolbar uses. */}
             <div className={styles.detailActions}>
               <button
                 className={styles.actionBtn}
                 onClick={() => handleAction('suspend', detailUser.user_id)}
               >
-                Suspend User
+                Suspend
               </button>
+              <span className={styles.detailActionsSpacer} />
+              <span className={styles.destructiveDivider} aria-hidden="true" />
               <button
                 className={`${styles.actionBtn} ${styles.dangerBtn}`}
                 onClick={() => handleAction('delete', detailUser.user_id)}
               >
-                Delete User
+                Delete
               </button>
             </div>
           </>

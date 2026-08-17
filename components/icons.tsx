@@ -114,16 +114,23 @@ interface IcoProps {
   size?: 16 | 20 | 24
   /** Only for icon-only controls; beside a text label leave it off. */
   label?: string
+  /**
+   * Opt-in override. Defaults below stay exactly as they were, so this cannot
+   * change any existing icon — it exists for the admin drawer's tick/cross
+   * grid, which the handoff specifies at 2.4 so the marks hold up in a dense
+   * two-column list at 16px.
+   */
+  strokeWidth?: number
   className?: string
   style?: React.CSSProperties
 }
 
-export function Ico({ name, size = 20, label, className, style }: IcoProps) {
+export function Ico({ name, size = 20, label, strokeWidth, className, style }: IcoProps) {
   const C: LucideIcon = ICONS[name]
   return (
     <C
       size={size}
-      strokeWidth={size === 16 ? 2 : 1.75}
+      strokeWidth={strokeWidth ?? (size === 16 ? 2 : 1.75)}
       absoluteStrokeWidth={false}
       aria-hidden={label ? undefined : true}
       role={label ? 'img' : undefined}
