@@ -22,6 +22,11 @@ export async function GET(req: Request) {
   const page = parseInt(searchParams.get('page') || '1')
   const search = searchParams.get('search') || ''
   const role = searchParams.get('role') || 'all'
+  // 'active' (default) hides rejected employers, 'rejected' shows only those,
+  // 'all' shows everything. Rejected accounts still EXIST and can still sign
+  // in, so they are hidden rather than removed — and there has to be a way
+  // back to them, or a rejection could never be undone.
+  const approval = searchParams.get('approval') || 'active'
   const sort = searchParams.get('sort') || 'created_at'
   const dir = (searchParams.get('dir') || 'desc') as 'asc' | 'desc'
 
@@ -140,7 +145,25 @@ export async function GET(req: Request) {
     const authUsers = authResult?.users || []
 
     // Filter by role (normalised: 'employee'/legacy null both count as candidate)
+    // Which accounts have been rejected. Fetched BEFORE the filter, because
+    // approval_status lives on employer_profiles and the enrichment below only
+    // looks up the users that survive filtering — so it cannot be the source
+    // for a filter that runs first.
+    const { data: rejectedRows } = await db
+      .from('employer_profiles')
+      .select('user_id')
+      .eq('approval_status', 'rejected')
+    const rejectedIds = new Set((rejectedRows || []).map((r: any) => r.user_id))
+
     let filtered = authUsers.filter(u => role === 'all' || normalizeRole(u) === role)
+
+    // How many the default view is holding back. Reported to the page so it can
+    // SAY it is hiding them — a list quietly shorter than the account count is
+    // the same fault as a number with no claim behind it.
+    const rejectedInScope = filtered.filter(u => rejectedIds.has(u.id)).length
+
+    if (approval === 'active') filtered = filtered.filter(u => !rejectedIds.has(u.id))
+    else if (approval === 'rejected') filtered = filtered.filter(u => rejectedIds.has(u.id))
 
     // Filter by search
     if (search) {
@@ -289,6 +312,10 @@ export async function GET(req: Request) {
       total: totalCount,
       page,
       totalPages: Math.ceil(totalCount / PAGE_SIZE),
+      // So the page can SAY it is holding rows back. A list quietly shorter
+      // than the account count is a number with no claim behind it.
+      rejectedHidden: approval === 'active' ? rejectedInScope : 0,
+      approval,
     })
   } catch (error: any) {
     console.error('[Admin Users]', error.message)

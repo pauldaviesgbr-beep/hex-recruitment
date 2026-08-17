@@ -74,6 +74,10 @@ export default function AdminUsersPage() {
   const [totalCount, setTotalCount] = useState<number | null>(0)
   const [search, setSearch] = useState('')
   const [role, setRole] = useState('all')
+  // Rejected accounts are hidden by default but reachable, or a rejection
+  // could never be undone.
+  const [approval, setApproval] = useState('active')
+  const [rejectedHidden, setRejectedHidden] = useState(0)
   // A NUMBER IS A CLAIM — see components/admin/AdminTable.tsx. Four states,
   // explicit, so "loading", "no matches", "empty" and "the request failed" can
   // never again render as the same "0 results".
@@ -97,6 +101,7 @@ export default function AdminUsersPage() {
       page: String(page),
       search,
       role,
+      approval,
       sort: sortField,
       dir: sortDir,
     })
@@ -113,6 +118,7 @@ export default function AdminUsersPage() {
       setTotalPages(data.totalPages || 1)
       // Nullable, never `|| 0`.
       setTotalCount(typeof data.total === 'number' ? data.total : null)
+      setRejectedHidden(typeof data.rejectedHidden === 'number' ? data.rejectedHidden : 0)
       setTableState((data.users || []).length === 0 ? 'empty' : 'ok')
     } catch (e: any) {
       setUsers([])
@@ -124,7 +130,7 @@ export default function AdminUsersPage() {
       // threw is how a page sits on skeleton rows forever.
       setLoading(false)
     }
-  }, [token, page, search, role, sortField, sortDir])
+  }, [token, page, search, role, approval, sortField, sortDir])
 
   useEffect(() => {
     fetchUsers()
@@ -132,7 +138,7 @@ export default function AdminUsersPage() {
 
   useEffect(() => {
     setPage(1)
-  }, [search, role])
+  }, [search, role, approval])
 
   const handleSort = (field: string) => {
     if (field === sortField) {
@@ -357,10 +363,17 @@ export default function AdminUsersPage() {
            is a claim that goes stale the next time anyone signs up, and two
            numbers in two places that must agree is the fault I spent
            yesterday on. */
+        /* IF THE LIST IS HOLDING ROWS BACK, IT SAYS SO. A count that silently
+           excludes two accounts is a number with no claim behind it — and the
+           whole reason this page was confusing was that it showed a state it
+           did not mention. */
         subtitle={
           totalCount === null
             ? 'Candidates and employers — includes the two test fixtures'
-            : `${totalCount.toLocaleString()} accounts — candidates and employers, includes the two test fixtures`
+            : `${totalCount.toLocaleString()} accounts — candidates and employers, includes the two test fixtures` +
+              (rejectedHidden > 0
+                ? ` · ${rejectedHidden} rejected hidden`
+                : '')
         }
         action={
           <button className={styles.exportAction} onClick={() => exportToCSV(users, columns, 'admin-users')}>
@@ -417,16 +430,31 @@ export default function AdminUsersPage() {
         /* Export has moved to the page frame above; passing it here too would
            put the same control on the page twice. */
         filters={
-          <select
-            className={styles.select}
-            value={role}
-            onChange={(e) => setRole(e.target.value)}
-            aria-label="Filter by role"
-          >
-            <option value="all">All Roles</option>
-            <option value="employer">Employers</option>
-            <option value="candidate">Candidates</option>
-          </select>
+          <>
+            <select
+              className={styles.select}
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
+              aria-label="Filter by role"
+            >
+              <option value="all">All Roles</option>
+              <option value="employer">Employers</option>
+              <option value="candidate">Candidates</option>
+            </select>
+            {/* Rejected accounts are HIDDEN, not gone — they still exist and
+                can still sign in. Reachable in one click, because a rejection
+                you cannot find is a rejection you cannot undo. */}
+            <select
+              className={styles.select}
+              value={approval}
+              onChange={(e) => setApproval(e.target.value)}
+              aria-label="Filter by approval"
+            >
+              <option value="active">Hiding rejected</option>
+              <option value="rejected">Rejected only</option>
+              <option value="all">Including rejected</option>
+            </select>
+          </>
         }
         /* BULK DELETE IS GONE FOR THE SAME REASON AS THE ROW ONE, and it was
            the more dangerous of the two: the same orphaning, multiplied by
