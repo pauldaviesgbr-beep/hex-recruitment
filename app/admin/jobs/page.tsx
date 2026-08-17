@@ -6,6 +6,7 @@ import AdminTable, { Column, exportToCSV } from '@/components/admin/AdminTable'
 import DetailPanel, { DetailRow, DetailSection, DetailBadge } from '@/components/admin/DetailPanel'
 import StatsStrip from '@/components/admin/StatsStrip'
 import AdminPageHeader from '@/components/admin/AdminPageHeader'
+import { roleFromTitle, isTitleTruncated } from '@/lib/jobTitle'
 import styles from './page.module.css'
 
 interface Job {
@@ -176,9 +177,17 @@ export default function AdminJobsPage() {
       key: 'title',
       label: 'Job Title',
       sortable: true,
+      /* TRUNCATE AT THE FIRST EN DASH. These titles are `Role – Marketing
+         Phrase` — 244 of the 247 live rows — and the part before the dash is
+         the job. Cutting on a word boundary or a character count loses the
+         role, which is the only part that identifies the row.
+         The full title is never discarded: it is the `title` attribute here
+         and it is shown whole in the drawer. */
       render: (val: string, row: Job) => (
         <div>
-          <span className={styles.jobTitle}>{val}</span>
+          <span className={styles.jobTitle} title={isTitleTruncated(val) ? val : undefined}>
+            {roleFromTitle(val)}
+          </span>
           {row.urgent && <span className={styles.featuredBadge}>Featured</span>}
         </div>
       ),
