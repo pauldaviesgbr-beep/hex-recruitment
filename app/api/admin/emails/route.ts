@@ -63,9 +63,21 @@ export async function GET(req: NextRequest) {
     if (allErr) throw allErr
 
     const rows = all || []
+    // `sent` WAS rows.length — EVERY ROW, INCLUDING THE FAILURE — sitting
+    // beside a separate `failed` card. Add the two cards up and you got 92
+    // events against 91 rows, and the page's own footnote already said a send
+    // counted here is "one the provider ACCEPTED", which the number then
+    // contradicted. Three words, three different facts:
+    //   attempted  every row: we tried
+    //   accepted   the provider took it
+    //   failed     it did not
+    // accepted + failed === attempted, by construction rather than by hope.
+    const accepted = rows.filter(r => r.success).length
+    const failed = rows.filter(r => !r.success).length
     const summary = {
-      sent: rows.length,
-      failed: rows.filter(r => !r.success).length,
+      attempted: rows.length,
+      accepted,
+      failed,
       types: new Set(rows.map(r => r.email_type)).size,
       recipients: new Set(rows.map(r => r.recipient)).size,
       firstAt: rows[0]?.created_at ?? null,
