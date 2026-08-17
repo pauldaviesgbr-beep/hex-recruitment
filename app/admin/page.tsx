@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAdminToken } from '@/lib/admin-context'
 import {
   LineChart, Line, BarChart, Bar,
@@ -70,19 +70,44 @@ export default function AdminOverviewPage() {
   const [health, setHealth] = useState<Health | null>(null)
   const [sources, setSources] = useState<SourcesData | null>(null)
   const [loading, setLoading] = useState(true)
+  const [statsError, setStatsError] = useState('')
 
-  useEffect(() => {
+  // A CHECK THAT FAILS SAFE IS THE DANGEROUS KIND, AND THIS PAGE HAD ONE.
+  //
+  // This was `.then(r => r.json()).then(setStats)` with NO status check, so a
+  // 403 — which /api/admin/stats returns as `{error:'Unauthorized'}` — put
+  // that object into `stats`. It is truthy, so the `if (!stats)` guard below
+  // could never fire: it looked exactly like error handling and was incapable
+  // of running. Execution reached `stats.growth.candidates.map(...)`,
+  // `stats.growth` was undefined, and the whole dashboard threw.
+  //
+  // Same shape as /admin/settings, fixed 17 Aug: the optional chain guards
+  // the OBJECT and the crash is in the FIELD. This page is the first one in
+  // the estate, so it was also the loudest.
+  //
+  // The other two fetches on this page already check `r.ok` and deliberately
+  // fail quiet — a health or sources failure must not take the dashboard down
+  // with it. Only this one is load-bearing.
+  const loadStats = useCallback(async () => {
     if (!token) return
-    fetch('/api/admin/stats', {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then(r => r.json())
-      .then(data => {
-        setStats(data)
-        setLoading(false)
+    setLoading(true)
+    setStatsError('')
+    try {
+      const r = await fetch('/api/admin/stats', {
+        headers: { Authorization: `Bearer ${token}` },
       })
-      .catch(() => setLoading(false))
+      const data = await r.json()
+      if (!r.ok) throw new Error(data.error || 'Failed to load dashboard data')
+      setStats(data)
+    } catch (e: any) {
+      setStats(null)
+      setStatsError(e.message || 'Failed to load dashboard data')
+    } finally {
+      setLoading(false)
+    }
   }, [token])
+
+  useEffect(() => { loadStats() }, [loadStats])
 
   // The health numbers (funnel / responsiveness / alive). Fetched separately
   // so a failure here never blocks the rest of the dashboard.
@@ -111,8 +136,24 @@ export default function AdminOverviewPage() {
     return <div className={styles.loading}>Loading dashboard...</div>
   }
 
+  // Reachable now. It says WHAT failed and offers a way out — "Failed to load
+  // dashboard data" with no cause and no retry was the whole of the old
+  // handling, and it never rendered once.
   if (!stats) {
-    return <div className={styles.error}>Failed to load dashboard data</div>
+    return (
+      <div>
+        <AdminPageHeader title="Dashboard Overview" />
+        <div className={styles.error} role="alert">
+          <p>Couldn&rsquo;t load the dashboard.</p>
+          {/* The literal character inside the JS string, not `&rsquo;` — a
+              string literal is not JSX text, so an entity there renders as
+              the entity. That is the /post-job leak, in a fallback nobody
+              would ever see until the day it mattered. */}
+          <p>{statsError || 'The stats weren’t reached.'} These aren&rsquo;t zeroes — nothing was read.</p>
+          <button type="button" className={styles.errorRetry} onClick={loadStats}>Try again</button>
+        </div>
+      </div>
+    )
   }
 
   const formatMonth = (m: string) => {
@@ -121,13 +162,16 @@ export default function AdminOverviewPage() {
     return months[parseInt(month) - 1] || m
   }
 
-  const userGrowth = stats.growth.candidates.map((c, i) => ({
+  // `growth?.candidates` — the FIELD, not just the object. The status check
+  // above stops the 403 case, but a 200 with a partial body would still throw
+  // here, and that is the same crash by a quieter route.
+  const userGrowth = (stats.growth?.candidates ?? []).map((c, i) => ({
     month: formatMonth(c.month),
     candidates: c.count,
-    employers: stats.growth.employers[i]?.count || 0,
+    employers: stats.growth?.employers?.[i]?.count ?? 0,
   }))
 
-  const jobGrowth = stats.growth.jobs.map(j => ({
+  const jobGrowth = (stats.growth?.jobs ?? []).map(j => ({
     month: formatMonth(j.month),
     jobs: j.count,
   }))
@@ -233,8 +277,12 @@ export default function AdminOverviewPage() {
       </div>
 
       <p style={{ margin: '0.5rem 0 1.5rem', fontSize: '0.8rem', color: '#64748b' }}>
-        Imported listings: {stats.jobs.imported.toLocaleString()} ({stats.jobs.importedRetired.toLocaleString()} retired).
-        Applications: {stats.totalApplications.toLocaleString()}.
+        {/* `jobs?.` here too — the two reference cells above already use it
+            and these two did not, which is how one line throws while the one
+            beside it renders. An em-dash, never a zero: this is a note about
+            the numbers, and it may not invent them. */}
+        Imported listings: {stats.jobs?.imported?.toLocaleString() ?? '—'} ({stats.jobs?.importedRetired?.toLocaleString() ?? '—'} retired).
+        Applications: {stats.totalApplications?.toLocaleString() ?? '—'}.
         All user, application and posting numbers exclude the two test fixture accounts.
       </p>
 
