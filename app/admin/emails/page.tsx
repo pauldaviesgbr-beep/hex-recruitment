@@ -3,7 +3,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useAdminToken } from '@/lib/admin-context'
 import AdminTable, { Column } from '@/components/admin/AdminTable'
-import StatsCard from '@/components/admin/StatsCard'
+import StatsStrip from '@/components/admin/StatsStrip'
+import AdminPageHeader from '@/components/admin/AdminPageHeader'
 import styles from './page.module.css'
 
 /*
@@ -137,8 +138,13 @@ export default function AdminDeliveryPage() {
   useEffect(() => { if (tab === 'push') loadPushes() }, [tab, loadPushes])
 
   const emailColumns: Column<EmailRow>[] = [
-    { key: 'created_at', label: 'Sent', render: (v: string) => fmt(v) },
+    // RECIPIENT LEADS, so it is the column that sticks at 390. The shared
+    // table pins its FIRST column, and the identity of a log row is who the
+    // email went to — not when it went. With the date leading, a scrolled
+    // table showed a column of timestamps belonging to nobody, which is the
+    // same fault the sticky column was introduced to fix.
     { key: 'recipient', label: 'Recipient' },
+    { key: 'created_at', label: 'Sent', render: (v: string) => fmt(v) },
     { key: 'email_type', label: 'Type' },
     { key: 'subject', label: 'Subject', render: (v: string | null) => v || <span className={styles.muted}>—</span> },
     {
@@ -176,27 +182,48 @@ export default function AdminDeliveryPage() {
     },
   ]
 
-  const anyEmailFilter = failedOnly || !!type || !!recipient
+  // THE FOUR STATES, derived rather than stored — this page already tracks
+  // `loading` and `error` honestly, so a fifth piece of state would be a
+  // second source of truth for the same fact.
+  const emailState: 'loading' | 'ok' | 'empty' | 'error' =
+    loading ? 'loading' : error ? 'error' : emails.length === 0 ? 'empty' : 'ok'
+  const pushState: 'loading' | 'ok' | 'empty' | 'error' =
+    loading ? 'loading' : error ? 'error' : pushes.length === 0 ? 'empty' : 'ok'
 
   return (
     <div>
-      <h1 className={styles.pageTitle}>Delivery</h1>
+      <AdminPageHeader
+        title="Delivery"
+        subtitle="Our own logs — what we attempted and what the provider accepted. Not deliveries, opens or bounces."
+      />
 
       <div className={styles.tabBar}>
         <button type="button" onClick={() => setTab('email')} className={`${styles.tab} ${tab === 'email' ? styles.tabActive : ''}`}>Email</button>
         <button type="button" onClick={() => setTab('push')} className={`${styles.tab} ${tab === 'push' ? styles.tabActive : ''}`}>Push</button>
       </div>
 
-      {error && <div className={styles.errorBanner}>{error}</div>}
+      {/* The banner is gone: the table's own failed state now carries the
+          message AND a Try again, and the stats strip shows em-dashes rather
+          than numbers. Two renderings of one error is one more than needed,
+          and the banner was the one without a way out of it. */}
 
       {tab === 'email' ? (
         <>
-          <div className={styles.statsGrid}>
-            <StatsCard title="Sent" value={eSummary?.sent ?? '—'} />
-            <StatsCard title="Failed" value={eSummary?.failed ?? '—'} />
-            <StatsCard title="Types" value={eSummary?.types ?? '—'} />
-            <StatsCard title="Recipients" value={eSummary?.recipients ?? '—'} />
-          </div>
+          {/* ATTEMPTED · ACCEPTED · FAILED, not SENT · FAILED. The old pair
+              double-counted: "Sent" was every row including the failure, so
+              the two cards summed to one more than the table held — and the
+              footnote below already said a send counted here is one the
+              provider ACCEPTED. The cards now agree with the footnote. */}
+          <StatsStrip
+            tableStatus={error ? 'error' : loading ? 'loading' : 'ok'}
+            stats={[
+              { label: 'Attempted', value: eSummary?.attempted ?? null },
+              { label: 'Accepted', value: eSummary?.accepted ?? null },
+              { label: 'Failed', value: eSummary?.failed ?? null },
+              { label: 'Types', value: eSummary?.types ?? null },
+              { label: 'Recipients', value: eSummary?.recipients ?? null },
+            ]}
+          />
 
           <p className={styles.footnote}>
             <strong>What these numbers are.</strong> A send counted here is one the email
@@ -207,32 +234,11 @@ export default function AdminDeliveryPage() {
             row was never recorded, not that the email was never sent.
           </p>
 
-          <div className={styles.filterRow}>
-            <button
-              type="button"
-              onClick={() => { setFailedOnly(v => !v); setEPage(1) }}
-              className={`${styles.failedToggle} ${failedOnly ? styles.failedToggleOn : ''}`}
-              aria-pressed={failedOnly}
-            >
-              {failedOnly ? 'Showing failed only' : 'Failed only'}
-            </button>
-            <select className={styles.filterSelect} value={type} onChange={e => { setType(e.target.value); setEPage(1) }}>
-              <option value="">All types</option>
-              {typeCounts.map(t => <option key={t.key} value={t.key}>{t.key} ({t.count})</option>)}
-            </select>
-            <input
-              className={styles.filterInput}
-              placeholder="Recipient contains…"
-              value={recipient}
-              onChange={e => { setRecipient(e.target.value); setEPage(1) }}
-            />
-            {anyEmailFilter && (
-              <button type="button" className={styles.clearBtn} onClick={() => { setFailedOnly(false); setType(''); setRecipient(''); setEPage(1) }}>
-                Clear filters
-              </button>
-            )}
-          </div>
-
+          {/* THE FILTER ROW IS GONE INTO THE TOOLBAR. It was a third block of
+              chrome — cards, footnote, filters — before a single row of the
+              log, which is most of why this page was unreadable at 390.
+              "Recipient contains…" IS the search, so it becomes the search
+              field rather than a fourth control sitting beside one. */}
           <AdminTable
             columns={emailColumns}
             data={emails}
@@ -240,7 +246,39 @@ export default function AdminDeliveryPage() {
             totalPages={eTotalPages}
             onPageChange={setEPage}
             loading={loading}
-            totalCount={eFilteredCount}
+            status={emailState}
+            totalCount={emailState === 'error' ? null : eFilteredCount}
+            query={recipient}
+            filtersActive={(failedOnly ? 1 : 0) + (type ? 1 : 0) + (recipient ? 1 : 0)}
+            filterSummary={[
+              failedOnly ? 'Failed only' : null,
+              type ? `Type: ${type}` : null,
+            ].filter(Boolean).join(' and ') || undefined}
+            onClearSearch={() => { setFailedOnly(false); setType(''); setRecipient(''); setEPage(1) }}
+            onRetry={loadEmails}
+            errorMessage={error || undefined}
+            entityName="log rows"
+            emptyTitle="Nothing logged yet."
+            emptyBody={`The log starts ${fmtDay(eSummary?.firstAt ?? null)} and holds nothing sent before that.`}
+            searchValue={recipient}
+            onSearch={(v) => { setRecipient(v); setEPage(1) }}
+            searchPlaceholder="Recipient contains…"
+            filters={
+              <>
+                <button
+                  type="button"
+                  onClick={() => { setFailedOnly(v => !v); setEPage(1) }}
+                  className={`${styles.failedToggle} ${failedOnly ? styles.failedToggleOn : ''}`}
+                  aria-pressed={failedOnly}
+                >
+                  {failedOnly ? 'Showing failed only' : 'Failed only'}
+                </button>
+                <select className={styles.filterSelect} value={type} onChange={e => { setType(e.target.value); setEPage(1) }} aria-label="Filter by email type">
+                  <option value="">All types</option>
+                  {typeCounts.map(t => <option key={t.key} value={t.key}>{t.key} ({t.count})</option>)}
+                </select>
+              </>
+            }
           />
         </>
       ) : (
@@ -278,26 +316,6 @@ export default function AdminDeliveryPage() {
             chain itself has been proven on a real device.
           </p>
 
-          <div className={styles.filterRow}>
-            <button
-              type="button"
-              onClick={() => { setPFailedOnly(v => !v); setPPage(1) }}
-              className={`${styles.failedToggle} ${pFailedOnly ? styles.failedToggleOn : ''}`}
-              aria-pressed={pFailedOnly}
-            >
-              {pFailedOnly ? 'Showing failed only' : 'Failed only'}
-            </button>
-            <select className={styles.filterSelect} value={outcome} onChange={e => { setOutcome(e.target.value); setPPage(1) }}>
-              <option value="">All outcomes</option>
-              {byOutcome.map(o => <option key={o.key} value={o.key}>{o.key.replace(/_/g, ' ')} ({o.count})</option>)}
-            </select>
-            {(pFailedOnly || outcome) && (
-              <button type="button" className={styles.clearBtn} onClick={() => { setPFailedOnly(false); setOutcome(''); setPPage(1) }}>
-                Clear filters
-              </button>
-            )}
-          </div>
-
           <AdminTable
             columns={pushColumns}
             data={pushes}
@@ -305,6 +323,38 @@ export default function AdminDeliveryPage() {
             totalPages={pTotalPages}
             onPageChange={setPPage}
             loading={loading}
+            status={pushState}
+            filtersActive={(pFailedOnly ? 1 : 0) + (outcome ? 1 : 0)}
+            filterSummary={[
+              pFailedOnly ? 'Failed only' : null,
+              outcome ? `Outcome: ${outcome.replace(/_/g, ' ')}` : null,
+            ].filter(Boolean).join(' and ') || undefined}
+            onClearSearch={() => { setPFailedOnly(false); setOutcome(''); setPPage(1) }}
+            onRetry={loadPushes}
+            errorMessage={error || undefined}
+            entityName="dispatch rows"
+            /* "0 delivered" does NOT mean push is broken — the on-device test
+               route writes no row here by design. The empty state has to say
+               so, because someone drew exactly that wrong conclusion from this
+               table on 15 Aug. */
+            emptyTitle="No dispatch rows yet."
+            emptyBody="Nothing has been dispatched, or nothing matched. The on-device test route writes no row here, so this is not evidence that push is broken."
+            filters={
+              <>
+                <button
+                  type="button"
+                  onClick={() => { setPFailedOnly(v => !v); setPPage(1) }}
+                  className={`${styles.failedToggle} ${pFailedOnly ? styles.failedToggleOn : ''}`}
+                  aria-pressed={pFailedOnly}
+                >
+                  {pFailedOnly ? 'Showing failed only' : 'Failed only'}
+                </button>
+                <select className={styles.filterSelect} value={outcome} onChange={e => { setOutcome(e.target.value); setPPage(1) }} aria-label="Filter by outcome">
+                  <option value="">All outcomes</option>
+                  {byOutcome.map(o => <option key={o.key} value={o.key}>{o.key.replace(/_/g, ' ')} ({o.count})</option>)}
+                </select>
+              </>
+            }
           />
         </>
       )}
