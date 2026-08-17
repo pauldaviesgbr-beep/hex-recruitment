@@ -5,6 +5,7 @@ import { useAdminToken } from '@/lib/admin-context'
 import AdminTable, { Column, exportToCSV } from '@/components/admin/AdminTable'
 import StatsStrip from '@/components/admin/StatsStrip'
 import AdminPageHeader from '@/components/admin/AdminPageHeader'
+import { roleFromTitle, isTitleTruncated } from '@/lib/jobTitle'
 import styles from './page.module.css'
 
 interface Application {
@@ -87,7 +88,14 @@ export default function AdminApplicationsPage() {
 
   const columns: Column<Application>[] = [
     { key: 'candidate_name', label: 'Candidate', sortable: false },
-    { key: 'job_title', label: 'Job', sortable: true },
+    {
+      key: 'job_title', label: 'Job', sortable: true,
+      // Same `Role – Marketing Phrase` data, same treatment. Full title on
+      // hover, since this page has no drawer to show it in.
+      render: (val: string) => (
+        <span title={isTitleTruncated(val) ? val : undefined}>{roleFromTitle(val)}</span>
+      ),
+    },
     { key: 'company', label: 'Company', sortable: true },
     {
       key: 'status', label: 'Status', sortable: true,
