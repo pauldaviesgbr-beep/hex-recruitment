@@ -7,6 +7,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from 'recharts'
 import AdminPageHeader from '@/components/admin/AdminPageHeader'
+import ActivityPanel, { type ActivityData } from '@/components/admin/ActivityPanel'
 import styles from './page.module.css'
 import { Ico } from '@/components/icons'
 
@@ -69,6 +70,7 @@ export default function AdminOverviewPage() {
   const [stats, setStats] = useState<Stats | null>(null)
   const [health, setHealth] = useState<Health | null>(null)
   const [sources, setSources] = useState<SourcesData | null>(null)
+  const [activity, setActivity] = useState<ActivityData | null>(null)
   const [loading, setLoading] = useState(true)
   const [statsError, setStatsError] = useState('')
 
@@ -129,6 +131,19 @@ export default function AdminOverviewPage() {
     })
       .then(r => (r.ok ? r.json() : null))
       .then(data => { if (data && !data.error) setSources(data) })
+      .catch(() => {})
+  }, [token])
+
+  // When candidates sign in, and where from. Checks r.ok and fails QUIET like
+  // health and sources above — this is a reference panel, and it must never be
+  // the reason the dashboard does not render.
+  useEffect(() => {
+    if (!token) return
+    fetch('/api/admin/activity', {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(r => (r.ok ? r.json() : null))
+      .then(data => { if (data && !data.error) setActivity(data) })
       .catch(() => {})
   }, [token])
 
@@ -483,6 +498,12 @@ export default function AdminOverviewPage() {
           </div>
         )
       })()}
+
+      {/* WHEN AND WHERE, immediately after acquisition — the card above says
+          which CHANNEL brought people, this says what TIME they come back and
+          which COUNTRY they are in. Renders nothing until it has data, and its
+          fetch fails quiet, so it can never be why the dashboard is blank. */}
+      <ActivityPanel data={activity} />
 
       <div className={styles.chartsGrid}>
         <div className={styles.chartCard}>

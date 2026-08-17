@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { countryFromHeaders } from '@/lib/geo'
 
 /**
  * Record that a job advert was opened.
@@ -113,11 +114,16 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const { data: job } = await db.from('jobs').select('id').eq('id', jobId).maybeSingle()
   if (!job) return NextResponse.json({ error: 'no such job' }, { status: 404 })
 
+  // WHERE THE VIEW CAME FROM. Straight off the edge header — this route is the
+  // one place BOTH signed-in and signed-out views pass through, so it is the
+  // only honest place to count a country for the board. Null locally, and null
+  // is already this column's "we did not know".
   const { error } = await db.from('job_views').insert({
     job_id: jobId,
     viewer_id: viewerId,
     source: body.source || 'direct',
     device_type: body.device || null,
+    country: countryFromHeaders(req.headers),
   })
   if (error) {
     console.error('[view] insert failed:', error.message)

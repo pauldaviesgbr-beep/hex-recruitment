@@ -16,6 +16,7 @@ import { isValidEmail } from '@/lib/validateEmail'
 import { validateSalaryInput } from '@/lib/salaryInput'
 import { safeInternalPath } from '@/lib/safeRedirect'
 import { getStoredAttribution, attributionColumns, HEARD_FROM_OPTIONS } from '@/lib/attribution'
+import { countryColumns } from '@/lib/geo'
 import { focusField } from '@/lib/focusField'
 import FormError from '@/components/FormError'
 import FieldError from '@/components/FieldError'
@@ -963,6 +964,7 @@ export default function JobSeekerProfileForm({ mode, existingData, userId }: Job
             trial_expires_at: trialExpiresAt.toISOString(),
             // Signup source attribution (first-touch ref/utm + self-reported dropdown).
             ...attributionColumns({ ...getStoredAttribution(), heard_from: heardFrom || null }),
+            ...countryColumns(),
         }
 
         // Use the server endpoint to create the profile with the service-role
