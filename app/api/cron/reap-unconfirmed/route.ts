@@ -41,7 +41,7 @@ export async function GET(req: NextRequest) {
   const cutoff = new Date(Date.now() - REAP_AFTER_HOURS * 60 * 60 * 1000)
   const cutoffIso = cutoff.toISOString()
 
-  const toDelete: { id: string; email: string | undefined }[] = []
+  const toDelete: { id: string; email: string | undefined; created_at?: string; role?: string }[] = []
   let page = 1
   const perPage = 200
   while (true) {
@@ -49,7 +49,7 @@ export async function GET(req: NextRequest) {
     if (error || !data?.users || data.users.length === 0) break
     for (const u of data.users) {
       if (!u.email_confirmed_at && u.created_at && new Date(u.created_at) < cutoff) {
-        toDelete.push({ id: u.id, email: u.email })
+        toDelete.push({ id: u.id, email: u.email, created_at: u.created_at, role: (u.user_metadata as any)?.role })
       }
     }
     if (data.users.length < perPage) break
@@ -59,6 +59,29 @@ export async function GET(req: NextRequest) {
 
   let deleted = 0
   for (const u of toDelete) {
+    // LOG THE DEPARTURE BEFORE DELETING, or the only record of it is a count
+    // in this response, which Vercel drops within a day. Every account reaped
+    // before today is gone with no trace, and that is exactly what this stops.
+    //
+    // Written FIRST, on purpose: if the delete then fails we have logged a
+    // departure that did not happen, which is visible and correctable. The
+    // other order loses the record silently, which is not.
+    //
+    // DOMAIN ONLY. A departure row must not become a way of keeping someone's
+    // address after their account is gone.
+    const joinedAt = u.created_at ? new Date(u.created_at) : null
+    const { error: logErr } = await admin.from('user_departures').insert({
+      user_id: u.id,
+      email_domain: u.email?.split('@')[1]?.toLowerCase() ?? null,
+      role: u.role ?? null,
+      reason: 'unconfirmed_reap',
+      joined_at: joinedAt?.toISOString() ?? null,
+      days_held: joinedAt
+        ? Math.max(0, Math.floor((Date.now() - joinedAt.getTime()) / 86_400_000))
+        : null,
+    })
+    if (logErr) console.error('[reap-unconfirmed] departure log failed', u.id, logErr.message)
+
     // Clean up orphaned profile rows first (FK is ON DELETE CASCADE for
     // most but not all — be explicit).
     await admin.from('employer_profiles').delete().eq('user_id', u.id)
