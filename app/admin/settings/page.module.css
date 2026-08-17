@@ -253,6 +253,22 @@
   font-size: 0.8rem;
 }
 
+/* Navy primary, matching the shared table's failed state. */
+.retryBtn {
+  margin-top: 0.75rem;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 9px;
+  background: #0F172A;
+  color: #fff;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  min-height: 40px;
+}
+
+.retryBtn:hover { background: #1B2740; }
+
 @media (max-width: 640px) {
   .templateItem,
   .featuredItem {

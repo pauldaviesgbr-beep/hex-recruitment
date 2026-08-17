@@ -44,9 +44,12 @@ export default function AdminSubscriptionsPage() {
   const [loading, setLoading] = useState(true)
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
-  const [totalCount, setTotalCount] = useState(0)
+  const [totalCount, setTotalCount] = useState<number | null>(0)
   const [search, setSearch] = useState('')
   const [tier, setTier] = useState('')
+  // A NUMBER IS A CLAIM — see components/admin/AdminTable.tsx.
+  const [tableState, setTableState] = useState<'loading' | 'ok' | 'empty' | 'error'>('loading')
+  const [loadError, setLoadError] = useState('')
   const [status, setStatus] = useState('')
   const [sortField, setSortField] = useState('created_at')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
@@ -55,6 +58,8 @@ export default function AdminSubscriptionsPage() {
   const fetchData = useCallback(async () => {
     if (!token) return
     setLoading(true)
+    setTableState('loading')
+    setLoadError('')
     const params = new URLSearchParams({
       page: String(page),
       search,
@@ -63,15 +68,29 @@ export default function AdminSubscriptionsPage() {
       sort: sortField,
       dir: sortDir,
     })
-    const res = await fetch(`/api/admin/subscriptions?${params}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-    const data = await res.json()
-    setSubscriptions(data.subscriptions || [])
-    setTotalPages(data.totalPages || 1)
-    setTotalCount(data.total || 0)
-    if (data.revenue) setRevenue(data.revenue)
-    setLoading(false)
+    try {
+      const res = await fetch(`/api/admin/subscriptions?${params}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      const data = await res.json()
+      // CHECK THE STATUS — a 403 returns valid JSON and `|| []` would turn the
+      // refusal into a confident zero. Money is the worst place for that.
+      if (!res.ok) throw new Error(data.error || 'Failed to load subscriptions')
+      setSubscriptions(data.subscriptions || [])
+      setTotalPages(data.totalPages || 1)
+      setTotalCount(typeof data.total === 'number' ? data.total : null)
+      if (data.revenue) setRevenue(data.revenue)
+      setTableState((data.subscriptions || []).length === 0 ? 'empty' : 'ok')
+    } catch (e: any) {
+      setSubscriptions([])
+      setTotalCount(null)
+      // £0 MRR is a claim, and a false one. Em-dash instead.
+      setRevenue(null)
+      setLoadError(e.message || 'Failed to load subscriptions')
+      setTableState('error')
+    } finally {
+      setLoading(false)
+    }
   }, [token, page, search, tier, status, sortField, sortDir])
 
   useEffect(() => { fetchData() }, [fetchData])
@@ -127,12 +146,12 @@ export default function AdminSubscriptionsPage() {
     <div>
       <h1 className={styles.pageTitle}>Subscription Management</h1>
 
-      {revenue && (
-        <div className={styles.revenueGrid}>
-          <StatsCard title="Active Subscriptions" value={revenue.totalActive} />
-          <StatsCard title="Total Trials" value={revenue.totalTrialing} />
-        </div>
-      )}
+      {/* .revenueGrid is .statsGrid's job under another name — noted because a
+          class-name grep for statsGrid misses this page entirely. */}
+      <div className={styles.revenueGrid}>
+        <StatsCard title="Active Subscriptions" value={revenue ? revenue.totalActive : null} />
+        <StatsCard title="Total Trials" value={revenue ? revenue.totalTrialing : null} />
+      </div>
 
       <div className={styles.filters}>
         <select className={styles.select} value={tier} onChange={(e) => setTier(e.target.value)}>
@@ -159,6 +178,19 @@ export default function AdminSubscriptionsPage() {
         page={page}
         totalPages={totalPages}
         onPageChange={setPage}
+        status={tableState}
+        query={search}
+        filtersActive={(search ? 1 : 0) + (tier ? 1 : 0) + (status ? 1 : 0)}
+        filterSummary={[
+          tier ? `Tier: ${tier.charAt(0).toUpperCase()}${tier.slice(1)}` : null,
+          status ? `Status: ${status.charAt(0).toUpperCase()}${status.slice(1).replace('_', ' ')}` : null,
+        ].filter(Boolean).join(' and ') || undefined}
+        onClearSearch={() => { setSearch(''); setTier(''); setStatus(''); setPage(1) }}
+        onRetry={fetchData}
+        errorMessage={loadError || undefined}
+        entityName="subscriptions"
+        emptyTitle="No subscriptions yet."
+        emptyBody="Employer accounts appear here once they hold a plan."
         searchValue={search}
         onSearch={setSearch}
         searchPlaceholder="Search by company or email..."

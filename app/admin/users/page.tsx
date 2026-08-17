@@ -64,9 +64,14 @@ export default function AdminUsersPage() {
   const [loading, setLoading] = useState(true)
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
-  const [totalCount, setTotalCount] = useState(0)
+  const [totalCount, setTotalCount] = useState<number | null>(0)
   const [search, setSearch] = useState('')
   const [role, setRole] = useState('all')
+  // A NUMBER IS A CLAIM — see components/admin/AdminTable.tsx. Four states,
+  // explicit, so "loading", "no matches", "empty" and "the request failed" can
+  // never again render as the same "0 results".
+  const [tableState, setTableState] = useState<'loading' | 'ok' | 'empty' | 'error'>('loading')
+  const [loadError, setLoadError] = useState('')
   const [sortField, setSortField] = useState('created_at')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
   const [actionLoading, setActionLoading] = useState<string | null>(null)
@@ -78,6 +83,8 @@ export default function AdminUsersPage() {
   const fetchUsers = useCallback(async () => {
     if (!token) return
     setLoading(true)
+    setTableState('loading')
+    setLoadError('')
     const params = new URLSearchParams({
       page: String(page),
       search,
@@ -85,14 +92,30 @@ export default function AdminUsersPage() {
       sort: sortField,
       dir: sortDir,
     })
-    const res = await fetch(`/api/admin/users?${params}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-    const data = await res.json()
-    setUsers(data.users || [])
-    setTotalPages(data.totalPages || 1)
-    setTotalCount(data.total || 0)
-    setLoading(false)
+    try {
+      const res = await fetch(`/api/admin/users?${params}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      const data = await res.json()
+      // CHECK THE STATUS. A 403 returns perfectly valid JSON, so a bare
+      // try/catch never fires and `data.users || []` turns a refusal into a
+      // confident zero.
+      if (!res.ok) throw new Error(data.error || 'Failed to load users')
+      setUsers(data.users || [])
+      setTotalPages(data.totalPages || 1)
+      // Nullable, never `|| 0`.
+      setTotalCount(typeof data.total === 'number' ? data.total : null)
+      setTableState((data.users || []).length === 0 ? 'empty' : 'ok')
+    } catch (e: any) {
+      setUsers([])
+      setTotalCount(null)
+      setLoadError(e.message || 'Failed to load users')
+      setTableState('error')
+    } finally {
+      // ALWAYS — a setLoading(false) that is the last line of a function that
+      // threw is how a page sits on skeleton rows forever.
+      setLoading(false)
+    }
   }, [token, page, search, role, sortField, sortDir])
 
   useEffect(() => {
@@ -278,6 +301,16 @@ export default function AdminUsersPage() {
         page={page}
         totalPages={totalPages}
         onPageChange={setPage}
+        status={tableState}
+        query={search}
+        filtersActive={(search ? 1 : 0) + (role !== 'all' ? 1 : 0)}
+        filterSummary={role !== 'all' ? `Role: ${role === 'employer' ? 'Employers' : 'Candidates'}` : undefined}
+        onClearSearch={() => { setSearch(''); setRole('all'); setPage(1) }}
+        onRetry={fetchUsers}
+        errorMessage={loadError || undefined}
+        entityName="users"
+        emptyTitle="No users yet."
+        emptyBody="Accounts appear here as employers and candidates register."
         searchValue={search}
         onSearch={setSearch}
         searchPlaceholder="Search by name or email..."

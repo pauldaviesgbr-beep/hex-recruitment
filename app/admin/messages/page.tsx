@@ -33,8 +33,11 @@ export default function AdminMessagesPage() {
   const [loading, setLoading] = useState(true)
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
-  const [totalCount, setTotalCount] = useState(0)
+  const [totalCount, setTotalCount] = useState<number | null>(0)
   const [search, setSearch] = useState('')
+  // A NUMBER IS A CLAIM — see components/admin/AdminTable.tsx.
+  const [tableState, setTableState] = useState<'loading' | 'ok' | 'empty' | 'error'>('loading')
+  const [loadError, setLoadError] = useState('')
   const [sortField, setSortField] = useState('last_message_at')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
   const [stats, setStats] = useState<{ totalConversations: number; totalMessages: number } | null>(null)
@@ -46,21 +49,36 @@ export default function AdminMessagesPage() {
   const fetchData = useCallback(async () => {
     if (!token) return
     setLoading(true)
+    setTableState('loading')
+    setLoadError('')
     const params = new URLSearchParams({
       page: String(page),
       search,
       sort: sortField,
       dir: sortDir,
     })
-    const res = await fetch(`/api/admin/messages?${params}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-    const data = await res.json()
-    setConversations(data.conversations || [])
-    setTotalPages(data.totalPages || 1)
-    setTotalCount(data.total || 0)
-    if (data.stats) setStats(data.stats)
-    setLoading(false)
+    try {
+      const res = await fetch(`/api/admin/messages?${params}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      const data = await res.json()
+      // CHECK THE STATUS — a 403 returns valid JSON and `|| []` would turn the
+      // refusal into a confident zero.
+      if (!res.ok) throw new Error(data.error || 'Failed to load conversations')
+      setConversations(data.conversations || [])
+      setTotalPages(data.totalPages || 1)
+      setTotalCount(typeof data.total === 'number' ? data.total : null)
+      if (data.stats) setStats(data.stats)
+      setTableState((data.conversations || []).length === 0 ? 'empty' : 'ok')
+    } catch (e: any) {
+      setConversations([])
+      setTotalCount(null)
+      setStats(null)
+      setLoadError(e.message || 'Failed to load conversations')
+      setTableState('error')
+    } finally {
+      setLoading(false)
+    }
   }, [token, page, search, sortField, sortDir])
 
   useEffect(() => { fetchData() }, [fetchData])
@@ -114,12 +132,10 @@ export default function AdminMessagesPage() {
     <div>
       <h1 className={styles.pageTitle}>Messages</h1>
 
-      {stats && (
-        <div className={styles.statsGrid}>
-          <StatsCard title="Conversations" value={stats.totalConversations} />
-          <StatsCard title="Messages Sent" value={stats.totalMessages} />
-        </div>
-      )}
+      <div className={styles.statsGrid}>
+        <StatsCard title="Conversations" value={stats ? stats.totalConversations : null} />
+        <StatsCard title="Messages Sent" value={stats ? stats.totalMessages : null} />
+      </div>
 
       <AdminTable
         columns={columns}
@@ -130,6 +146,17 @@ export default function AdminMessagesPage() {
         page={page}
         totalPages={totalPages}
         onPageChange={setPage}
+        status={tableState}
+        query={search}
+        filtersActive={search ? 1 : 0}
+        onClearSearch={() => { setSearch(''); setPage(1) }}
+        onRetry={fetchData}
+        errorMessage={loadError || undefined}
+        entityName="conversations"
+        /* The product /messages empty state is design's named reference for
+           this voice: name the cause, don't apologise. */
+        emptyTitle="No conversations yet."
+        emptyBody="A conversation starts here when someone applies for a role or puts themselves forward for a shift."
         searchValue={search}
         onSearch={setSearch}
         searchPlaceholder="Search by participant name..."
