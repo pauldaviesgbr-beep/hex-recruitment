@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useAdminToken } from '@/lib/admin-context'
 import AdminTable, { Column, exportToCSV } from '@/components/admin/AdminTable'
+import AdminPageHeader from '@/components/admin/AdminPageHeader'
 import DetailPanel, { DetailRow, DetailSection, DetailBadge } from '@/components/admin/DetailPanel'
 import SignedLink from '@/components/SignedLink'
 import type { Completeness } from '@/lib/profileCompleteness'
@@ -278,19 +279,31 @@ export default function AdminUsersPage() {
 
   return (
     <div>
-      <h1 className={styles.pageTitle}>User Management</h1>
-
-      <div className={styles.filters}>
-        <select
-          className={styles.select}
-          value={role}
-          onChange={(e) => setRole(e.target.value)}
-        >
-          <option value="all">All Roles</option>
-          <option value="employer">Employers</option>
-          <option value="candidate">Candidates</option>
-        </select>
-      </div>
+      <AdminPageHeader
+        title="User Management"
+        /* "Users" means two populations and nothing said which. The design
+           handoff writes this as "70 accounts — includes the two test
+           fixtures"; the number is taken from the SAME state the toolbar
+           count renders from rather than typed in, because a hard-coded 70
+           is a claim that goes stale the next time anyone signs up, and two
+           numbers in two places that must agree is the fault I spent
+           yesterday on. */
+        subtitle={
+          totalCount === null
+            ? 'Candidates and employers — includes the two test fixtures'
+            : `${totalCount.toLocaleString()} accounts — candidates and employers, includes the two test fixtures`
+        }
+        action={
+          <button className={styles.exportAction} onClick={() => exportToCSV(users, columns, 'admin-users')}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            Export
+          </button>
+        }
+      />
 
       <AdminTable
         columns={columns}
@@ -320,7 +333,20 @@ export default function AdminUsersPage() {
         selectedIds={selectedIds}
         onSelectionChange={setSelectedIds}
         onRowClick={openDetail}
-        onExportCSV={() => exportToCSV(users, columns, 'admin-users')}
+        /* Export has moved to the page frame above; passing it here too would
+           put the same control on the page twice. */
+        filters={
+          <select
+            className={styles.select}
+            value={role}
+            onChange={(e) => setRole(e.target.value)}
+            aria-label="Filter by role"
+          >
+            <option value="all">All Roles</option>
+            <option value="employer">Employers</option>
+            <option value="candidate">Candidates</option>
+          </select>
+        }
         headerActions={
           <>
             <button
@@ -330,6 +356,10 @@ export default function AdminUsersPage() {
             >
               Suspend
             </button>
+            {/* The rule. Delete is irreversible, on a real person's account,
+                reached by ticking boxes — it does not sit flush against
+                Suspend. */}
+            <span className={styles.destructiveDivider} aria-hidden="true" />
             <button
               className={`${styles.bulkBtn} ${styles.dangerBtn}`}
               onClick={() => handleBulkAction('bulk_delete')}

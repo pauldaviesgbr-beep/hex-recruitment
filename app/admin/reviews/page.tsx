@@ -4,7 +4,8 @@ import { useState, useEffect, useCallback } from 'react'
 import { useAdminToken } from '@/lib/admin-context'
 import AdminTable, { Column, exportToCSV } from '@/components/admin/AdminTable'
 import DetailPanel, { DetailRow, DetailSection } from '@/components/admin/DetailPanel'
-import StatsCard from '@/components/admin/StatsCard'
+import StatsStrip from '@/components/admin/StatsStrip'
+import AdminPageHeader from '@/components/admin/AdminPageHeader'
 import styles from './page.module.css'
 
 interface Review {
@@ -125,21 +126,31 @@ export default function AdminReviewsPage() {
 
   return (
     <div>
-      <h1 className={styles.pageTitle}>Reviews</h1>
+      <AdminPageHeader
+        title="Reviews"
+        action={
+          <button className={styles.exportAction} onClick={() => exportToCSV(reviews, columns, 'admin-reviews')}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            Export
+          </button>
+        }
+      />
 
-      <div className={styles.statsGrid}>
-        <StatsCard title="Total Reviews" value={stats ? stats.total : null} />
-        <StatsCard title="Flagged" value={stats ? stats.flagged : null} />
-        <StatsCard title="Avg Rating" value={stats ? stats.avgRating.toFixed(1) : null} />
-      </div>
-
-      <div className={styles.filters}>
-        <select className={styles.select} value={flagged} onChange={(e) => setFlagged(e.target.value)}>
-          <option value="">All Reviews</option>
-          <option value="true">Flagged Only</option>
-          <option value="false">Not Flagged</option>
-        </select>
-      </div>
+      {/* This is the page the hide-when-all-zero rule was written for: reviews
+          opens with three noughts above an empty table. Three zeroes teach
+          nothing, so the strip removes itself. */}
+      <StatsStrip
+        tableStatus={tableState}
+        stats={[
+          { label: 'Total Reviews', value: stats ? stats.total : null },
+          { label: 'Flagged', value: stats ? stats.flagged : null },
+          { label: 'Avg Rating', value: stats ? stats.avgRating.toFixed(1) : null },
+        ]}
+      />
 
       <AdminTable
         columns={columns}
@@ -157,6 +168,13 @@ export default function AdminReviewsPage() {
         onClearSearch={() => { setSearch(''); setFlagged(''); setPage(1) }}
         onRetry={fetchData}
         errorMessage={loadError || undefined}
+        filters={
+          <select className={styles.select} value={flagged} onChange={(e) => setFlagged(e.target.value)} aria-label="Filter by flagged state">
+            <option value="">All Reviews</option>
+            <option value="true">Flagged Only</option>
+            <option value="false">Not Flagged</option>
+          </select>
+        }
         entityName="reviews"
         emptyTitle="No reviews yet."
         /* The literal character, not `&rsquo;` — a prop is a string, not
@@ -169,7 +187,6 @@ export default function AdminReviewsPage() {
         loading={loading}
         totalCount={totalCount}
         onRowClick={(row) => { setDetailReview(row); setDetailOpen(true) }}
-        onExportCSV={() => exportToCSV(reviews, columns, 'admin-reviews')}
         actions={(row) => (
           <>
             {row.is_flagged ? (

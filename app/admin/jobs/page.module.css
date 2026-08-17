@@ -90,7 +90,7 @@
   font-size: 0.75rem;
   font-weight: 500;
   background: white;
-  color: #2563eb;
+  color: #0f172a;
   cursor: pointer;
 }
 
@@ -149,4 +149,8 @@
   .statsGrid {
     grid-template-columns: 1fr;
   }
+}
+
+.exportAction {
+  composes: exportAction from '../shared.module.css';
 }

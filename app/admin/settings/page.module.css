@@ -133,11 +133,13 @@
   cursor: pointer;
 }
 
+/* Navy at 16px, matching AdminTable. Settings was the estate's only other
+   checkbox and it was a third colour at a fourth size. */
 .checkbox {
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
   cursor: pointer;
-  accent-color: #FFE500;
+  accent-color: #0f172a;
 }
 
 .btnRow {

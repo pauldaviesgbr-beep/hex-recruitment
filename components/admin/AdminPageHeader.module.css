@@ -1,0 +1,51 @@
+/* ── THE PAGE FRAME ───────────────────────────────────────────────────────
+   h1 and the page action on one baseline, subtitle beneath. The action slot
+   is the whole reason this exists: Export used to sit in the table's toolbar
+   and that is what forced three rows of chrome above every table at 390.
+   ──────────────────────────────────────────────────────────────────────── */
+.header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  /* CONTROLS WRAP. Never overflow-x — a page action past the edge is
+     unreachable, because html and body carry overflow-x: clip. */
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.titleBlock {
+  min-width: 0;
+}
+
+.title {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+  color: #0f172a;
+}
+
+.subtitle {
+  margin: 4px 0 0;
+  font-size: 13.5px;
+  font-weight: 400;
+  line-height: 1.4;
+  color: #64748b;
+}
+
+.action {
+  flex-shrink: 0;
+}
+
+@media (max-width: 640px) {
+  .title {
+    font-size: 22px;
+  }
+  /* The action drops to its own line rather than squeezing the title. Baseline
+     alignment is meaningless once they wrap, so stop pretending. */
+  .header {
+    align-items: flex-start;
+  }
+}
