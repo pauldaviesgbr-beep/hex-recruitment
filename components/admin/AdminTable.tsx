@@ -31,6 +31,13 @@ interface AdminTableProps<T = any> {
   totalCount?: number | null
   onExportCSV?: () => void
   headerActions?: React.ReactNode
+  /**
+   * The page's select filters, rendered in the toolbar's second row beside
+   * the count. They used to sit in a `.filters` div ABOVE the table, which
+   * cost a whole row of its own on a phone and separated the filters from
+   * the count they change.
+   */
+  filters?: React.ReactNode
 
   // ── A NUMBER IS A CLAIM ──────────────────────────────────────────────
   // The estate printed "0 results" in FOUR different states: while loading,
@@ -88,6 +95,7 @@ export default function AdminTable<T extends Record<string, any>>({
   totalCount,
   onExportCSV,
   headerActions,
+  filters,
   status,
   query,
   filtersActive = 0,
@@ -130,8 +138,16 @@ export default function AdminTable<T extends Record<string, any>>({
 
   return (
     <div className={styles.wrapper}>
+      {/* ── THE TOOLBAR, TWO ROWS AT 390 ───────────────────────────────────
+          It was three — search, then count, then Export — roughly 150px of
+          chrome above every table on a phone, before a single row of the
+          thing the page is for. Export has moved to the page frame, so:
+            row 1  search, full width
+            row 2  count left, filters right
+          Desktop stays one row: search flexes, count and filters sit right.
+          Controls WRAP here; only the table below scrolls sideways. */}
       <div className={styles.toolbar}>
-        <div className={styles.toolbarLeft}>
+        <div className={styles.toolbarSearchRow}>
           {onSearch && (
             /* THE INPUT CAUSED IT, SO THE INPUT SHOWS IT. A query that matches
                nothing marks the field it was typed into — the message is down
@@ -152,6 +168,9 @@ export default function AdminTable<T extends Record<string, any>>({
               />
             </div>
           )}
+        </div>
+
+        <div className={styles.toolbarMetaRow}>
           {/* THE COUNT RENDERS FROM (status, total), NEVER FROM `total || 0`.
               A filtered zero against a real total is a different fact from a
               bare zero, and neither is a claim we can make while loading or
@@ -165,18 +184,18 @@ export default function AdminTable<T extends Record<string, any>>({
           ) : totalCount !== undefined && totalCount !== null ? (
             <span className={styles.totalCount}>{totalCount.toLocaleString()} result{totalCount !== 1 ? 's' : ''}</span>
           ) : null}
-        </div>
 
-        <div className={styles.toolbarRight}>
-          {selectedIds.length > 0 && headerActions && (
-            <div className={styles.bulkActions}>
-              <span className={styles.selectedCount}>{selectedIds.length} selected</span>
-              {headerActions}
-            </div>
-          )}
+          {/* The page's select filters, which used to sit in a separate row
+              ABOVE the table entirely. In here they share row 2 with the
+              count, and they wrap rather than scroll. */}
+          {filters && <div className={styles.filterGroup}>{filters}</div>}
+
           {onExportCSV && (
+            /* Only rendered when a page has NOT adopted the page-frame action
+               slot. Export belongs in the frame now; this is the fallback so
+               the seven pages can move one at a time. */
             <button className={styles.exportBtn} onClick={onExportCSV} title="Export CSV">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                 <polyline points="7 10 12 15 17 10" />
                 <line x1="12" y1="15" x2="12" y2="3" />
@@ -185,6 +204,17 @@ export default function AdminTable<T extends Record<string, any>>({
             </button>
           )}
         </div>
+
+        {/* SELECTION GETS ITS OWN ROW, and only exists while something is
+            selected. Two identical adjacent buttons, one of them irreversible
+            on a real person's account, reached by ticking boxes — Delete is
+            separated by a rule and is the only alert-coloured thing here. */}
+        {selectedIds.length > 0 && headerActions && (
+          <div className={styles.selectionRow}>
+            <span className={styles.selectedCount}>{selectedIds.length} selected</span>
+            {headerActions}
+          </div>
+        )}
       </div>
 
       <div className={styles.tableContainer}>

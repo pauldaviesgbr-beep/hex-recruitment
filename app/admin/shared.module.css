@@ -19,9 +19,13 @@
      .badge       Six pages, two definitions — reviews omits
                   `text-transform: capitalize`. Unifying it is a visible change
                   and is queued with the restyle, not smuggled in here.
-     .checkbox    Settings is #FFE500 at 18px; AdminTable is #2563eb at 16px.
-                  Two genuinely different controls, not one duplicated — a
-                  refactor cannot resolve that and must not pretend to.
+     .checkbox    RESOLVED by the design pass, and the note above was right
+                  that a refactor could not do it: settings was #FFE500 at
+                  18px and AdminTable #2563eb at 16px, and only a DECISION
+                  about which is correct could unify them. Both are now navy
+                  #0F172A at 16px, per the handoff. They remain two separate
+                  declarations in two files because they are still two
+                  controls; they simply agree now.
 
    HOW IT IS WIRED, AND WHY NO COMPONENT CHANGED. Each page keeps its own
    class and `composes:` it from here, so every `styles.pageTitle` in every
@@ -69,6 +73,34 @@
   border-color: #FFE500;
 }
 
+/* ── The page-frame action ──────────────────────────────────────────── */
+/* Outlined, right, baseline-aligned with the h1. This is where Export lives
+   now; it used to sit inside the table's own toolbar, which is what made
+   that toolbar three rows on a phone. */
+
+.exportAction {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.9rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 9px;
+  background: #fff;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #0f172a;
+  cursor: pointer;
+  transition: all 0.15s;
+  /* Tap targets >= 44px at 390. */
+  min-height: 44px;
+  white-space: nowrap;
+}
+
+.exportAction:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
 /* ── Row actions ────────────────────────────────────────────────────── */
 
 .actionBtn {
@@ -93,14 +125,28 @@
   cursor: not-allowed;
 }
 
+/* WHITE FILL, ALERT BORDER, ALERT TEXT — never a filled red button. Design's
+   alert tokens, so destructive controls read the same everywhere: the same
+   #B42318 / #F3D0CB as the failed table state's icon and border. */
 .dangerBtn {
-  color: #dc2626;
-  border-color: #fecaca;
+  background: #fff;
+  color: #b42318;
+  border-color: #f3d0cb;
 }
 
 .dangerBtn:hover {
-  background: #fef2f2;
-  border-color: #fca5a5;
+  background: #fff9f8;
+  border-color: #e5b3ad;
+}
+
+/* The rule that separates Delete from the button beside it. Sits as its own
+   element immediately before the destructive control. */
+.destructiveDivider {
+  width: 1px;
+  align-self: stretch;
+  min-height: 24px;
+  background: #e2e8f0;
+  margin-left: 16px;
 }
 
 /* ── Detail panel ───────────────────────────────────────────────────── */

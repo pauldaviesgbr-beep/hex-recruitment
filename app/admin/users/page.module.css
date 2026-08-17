@@ -11,6 +11,14 @@
   composes: select from '../shared.module.css';
 }
 
+.exportAction {
+  composes: exportAction from '../shared.module.css';
+}
+
+.destructiveDivider {
+  composes: destructiveDivider from '../shared.module.css';
+}
+
 
 .userName {
   font-weight: 600;
@@ -180,7 +188,7 @@
   font-size: 0.75rem;
   font-weight: 500;
   background: white;
-  color: #2563eb;
+  color: #0f172a;
   cursor: pointer;
   transition: all 0.15s;
 }

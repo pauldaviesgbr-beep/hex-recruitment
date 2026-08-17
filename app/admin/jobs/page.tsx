@@ -4,7 +4,8 @@ import { useState, useEffect, useCallback } from 'react'
 import { useAdminToken } from '@/lib/admin-context'
 import AdminTable, { Column, exportToCSV } from '@/components/admin/AdminTable'
 import DetailPanel, { DetailRow, DetailSection, DetailBadge } from '@/components/admin/DetailPanel'
-import StatsCard from '@/components/admin/StatsCard'
+import StatsStrip from '@/components/admin/StatsStrip'
+import AdminPageHeader from '@/components/admin/AdminPageHeader'
 import styles from './page.module.css'
 
 interface Job {
@@ -205,28 +206,28 @@ export default function AdminJobsPage() {
 
   return (
     <div>
-      <h1 className={styles.pageTitle}>Job Management</h1>
+      <AdminPageHeader
+        title="Job Management"
+        action={
+          <button className={styles.exportAction} onClick={() => exportToCSV(jobs, columns, 'admin-jobs')}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            Export
+          </button>
+        }
+      />
 
-      {stats && (
-        <div className={styles.statsGrid}>
-          <StatsCard title="Active" value={stats.active} />
-          <StatsCard title="Filled" value={stats.filled} />
-          <StatsCard title="Archived" value={stats.archived} />
-        </div>
-      )}
-
-      <div className={styles.filters}>
-        <select className={styles.select} value={status} onChange={(e) => setStatus(e.target.value)}>
-          <option value="">All Statuses</option>
-          <option value="active">Active</option>
-          <option value="filled">Filled</option>
-          <option value="archived">Archived</option>
-        </select>
-        <select className={styles.select} value={sector} onChange={(e) => setSector(e.target.value)}>
-          <option value="">All Sectors</option>
-          {sectors.map(s => <option key={s} value={s}>{s}</option>)}
-        </select>
-      </div>
+      <StatsStrip
+        tableStatus={tableState}
+        stats={[
+          { label: 'Active', value: stats ? stats.active : null },
+          { label: 'Filled', value: stats ? stats.filled : null },
+          { label: 'Archived', value: stats ? stats.archived : null },
+        ]}
+      />
 
       <AdminTable
         columns={columns}
@@ -243,6 +244,20 @@ export default function AdminJobsPage() {
         onClearSearch={() => { setSearch(''); setStatus(''); setSector(''); setPage(1) }}
         onRetry={fetchJobs}
         errorMessage={loadError || undefined}
+        filters={
+          <>
+            <select className={styles.select} value={status} onChange={(e) => setStatus(e.target.value)} aria-label="Filter by status">
+              <option value="">All Statuses</option>
+              <option value="active">Active</option>
+              <option value="filled">Filled</option>
+              <option value="archived">Archived</option>
+            </select>
+            <select className={styles.select} value={sector} onChange={(e) => setSector(e.target.value)} aria-label="Filter by sector">
+              <option value="">All Sectors</option>
+              {sectors.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+          </>
+        }
         entityName="jobs"
         emptyTitle="No jobs yet."
         emptyBody="Roles appear here as employers post them and the weekly import runs."
@@ -255,7 +270,6 @@ export default function AdminJobsPage() {
         selectedIds={selectedIds}
         onSelectionChange={setSelectedIds}
         onRowClick={openDetail}
-        onExportCSV={() => exportToCSV(jobs, columns, 'admin-jobs')}
         headerActions={
           <>
             <button className={styles.bulkBtn} onClick={() => handleBulkAction('bulk_feature')} disabled={actionLoading === 'bulk'}>Feature</button>

@@ -3,7 +3,8 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useAdminToken } from '@/lib/admin-context'
 import AdminTable, { Column, exportToCSV } from '@/components/admin/AdminTable'
-import StatsCard from '@/components/admin/StatsCard'
+import StatsStrip from '@/components/admin/StatsStrip'
+import AdminPageHeader from '@/components/admin/AdminPageHeader'
 import { EMPLOYER_COHORT_CAP } from '@/lib/constants/cohort'
 import styles from './page.module.css'
 
@@ -127,7 +128,7 @@ export default function AdminWaitlistPage() {
       label: 'Email',
       sortable: true,
       render: (_, row) => (
-        <a href={`mailto:${row.email}`} style={{ color: '#2563eb', textDecoration: 'none' }}>
+        <a href={`mailto:${row.email}`} style={{ color: '#0f172a', textDecoration: 'underline' }}>
           {row.email}
         </a>
       ),
@@ -142,13 +143,28 @@ export default function AdminWaitlistPage() {
 
   return (
     <div>
-      <h1 className={styles.pageTitle}>Waitlist</h1>
+      <AdminPageHeader
+        title="Waitlist"
+        action={
+          <button className={styles.exportAction} onClick={() => exportToCSV(entries, columns, 'waitlist')}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            Export
+          </button>
+        }
+      />
 
-      <div className={styles.statsGrid}>
-        <StatsCard title="Waitlist Signups" value={stats ? stats.total : null} />
-        <StatsCard title="Free Spots Claimed" value={freeSpotsClaimed} />
-        <StatsCard title="Spots Remaining" value={spotsRemaining} color={(spotsRemaining ?? 0) > 0 ? '#16a34a' : '#dc2626'} />
-      </div>
+      <StatsStrip
+        tableStatus={tableState === 'ok' && filtered.length === 0 ? 'empty' : tableState}
+        stats={[
+          { label: 'Waitlist Signups', value: stats ? stats.total : null },
+          { label: 'Free Spots Claimed', value: freeSpotsClaimed },
+          { label: 'Spots Remaining', value: spotsRemaining },
+        ]}
+      />
 
       <AdminTable
         columns={columns}
@@ -173,7 +189,6 @@ export default function AdminWaitlistPage() {
         page={1}
         totalPages={1}
         onPageChange={() => {}}
-        onExportCSV={() => exportToCSV(entries, columns, 'waitlist')}
       />
     </div>
   )

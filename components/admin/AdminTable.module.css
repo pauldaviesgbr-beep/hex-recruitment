@@ -5,29 +5,67 @@
   overflow: hidden;
 }
 
+/* ── TOOLBAR ──────────────────────────────────────────────────────────────
+   ONE ROW ON DESKTOP, TWO AT 390 — it was three, and Export leaving for the
+   page frame is what paid for that.
+
+   The rows are declared as separate elements and then flattened back into a
+   single line above 640 by `display: contents`, rather than the reverse. It
+   reads oddly but it is the honest way round: the phone layout is the one
+   with structure, and the desktop one is the collapse.
+   ──────────────────────────────────────────────────────────────────────── */
 .toolbar {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
+  align-items: stretch;
   padding: 0.75rem 1.25rem;
   border-bottom: 1px solid #e2e8f0;
-  gap: 1rem;
-  flex-wrap: wrap;
+  gap: 0.625rem;
 }
 
-.toolbarLeft {
+.toolbarSearchRow {
   display: flex;
-  align-items: center;
-  gap: 1rem;
-  flex: 1;
   min-width: 0;
 }
 
-.toolbarRight {
+.toolbarMetaRow {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  flex-shrink: 0;
+  /* Count left, filters right. */
+  justify-content: space-between;
+  /* CONTROLS WRAP. Never overflow-x on a control row: html and body carry
+     overflow-x: clip, so anything past the edge is unreachable, not
+     swipeable. And going multi-line means stretch, not centre — a column of
+     children keeping their intrinsic widths is how /talent-pool lost a tab. */
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
+  min-width: 0;
+}
+
+.filterGroup {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+@media (min-width: 641px) {
+  .toolbar {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+  .toolbarSearchRow {
+    flex: 1;
+  }
+  .toolbarMetaRow {
+    flex: 0 1 auto;
+    justify-content: flex-end;
+    gap: 0.75rem;
+  }
 }
 
 .searchBar {
@@ -190,21 +228,40 @@
 
 .retryBtn:hover { background: #1B2740; }
 
-.bulkActions {
+/* ── SELECTION ────────────────────────────────────────────────────────────
+   Its own row, present only while something is selected, so it never costs
+   height on the ordinary page. */
+.selectionRow {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.25rem 0.75rem;
-  background: #eff6ff;
-  border: 1px solid #bfdbfe;
+  /* WRAP. A destructive control pushed off the right edge is unreachable. */
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
+  padding: 0.5rem 0.75rem;
+  background: #fffbea;
+  border: 1px solid #f3e39a;
   border-radius: 8px;
+  min-width: 0;
 }
 
 .selectedCount {
-  font-size: 0.8rem;
+  font-size: 13px;
   font-weight: 600;
-  color: #2563eb;
+  color: #0f172a;
   white-space: nowrap;
+}
+
+/* THE SEPARATION IS THE POINT. Two identical adjacent buttons, one of them
+   irreversible on a real person's account, reached by ticking boxes. A rule
+   and 16px of gap is the minimum; a confirmation step is still owed. Pages
+   put this immediately before their Delete. */
+.destructiveDivider {
+  width: 1px;
+  align-self: stretch;
+  min-height: 24px;
+  background: #e2e8f0;
+  margin-left: 16px;
+  margin-right: 0;
 }
 
 .exportBtn {
@@ -228,10 +285,12 @@
   border-color: #cbd5e1;
 }
 
+/* Navy, 16px. #2563eb leaves the product — design retires it along with the
+   green #1E9E4A. */
 .checkbox {
   width: 16px;
   height: 16px;
-  accent-color: #2563eb;
+  accent-color: #0f172a;
   cursor: pointer;
 }
 
@@ -325,11 +384,18 @@
   background: #fff;
 }
 
-/* Identity is the one thing worth the vertical space: wrap to two lines
-   rather than truncate. */
+/* Identity is the one thing worth the vertical space: wrap rather than
+   truncate.
+
+   `break-word`, NOT `anywhere`. Both break long words, but `anywhere` offers
+   a break opportunity at EVERY character when the browser measures the line,
+   so it split "Goldenkeys Recruitment" as "Recruitmen / t" while there was a
+   perfectly good space to break at. `break-word` only breaks a word when the
+   word alone cannot fit. Caught in a screenshot; the geometry checks were all
+   green, because a mid-word break is not an overflow. */
 .td.stickyCol {
   white-space: normal;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 
 .th {
@@ -381,12 +447,15 @@
   background: #f1f5f9;
 }
 
+/* #FFFBEA — the estate's existing "notable row" wash, the same one the
+   pipeline columns and the alarming-responsiveness rows already use. The old
+   pale blue was a second, unrelated meaning for the same idea. */
 .row.selected {
-  background: #eff6ff;
+  background: #fffbea;
 }
 
 .row.selected:hover {
-  background: #dbeafe;
+  background: #fff6d1;
 }
 
 .actions {
@@ -486,6 +555,11 @@
     width: 112px;
     min-width: 112px;
     max-width: 112px;
+    /* 112px at the table's usual 16px side padding leaves 80px of text, which
+       is not enough for "Recruitment" and forces a mid-word break whatever
+       the wrapping mode. 10px a side gives 92px and the real names fit. */
+    padding-left: 10px;
+    padding-right: 10px;
   }
   .th.stickyCol {
     white-space: normal;

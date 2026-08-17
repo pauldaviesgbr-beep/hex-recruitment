@@ -1,0 +1,70 @@
+/* ── REFERENCE-WEIGHT STATS ───────────────────────────────────────────────
+   ONE bordered container with 1px gaps showing the container's own
+   background through as the dividers — not per-card borders, which is what
+   made three cards read as three separate objects competing with the table.
+
+   The gap trick needs the container to be the thing that is coloured, and
+   overflow:hidden so the radius clips the cells' square corners.
+   ──────────────────────────────────────────────────────────────────────── */
+.strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1px;
+  background: #e2e8f0;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 1.5rem;
+}
+
+.cell {
+  flex: 1 1 0;
+  /* min-width:0 or a long label keeps the cell at its intrinsic width and the
+     strip stops being equal columns. The same default that made the admin
+     table overflow its container before .main got min-width:0. */
+  min-width: 0;
+  background: #fff;
+  padding: 15px 18px;
+}
+
+.value {
+  margin: 0;
+  font-size: 21px;
+  font-weight: 600;
+  line-height: 1.2;
+  color: #0f172a;
+  /* Figures line up column to column; the strip is read as a row of numbers. */
+  font-variant-numeric: tabular-nums;
+}
+
+/* No claim to make — loading, or the request failed. */
+.valueUnknown {
+  color: #94a3b8;
+}
+
+.label {
+  margin: 2px 0 0;
+  font-size: 11.5px;
+  font-weight: 500;
+  line-height: 1.35;
+  color: #64748b;
+}
+
+@media (max-width: 640px) {
+  /* TWO COLUMNS AT 390, NOT ONE. Four stats in one column is four rows of
+     chrome before the table starts; the whole point of the strip is that it
+     stops owning the top of the phone screen.
+     calc subtracts the 1px gap so two cells fit exactly without wrapping a
+     third of a pixel onto the next line. */
+  .cell {
+    flex: 1 1 calc(50% - 1px);
+    min-width: calc(50% - 1px);
+    padding: 12px 14px;
+  }
+  .value {
+    font-size: 19px;
+  }
+  .label {
+    font-size: 11px;
+  }
+}

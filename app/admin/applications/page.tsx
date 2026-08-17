@@ -3,7 +3,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useAdminToken } from '@/lib/admin-context'
 import AdminTable, { Column, exportToCSV } from '@/components/admin/AdminTable'
-import StatsCard from '@/components/admin/StatsCard'
+import StatsStrip from '@/components/admin/StatsStrip'
+import AdminPageHeader from '@/components/admin/AdminPageHeader'
 import styles from './page.module.css'
 
 interface Application {
@@ -100,30 +101,32 @@ export default function AdminApplicationsPage() {
 
   return (
     <div>
-      <h1 className={styles.pageTitle}>Applications</h1>
+      <AdminPageHeader
+        title="Applications"
+        action={
+          <button className={styles.exportAction} onClick={() => exportToCSV(applications, columns, 'admin-applications')}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            Export
+          </button>
+        }
+      />
 
-      {/* Rendered in every state, values nullable. Hiding the strip while
-          loading and showing it on arrival moves the whole page down as the
-          request lands; an em-dash holds the space and states nothing. */}
-      <div className={styles.statsGrid}>
-        <StatsCard title="Total" value={stats ? stats.total : null} />
-        <StatsCard title="Pending" value={stats ? stats.pending : null} />
-        <StatsCard title="Interview" value={stats ? stats.interview : null} />
-        <StatsCard title="Offered" value={stats ? stats.offered : null} />
-      </div>
-
-      <div className={styles.filters}>
-        <select className={styles.select} value={status} onChange={(e) => setStatus(e.target.value)}>
-          <option value="">All Statuses</option>
-          <option value="pending">Pending</option>
-          <option value="viewed">Viewed</option>
-          <option value="shortlisted">Shortlisted</option>
-          <option value="interview">Interview</option>
-          <option value="offered">Offered</option>
-          <option value="rejected">Rejected</option>
-          <option value="withdrawn">Withdrawn</option>
-        </select>
-      </div>
+      {/* Rendered in every state, values nullable — an em-dash holds the space
+          and states nothing, rather than the strip appearing as the request
+          lands and pushing the table down under the reader. */}
+      <StatsStrip
+        tableStatus={tableState}
+        stats={[
+          { label: 'Total', value: stats ? stats.total : null },
+          { label: 'Pending', value: stats ? stats.pending : null },
+          { label: 'Interview', value: stats ? stats.interview : null },
+          { label: 'Offered', value: stats ? stats.offered : null },
+        ]}
+      />
 
       <AdminTable
         columns={columns}
@@ -141,6 +144,18 @@ export default function AdminApplicationsPage() {
         onClearSearch={() => { setSearch(''); setStatus(''); setPage(1) }}
         onRetry={fetchData}
         errorMessage={loadError || undefined}
+        filters={
+          <select className={styles.select} value={status} onChange={(e) => setStatus(e.target.value)} aria-label="Filter by status">
+            <option value="">All Statuses</option>
+            <option value="pending">Pending</option>
+            <option value="viewed">Viewed</option>
+            <option value="shortlisted">Shortlisted</option>
+            <option value="interview">Interview</option>
+            <option value="offered">Offered</option>
+            <option value="rejected">Rejected</option>
+            <option value="withdrawn">Withdrawn</option>
+          </select>
+        }
         entityName="applications"
         emptyTitle="No applications yet."
         emptyBody="They appear here as candidates apply to live roles."
@@ -149,7 +164,6 @@ export default function AdminApplicationsPage() {
         searchPlaceholder="Search by job title or company..."
         loading={loading}
         totalCount={totalCount}
-        onExportCSV={() => exportToCSV(applications, columns, 'admin-applications')}
       />
     </div>
   )

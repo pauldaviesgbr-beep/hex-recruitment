@@ -3,7 +3,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useAdminToken } from '@/lib/admin-context'
 import AdminTable, { Column, exportToCSV } from '@/components/admin/AdminTable'
-import StatsCard from '@/components/admin/StatsCard'
+import StatsStrip from '@/components/admin/StatsStrip'
+import AdminPageHeader from '@/components/admin/AdminPageHeader'
 import styles from './page.module.css'
 
 interface Subscription {
@@ -144,30 +145,30 @@ export default function AdminSubscriptionsPage() {
 
   return (
     <div>
-      <h1 className={styles.pageTitle}>Subscription Management</h1>
+      <AdminPageHeader
+        title="Subscription Management"
+        action={
+          <button className={styles.exportAction} onClick={() => exportToCSV(subscriptions, columns, 'admin-subscriptions')}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            Export
+          </button>
+        }
+      />
 
-      {/* .revenueGrid is .statsGrid's job under another name — noted because a
-          class-name grep for statsGrid misses this page entirely. */}
-      <div className={styles.revenueGrid}>
-        <StatsCard title="Active Subscriptions" value={revenue ? revenue.totalActive : null} />
-        <StatsCard title="Total Trials" value={revenue ? revenue.totalTrialing : null} />
-      </div>
-
-      <div className={styles.filters}>
-        <select className={styles.select} value={tier} onChange={(e) => setTier(e.target.value)}>
-          <option value="">All Tiers</option>
-          <option value="standard">Standard</option>
-          <option value="free">Free</option>
-        </select>
-        <select className={styles.select} value={status} onChange={(e) => setStatus(e.target.value)}>
-          <option value="">All Statuses</option>
-          <option value="active">Active</option>
-          <option value="trialing">Trialing</option>
-          <option value="past_due">Past Due</option>
-          <option value="canceled">Canceled</option>
-          <option value="inactive">Inactive</option>
-        </select>
-      </div>
+      {/* `.revenueGrid` was `.statsGrid`'s job under another name — the reason
+          a class-name grep for statsGrid missed this page entirely. Both are
+          now the shared strip, so the two names collapse into none. */}
+      <StatsStrip
+        tableStatus={tableState}
+        stats={[
+          { label: 'Active Subscriptions', value: revenue ? revenue.totalActive : null },
+          { label: 'Total Trials', value: revenue ? revenue.totalTrialing : null },
+        ]}
+      />
 
       <AdminTable
         columns={columns}
@@ -188,6 +189,23 @@ export default function AdminSubscriptionsPage() {
         onClearSearch={() => { setSearch(''); setTier(''); setStatus(''); setPage(1) }}
         onRetry={fetchData}
         errorMessage={loadError || undefined}
+        filters={
+          <>
+            <select className={styles.select} value={tier} onChange={(e) => setTier(e.target.value)} aria-label="Filter by tier">
+              <option value="">All Tiers</option>
+              <option value="standard">Standard</option>
+              <option value="free">Free</option>
+            </select>
+            <select className={styles.select} value={status} onChange={(e) => setStatus(e.target.value)} aria-label="Filter by status">
+              <option value="">All Statuses</option>
+              <option value="active">Active</option>
+              <option value="trialing">Trialing</option>
+              <option value="past_due">Past Due</option>
+              <option value="canceled">Canceled</option>
+              <option value="inactive">Inactive</option>
+            </select>
+          </>
+        }
         entityName="subscriptions"
         emptyTitle="No subscriptions yet."
         emptyBody="Employer accounts appear here once they hold a plan."
@@ -196,7 +214,6 @@ export default function AdminSubscriptionsPage() {
         searchPlaceholder="Search by company or email..."
         loading={loading}
         totalCount={totalCount}
-        onExportCSV={() => exportToCSV(subscriptions, columns, 'admin-subscriptions')}
         actions={(row) => (
           <>
             {row.subscription_status === 'trialing' && (

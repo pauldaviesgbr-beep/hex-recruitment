@@ -4,7 +4,8 @@ import { useState, useEffect, useCallback } from 'react'
 import { useAdminToken } from '@/lib/admin-context'
 import AdminTable, { Column } from '@/components/admin/AdminTable'
 import DetailPanel, { DetailSection } from '@/components/admin/DetailPanel'
-import StatsCard from '@/components/admin/StatsCard'
+import StatsStrip from '@/components/admin/StatsStrip'
+import AdminPageHeader from '@/components/admin/AdminPageHeader'
 import styles from './page.module.css'
 
 interface Conversation {
@@ -130,12 +131,15 @@ export default function AdminMessagesPage() {
 
   return (
     <div>
-      <h1 className={styles.pageTitle}>Messages</h1>
+      <AdminPageHeader title="Messages" />
 
-      <div className={styles.statsGrid}>
-        <StatsCard title="Conversations" value={stats ? stats.totalConversations : null} />
-        <StatsCard title="Messages Sent" value={stats ? stats.totalMessages : null} />
-      </div>
+      <StatsStrip
+        tableStatus={tableState}
+        stats={[
+          { label: 'Conversations', value: stats ? stats.totalConversations : null },
+          { label: 'Messages Sent', value: stats ? stats.totalMessages : null },
+        ]}
+      />
 
       <AdminTable
         columns={columns}

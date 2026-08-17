@@ -63,3 +63,7 @@
 @media (max-width: 640px) {
   .revenueGrid { grid-template-columns: 1fr; }
 }
+
+.exportAction {
+  composes: exportAction from '../shared.module.css';
+}
