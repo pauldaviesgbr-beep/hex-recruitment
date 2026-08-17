@@ -133,18 +133,54 @@
 
 /* Loading / Error */
 .loading,
+/* ONE DEFINITION. There were two `.error` blocks, the second overriding the
+   first's colour — harmless but exactly the kind of thing that makes the next
+   change land somewhere unexpected.
+   Now the alert tokens the rest of the estate uses for a failed state, and a
+   column rather than a centred row, because it holds three things. */
 .error {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 400px;
-  color: #64748b;
+  gap: 8px;
+  text-align: center;
+  min-height: 320px;
+  padding: 32px 22px;
+  background: #fff9f8;
+  border: 1px solid #f3d0cb;
+  border-radius: 12px;
+  color: #6e3a34;
   font-size: 0.95rem;
 }
 
-.error {
-  color: #dc2626;
+.error p:first-child {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: #8a2018;
 }
+
+.error p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.errorRetry {
+  margin-top: 4px;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 9px;
+  background: #0f172a;
+  color: #fff;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  min-height: 44px;
+}
+
+.errorRetry:hover { background: #1b2740; }
 
 @media (max-width: 1200px) {
   .statsGrid {
