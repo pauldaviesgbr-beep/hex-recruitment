@@ -6,7 +6,7 @@ import { provisionFoundingEmployer } from '@/lib/foundingSignup'
 import type { EmailClass } from '@/lib/emailDomains'
 import { safeInternalPath } from '@/lib/safeRedirect'
 import { parseAttrCookie, attributionColumns } from '@/lib/attribution'
-import { countryFromHeaders, parseCountryCookie } from '@/lib/geo'
+import { geoColumnsFromRequest } from '@/lib/geo'
 
 function getOrigin(req: NextRequest): string {
   const proto = req.headers.get('x-forwarded-proto') || 'https'
@@ -130,11 +130,9 @@ export async function GET(request: NextRequest) {
         // overwrite a real value on a returning user with a guess.
         attribution: (() => {
           const attr = parseAttrCookie(request.headers.get('cookie'))
-          const country =
-            countryFromHeaders(request.headers) || parseCountryCookie(request.headers.get('cookie'))
           return {
             ...(attr ? attributionColumns(attr) : {}),
-            ...(country ? { signup_country: country } : {}),
+            ...geoColumnsFromRequest(request.headers),
           }
         })(),
       })

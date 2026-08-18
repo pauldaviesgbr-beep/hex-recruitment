@@ -6,7 +6,7 @@ import { FREE_FOUNDING_MODE } from '@/lib/constants/cohort'
 import { provisionFoundingEmployer } from '@/lib/foundingSignup'
 import type { EmailClass } from '@/lib/emailDomains'
 import { parseAttrCookie, attributionColumns, type Attribution } from '@/lib/attribution'
-import { countryFromHeaders, parseCountryCookie } from '@/lib/geo'
+import { geoColumnsFromRequest } from '@/lib/geo'
 import { safeInternalPath } from '@/lib/safeRedirect'
 
 // Shared OAuth callback logic. Used by:
@@ -225,6 +225,7 @@ export async function handleAuthCallback(
     utm_medium: (user.user_metadata?.utm_medium as string) || null,
     utm_campaign: (user.user_metadata?.utm_campaign as string) || null,
     heard_from: (user.user_metadata?.heard_from as string) || null,
+    referrer_host: (user.user_metadata?.referrer_host as string) || null,
   }
   const attrFromCookie = parseAttrCookie(req.headers.get('cookie'))
   const attr: Attribution = {
@@ -233,11 +234,19 @@ export async function handleAuthCallback(
     utm_medium: attrFromMeta.utm_medium || attrFromCookie?.utm_medium || null,
     utm_campaign: attrFromMeta.utm_campaign || attrFromCookie?.utm_campaign || null,
     heard_from: attrFromMeta.heard_from || attrFromCookie?.heard_from || null,
+    referrer_host: attrFromMeta.referrer_host || attrFromCookie?.referrer_host || null,
   }
   // Only write attribution when we actually captured something — never force
   // 'unknown' onto an existing row (e.g. a returning employer re-provisioning).
   // Reporting COALESCEs null -> 'unknown', so organic signups still read as such.
-  const hasAttr = !!(attr.signup_ref || attr.utm_source || attr.utm_medium || attr.utm_campaign || attr.heard_from)
+  //
+  // referrer_host BELONGS IN THIS LIST. It is the weakest of the signals and
+  // the only one that fires on our largest channel — the LinkedIn post whose
+  // link is deleted once the card renders — so leaving it out would drop
+  // exactly the signups the referrer was added to catch. sourceBasis records
+  // that it was an inference, so nothing downstream can mistake it for a tag.
+  const hasAttr = !!(attr.signup_ref || attr.utm_source || attr.utm_medium
+                     || attr.utm_campaign || attr.heard_from || attr.referrer_host)
   const attrCols = hasAttr ? attributionColumns(attr) : {}
 
   // WHERE THEY SIGNED UP FROM. The header first, because this route runs on
@@ -248,8 +257,12 @@ export async function handleAuthCallback(
   // Same rule as attribution above: write NOTHING when we have nothing. An
   // absent header is local development, and a returning user re-provisioning
   // must not have a real value overwritten with a guess.
-  const country = countryFromHeaders(req.headers) || parseCountryCookie(req.headers.get('cookie'))
-  const countryCols: Record<string, string> = country ? { signup_country: country } : {}
+  //
+  // The TIMEZONE rides along in the same patch. It has no header — only the
+  // browser knows it — so it arrives on the cookie FirstTouchCapture set on
+  // the first page they loaded. Deliberately not derived from the country:
+  // the US spans six zones and Australia five.
+  const geoCols = geoColumnsFromRequest(req.headers)
 
   if (role === 'employer') {
     // Confirmation-time founding-row provisioning. Runs on EVERY callback
@@ -283,7 +296,7 @@ export async function handleAuthCallback(
         contactName: displayName,
         metadataClass,
         siteUrl: siteUrlForProvision,
-        attribution: { ...attrCols, ...countryCols },
+        attribution: { ...attrCols, ...geoCols },
       })
     } else {
       // Pre-pivot path preserved for the flag-off future.
@@ -317,7 +330,7 @@ export async function handleAuthCallback(
           // candidate who hid themselves is never flipped back on.
           is_discoverable: true,
           ...attrCols,
-          ...countryCols,
+          ...geoCols,
         },
         { onConflict: 'user_id', ignoreDuplicates: true }
       )

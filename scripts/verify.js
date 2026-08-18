@@ -68,6 +68,16 @@ const ALL = [
   // helper other checks lean on gets watched hardest of all. Milliseconds,
   // filesystem only, so it runs in the fast tier too.
   { name: 'assertchanged:prove', cmd: process.execPath, args: [path.join(ROOT, 'scripts', 'prove-assert-changed.mjs')] },
+  // Signup attribution. Here because it is the one piece of this codebase
+  // whose failure mode is SILENCE: a channel that stops being captured just
+  // reports 'unknown', which is also what an organic signup reports, so the
+  // fault is invisible until someone asks why a campaign shows nothing. Every
+  // case is a pair whose halves must differ — a tag against a referrer
+  // inference, an external host against our own, a first touch against a
+  // later one. Watched failing on purpose 18 Aug 2026 with the referrer
+  // fallback reverted: four named failures, exit 1, green again on restore.
+  // No database, no network — milliseconds, so it runs in the fast tier.
+  { name: 'attribution:prove', cmd: process.execPath, args: [path.join(ROOT, 'scripts', 'prove-attribution.mjs')] },
 ]
 const CHECKS = FAST ? ALL.filter(c => !c.slow) : ALL
 

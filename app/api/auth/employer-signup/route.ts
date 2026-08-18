@@ -79,6 +79,11 @@ export async function POST(req: NextRequest) {
           utm_medium: attr.utm_medium || null,
           utm_campaign: attr.utm_campaign || null,
           heard_from: attr.heard_from || null,
+          // The referrer host, forwarded like the rest. Without this line the
+          // employer email path would be the one signup route that drops it —
+          // and it is the route most likely to carry it, because employers
+          // arrive from a LinkedIn post rather than a tagged link.
+          referrer_host: attr.referrer_host || null,
         },
         emailRedirectTo: `${siteUrl}/auth/confirm?role=employer`,
       },

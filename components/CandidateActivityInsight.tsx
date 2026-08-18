@@ -10,6 +10,12 @@ interface Payload {
     total: number
     distinctPeople: number
     byBand: { band: string; n: number }[]
+    /** THE VIEWER'S OWN ZONE, not the candidates'. The only thing an employer
+     *  can do with this chart is decide when to press publish, so it has to
+     *  be in the clock on their wall. Admin's version of the same data is
+     *  bucketed candidate-local instead, because it answers a different
+     *  question — behaviour rather than scheduling. */
+    timezone?: string
   }
   yourResponse: { applications: number; opened: number; medianHours: number | null }
   platform: { medianHours: number | null; employers: number; minPeers: number }
@@ -73,11 +79,21 @@ export default function CandidateActivityInsight() {
   const busiest = act.byBand.slice().sort((a, b) => b.n - a.n)[0]
   const isThin = act.total < THIN
 
+  // 'Europe/London' reads as jargon to a restaurant owner, so the one zone
+  // every employer is in today keeps its plain name. Anything else prints the
+  // city, which is the readable half of an IANA name — never a made-up
+  // abbreviation, which would be wrong twice a year.
+  const tz = act.timezone || 'Europe/London'
+  const zoneLabel = tz === 'Europe/London' ? 'UK time' : `${tz.split('/').pop()!.replace(/_/g, ' ')} time`
+
   return (
     <div className={styles.panel}>
       <div className={styles.head}>
         <h2 className={styles.title}>When candidates are looking</h2>
-        <p className={styles.meta}>UK time · all candidates on Thrive</p>
+        {/* NOT "UK time" as a literal any more. It was true of every employer
+            and stops being true the moment one signs up abroad — and a chart
+            that says UK while showing another zone is worse than no label. */}
+        <p className={styles.meta}>{zoneLabel} · all candidates on Thrive</p>
       </div>
 
       <ul className={styles.bars}>

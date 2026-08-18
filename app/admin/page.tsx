@@ -59,6 +59,11 @@ interface SourceRow {
   source: string
   count: number
   refs: { ref: string; count: number }[]
+  /** HOW WE KNOW, per channel. Without it a referrer inference and a tag are
+   *  the same bar, and the difference decides whether a number is worth
+   *  spending against. */
+  basis?: { tag: number; 'self-reported': number; referrer: number; unknown: number }
+  declared?: number
 }
 interface SourcesData {
   candidates: SourceRow[]
@@ -478,6 +483,23 @@ export default function AdminOverviewPage() {
                     <div style={{ height: 8, background: '#f1f5f9', borderRadius: 5, overflow: 'hidden' }}>
                       <div style={{ width: `${(r.count / max) * 100}%`, height: '100%', background: '#FFE500' }} />
                     </div>
+                    {/* WHAT THE BAR IS MADE OF. A channel we were TOLD about
+                        and one we INFERRED from a referrer header are worth
+                        different amounts, and merging them is the mistake
+                        this row exists to prevent — the plan is to spend money
+                        against these numbers. 'unknown' is every row that
+                        predates the column, and it is shown rather than
+                        quietly counted as a tag. */}
+                    {r.basis && (r.basis.referrer > 0 || r.basis.unknown > 0) && (
+                      <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: 4 }}>
+                        {[
+                          r.basis.tag > 0 && `${r.basis.tag} tagged`,
+                          r.basis['self-reported'] > 0 && `${r.basis['self-reported']} self-reported`,
+                          r.basis.referrer > 0 && `${r.basis.referrer} inferred from referrer`,
+                          r.basis.unknown > 0 && `${r.basis.unknown} not recorded`,
+                        ].filter(Boolean).join(' · ')}
+                      </div>
+                    )}
                     {r.refs.length > 0 && (
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem', marginTop: 5 }}>
                         {r.refs.map(rf => (

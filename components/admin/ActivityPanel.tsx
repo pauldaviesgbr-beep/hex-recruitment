@@ -12,12 +12,24 @@ export interface ActivityData {
     byBand: { band: string; n: number }[]
     byHour: { hour: number; n: number }[]
     byDow: { dow: number; label: string; n: number }[]
+    /** Which clock the bands are in. 'candidate-local' where we captured a
+     *  zone, tzFallbackZone where we did not. */
+    basis?: string
+    tzKnown?: number
+    tzFallback?: number
+    tzFallbackZone?: string
+    zones?: { zone: string; n: number }[]
   }
   countries: {
     candidateSignups: { country: string; n: number }[]
     candidatesUnknown: number
     jobViews: { country: string; n: number }[]
     jobViewsUnknown: number
+    /** Where the WORK is. Without it the other three lists cannot answer the
+     *  question they exist for — a channel delivering candidates from a
+     *  country we hold no jobs in is a channel delivering nothing. */
+    jobs?: { country: string; n: number }[]
+    jobsUnknown?: number
   }
   retention?: {
     accounts: number
@@ -71,6 +83,20 @@ export default function ActivityPanel({ data }: { data: ActivityData | null }) {
 
   const knownCountries = countries.candidateSignups.reduce((a, c) => a + c.n, 0)
   const viewCountries = countries.jobViews.reduce((a, c) => a + c.n, 0)
+  const jobCountries = countries.jobs ?? []
+  const jobTotal = jobCountries.reduce((a, c) => a + c.n, 0)
+
+  // HOW MUCH OF THE CLOCK IS ACTUALLY MEASURED. Every row is a fallback until
+  // the capture deploy has been live for a while, and a chart labelled
+  // "candidate local time" that is entirely one hard-coded default would be a
+  // claim we cannot support. So the label follows the data instead of the
+  // intent: it only says "local" once some rows really are.
+  const tzKnown = signins.tzKnown ?? 0
+  const tzFallbackZone = signins.tzFallbackZone ?? 'Europe/London'
+  const allFallback = tzKnown === 0
+  const clockLabel = allFallback
+    ? `${tzFallbackZone.replace('_', ' ')} (no local zones captured yet)`
+    : `each candidate's local time · ${tzKnown} of ${signins.total} measured`
 
   return (
     <section className={styles.panel}>
@@ -91,7 +117,7 @@ export default function ActivityPanel({ data }: { data: ActivityData | null }) {
         <div className={styles.blockHead}>
           <h3 className={styles.blockTitle}>Sign-ins by time of day</h3>
           <p className={styles.blockMeta}>
-            UK time{signins.first && signins.last ? ` · ${signins.first} to ${signins.last}` : ''}
+            {clockLabel}{signins.first && signins.last ? ` · ${signins.first} to ${signins.last}` : ''}
           </p>
         </div>
 
@@ -196,6 +222,40 @@ export default function ActivityPanel({ data }: { data: ActivityData | null }) {
             </ul>
           </>
         )}
+
+        {/* WHERE THE WORK IS. The three lists above are only useful against
+            this one: a channel that delivers candidates from a country we
+            hold no jobs in is a channel that delivers nothing, however good
+            its numbers look. Every live listing is UK today, so this is one
+            row — and one row is exactly the finding. */}
+        {jobTotal > 0 && (
+          <>
+            <p className={styles.blockMeta} style={{ marginTop: '1rem' }}>
+              Live jobs · where the work actually is
+            </p>
+            <ul className={styles.countryList}>
+              {jobCountries.map(c => (
+                <li key={c.country} className={styles.countryRow}>
+                  <span className={styles.countryName}>{label(c.country)}</span>
+                  <span className={styles.countryBarTrack}>
+                    <span
+                      className={styles.countryBarFill}
+                      style={{ width: `${(100 * c.n) / Math.max(jobTotal, 1)}%` }}
+                    />
+                  </span>
+                  <span className={styles.countryValue}>{c.n}</span>
+                </li>
+              ))}
+              {(countries.jobsUnknown ?? 0) > 0 && (
+                <li className={`${styles.countryRow} ${styles.countryMuted}`}>
+                  <span className={styles.countryName}>No country set</span>
+                  <span className={styles.countryBarTrack} />
+                  <span className={styles.countryValue}>{countries.jobsUnknown}</span>
+                </li>
+              )}
+            </ul>
+          </>
+        )}
       </div>
 
       {/* ── WHO STAYED ────────────────────────────────────────────────── */}
@@ -262,8 +322,29 @@ export default function ActivityPanel({ data }: { data: ActivityData | null }) {
       <p className={styles.footnote}>
         <strong>What these numbers are.</strong> A sign-in is a new session —
         somebody who stays logged in and returns creates no new row, so this
-        counts logging back in, not visits. Times are the candidate&rsquo;s own
-        UK local time. Country is the two-letter code our host resolves at the
+        counts logging back in, not visits.
+        {' '}
+        {/* THE CLOCK IS PART OF THE CLAIM. Bucketing by the candidate's own
+            zone is the only version that survives the move to Australia and
+            the US — a Sydney candidate browsing after service must not land
+            in the 03:00 bucket — but nothing can be bucketed that way until a
+            zone has been captured, so the footnote states which it is rather
+            than asserting the intent. */}
+        {allFallback ? (
+          <>
+            Times are in {tzFallbackZone.replace('_', ' ')} for <em>every</em> sign-in
+            here: the browser&rsquo;s own time zone is captured from 18 Aug 2026
+            onwards and no sign-in yet has one, so nothing on this chart is local
+            to anybody outside the UK.
+          </>
+        ) : (
+          <>
+            Times are each candidate&rsquo;s own local time where we captured their
+            browser&rsquo;s zone ({tzKnown} of {signins.total} sign-ins), and{' '}
+            {tzFallbackZone.replace('_', ' ')} for the rest.
+          </>
+        )}{' '}
+        Country is the two-letter code our host resolves at the
         edge on each request; no IP address is stored in these figures and
         nothing is sent to a third party to work it out.
       </p>
