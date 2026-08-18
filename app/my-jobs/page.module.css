@@ -14,14 +14,25 @@
 /* Restyled to recede: inactive = borderless muted text; active = subtle
    light-grey chip with a hairline border. No more dark-navy filled tile.
    Keeps counts. */
+/* CONTROLS WRAP; CONTENT SCROLLS. This row had `overflow-x: auto` AND a
+   hidden scrollbar, so at 390 the Archived tab sat off the right edge with no
+   affordance of any kind — not scrolled out of reach so much as gone. Found in
+   a screenshot at 390 on 18 Aug 2026: five tabs visible, Archived nowhere.
+   That matters on this page specifically, because Archived is where "Remove
+   ad" puts an advert, so an employer on a phone could file a role away and
+   then have no route back to it.
+
+   Same fix already applied to /candidates .filterStripLeft, /admin/analytics
+   .tabBar and /dashboard/analytics .tabBar — this is the fourth instance of a
+   decision already taken, not a new one. */
 .filterTabs {
   display: flex; gap: 0.35rem;
+  flex-wrap: wrap;
+  row-gap: 0.4rem;
   margin-bottom: 0.875rem;
   padding-bottom: 0.625rem;
   border-bottom: 1px solid var(--rs-border, var(--border-gray));
-  overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none;
 }
-.filterTabs::-webkit-scrollbar { display: none; }
 .filterTab {
   padding: 0.2rem 0.55rem;
   border-radius: 999px;
