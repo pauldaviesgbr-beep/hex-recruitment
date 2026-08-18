@@ -149,6 +149,16 @@
 /* ─── Row layout — line list, hairline-separated (matches interviews) ── */
 /* The list sits inside ONE rounded surface; each job is a single line
    with a thin bottom-border. No per-card chrome, calm scan. */
+/* An empty tab says so, inside the same bordered container the rows would
+   have filled. Muted, not an alert — an empty list is a state, not an error. */
+.emptyTabNote {
+  margin: 0;
+  padding: 28px 20px;
+  text-align: center;
+  font-size: 13.5px;
+  color: #64748b;
+}
+
 .jobRows {
   display: flex;
   flex-direction: column;

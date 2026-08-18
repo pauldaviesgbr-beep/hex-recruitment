@@ -583,6 +583,25 @@ function MyJobsContent() {
     const filtered = postedJobs
       .filter(job => {
         const cat = getJobCategory(job)
+        // ALL MEANS ALL. There was no branch for 'all' here, so it fell
+        // through to `cat === 'default'` — the same set as the Active tab.
+        // 'all' is also the DEFAULT tab, so the landing view of this page
+        // silently hid every advert that had started working: one applicant
+        // reaching interview stage took the role off the only list an
+        // employer would think to look at.
+        //
+        // The badge above already counted postedJobs.length, so the number on
+        // the tab and the rows underneath it were computed from two different
+        // populations. "All Jobs 4" sat above an empty page.
+        //
+        // This ALSO fixes the filled advert, and it has to: 'filled' maps to
+        // category 'hired' in getJobCategory, and the job-row block is
+        // separately gated `activeTab !== 'offers' && !== 'hired'`, so a
+        // filled advert rendered on NO tab at all. Making All mean all is the
+        // one change that reaches it — the alternative, teaching the Hired tab
+        // to render job rows as well as offers, would put the same advert in
+        // two places and leave Hired meaning two things at once.
+        if (activeTab === 'all') return true
         if (activeTab === 'archived') return cat === 'archived'
         if (activeTab === 'hired') return cat === 'hired'
         if (activeTab === 'offers') return cat === 'offers'
@@ -779,8 +798,12 @@ function MyJobsContent() {
                 slot so their text starts at the same x. */}
             <button type="button" role="menuitem" className={styles.kebabItem}
               onClick={(e) => choose(e, () => router.push(`/post-job?edit=${job.id}`))}>
+              {/* "Edit job", not "Manage job". The route and the form are
+                  untouched — only the word changes. Nothing on this page said
+                  "Edit" anywhere, so an employer looking for the obvious verb
+                  found nothing and concluded the control did not exist. */}
               <span className={styles.kebabItemIcon} aria-hidden="true"></span>
-              <span>Manage job</span>
+              <span>Edit job</span>
             </button>
             <button type="button" role="menuitem" className={styles.kebabItem}
               onClick={(e) => choose(e, () => router.push(`/job/${job.id}?from=my-jobs`))}>
@@ -1094,6 +1117,22 @@ function MyJobsContent() {
                   Mobile (<768px) reflows .rowSide below the title via CSS. */}
               {activeTab !== 'offers' && activeTab !== 'hired' && (
                 <div className={styles.jobRows}>
+                  {/* A TAB WITH NOTHING IN IT MUST SAY SO. Half the original
+                      fault was that it did not: "All Jobs 4" sat above a blank
+                      area with no cards and no message, which reads as a page
+                      that failed rather than a list that is empty. The two
+                      cases are told apart deliberately — a search that matched
+                      nothing is the employer's own filter and is fixed by
+                      clearing it; an empty tab is not. */}
+                  {displayJobs.length === 0 && (
+                    <p className={styles.emptyTabNote}>
+                      {myJobsSearch.trim() || myJobsLocationSearch.trim()
+                        ? 'No adverts match your search on this tab.'
+                        : activeTab === 'all'
+                          ? 'No job adverts yet.'
+                          : 'No adverts on this tab. Try All Jobs.'}
+                    </p>
+                  )}
                   {displayJobs.map(job => {
                     const status = getStatusLabel(job.status)
                     const statusClass = job.status === 'active' ? styles.statusActiveGreen : status.className
