@@ -21,7 +21,13 @@ import { chromium } from 'playwright'
 const base = process.argv[2]
 const secret = process.env.VERCEL_AUTOMATION_BYPASS_SECRET
 if (!base) { console.error('usage: node scripts/drive-first-touch-capture.mjs <preview-url>'); process.exit(2) }
-if (!secret) { console.error('SKIP  no VERCEL_AUTOMATION_BYPASS_SECRET in the environment'); process.exit(2) }
+// The secret is only needed for a PREVIEW — production is not SSO-walled.
+// Missing secret + a preview target is a SKIP; production is fine without it.
+const isPreview = base.includes('.vercel.app')
+if (isPreview && !secret) {
+  console.error('SKIP  no VERCEL_AUTOMATION_BYPASS_SECRET and the target is a preview')
+  process.exit(2)
+}
 
 const results = []
 const check = (name, got, want) =>
@@ -34,8 +40,7 @@ const browser = await chromium.launch()
 async function visit({ referer, path = '/', timezoneId }) {
   const ctx = await browser.newContext({
     extraHTTPHeaders: {
-      'x-vercel-protection-bypass': secret,
-      'x-vercel-set-bypass-cookie': 'true',
+      ...(secret ? { 'x-vercel-protection-bypass': secret, 'x-vercel-set-bypass-cookie': 'true' } : {}),
       ...(referer ? { referer } : {}),
     },
     ...(timezoneId ? { timezoneId } : {}),
