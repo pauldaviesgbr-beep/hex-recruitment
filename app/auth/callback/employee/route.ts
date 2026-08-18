@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { safeInternalPath } from '@/lib/safeRedirect'
 import { parseAttrCookie, attributionColumns } from '@/lib/attribution'
-import { countryFromHeaders, parseCountryCookie } from '@/lib/geo'
+import { geoColumnsFromRequest } from '@/lib/geo'
 import { applyDuplicateHold } from '@/lib/applyDuplicateHold'
 
 function getOrigin(req: NextRequest): string {
@@ -100,8 +100,13 @@ export async function GET(request: NextRequest) {
   // Header first, cookie as the fallback: this runs on the server and the edge
   // has already resolved the country, but /auth/callback/* is excluded from
   // middleware so the cookie may be the only carrier on this request.
+  //
+  // The TIMEZONE comes off the cookie only — there is no header for it and no
+  // browser on this request. It is set by FirstTouchCapture on the first page
+  // they ever loaded, so it is present whenever they reached us through the
+  // site and absent when they were deep-linked straight into an OAuth flow.
   const attr = parseAttrCookie(request.headers.get('cookie'))
-  const country = countryFromHeaders(request.headers) || parseCountryCookie(request.headers.get('cookie'))
+  const geo = geoColumnsFromRequest(request.headers)
 
   // INSERT-ONLY, like is_discoverable above and for the same reason: this
   // upsert runs on EVERY OAuth login. Writing attribution on each one would
@@ -112,7 +117,7 @@ export async function GET(request: NextRequest) {
     : {
         is_discoverable: true,
         ...(attr ? attributionColumns(attr) : {}),
-        ...(country ? { signup_country: country } : {}),
+        ...geo,
       }
 
   await admin.from('candidate_profiles').upsert(

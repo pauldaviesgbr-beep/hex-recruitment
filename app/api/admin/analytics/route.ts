@@ -45,20 +45,39 @@ function getStartDate(range: string): string {
   }
 }
 
+type Basis = 'tag' | 'self-reported' | 'referrer' | 'unknown'
+
 function aggregateSources(rows: any[] | null) {
-  const bySource: Record<string, { source: string; count: number; refs: Record<string, number> }> = {}
+  const bySource: Record<string, {
+    source: string; count: number; refs: Record<string, number>; basis: Record<Basis, number>
+  }> = {}
   ;(rows || []).forEach((r: any) => {
     const source = (r.signup_source || 'unknown') as string
-    if (!bySource[source]) bySource[source] = { source, count: 0, refs: {} }
+    if (!bySource[source]) {
+      bySource[source] = {
+        source, count: 0, refs: {},
+        basis: { tag: 0, 'self-reported': 0, referrer: 0, unknown: 0 },
+      }
+    }
     bySource[source].count++
     const ref = (r.signup_ref || r.utm_source) as string | null
     if (ref) bySource[source].refs[ref] = (bySource[source].refs[ref] || 0) + 1
+    // HOW WE KNOW, CARRIED ALONGSIDE. Null on every row that predates the
+    // column, and null is reported as 'unknown' rather than assumed to be a
+    // tag — the old rows genuinely were never asked this question.
+    const b = (r.signup_source_basis || 'unknown') as Basis
+    if (b in bySource[source].basis) bySource[source].basis[b]++
+    else bySource[source].basis.unknown++
   })
   return Object.values(bySource)
     .map(s => ({
       source: s.source,
       count: s.count,
       refs: Object.entries(s.refs).map(([ref, count]) => ({ ref, count })).sort((a, b) => b.count - a.count),
+      basis: s.basis,
+      // The share of this channel's count we were TOLD rather than inferred.
+      // A channel that is 100% referrer is a hypothesis, not a result.
+      declared: s.basis.tag + s.basis['self-reported'],
     }))
     .sort((a, b) => b.count - a.count)
 }
@@ -86,7 +105,12 @@ export async function GET(req: Request) {
     // Columns taken from information_schema, not from memory: PostgREST rejects
     // the WHOLE request when a select names a column that does not exist, and
     // tsc offers no protection on column names.
-    const cols = 'signup_source, signup_ref, utm_source, created_at'
+    // Widened 18 Aug 2026 with signup_source_basis and referrer_host, both
+    // confirmed present on BOTH tables against information_schema.columns
+    // first — the company_website incident is why: PostgREST rejects the whole
+    // request over one bad name and the route then fails as if there were no
+    // data, which reads like an empty page rather than an error.
+    const cols = 'signup_source, signup_source_basis, referrer_host, signup_ref, utm_source, created_at'
     const [cands, emps] = await Promise.all([
       db.from('candidate_profiles').select(cols)
         .gte('created_at', startDate).eq('is_test', false).eq('is_house', false),
