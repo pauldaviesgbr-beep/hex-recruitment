@@ -23,7 +23,7 @@
     "emails:prove": "npx tsx scripts/render-activation-emails.ts",
     "webpush:prove": "npx tsx scripts/prove-webpush.ts",
     "push:prove": "npx tsx scripts/prove-push-state.ts",
-    "attribution:prove": "node scripts/prove-attribution.mjs"
+    "firsttouch:prove": "node scripts/prove-first-touch.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.98.0",

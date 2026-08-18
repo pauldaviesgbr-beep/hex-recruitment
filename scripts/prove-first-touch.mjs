@@ -35,6 +35,9 @@ import {
   captureFromSearch, getStoredAttribution, normalizeSource, sourceBasis,
   attributionColumns, externalReferrerHost, channelFromReferrer,
 } from ${JSON.stringify(pathToFileURL(join(process.cwd(), 'lib', 'attribution.ts')).href)}
+import {
+  geoColumnsFromRequest, normalizeTimezone, parseTimezoneCookie,
+} from ${JSON.stringify(pathToFileURL(join(process.cwd(), 'lib', 'geo.ts')).href)}
 
 let cookieJar = ''
 const store = new Map<string, string>()
@@ -136,6 +139,40 @@ record('columns from nothing', () => attributionColumns(null), {
   heard_from: null, referrer_host: null,
   signup_source: 'unknown', signup_source_basis: 'unknown',
 })
+
+// ── THE SERVER SIDE, which is the half that actually writes the row ───────
+//
+// The browser drive (scripts/drive-first-touch-capture.mjs) proves the
+// cookies get SET. Nothing there proves they are READ: the OAuth callbacks
+// run on the server with no browser, and geoColumnsFromRequest is the only
+// thing standing between a correctly-set cookie and a null column. It was
+// entirely unchecked until this section — the same shape as the OAuth
+// attribution hole itself, which was code that simply never ran.
+const headers = (h: Record<string, string>) => ({ get: (n: string) => h[n.toLowerCase()] ?? null })
+
+record('server reads both cookies', () => geoColumnsFromRequest(headers({
+  cookie: 'thrive_country=AU; thrive_tz=Australia%2FSydney; other=x',
+})), { signup_country: 'AU', signup_timezone: 'Australia/Sydney' })
+
+// The edge header must WIN over a stale cookie — someone who first visited
+// from the UK and is now in Dubai should record Dubai.
+record('edge header beats the cookie', () => geoColumnsFromRequest(headers({
+  'x-vercel-ip-country': 'AE', cookie: 'thrive_country=GB',
+})).signup_country, 'AE')
+
+// NOTHING, not nulls. An explicit null would overwrite a real value on a row
+// that already exists — the reason countryColumns returns an empty object.
+record('no signal writes no columns', () => geoColumnsFromRequest(headers({})), {})
+record('local dev writes no country', () =>
+  geoColumnsFromRequest(headers({ cookie: 'thrive_tz=Europe%2FLondon' })), { signup_timezone: 'Europe/London' })
+
+// A zone that is not Region/City shaped is treated as absent rather than
+// stored, because \`at time zone <garbage>\` raises in Postgres.
+record('garbage zone rejected', () => normalizeTimezone('DROP TABLE'), null)
+record('abbreviation rejected', () => normalizeTimezone('BST'), null)
+record('real zone accepted', () => normalizeTimezone('America/Los_Angeles'), 'America/Los_Angeles')
+record('three-part zone accepted', () => normalizeTimezone('America/Argentina/Salta'), 'America/Argentina/Salta')
+record('no cookie, no zone', () => parseTimezoneCookie(null), null)
 
 console.log(JSON.stringify(out))
 `)
