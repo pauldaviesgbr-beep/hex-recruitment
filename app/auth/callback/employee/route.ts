@@ -2,6 +2,8 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { safeInternalPath } from '@/lib/safeRedirect'
+import { parseAttrCookie, attributionColumns } from '@/lib/attribution'
+import { countryFromHeaders, parseCountryCookie } from '@/lib/geo'
 import { applyDuplicateHold } from '@/lib/applyDuplicateHold'
 
 function getOrigin(req: NextRequest): string {
@@ -88,6 +90,31 @@ export async function GET(request: NextRequest) {
     .eq('user_id', user.id)
     .maybeSingle()
 
+  // WHERE THEY CAME FROM, AND WHERE FROM. This route was the hole: it is the
+  // GOOGLE and LINKEDIN path, it creates the candidate profile, and it wrote
+  // neither attribution nor country — so every OAuth signup landed with both
+  // null while the email/magic-link path (lib/authCallback.ts) recorded them
+  // correctly. Found on 18 Aug when the first signup after the country deploy
+  // came in via Google with no country.
+  //
+  // Header first, cookie as the fallback: this runs on the server and the edge
+  // has already resolved the country, but /auth/callback/* is excluded from
+  // middleware so the cookie may be the only carrier on this request.
+  const attr = parseAttrCookie(request.headers.get('cookie'))
+  const country = countryFromHeaders(request.headers) || parseCountryCookie(request.headers.get('cookie'))
+
+  // INSERT-ONLY, like is_discoverable above and for the same reason: this
+  // upsert runs on EVERY OAuth login. Writing attribution on each one would
+  // overwrite the channel that originally found them with wherever they
+  // happened to be today, and first-touch is the whole point of attribution.
+  const firstTouchCols = existingProfile
+    ? {}
+    : {
+        is_discoverable: true,
+        ...(attr ? attributionColumns(attr) : {}),
+        ...(country ? { signup_country: country } : {}),
+      }
+
   await admin.from('candidate_profiles').upsert(
     {
       user_id: user.id,
@@ -95,7 +122,7 @@ export async function GET(request: NextRequest) {
       email: user.email || '',
       // New candidates are discoverable by default, and are told so on the
       // welcome screen they land on next.
-      ...(existingProfile ? {} : { is_discoverable: true }),
+      ...firstTouchCols,
     },
     { onConflict: 'user_id', ignoreDuplicates: false }
   )

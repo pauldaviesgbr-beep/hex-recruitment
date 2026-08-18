@@ -5,6 +5,8 @@ import { FREE_FOUNDING_MODE } from '@/lib/constants/cohort'
 import { provisionFoundingEmployer } from '@/lib/foundingSignup'
 import type { EmailClass } from '@/lib/emailDomains'
 import { safeInternalPath } from '@/lib/safeRedirect'
+import { parseAttrCookie, attributionColumns } from '@/lib/attribution'
+import { countryFromHeaders, parseCountryCookie } from '@/lib/geo'
 
 function getOrigin(req: NextRequest): string {
   const proto = req.headers.get('x-forwarded-proto') || 'https'
@@ -117,6 +119,24 @@ export async function GET(request: NextRequest) {
         contactName: displayName,
         metadataClass: user.user_metadata?.email_domain_class as EmailClass | undefined,
         siteUrl,
+        // THE SAME HOLE AS THE CANDIDATE OAUTH ROUTE. This call omitted
+        // `attribution` entirely, so every employer who signed up through
+        // Google or LinkedIn recorded no channel and no country — while the
+        // email path through lib/authCallback.ts passed both. Ricci's two
+        // accounts are the worked example: Google and LinkedIn, both blank.
+        //
+        // Only sent when there is something to send. provisionFoundingEmployer
+        // spreads this straight into an upsert, and an explicit null would
+        // overwrite a real value on a returning user with a guess.
+        attribution: (() => {
+          const attr = parseAttrCookie(request.headers.get('cookie'))
+          const country =
+            countryFromHeaders(request.headers) || parseCountryCookie(request.headers.get('cookie'))
+          return {
+            ...(attr ? attributionColumns(attr) : {}),
+            ...(country ? { signup_country: country } : {}),
+          }
+        })(),
       })
     } else {
       // Returning user — read current approval status to route correctly.
