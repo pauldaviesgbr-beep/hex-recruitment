@@ -92,8 +92,24 @@ export default function CandidateActivityInsight() {
         <h2 className={styles.title}>When candidates are looking</h2>
         {/* NOT "UK time" as a literal any more. It was true of every employer
             and stops being true the moment one signs up abroad — and a chart
-            that says UK while showing another zone is worse than no label. */}
-        <p className={styles.meta}>{zoneLabel} · all candidates on Thrive</p>
+            that says UK while showing another zone is worse than no label.
+
+            AND IT SAYS THE DATE RANGE DOES NOT APPLY. This panel sits directly
+            under the 7/30/90-day buttons and ignores them: it is a
+            platform-wide total across every candidate, with no date parameter
+            at all. Reported as "the filters don't change the data", and the
+            filters are not broken — this is the only populated panel on the
+            tab, so it is the one an employer watches when they press them.
+
+            LABELLED RATHER THAN FILTERED, deliberately. Making it obey the
+            range was the obvious alternative and is the wrong one at this
+            size: 68 sign-ins sliced to seven days is four or five events, and
+            a seven-band chart of that always has a tallest bar. An employer
+            would plan around noise. A control that visibly governs nothing is
+            a smaller fault than a chart that invents a pattern. */}
+        <p className={styles.meta}>
+          {zoneLabel} · all candidates on Thrive · not affected by the date range above
+        </p>
       </div>
 
       <ul className={styles.bars}>
