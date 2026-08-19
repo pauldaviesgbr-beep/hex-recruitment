@@ -59,3 +59,7 @@ token.json
 # one-off codemod scratch
 .surface.js
 scripts/tmp-*
+
+# Operator report — regenerated on demand, never committed.
+THRIVE-REPORT*.md
+THRIVE-REPORT*.txt

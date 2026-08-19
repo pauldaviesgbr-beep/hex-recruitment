@@ -294,6 +294,12 @@ export default function CVBuilderPage() {
         .update({ cv_url: fileUrl, cv_file_name: file.name })
         .eq('user_id', userId)
 
+      // PHASE 1: read the CV in the background. Nothing consumes the result
+      // yet. Fire and forget on purpose — the upload has already succeeded, and
+      // a parsing failure must never surface to the candidate as though their
+      // CV did not upload, because it did.
+      fetch('/api/candidate/parse-cv', { method: 'POST' }).catch(() => {})
+
       setUploadMode('build')
     } catch (err: any) {
       setUploadError(err.message || 'Upload failed. Please try again.')
