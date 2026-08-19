@@ -118,24 +118,45 @@ async function run(width, height, tag) {
   check(`${tag} kebab no longer says "Manage job"`, items.join(' | '),
     !items.some(i => /manage job/i.test(i)))
 
-  // Edit opens the form with THIS job loaded. Navigation only — nothing saved.
-  const firstCardHref = await page.evaluate(() => {
-    const b = document.querySelector('button[aria-label="Job actions"]')
-    return b ? (b.closest('[class*="row"], [class*="Row"]')?.getAttribute('data-job-id') || null) : null
-  })
+  // EDIT MUST NOT NAVIGATE. The whole point of the change is that the employer
+  // stays on the list, so the URL being UNCHANGED is the assertion — not a
+  // detail of it. Nothing is saved: the dialog is opened, read, and cancelled.
+  const urlBefore = page.url()
+  const titleBefore = await page.locator('button[aria-label="Job actions"]').first()
+    .evaluate(b => b.closest('div,li,tr')?.querySelector('strong,h3,h4,a')?.textContent?.trim() || '')
+
   await page.locator('[role="menu"] [role="menuitem"]', { hasText: /^Edit job$/i }).first().click()
-  await page.waitForURL(/\/post-job\?edit=[0-9a-f-]{36}/, { timeout: 30000 })
-  const editUrl = page.url()
-  await page.waitForTimeout(2500)
+  await page.waitForSelector('[role="dialog"][aria-labelledby="quick-edit-title"]', { timeout: 15000 })
   await page.screenshot({ path: `${SHOTS}/${tag}-edit.png` })
-  const editBody = await page.evaluate(() => document.body.innerText || '')
-  check(`${tag} "Edit job" opens /post-job?edit=<uuid>`, editUrl.replace(BASE, ''),
-    /\/post-job\?edit=[0-9a-f-]{36}/.test(editUrl))
-  check(`${tag} edit form is not an empty shell`, `chars=${editBody.length}`,
-    editBody.length > 500 && !/^\s*Loading/m.test(editBody))
+
+  check(`${tag} "Edit job" stays on /my-jobs (no navigation)`,
+    `${urlBefore.replace(BASE, '')} -> ${page.url().replace(BASE, '')}`,
+    page.url() === urlBefore)
+
+  // Pre-filled from THIS advert, not blank and not someone else's.
+  const filledTitle = await page.inputValue('#qe-title')
+  check(`${tag} dialog is pre-filled with the advert's title`,
+    `card="${titleBefore}" field="${filledTitle}"`,
+    filledTitle.length > 0 && (!titleBefore || titleBefore.includes(filledTitle.slice(0, 12))))
+
+  const hasFields = await page.evaluate(() =>
+    ['#qe-title', '#qe-location', '#qe-min', '#qe-max', '#qe-period', '#qe-desc']
+      .every(s => document.querySelector(s) !== null))
+  check(`${tag} all five editable fields present`, `allPresent=${hasFields}`, hasFields)
+
+  // The full editor is still reachable from inside the dialog.
+  const fullHref = await page.getAttribute('[role="dialog"] a[href^="/post-job?edit="]', 'href')
+  check(`${tag} full editor still linked`, String(fullHref),
+    /^\/post-job\?edit=[0-9a-f-]{36}$/.test(fullHref || ''))
+
+  // Cancel — nothing written.
+  await page.locator('[role="dialog"] button', { hasText: /^Cancel$/ }).click()
+  await page.waitForSelector('[role="dialog"][aria-labelledby="quick-edit-title"]', { state: 'detached', timeout: 10000 })
+  check(`${tag} cancel closes the dialog and stays put`, page.url().replace(BASE, ''),
+    page.url() === urlBefore)
 
   await ctx.close()
-  return { firstCardHref }
+  return {}
 }
 
 let failure = null

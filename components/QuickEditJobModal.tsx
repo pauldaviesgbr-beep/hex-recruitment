@@ -104,7 +104,10 @@ export default function QuickEditJobModal({ job, onSave, onCancel, fullEditHref 
     display: 'block', fontSize: 12.5, fontWeight: 600, color: '#334155', marginBottom: 4,
   }
   const input = (field: keyof QuickEditValues): React.CSSProperties => ({
-    width: '100%', padding: '0.55rem 0.7rem', fontSize: 14,
+    // fontFamily: inherit because a <textarea> defaults to MONOSPACE while a
+    // sibling <input> does not — so the description rendered in Courier next to
+    // four fields in the site face. Nothing was broken; it just looked unfinished.
+    width: '100%', padding: '0.55rem 0.7rem', fontSize: 14, fontFamily: 'inherit',
     border: `1px solid ${errorField === field ? '#dc2626' : '#e2e8f0'}`,
     borderRadius: 8, background: '#fff', color: '#0f172a',
   })

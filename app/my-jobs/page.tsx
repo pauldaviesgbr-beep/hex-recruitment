@@ -680,7 +680,19 @@ function MyJobsContent() {
         // one change that reaches it — the alternative, teaching the Hired tab
         // to render job rows as well as offers, would put the same advert in
         // two places and leave Hired meaning two things at once.
-        if (activeTab === 'all') return true
+        // ALL = EVERYTHING YOU ARE STILL MANAGING. Archived is excluded, and
+        // that exclusion is the whole reason "Remove ad" reads as removing
+        // something: the first version of this fix returned `true` here, so an
+        // archived advert stayed in the list and the button appeared to do
+        // nothing at all. Reported immediately — "Remove ad needs to remove
+        // from page" — and it was right.
+        //
+        // Archived is not hidden, it is FILED: its own tab, with Reactivate and
+        // Repost on every row. The distinction that matters is between adverts
+        // you are working on and adverts you have put away, not between live
+        // and not-live — which is why 'filled' stays here. A filled role is
+        // still yours to look at; an archived one you have deliberately closed.
+        if (activeTab === 'all') return cat !== 'archived'
         if (activeTab === 'archived') return cat === 'archived'
         if (activeTab === 'hired') return cat === 'hired'
         if (activeTab === 'offers') return cat === 'offers'
@@ -755,6 +767,11 @@ function MyJobsContent() {
     const stillHiring = postedJobs.filter(j => getJobCategory(j) === 'default').length
 
     const counts = {
+      // THE 'all' COUNT MUST BE THE SAME POPULATION THE 'all' LIST FILTERS, or
+      // this page is straight back to the original bug: a badge counting one
+      // set above rows drawn from another. It was postedJobs.length, which now
+      // over-counts by however many adverts are archived.
+      all: postedJobs.filter(j => getJobCategory(j) !== 'archived').length,
       active: postedJobs.filter(j => getJobCategory(j) === 'default').length,
       interviewing: postedJobs.filter(j => getJobCategory(j) === 'interviewing').length,
       offers: postedJobs.filter(j => getJobCategory(j) === 'offers').length,
@@ -1057,7 +1074,7 @@ function MyJobsContent() {
                     <span className={styles.filterTabCount}>{viewData.counts[tab.key]}</span>
                   )}
                   {tab.key === 'all' && (
-                    <span className={styles.filterTabCount}>{postedJobs.length}</span>
+                    <span className={styles.filterTabCount}>{viewData.counts.all}</span>
                   )}
                 </button>
               ))}
