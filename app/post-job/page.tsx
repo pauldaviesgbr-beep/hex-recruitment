@@ -1326,7 +1326,19 @@ function PostJobContent() {
         venue: formData.venue.trim() || undefined,
         workLocationType: formData.workLocationType,
       } as any)
-      router.push(`/jobs/${publishedJobId}`)
+      // SINGULAR. /jobs/<uuid> matched the /jobs/[city] segment, cityInfo came
+      // back undefined for a uuid, and app/jobs/[city]/page.tsx called
+      // notFound() — so the last click of posting a job landed the employer on
+      // a page titled "City Not Found".
+      //
+      // THE ADVERT WAS ALREADY LIVE by then: publishing happens at the step 1→2
+      // boundary, so this handler only saves the extras. That is what made it
+      // dangerous rather than merely broken — the employer sees a 404, concludes
+      // the post failed, and posts again. Across a batch of roles that is a
+      // board full of duplicates, which is the first thing an agency notices.
+      //
+      // Reported 19 Aug 2026 after posting a real advert on production.
+      router.push(`/job/${publishedJobId}`)
     } catch (err: any) {
       // The ad is already live, so a failure here loses the extras, not the ad.
       // Say that, rather than letting it read as "the post failed".
