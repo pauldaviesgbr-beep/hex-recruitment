@@ -30,6 +30,7 @@ import SignedImage from '@/components/SignedImage'
 import CandidateCard from '@/components/CandidateCard'
 import ProfileNudge from '@/components/ProfileNudge'
 import HeardFromPrompt from '@/components/HeardFromPrompt'
+import ConfirmCvSkillsPrompt from '@/components/ConfirmCvSkillsPrompt'
 import { STAGE_COLORS } from '@/lib/constants/pipelineStages'
 // The SAME component the employer dashboard uses, with a different sentence
 // table — which is what item 1 was built as table-plus-presentation for.
@@ -748,6 +749,11 @@ export default function DashboardPage() {
             dismissed. The pairing is deliberate: the dropdown was the only
             attribution layer that works, so it does not leave signup without
             this. */}
+        {/* Only ever renders for someone whose CV we read and who has NOT
+            already declared skills — so it cannot compete with HeardFromPrompt
+            for the same person on the same visit in the common case, and it
+            disappears for good once answered or dismissed. */}
+        <ConfirmCvSkillsPrompt />
         <HeardFromPrompt />
 
         <div className={styles.grid}>
