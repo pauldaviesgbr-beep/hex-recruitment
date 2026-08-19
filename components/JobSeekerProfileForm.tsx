@@ -1134,6 +1134,12 @@ export default function JobSeekerProfileForm({ mode, existingData, userId }: Job
 
         if (updateError) throw updateError
 
+        // PHASE 1: read the CV in the background, ONLY when one was uploaded on
+        // this save. Nothing consumes the result yet. Fire and forget — the
+        // profile has already saved, and a parse failure must not read to the
+        // candidate as a failed save.
+        if (cvUrl) fetch('/api/candidate/parse-cv', { method: 'POST' }).catch(() => {})
+
         // Preferred areas are saved through their own route, not folded into
         // updateData above: that column decides which jobs the candidate sees
         // and which digest emails they get, so it has a single owned writer

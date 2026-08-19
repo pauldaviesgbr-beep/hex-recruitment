@@ -86,6 +86,16 @@ const ALL = [
   // only thing between a correctly-set cookie and a null column.
   // No database, no network — milliseconds, so it runs in the fast tier.
   { name: 'firsttouch:prove', cmd: process.execPath, args: [path.join(ROOT, 'scripts', 'prove-first-touch.mjs')] },
+  // The hospitality vocabulary (lib/cvVocabulary.ts) is the reusable asset of
+  // CV parsing, and its failure mode is SILENT: a lookalike character or a
+  // shortest-first match returns the WRONG role rather than an error. Both
+  // were caught while writing it — a Cyrillic 'о' inside a skill term, and
+  // accented aliases that could never match because only the input side was
+  // folded, so "maître d" became "ma tre d". Neither would have thrown.
+  //
+  // Every case is a pair that must come out different: senior sous against
+  // sous, accented against plain. Milliseconds, no network, no database.
+  { name: 'cvvocab:prove', cmd: process.execPath, args: [path.join(ROOT, 'scripts', 'prove-cv-vocabulary.mjs')] },
 ]
 const CHECKS = FAST ? ALL.filter(c => !c.slow) : ALL
 
