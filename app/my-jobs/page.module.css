@@ -192,59 +192,101 @@
   .cardGrid { grid-template-columns: 1fr; }
 }
 
-/* Card plus its tool bar are ONE unit. The bar is welded to the bottom edge of
-   the card (FeedCard's `attached`), so they must not be separated by the grid
-   gap or lifted apart on hover. */
+/* The card is the whole unit — nothing is welded underneath it any more. This
+   wrapper exists ONLY so the ⋯ can be laid over the card: .jobCard is
+   overflow:hidden for the photo, so a menu opened inside it would be clipped. */
 .cardUnit {
-  display: flex;
-  flex-direction: column;
+  position: relative;
   min-width: 0;
 }
 
-.cardTools {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  /* CONTROLS WRAP. Never overflow-x — a tool that slides off the edge of a
-     card has no affordance at all. */
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  padding: 0.6rem 0.75rem;
-  background: var(--rs-bg-surface, var(--white));
-  border: 1px solid var(--rs-border, var(--border-gray));
-  border-top: none;
-  border-radius: 0 0 12px 12px;
+/* WHERE THE BOARD PUTS THE BOOKMARK. Same corner, same size, same z-index — an
+   employer's card and a candidate's card put their one control in the same
+   place. z-index above the retired wash so it stays reachable on a filled ad. */
+.cardKebab {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 4;
 }
 
-.cardToolBtns {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 0.4rem;
+/* THE BUTTON WAS DRESSED FOR A WHITE ROW AND IS NOW ON A PHOTOGRAPH.
+   .kebabBtn is transparent with a muted grey glyph and a light-grey hover —
+   which on a dark banner is grey-on-dark that half the photos would swallow,
+   and a hover state that looks like a rendering fault. Matched to the board's
+   own overlay control instead: translucent dark disc, white glyph, the same
+   34px the bookmark uses. */
+.cardKebab .kebabBtn {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: rgba(10, 22, 40, 0.55);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #fff;
 }
 
-.cardToolBtn {
-  padding: 0.35rem 0.7rem;
-  border-radius: 8px;
-  border: 1px solid var(--rs-border, #e2e8f0);
-  background: #fff;
-  color: #0f172a;
-  font-size: 0.78rem;
+.cardKebab .kebabBtn:hover,
+.cardKebab .kebabBtn[aria-expanded="true"] {
+  background: rgba(10, 22, 40, 0.85);
+  border-color: rgba(255, 255, 255, 0.4);
+  color: #fff;
+}
+
+/* THE MENU IS CENTRED ON THE TRIGGER, WHICH WORKED IN THE MIDDLE OF A ROW AND
+   DOES NOT 12px FROM A CARD'S RIGHT EDGE: 200px centred on a 34px button puts
+   ~80px past the card, and at 390 that is past the viewport. Right-aligned to
+   the trigger instead, so it opens INTO the card. */
+.cardKebab .kebabMenu {
+  left: auto;
+  right: 0;
+  transform: none;
+  z-index: 20;
+}
+
+/* WHERE THE BOARD PUTS "Applied ✓" — the slot already meaning "how many people".
+   Clickable, because the number IS the way into the pipeline; the whole card
+   goes to the same place, so this is a shortcut rather than the only route. */
+.cardAppsBadge {
+  position: absolute;
+  top: 14px;
+  right: 56px;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(10, 22, 40, 0.55);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  color: #fff;
+  font-size: 11.5px;
   font-weight: 600;
   cursor: pointer;
-  /* 36 rather than 44: these sit inside a card, several to a row, and a 44px
-     control bar would out-weigh the advert it belongs to. Still comfortably
-     above the 24px minimum and separated by real gaps. */
-  min-height: 36px;
 }
 
-.cardToolBtn:hover { border-color: #cbd5e1; background: #f8fafc; }
+.cardAppsBadge:hover { background: rgba(10, 22, 40, 0.8); }
 
-/* Stamps laid over the card photo. Dark plate rather than a tint, so they stay
-   legible on a light banner and a dark one alike — a stamp that disappears on
-   half the images is worse than no stamp. */
+/* The word drops below the card's own breakpoint — the count and the arrow
+   still say what it is, and two cards side by side at 390 have no room for
+   "applications" spelled out. */
+@media (max-width: 520px) {
+  .cardAppsWord { display: none; }
+}
+
+/* The stamp row UNDER "New", which is where the board already stacks a second
+   badge. Dark plate rather than a tint so it stays legible on a light banner
+   and a dark one alike — a stamp that vanishes on half the photos is worse
+   than no stamp. */
 .cardStampInfo,
 .cardStampHired {
+  position: absolute;
+  top: 48px;
+  left: 14px;
+  z-index: 3;
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -256,7 +298,8 @@
   color: #fff;
 }
 
-.cardStampHired { background: rgba(22, 101, 52, 0.9); }
+/* Hired sits below interview when both are present, rather than on top of it. */
+.cardStampHired { top: 78px; background: rgba(22, 101, 52, 0.9); }
 
 .jobRow {
   display: flex;

@@ -1261,17 +1261,30 @@ function MyJobsContent() {
                           model={cardModelFromPostedJob(job)}
                           onSelect={goToApps}
                           boosted={isBoosted}
-                          // The tools sit in a panel joined to the bottom edge,
-                          // so the card must stop behaving like a free tile —
-                          // square corners and no hover lift, or it slides away
-                          // from the panel welded beneath it.
-                          attached
                           // AN ADVERT THAT IS NO LONGER LIVE SAYS SO ON THE
                           // PHOTO, not in a pill the eye skips. Same treatment
                           // the board gives a filled shift: the image recedes
                           // and the WORD does the telling.
                           retired={isLive ? undefined : { label: status.label.toUpperCase() }}
+                          // EVERY OVERLAY SITS IN A SLOT THE BOARD ALREADY USES,
+                          // so an employer's card and a candidate's card put the
+                          // same kind of thing in the same place:
+                          //   applications  where the board puts "Applied ✓"
+                          //   interview/hired  the stamp row under "New"
+                          //   the ⋯ menu    where the board puts the bookmark
                           stamps={<>
+                            <button
+                              type="button"
+                              className={styles.cardAppsBadge}
+                              onClick={(e) => { e.stopPropagation(); goToApps() }}
+                              aria-label={`${job.applicationCount} ${job.applicationCount === 1 ? 'application' : 'applications'}`}
+                            >
+                              <strong>{job.applicationCount}</strong>
+                              <span className={styles.cardAppsWord}>
+                                {job.applicationCount === 1 ? 'application' : 'applications'}
+                              </span>
+                              <span aria-hidden="true">→</span>
+                            </button>
                             {interviewMeta && (
                               <span className={styles.cardStampInfo}>
                                 <Ico name="calendar" size={16} /> {formatInterviewDate(interviewMeta.date, interviewMeta.time)}
@@ -1283,62 +1296,23 @@ function MyJobsContent() {
                           </>}
                         />
 
-                        <div className={styles.cardTools}>
-                          <button
-                            type="button"
-                            className={styles.applicationsPill}
-                            onClick={(e) => { e.stopPropagation(); goToApps() }}
-                            aria-label={`${job.applicationCount} ${job.applicationCount === 1 ? 'application' : 'applications'}`}
-                          >
-                            <strong>{job.applicationCount}</strong>
-                            {' '}
-                            <span className={styles.appCountWord}>
-                              {job.applicationCount === 1 ? 'application' : 'applications'}
-                            </span>
-                            <span className={styles.appCountWordShort}>apps</span>
-                            <span className={styles.applicationsPillArrow} aria-hidden="true">→</span>
-                          </button>
+                        {/* EVERY TOOL BEHIND THE ⋯, IN THE CARD'S TOP CORNER.
+                            An earlier version put Edit and Remove in a bar
+                            welded under the card. That defeated the brief:
+                            the point is that this looks like the advert on the
+                            board, and a board card with furniture bolted
+                            underneath does not. It also split the tools across
+                            two places — some visible, some in the menu — so
+                            there were two places to look for one kind of thing.
 
-                          {/* THE TOOLS ARE ON THE CARD NOW, not behind a
-                              three-dot menu. Edit is the one an employer
-                              reaches for weekly and it was two clicks and a
-                              guess away. The kebab stays for the rest — view
-                              the public advert, analytics, boost, repost —
-                              because a row of six buttons per card is its own
-                              kind of unusable.
-
-                              Remove is ACTIVE-ONLY and Reactivate is its
-                              opposite, exactly as in the menu: offering Remove
-                              on an advert already off the board is a control
-                              that appears to do something and does nothing. */}
-                          <div className={styles.cardToolBtns}>
-                            <button
-                              type="button"
-                              className={styles.cardToolBtn}
-                              onClick={(e) => { e.stopPropagation(); setEditTarget(job) }}
-                            >
-                              Edit
-                            </button>
-                            {isLive && canManageJobs && (
-                              <button
-                                type="button"
-                                className={styles.cardToolBtn}
-                                onClick={(e) => { e.stopPropagation(); setRemoveTarget(job) }}
-                              >
-                                Remove ad
-                              </button>
-                            )}
-                            {(job.status === 'archived' || job.status === 'filled') && (
-                              <button
-                                type="button"
-                                className={styles.cardToolBtn}
-                                onClick={(e) => { e.stopPropagation(); handleReactivateJob(job.id) }}
-                              >
-                                Reactivate
-                              </button>
-                            )}
-                            {renderKebab(job, isBoosted)}
-                          </div>
+                            RENDERED HERE RATHER THAN IN FeedCard's `controls`
+                            SLOT, and that is not a style choice: .jobCard is
+                            `overflow: hidden` for the photo, so a dropdown
+                            opened inside it is CLIPPED. The button is laid over
+                            the card from the wrapper, which does not clip, so
+                            the menu can escape. */}
+                        <div className={styles.cardKebab}>
+                          {renderKebab(job, isBoosted)}
                         </div>
                       </div>
                     )
