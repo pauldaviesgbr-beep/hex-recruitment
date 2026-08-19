@@ -192,9 +192,29 @@
   transition: all 0.2s;
 }
 
-.dateFilterBtn:hover {
-  border-color: #cbd5e1;
-  color: #1e293b;
+/* TWO GUARDS, BECAUSE THIS RULE MADE THE SELECTED PILL UNREADABLE.
+ *
+ * It set `color: #1e293b` — the exact navy that .dateFilterBtnActive uses as
+ * its BACKGROUND — and `.dateFilterBtn:hover` (0,2,0) outranks
+ * .dateFilterBtnActive (0,1,0), so hovering the selected pill repainted its
+ * label the same colour as the pill. Measured, not argued:
+ * rgb(30,41,59) on rgb(30,41,59).
+ *
+ * :not() KEEPS THE HOVER OFF THE SELECTED PILL. A selected control does not
+ * need a hover affordance — it is already where you are.
+ *
+ * @media (hover: hover) IS THE HALF THAT FIXES THE PHONE, and the phone is
+ * where this was found. A touch device has no pointer to leave, so :hover
+ * STICKS after a tap: on desktop the label came back when the mouse moved
+ * away, on a phone it stayed invisible until you tapped somewhere else.
+ * Reported 18 Aug 2026 as "the tabs completely black out when you click on
+ * them", which is exactly what it does.
+ */
+@media (hover: hover) {
+  .dateFilterBtn:not(.dateFilterBtnActive):hover {
+    border-color: #cbd5e1;
+    color: #1e293b;
+  }
 }
 
 .dateFilterBtnActive {
