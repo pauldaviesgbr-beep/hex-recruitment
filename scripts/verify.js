@@ -86,6 +86,19 @@ const ALL = [
   // only thing between a correctly-set cookie and a null column.
   // No database, no network — milliseconds, so it runs in the fast tier.
   { name: 'firsttouch:prove', cmd: process.execPath, args: [path.join(ROOT, 'scripts', 'prove-first-touch.mjs')] },
+  // A REDIRECT TARGET IS A STRING, so tsc cannot see that it is dead and
+  // neither can the build. That has now shipped twice: /register/employer
+  // 404ing after its page was deleted, and the last click of posting a job
+  // landing on a page titled "City Not Found" because /jobs/<uuid> matched the
+  // /jobs/[city] segment.
+  //
+  // TWO CHECKS, because the obvious one PASSES on the second fault — the
+  // plural path does resolve, just to the wrong route. So it also asserts that
+  // an interpolated identifier lands in an id-shaped segment. It reads
+  // next.config redirects as well, or it reports /subscribe as dead, and a
+  // check that cries wolf about a URL that plainly works is one nobody trusts
+  // by the end of the week. Filesystem only, milliseconds, fast tier.
+  { name: 'redirects:prove', cmd: process.execPath, args: [path.join(ROOT, 'scripts', 'prove-redirect-targets.mjs')] },
 ]
 const CHECKS = FAST ? ALL.filter(c => !c.slow) : ALL
 

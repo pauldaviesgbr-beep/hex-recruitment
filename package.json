@@ -24,7 +24,8 @@
     "webpush:prove": "npx tsx scripts/prove-webpush.ts",
     "push:prove": "npx tsx scripts/prove-push-state.ts",
     "firsttouch:prove": "node scripts/prove-first-touch.mjs",
-    "datefilter:prove": "node scripts/prove-datefilter-contrast.mjs"
+    "datefilter:prove": "node scripts/prove-datefilter-contrast.mjs",
+    "redirects:prove": "node scripts/prove-redirect-targets.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.98.0",
