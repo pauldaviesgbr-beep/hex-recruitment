@@ -12,6 +12,7 @@ import { useJobs } from '@/lib/JobsContext' // refreshJobs only — data fetched
 import CompanyLogo from '@/components/CompanyLogo'
 import BoostModal from '@/components/BoostModal'
 import RemoveAdModal from '@/components/RemoveAdModal'
+import QuickEditJobModal, { type QuickEditValues } from '@/components/QuickEditJobModal'
 import { PAID_SURFACES_ENABLED } from '@/lib/paidSurfaces'
 import { RowInlineFields } from '@/components/RowInlineFields'
 import { MoreHorizontal } from 'lucide-react'
@@ -76,6 +77,7 @@ function MyJobsContent() {
   // The advert awaiting confirmation, or null. Holds the whole row rather than
   // an id so the dialog can name the advert it is about.
   const [removeTarget, setRemoveTarget] = useState<PostedJob | null>(null)
+  const [editTarget, setEditTarget] = useState<PostedJob | null>(null)
   const [loading, setLoading] = useState(true)
   const [postedJobs, setPostedJobs] = useState<PostedJob[]>([])
   const [appliedJobs, setAppliedJobs] = useState<AppliedJob[]>([])
@@ -526,6 +528,83 @@ function MyJobsContent() {
   //
   // Throws on failure rather than alert()-ing: the modal keeps itself open and
   // shows the message, so a failure cannot be mistaken for a success the way a
+  // SAVE AN INLINE EDIT, AND MEASURE THAT IT LANDED.
+  //
+  // Both filters are load-bearing. `id` is the advert; `employer_id` is the
+  // caller's own owner id, resolved the same way the list itself resolves it —
+  // with that pinned, another employer's id is not merely unlikely to match,
+  // it is unmatched. RLS says the same thing underneath, and this is the belt
+  // to its braces.
+  //
+  // .select() makes the row count a MEASUREMENT rather than a hope. Supabase
+  // returns success with zero rows when a policy refuses the UPDATE while
+  // allowing the SELECT — which is exactly a team member without manage_jobs —
+  // and without this the dialog would close on a write that never happened.
+  const handleQuickEditSave = async (jobId: string, values: QuickEditValues) => {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) throw new Error('Your session has expired. Please sign in again.')
+    const ownerId = (await getCurrentEmployerOwnerId(supabase)) ?? session.user.id
+
+    const { data, error } = await supabase
+      .from('jobs')
+      .update({
+        title: values.title,
+        location: values.location,
+        salary_min: values.salaryMin,
+        salary_max: values.salaryMax,
+        salary_type: values.salaryPeriod === 'hour' ? 'hourly' : 'annual',
+        description: values.description,
+      })
+      .eq('id', jobId)
+      .eq('employer_id', ownerId)
+      .select('id')
+
+    if (error) throw new Error(error.message)
+    if (!data || data.length === 0) {
+      throw new Error('That did not save — you may not have permission to edit adverts on this account.')
+    }
+
+    // A CHANGED LOCATION MUST RE-RESOLVE THE AREA, or the advert keeps being
+    // matched against the county it used to be in. `area_county` is an ID that
+    // preferred-areas matching keys on, and `area` is printed verbatim beside
+    // the town — move a role from Bath to London and, without this, it stays
+    // filed under Somerset and still says so on the card.
+    //
+    // THE FULL EDITOR DOES NOT DO THIS: /post-job only calls resolve-area
+    // inside its `!isEditMode` branch, so editing a location there has always
+    // left both fields stale. Reported separately — not fixed here, because
+    // that is a change to the posting flow and this is the list. Doing it on
+    // the path being added is not optional though: making location easy to
+    // change is what turns a latent fault into a frequent one.
+    //
+    // Non-blocking and best-effort, exactly as the post path treats it: a null
+    // area never hides a job, so a failure here must not fail the save the
+    // employer just watched succeed.
+    if (values.location !== editTarget?.location) {
+      fetch('/api/jobs/resolve-area', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ jobId }),
+      }).catch(err => console.error('[my-jobs] area resolve failed (non-blocking):', err))
+    }
+
+    // Update the row in place rather than refetching. The list is the thing the
+    // employer is looking at; a full reload would scroll and re-sort under them.
+    setPostedJobs(prev => prev.map(j => j.id === jobId ? {
+      ...j,
+      title: values.title,
+      location: values.location,
+      salaryMin: values.salaryMin,
+      salaryMax: values.salaryMax,
+      salaryPeriod: values.salaryPeriod,
+      description: values.description,
+    } : j))
+    setEditTarget(null)
+  }
+
   // dialog that closes regardless would be.
   const handleRemoveAd = async (job: PostedJob) => {
     const res = await fetch(`/api/jobs/${job.id}/remove`, { method: 'POST' })
@@ -797,11 +876,12 @@ function MyJobsContent() {
                 puts the ⚡ in its slot; everyone else gets an empty
                 slot so their text starts at the same x. */}
             <button type="button" role="menuitem" className={styles.kebabItem}
-              onClick={(e) => choose(e, () => router.push(`/post-job?edit=${job.id}`))}>
-              {/* "Edit job", not "Manage job". The route and the form are
-                  untouched — only the word changes. Nothing on this page said
-                  "Edit" anywhere, so an employer looking for the obvious verb
-                  found nothing and concluded the control did not exist. */}
+              onClick={(e) => choose(e, () => setEditTarget(job))}>
+              {/* Opens a dialog ON THIS PAGE rather than pushing to
+                  /post-job?edit=. Changing a salary used to mean leaving the
+                  list, loading the whole posting wizard, and finding the way
+                  back. The full editor is still reachable, from inside the
+                  dialog — the fast path is added, the complete one is kept. */}
               <span className={styles.kebabItemIcon} aria-hidden="true"></span>
               <span>Edit job</span>
             </button>
@@ -1230,6 +1310,23 @@ function MyJobsContent() {
             applicationCount={removeTarget.applicationCount}
             onCancel={() => setRemoveTarget(null)}
             onConfirm={() => handleRemoveAd(removeTarget)}
+          />
+        )}
+
+        {editTarget && (
+          <QuickEditJobModal
+            job={{
+              id: editTarget.id,
+              title: editTarget.title,
+              location: editTarget.location,
+              salaryMin: editTarget.salaryMin,
+              salaryMax: editTarget.salaryMax,
+              salaryPeriod: editTarget.salaryPeriod,
+              description: editTarget.description,
+            }}
+            onSave={handleQuickEditSave}
+            onCancel={() => setEditTarget(null)}
+            fullEditHref={`/post-job?edit=${editTarget.id}`}
           />
         )}
 
