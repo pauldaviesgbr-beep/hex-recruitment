@@ -11,6 +11,8 @@ import { formatWhen, type TempPost } from '@/lib/tempWork'
 import { useJobs } from '@/lib/JobsContext' // refreshJobs only — data fetched directly from Supabase
 import CompanyLogo from '@/components/CompanyLogo'
 import BoostModal from '@/components/BoostModal'
+import FeedCard from '@/components/FeedCard'
+import { cardModelFromPostedJob } from '@/lib/jobCard'
 import RemoveAdModal from '@/components/RemoveAdModal'
 import QuickEditJobModal, { type QuickEditValues } from '@/components/QuickEditJobModal'
 import { PAID_SURFACES_ENABLED } from '@/lib/paidSurfaces'
@@ -96,11 +98,17 @@ function MyJobsContent() {
   const [myJobsSearch, setMyJobsSearch] = useState('')
   const [myJobsLocationSearch, setMyJobsLocationSearch] = useState('')
   const [openMenuJobId, setOpenMenuJobId] = useState<string | null>(null)
-  // Phase 1: recruiter vs single-company employer drives whether the
-  // per-row company logo shows. Fetched from employer_profiles.is_recruiter
-  // alongside the auth check. Default false (single-company employer →
-  // logo hidden).
-  const [isRecruiter, setIsRecruiter] = useState(false)
+  // THE RECRUITER FLAG IS GONE FROM THIS PAGE, and deliberately.
+  //
+  // It existed to decide whether the dense row showed a company logo: a
+  // multi-client recruiter needs the brand glyph to tell whose advert is
+  // whose; a single-company employer does not, and the row reserved no space
+  // when it was hidden.
+  //
+  // The card shows the logo unconditionally, because THE BOARD DOES. The whole
+  // point of this layout is that an employer sees the advert as a candidate
+  // sees it, and a card that hides the logo for some accounts would be a
+  // different object again — the exact problem the row had.
 
   // Read filter from URL query param (e.g. /my-jobs?filter=interviewing)
   const filterParam = searchParams.get('filter')
@@ -125,15 +133,9 @@ function MyJobsContent() {
         const employerId = (await getCurrentEmployerOwnerId(supabase)) ?? session.user.id
         setCompanyName(company)
 
-        // Recruiter flag — drives the conditional company-logo column on
-        // each row. Multi-client recruiters need to see whose ad is whose;
-        // single-company employers don't.
-        const { data: empProfile } = await supabase
-          .from('employer_profiles')
-          .select('is_recruiter')
-          .eq('user_id', employerId)
-          .maybeSingle()
-        setIsRecruiter(!!empProfile?.is_recruiter)
+        // The is_recruiter read that used to live here went with the flag —
+        // see the note where the state was removed. A query kept alive to feed
+        // nothing is a query someone later has to work out the purpose of.
 
         // Fetch ALL jobs for this employer directly from Supabase (consistent with dashboard)
         const { data: allJobsData } = await supabase
@@ -1213,7 +1215,7 @@ function MyJobsContent() {
                   row click → applications; secondary actions live in the kebab.
                   Mobile (<768px) reflows .rowSide below the title via CSS. */}
               {activeTab !== 'offers' && activeTab !== 'hired' && (
-                <div className={styles.jobRows}>
+                <div className={styles.cardGrid}>
                   {/* A TAB WITH NOTHING IN IT MUST SAY SO. Half the original
                       fault was that it did not: "All Jobs 4" sat above a blank
                       area with no cards and no message, which reads as a page
@@ -1230,83 +1232,86 @@ function MyJobsContent() {
                           : 'No adverts on this tab. Try All Jobs.'}
                     </p>
                   )}
+                  {/* THE ADVERT AS THE CANDIDATE SEES IT, with the employer's
+                      tools welded underneath.
+
+                      This page used to render a dense one-line-per-job row. It
+                      was efficient and it hid the thing being managed: an
+                      employer could not see what their own advert looked like
+                      on the board without opening the public page. The card is
+                      the SAME FeedCard /jobs renders, through the same model
+                      builder, so the two cannot drift — if a badge or a pay
+                      line changes on the board it changes here in the same
+                      commit.
+
+                      DENSITY IS PAID FOR BY THE SEARCH AND THE TABS, which
+                      already exist above. A recruiter with 73 roles filters to
+                      the handful they are working on rather than scrolling all
+                      of them, which is what made the taller card affordable. */}
                   {displayJobs.map(job => {
                     const status = getStatusLabel(job.status)
-                    const statusClass = job.status === 'active' ? styles.statusActiveGreen : status.className
                     const isBoosted = !!jobBoosts[job.id]
                     const interviewMeta = activeTab === 'interviewing' && viewData.nextInterviewMap[job.id]
                       ? viewData.nextInterviewMap[job.id] : null
                     const goToApps = () => router.push(`/my-jobs/${job.id}/applications`)
+                    const isLive = job.status === 'active'
                     return (
-                      <div
-                        key={job.id}
-                        className={styles.jobRow}
-                        role="link"
-                        tabIndex={0}
-                        onClick={goToApps}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' || e.key === ' ') {
-                            e.preventDefault()
-                            goToApps()
-                          }
-                        }}
-                      >
-                        {/* Left cluster — content fields pack tightly with
-                            the em-dash separators sitting between them. No
-                            justify-content slack distribution at row level,
-                            so an absent logo doesn't leave an empty gap. */}
-                        <div className={styles.rowMain}>
-                          {/* Logo column: recruiter accounts manage multiple
-                              companies and need the brand glyph to scan the
-                              list; single-company employers don't. It's a
-                              leading avatar slot (outside the field-join), so
-                              when hidden NO space is reserved. */}
-                          {isRecruiter && (
-                            <CompanyLogo
-                              src={job.companyLogo}
-                              alt={job.company}
-                              className={styles.rowLogo}
-                            />
-                          )}
-                          {/* Inline text built STRUCTURALLY from the present
-                              fields — a separator only ever sits between two
-                              present fields, so an absent venue/location/etc.
-                              can never strand an orphan dash. */}
-                          <RowInlineFields
-                            sepClassName={styles.fieldSep}
-                            fields={[
-                              <h3 key="t" className={styles.rowTitle}>{job.title}</h3>,
-                              job.venue ? <span key="v" className={styles.rowVenue}>{job.venue}</span> : null,
-                              job.location ? <span key="l" className={styles.rowLocation}>{job.location}</span> : null,
-                              interviewMeta ? <span key="i" className={styles.rowInterview}><Ico name="calendar" size={16} /> Interview {formatInterviewDate(interviewMeta.date, interviewMeta.time)}</span> : null,
-                              job.hiredCandidate ? <span key="h" className={styles.rowHired}>✓ Hired {job.hiredCandidate.name}</span> : null,
-                            ]}
-                          />
-                        </div>
+                      <div key={job.id} className={styles.cardUnit}>
+                        <FeedCard
+                          model={cardModelFromPostedJob(job)}
+                          onSelect={goToApps}
+                          boosted={isBoosted}
+                          // AN ADVERT THAT IS NO LONGER LIVE SAYS SO ON THE
+                          // PHOTO, not in a pill the eye skips. Same treatment
+                          // the board gives a filled shift: the image recedes
+                          // and the WORD does the telling.
+                          retired={isLive ? undefined : { label: status.label.toUpperCase() }}
+                          // EVERY OVERLAY SITS IN A SLOT THE BOARD ALREADY USES,
+                          // so an employer's card and a candidate's card put the
+                          // same kind of thing in the same place:
+                          //   applications  where the board puts "Applied ✓"
+                          //   interview/hired  the stamp row under "New"
+                          //   the ⋯ menu    where the board puts the bookmark
+                          stamps={<>
+                            <button
+                              type="button"
+                              className={styles.cardAppsBadge}
+                              onClick={(e) => { e.stopPropagation(); goToApps() }}
+                              aria-label={`${job.applicationCount} ${job.applicationCount === 1 ? 'application' : 'applications'}`}
+                            >
+                              <strong>{job.applicationCount}</strong>
+                              <span className={styles.cardAppsWord}>
+                                {job.applicationCount === 1 ? 'application' : 'applications'}
+                              </span>
+                              <span aria-hidden="true">→</span>
+                            </button>
+                            {interviewMeta && (
+                              <span className={styles.cardStampInfo}>
+                                <Ico name="calendar" size={16} /> {formatInterviewDate(interviewMeta.date, interviewMeta.time)}
+                              </span>
+                            )}
+                            {job.hiredCandidate && (
+                              <span className={styles.cardStampHired}>✓ Hired {job.hiredCandidate.name}</span>
+                            )}
+                          </>}
+                        />
 
-                        {/* Right cluster — status, applications pill, kebab.
-                            Fixed-width side of the row so every row's right
-                            edge lines up regardless of left-side content. */}
-                        <div className={styles.rowAside}>
-                          <span className={`${styles.statusPill} ${statusClass}`}>{status.label}</span>
-                          {/* Applications pill: emphasised clickable
-                              secondary action — quiet blue accent (not
-                              yellow), keeping the single solid-yellow
-                              primary CTA (+ Post New Job) uncompeted-with. */}
-                          <button
-                            type="button"
-                            className={styles.applicationsPill}
-                            onClick={(e) => { e.stopPropagation(); goToApps() }}
-                            aria-label={`${job.applicationCount} ${job.applicationCount === 1 ? 'application' : 'applications'}`}
-                          >
-                            <strong>{job.applicationCount}</strong>
-                            {' '}
-                            <span className={styles.appCountWord}>
-                              {job.applicationCount === 1 ? 'application' : 'applications'}
-                            </span>
-                            <span className={styles.appCountWordShort}>apps</span>
-                            <span className={styles.applicationsPillArrow} aria-hidden="true">→</span>
-                          </button>
+                        {/* EVERY TOOL BEHIND THE ⋯, IN THE CARD'S TOP CORNER.
+                            An earlier version put Edit and Remove in a bar
+                            welded under the card. That defeated the brief:
+                            the point is that this looks like the advert on the
+                            board, and a board card with furniture bolted
+                            underneath does not. It also split the tools across
+                            two places — some visible, some in the menu — so
+                            there were two places to look for one kind of thing.
+
+                            RENDERED HERE RATHER THAN IN FeedCard's `controls`
+                            SLOT, and that is not a style choice: .jobCard is
+                            `overflow: hidden` for the photo, so a dropdown
+                            opened inside it is CLIPPED. The button is laid over
+                            the card from the wrapper, which does not clip, so
+                            the menu can escape. */}
+                        <div className={styles.cardKebab}>
                           {renderKebab(job, isBoosted)}
                         </div>
                       </div>

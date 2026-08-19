@@ -80,6 +80,74 @@ export function formatJobSalary(job: Job): string {
  * The card itself does no formatting and knows nothing about jobs — this is the
  * only place that decides what a job's badges, pay line and location read like.
  */
+/**
+ * THE SAME CARD, SEEN BY THE EMPLOYER WHO POSTED IT.
+ *
+ * /my-jobs used a dense one-line-per-job row. An employer had no idea what
+ * their advert actually looked like to a candidate without opening the public
+ * page — so the page where you manage adverts showed a different object from
+ * the one you were managing.
+ *
+ * THIS REUSES cardModelFromJob's OUTPUT SHAPE ON PURPOSE, and both go through
+ * the same FeedCard. If a badge, a pay line or a banner ever changes on the
+ * board, it changes here in the same commit or the promise breaks silently.
+ * The salary in particular: formatJobSalary exists because there were SEVEN
+ * local copies disagreeing with each other, and a management page with an
+ * eighth would be the worst place for the difference to live.
+ *
+ * WHAT THE EMPLOYER'S VERSION CANNOT KNOW. PostedJob is loaded straight off
+ * `jobs` for one employer and carries no tags, no companyBanner, no
+ * workLocationType and no isRecruiterPosting. Rather than invent them:
+ *   · the banner falls back to the category art, exactly as a job with no
+ *     banner does on the board — so this is the same fallback, not a
+ *     different one;
+ *   · "Easy apply" is OMITTED rather than assumed. It is computed from tags,
+ *     and claiming it on a card whose advert requires a CV would be a promise
+ *     to the employer about their own advert that the board would then break.
+ */
+export function cardModelFromPostedJob(job: {
+  id: string
+  title: string
+  company: string
+  companyLogo?: string
+  location: string
+  salaryMin: number
+  salaryMax: number
+  salaryPeriod: 'hour' | 'year'
+  employmentType?: string[]
+  category?: string
+  postedDate: string
+}): FeedCardModel {
+  const employmentBadges = Array.isArray(job.employmentType) ? job.employmentType.slice(0, 2) : []
+
+  // postedDate is an ISO date here, not the humanised string the board uses,
+  // so getPostedDaysAgo cannot read it — it parses "3 days ago". Computed
+  // directly instead of reformatting into a sentence just to parse it back.
+  const days = (() => {
+    const t = Date.parse(job.postedDate)
+    if (Number.isNaN(t)) return 999
+    return Math.floor((Date.now() - t) / 86_400_000)
+  })()
+
+  return {
+    id: job.id,
+    banner: resolveJobBanner({
+      id: job.id, companyBanner: null, company: job.company, category: job.category,
+    }),
+    logo: job.companyLogo || null,
+    company: job.company,
+    companyNote: null,
+    title: job.title,
+    where: job.location,
+    pay: formatJobSalary({
+      salaryMin: job.salaryMin, salaryMax: job.salaryMax,
+      salaryPeriod: job.salaryPeriod, tags: [],
+    } as unknown as Job),
+    isNew: days <= 2,
+    badges: employmentBadges.map(label => ({ label })),
+  }
+}
+
 export function cardModelFromJob(job: Job): FeedCardModel {
   const employmentBadges = Array.isArray(job.employmentType)
     ? job.employmentType.slice(0, 2)
