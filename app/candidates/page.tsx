@@ -572,13 +572,34 @@ function CandidatesContent() {
         <div className={styles.container}>
           <div className={styles.accessDenied}>
             <div className={styles.accessIcon}><Ico name="lock" size={20} /></div>
-            <h2>Employer Access Only</h2>
+            {/* THIS GATE IS ONLY EVER SEEN BY SOMEONE ALREADY SIGNED IN.
+                A visitor with no session is redirected to /login/employer
+                above, so everyone who reaches here has an account — and is
+                not an employer, which in practice means a job seeker.
+
+                It used to offer "Sign up for free". That is the exact trap
+                Ricci Courtney fell into: he had a job-seeker account on his
+                work address, was invited to sign up as an employer, used the
+                same address, and was bounced back to the job-seeker login with
+                no explanation. He then tried two personal addresses and gave
+                up. One email can only be one side, and nothing anywhere said
+                so — so the page that causes the problem is the right place to
+                say it. */}
+            <h2>This is the employer side</h2>
             <p>
-              Only employers can browse candidate profiles. Sign up free to
-              access thousands of qualified professionals.
+              You&rsquo;re signed in as a job seeker, so browsing candidate
+              profiles isn&rsquo;t available on this account. Employer accounts
+              are separate &mdash; one email address can only be one or the
+              other.
             </p>
-            <Link href="/register/employer-free" className="btn btn-primary">
-              Sign up for free
+            <p className={styles.accessNote}>
+              If you hire as well as job-hunt, create an employer account with a
+              different email address, or email{' '}
+              <a href="mailto:support@thrivecareer.co.uk">support@thrivecareer.co.uk</a>{' '}
+              and we&rsquo;ll switch this one over for you.
+            </p>
+            <Link href="/jobs" className="btn btn-primary">
+              Back to jobs
             </Link>
           </div>
         </div>

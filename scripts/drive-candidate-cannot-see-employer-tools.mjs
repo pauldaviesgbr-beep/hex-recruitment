@@ -43,10 +43,15 @@ try {
   await page.waitForURL(/\/(dashboard|jobs|welcome)(\?|$|\/)/, { timeout: 40000 })
   check('signed in as the candidate', page.url().replace(BASE, ''), !page.url().includes('/login'))
 
-  for (const [name, path] of [
-    ['/my-jobs', '/my-jobs'],
-    ['/post-job', '/post-job'],
-    ['/candidates', '/candidates'],
+  // isGate: an EMPLOYER-ONLY page that refuses a candidate outright.
+  // /my-jobs is NOT one — it is dual-purpose, showing a candidate the jobs
+  // they have applied to and an employer the jobs they have posted. Asserting
+  // "explains one email = one side" there was my error, not the product's:
+  // nothing is being refused, so there is nothing to explain.
+  for (const [name, path, isGate] of [
+    ['/my-jobs', '/my-jobs', false],
+    ['/post-job', '/post-job', true],
+    ['/candidates', '/candidates', true],
   ]) {
     await page.goto(`${BASE}${path}`, { waitUntil: 'domcontentloaded' })
     await page.waitForTimeout(4000)
@@ -64,6 +69,20 @@ try {
       kebabs === 0 && editDialog === 0)
     check(`candidate at ${name}: no "Edit job" text on the page`,
       `hasEditJob=${/edit job/i.test(body)}`, !/edit job/i.test(body))
+
+    // THE TRAP. A signed-in job seeker offered "Sign up for free" is how Ricci
+    // ended up with three accounts and no employer access. These gates are
+    // only ever reached by someone who already HAS an account, so the invite
+    // is wrong every single time it renders.
+    check(`candidate at ${name}: not invited to "Sign up for free"`,
+      `hasSignUpFree=${/sign up for free/i.test(body)}`, !/sign up for free/i.test(body))
+    if (isGate) {
+
+    // And it must say WHY, or it is just a locked door.
+    check(`candidate at ${name}: explains one email = one side`,
+      `explains=${/one or the other|separate/i.test(body)}`,
+      /one or the other|separate/i.test(body))
+    }
   }
 } catch (e) {
   check('drive completed', e.message, false)

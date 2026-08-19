@@ -50,6 +50,19 @@
   line-height: 1.6;
 }
 
+/* The "what to do about it" line, under the explanation. Quieter than the
+   paragraph above it and closer to the button it precedes — it is the way
+   out, not the reason. */
+.accessNote {
+  font-size: 0.88rem;
+  margin-top: -1rem;
+}
+
+.accessDenied a {
+  color: var(--text-dark);
+  font-weight: 600;
+}
+
 /* Search Hero Section */
 .searchHero {
   background: var(--dark-gray);

@@ -175,8 +175,22 @@ export default function CandidateDetailPage() {
         <Header />
         <div className={styles.accessDenied}>
           <div className={styles.accessIcon}><Ico name="lock" size={20} /></div>
-          <h2>Employer Access Only</h2>
-          <p>Only employers with a subscription can view candidate profiles.</p>
+          {/* Same gate, same audience: signed-out visitors are redirected to
+              the employer login above, so this is a signed-in job seeker.
+              This one never offered a signup button, so there is no trap to
+              remove — but the sentence still implied the only thing missing
+              was a subscription, when the real answer is that this account is
+              the wrong side of the product. */}
+          <h2>This is the employer side</h2>
+          <p>
+            You&rsquo;re signed in as a job seeker, so candidate profiles
+            aren&rsquo;t available on this account. Employer accounts are
+            separate &mdash; one email address can only be one or the other.
+          </p>
+          <p>
+            Email <a href="mailto:support@thrivecareer.co.uk">support@thrivecareer.co.uk</a>{' '}
+            if you need this address switched over.
+          </p>
           {PAID_SURFACES_ENABLED && (<Link href="/subscribe" className={styles.backBtnPrimary}>
             View Subscription Plans
           </Link>)}
