@@ -170,15 +170,93 @@
   color: #64748b;
 }
 
-.jobRows {
+/* THE ADVERTS AS A BOARD, not as a table.
+ *
+ * auto-fill with a minmax floor rather than fixed breakpoints, so the number
+ * of columns follows the space available instead of a guess about it. At 390
+ * that resolves to one column; the container itself never overflows because
+ * the floor is below the narrowest viewport we support.
+ *
+ * overflow: visible is load-bearing — the kebab menu opens out of its card and
+ * would be clipped by anything else. */
+.cardGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1.25rem;
+  overflow: visible;
+}
+
+@media (max-width: 420px) {
+  /* Below the minmax floor the grid would still force 320px and push the page
+     sideways. One column, sized to the space, and nothing overflows. */
+  .cardGrid { grid-template-columns: 1fr; }
+}
+
+/* Card plus its tool bar are ONE unit. The bar is welded to the bottom edge of
+   the card (FeedCard's `attached`), so they must not be separated by the grid
+   gap or lifted apart on hover. */
+.cardUnit {
   display: flex;
   flex-direction: column;
-  gap: 0;
+  min-width: 0;
+}
+
+.cardTools {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  /* CONTROLS WRAP. Never overflow-x — a tool that slides off the edge of a
+     card has no affordance at all. */
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.6rem 0.75rem;
   background: var(--rs-bg-surface, var(--white));
   border: 1px solid var(--rs-border, var(--border-gray));
-  border-radius: 12px;
-  overflow: visible; /* allow kebab menu to escape */
+  border-top: none;
+  border-radius: 0 0 12px 12px;
 }
+
+.cardToolBtns {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.cardToolBtn {
+  padding: 0.35rem 0.7rem;
+  border-radius: 8px;
+  border: 1px solid var(--rs-border, #e2e8f0);
+  background: #fff;
+  color: #0f172a;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  /* 36 rather than 44: these sit inside a card, several to a row, and a 44px
+     control bar would out-weigh the advert it belongs to. Still comfortably
+     above the 24px minimum and separated by real gaps. */
+  min-height: 36px;
+}
+
+.cardToolBtn:hover { border-color: #cbd5e1; background: #f8fafc; }
+
+/* Stamps laid over the card photo. Dark plate rather than a tint, so they stay
+   legible on a light banner and a dark one alike — a stamp that disappears on
+   half the images is worse than no stamp. */
+.cardStampInfo,
+.cardStampHired {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  background: rgba(15, 23, 42, 0.82);
+  color: #fff;
+}
+
+.cardStampHired { background: rgba(22, 101, 52, 0.9); }
 
 .jobRow {
   display: flex;
