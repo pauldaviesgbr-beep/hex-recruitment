@@ -12,6 +12,7 @@ import { useJobs } from '@/lib/JobsContext' // refreshJobs only — data fetched
 import CompanyLogo from '@/components/CompanyLogo'
 import BoostModal from '@/components/BoostModal'
 import RemoveAdModal from '@/components/RemoveAdModal'
+import QuickEditJobModal, { type QuickEditValues } from '@/components/QuickEditJobModal'
 import { PAID_SURFACES_ENABLED } from '@/lib/paidSurfaces'
 import { RowInlineFields } from '@/components/RowInlineFields'
 import { MoreHorizontal } from 'lucide-react'
@@ -76,6 +77,7 @@ function MyJobsContent() {
   // The advert awaiting confirmation, or null. Holds the whole row rather than
   // an id so the dialog can name the advert it is about.
   const [removeTarget, setRemoveTarget] = useState<PostedJob | null>(null)
+  const [editTarget, setEditTarget] = useState<PostedJob | null>(null)
   const [loading, setLoading] = useState(true)
   const [postedJobs, setPostedJobs] = useState<PostedJob[]>([])
   const [appliedJobs, setAppliedJobs] = useState<AppliedJob[]>([])
@@ -526,6 +528,83 @@ function MyJobsContent() {
   //
   // Throws on failure rather than alert()-ing: the modal keeps itself open and
   // shows the message, so a failure cannot be mistaken for a success the way a
+  // SAVE AN INLINE EDIT, AND MEASURE THAT IT LANDED.
+  //
+  // Both filters are load-bearing. `id` is the advert; `employer_id` is the
+  // caller's own owner id, resolved the same way the list itself resolves it —
+  // with that pinned, another employer's id is not merely unlikely to match,
+  // it is unmatched. RLS says the same thing underneath, and this is the belt
+  // to its braces.
+  //
+  // .select() makes the row count a MEASUREMENT rather than a hope. Supabase
+  // returns success with zero rows when a policy refuses the UPDATE while
+  // allowing the SELECT — which is exactly a team member without manage_jobs —
+  // and without this the dialog would close on a write that never happened.
+  const handleQuickEditSave = async (jobId: string, values: QuickEditValues) => {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) throw new Error('Your session has expired. Please sign in again.')
+    const ownerId = (await getCurrentEmployerOwnerId(supabase)) ?? session.user.id
+
+    const { data, error } = await supabase
+      .from('jobs')
+      .update({
+        title: values.title,
+        location: values.location,
+        salary_min: values.salaryMin,
+        salary_max: values.salaryMax,
+        salary_type: values.salaryPeriod === 'hour' ? 'hourly' : 'annual',
+        description: values.description,
+      })
+      .eq('id', jobId)
+      .eq('employer_id', ownerId)
+      .select('id')
+
+    if (error) throw new Error(error.message)
+    if (!data || data.length === 0) {
+      throw new Error('That did not save — you may not have permission to edit adverts on this account.')
+    }
+
+    // A CHANGED LOCATION MUST RE-RESOLVE THE AREA, or the advert keeps being
+    // matched against the county it used to be in. `area_county` is an ID that
+    // preferred-areas matching keys on, and `area` is printed verbatim beside
+    // the town — move a role from Bath to London and, without this, it stays
+    // filed under Somerset and still says so on the card.
+    //
+    // THE FULL EDITOR DOES NOT DO THIS: /post-job only calls resolve-area
+    // inside its `!isEditMode` branch, so editing a location there has always
+    // left both fields stale. Reported separately — not fixed here, because
+    // that is a change to the posting flow and this is the list. Doing it on
+    // the path being added is not optional though: making location easy to
+    // change is what turns a latent fault into a frequent one.
+    //
+    // Non-blocking and best-effort, exactly as the post path treats it: a null
+    // area never hides a job, so a failure here must not fail the save the
+    // employer just watched succeed.
+    if (values.location !== editTarget?.location) {
+      fetch('/api/jobs/resolve-area', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ jobId }),
+      }).catch(err => console.error('[my-jobs] area resolve failed (non-blocking):', err))
+    }
+
+    // Update the row in place rather than refetching. The list is the thing the
+    // employer is looking at; a full reload would scroll and re-sort under them.
+    setPostedJobs(prev => prev.map(j => j.id === jobId ? {
+      ...j,
+      title: values.title,
+      location: values.location,
+      salaryMin: values.salaryMin,
+      salaryMax: values.salaryMax,
+      salaryPeriod: values.salaryPeriod,
+      description: values.description,
+    } : j))
+    setEditTarget(null)
+  }
+
   // dialog that closes regardless would be.
   const handleRemoveAd = async (job: PostedJob) => {
     const res = await fetch(`/api/jobs/${job.id}/remove`, { method: 'POST' })
@@ -583,6 +662,37 @@ function MyJobsContent() {
     const filtered = postedJobs
       .filter(job => {
         const cat = getJobCategory(job)
+        // ALL MEANS ALL. There was no branch for 'all' here, so it fell
+        // through to `cat === 'default'` — the same set as the Active tab.
+        // 'all' is also the DEFAULT tab, so the landing view of this page
+        // silently hid every advert that had started working: one applicant
+        // reaching interview stage took the role off the only list an
+        // employer would think to look at.
+        //
+        // The badge above already counted postedJobs.length, so the number on
+        // the tab and the rows underneath it were computed from two different
+        // populations. "All Jobs 4" sat above an empty page.
+        //
+        // This ALSO fixes the filled advert, and it has to: 'filled' maps to
+        // category 'hired' in getJobCategory, and the job-row block is
+        // separately gated `activeTab !== 'offers' && !== 'hired'`, so a
+        // filled advert rendered on NO tab at all. Making All mean all is the
+        // one change that reaches it — the alternative, teaching the Hired tab
+        // to render job rows as well as offers, would put the same advert in
+        // two places and leave Hired meaning two things at once.
+        // ALL = EVERYTHING YOU ARE STILL MANAGING. Archived is excluded, and
+        // that exclusion is the whole reason "Remove ad" reads as removing
+        // something: the first version of this fix returned `true` here, so an
+        // archived advert stayed in the list and the button appeared to do
+        // nothing at all. Reported immediately — "Remove ad needs to remove
+        // from page" — and it was right.
+        //
+        // Archived is not hidden, it is FILED: its own tab, with Reactivate and
+        // Repost on every row. The distinction that matters is between adverts
+        // you are working on and adverts you have put away, not between live
+        // and not-live — which is why 'filled' stays here. A filled role is
+        // still yours to look at; an archived one you have deliberately closed.
+        if (activeTab === 'all') return cat !== 'archived'
         if (activeTab === 'archived') return cat === 'archived'
         if (activeTab === 'hired') return cat === 'hired'
         if (activeTab === 'offers') return cat === 'offers'
@@ -657,6 +767,11 @@ function MyJobsContent() {
     const stillHiring = postedJobs.filter(j => getJobCategory(j) === 'default').length
 
     const counts = {
+      // THE 'all' COUNT MUST BE THE SAME POPULATION THE 'all' LIST FILTERS, or
+      // this page is straight back to the original bug: a badge counting one
+      // set above rows drawn from another. It was postedJobs.length, which now
+      // over-counts by however many adverts are archived.
+      all: postedJobs.filter(j => getJobCategory(j) !== 'archived').length,
       active: postedJobs.filter(j => getJobCategory(j) === 'default').length,
       interviewing: postedJobs.filter(j => getJobCategory(j) === 'interviewing').length,
       offers: postedJobs.filter(j => getJobCategory(j) === 'offers').length,
@@ -778,9 +893,14 @@ function MyJobsContent() {
                 puts the ⚡ in its slot; everyone else gets an empty
                 slot so their text starts at the same x. */}
             <button type="button" role="menuitem" className={styles.kebabItem}
-              onClick={(e) => choose(e, () => router.push(`/post-job?edit=${job.id}`))}>
+              onClick={(e) => choose(e, () => setEditTarget(job))}>
+              {/* Opens a dialog ON THIS PAGE rather than pushing to
+                  /post-job?edit=. Changing a salary used to mean leaving the
+                  list, loading the whole posting wizard, and finding the way
+                  back. The full editor is still reachable, from inside the
+                  dialog — the fast path is added, the complete one is kept. */}
               <span className={styles.kebabItemIcon} aria-hidden="true"></span>
-              <span>Manage job</span>
+              <span>Edit job</span>
             </button>
             <button type="button" role="menuitem" className={styles.kebabItem}
               onClick={(e) => choose(e, () => router.push(`/job/${job.id}?from=my-jobs`))}>
@@ -954,7 +1074,7 @@ function MyJobsContent() {
                     <span className={styles.filterTabCount}>{viewData.counts[tab.key]}</span>
                   )}
                   {tab.key === 'all' && (
-                    <span className={styles.filterTabCount}>{postedJobs.length}</span>
+                    <span className={styles.filterTabCount}>{viewData.counts.all}</span>
                   )}
                 </button>
               ))}
@@ -1094,6 +1214,22 @@ function MyJobsContent() {
                   Mobile (<768px) reflows .rowSide below the title via CSS. */}
               {activeTab !== 'offers' && activeTab !== 'hired' && (
                 <div className={styles.jobRows}>
+                  {/* A TAB WITH NOTHING IN IT MUST SAY SO. Half the original
+                      fault was that it did not: "All Jobs 4" sat above a blank
+                      area with no cards and no message, which reads as a page
+                      that failed rather than a list that is empty. The two
+                      cases are told apart deliberately — a search that matched
+                      nothing is the employer's own filter and is fixed by
+                      clearing it; an empty tab is not. */}
+                  {displayJobs.length === 0 && (
+                    <p className={styles.emptyTabNote}>
+                      {myJobsSearch.trim() || myJobsLocationSearch.trim()
+                        ? 'No adverts match your search on this tab.'
+                        : activeTab === 'all'
+                          ? 'No job adverts yet.'
+                          : 'No adverts on this tab. Try All Jobs.'}
+                    </p>
+                  )}
                   {displayJobs.map(job => {
                     const status = getStatusLabel(job.status)
                     const statusClass = job.status === 'active' ? styles.statusActiveGreen : status.className
@@ -1191,6 +1327,23 @@ function MyJobsContent() {
             applicationCount={removeTarget.applicationCount}
             onCancel={() => setRemoveTarget(null)}
             onConfirm={() => handleRemoveAd(removeTarget)}
+          />
+        )}
+
+        {editTarget && (
+          <QuickEditJobModal
+            job={{
+              id: editTarget.id,
+              title: editTarget.title,
+              location: editTarget.location,
+              salaryMin: editTarget.salaryMin,
+              salaryMax: editTarget.salaryMax,
+              salaryPeriod: editTarget.salaryPeriod,
+              description: editTarget.description,
+            }}
+            onSave={handleQuickEditSave}
+            onCancel={() => setEditTarget(null)}
+            fullEditHref={`/post-job?edit=${editTarget.id}`}
           />
         )}
 

@@ -1353,12 +1353,27 @@ function PostJobContent() {
         <div className={styles.container}>
           <div className={styles.formCard} style={{ textAlign: 'center', padding: '3rem' }}>
             <div style={{ fontSize: '4rem', marginBottom: '1rem' }}><Ico name="lock" size={20} /></div>
-            <h2 style={{ marginBottom: '1rem' }}>Employer Account Required</h2>
-            <p style={{ color: '#666', marginBottom: '2rem' }}>
-              You need an employer account to post jobs on Thrive.
+            {/* Only reachable by someone already signed in — a visitor with no
+                session is redirected to the employer login above. So this is a
+                job seeker, and "Sign up for free" sent them straight into the
+                one-email-one-side wall. See app/candidates/page.tsx for the
+                worked example that cost us a week with a real employer. */}
+            <h2 style={{ marginBottom: '1rem' }}>You&rsquo;re signed in as a job seeker</h2>
+            <p style={{ color: '#666', marginBottom: '1rem', lineHeight: 1.6 }}>
+              Posting jobs needs an employer account, and employer accounts are
+              separate from job-seeker ones &mdash; a single email address can
+              only be one or the other.
             </p>
-            <a href="/register/employer-free" className="btn btn-primary">
-              Sign up for free
+            <p style={{ color: '#666', marginBottom: '2rem', fontSize: '0.9rem', lineHeight: 1.6 }}>
+              To hire on Thrive, create an employer account with a different
+              email address, or email{' '}
+              <a href="mailto:support@thrivecareer.co.uk" style={{ color: '#0f172a', fontWeight: 600 }}>
+                support@thrivecareer.co.uk
+              </a>{' '}
+              and we&rsquo;ll switch this one over for you.
+            </p>
+            <a href="/jobs" className="btn btn-primary">
+              Back to jobs
             </a>
           </div>
         </div>
