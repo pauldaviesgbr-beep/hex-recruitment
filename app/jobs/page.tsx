@@ -21,7 +21,6 @@ import { WORK_TYPES } from '@/lib/workTypes'
 import { annualisedOrNull } from '@/lib/salaryInput'
 import { resolveJobBanner } from '@/lib/jobBanner'
 import BrandedJobFallback from '@/components/BrandedJobFallback'
-import BrandedLogoFallback from '@/components/BrandedLogoFallback'
 import JobPostingSchema from '@/components/JobPostingSchema'
 import { useAnalyticsTracking } from '@/hooks/useAnalyticsTracking'
 import styles from './page.module.css'
@@ -1208,9 +1207,7 @@ function JobsPageContent() {
                   <div className={styles.detailBanner}>
                     {detailBanner
                       ? <img src={detailBanner} alt={selectedJob.company} className={styles.detailBannerImg} />
-                      : selectedJob.companyLogo
-                        ? <BrandedLogoFallback logoUrl={selectedJob.companyLogo} company={selectedJob.company} seed={selectedJob.id} />
-                        : <BrandedJobFallback company={selectedJob.company} seed={selectedJob.id} />}
+                      : <BrandedJobFallback company={selectedJob.company} seed={selectedJob.id} />}
                   </div>
                 )
               })()}

@@ -7,7 +7,6 @@ import { useSavedJobs } from '@/lib/useSavedJobs'
 import CompanyLogo from '@/components/CompanyLogo'
 import { resolveJobBanner } from '@/lib/jobBanner'
 import BrandedJobFallback from '@/components/BrandedJobFallback'
-import BrandedLogoFallback from '@/components/BrandedLogoFallback'
 import JobPostingSchema from '@/components/JobPostingSchema'
 import { getTagCategory, WORK_STYLE_TAGS } from '@/lib/jobTags'
 import CompanyReviewsSummary from '@/components/CompanyReviewsSummary'
@@ -260,9 +259,7 @@ export default function JobDetailModal({
                 <div className={styles.bannerWrapper}>
                   {detailBanner
                     ? <img src={detailBanner} alt="" className={styles.banner} />
-                    : job.companyLogo
-                      ? <BrandedLogoFallback logoUrl={job.companyLogo} company={job.company} seed={job.id} />
-                      : <BrandedJobFallback company={job.company} seed={job.id} />}
+                    : <BrandedJobFallback company={job.company} seed={job.id} />}
                   <div className={styles.bannerOverlay} />
                 </div>
               )

@@ -5,7 +5,6 @@ import Link from 'next/link'
 import type { Job } from '@/lib/mockJobs'
 import { resolveJobBanner } from '@/lib/jobBanner'
 import BrandedJobFallback from '@/components/BrandedJobFallback'
-import BrandedLogoFallback from '@/components/BrandedLogoFallback'
 import CompanyLogo from '@/components/CompanyLogo'
 import jobStyles from '@/app/jobs/page.module.css'
 
@@ -53,8 +52,6 @@ export default function JobCardLink({
       <div className={`${jobStyles.jobCard} ${banner ? '' : jobStyles.jobCardFallback}`}>
         {banner ? (
           <div className={jobStyles.cardBg} style={{ backgroundImage: `url(${banner})` }} aria-hidden="true" />
-        ) : job.companyLogo ? (
-          <BrandedLogoFallback logoUrl={job.companyLogo} company={job.company} seed={job.id} />
         ) : (
           <BrandedJobFallback company={job.company} seed={job.id} />
         )}

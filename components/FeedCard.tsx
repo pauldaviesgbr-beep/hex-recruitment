@@ -3,7 +3,6 @@
 import type { ReactNode } from 'react'
 import CompanyLogo from '@/components/CompanyLogo'
 import BrandedJobFallback from '@/components/BrandedJobFallback'
-import BrandedLogoFallback from '@/components/BrandedLogoFallback'
 
 // THE card. One shape, one set of rules, used by /jobs and by both card types in
 // the /temp-work feed.
@@ -126,11 +125,19 @@ export default function FeedCard({
       tabIndex={onSelect ? 0 : undefined}
       onKeyDown={e => { if (onSelect && e.key === 'Enter') onSelect() }}
     >
+        /* ONE FALLBACK FOR "NO PHOTO", AND IT IS THE BRANDED PANEL.
+           This used to feature the employer LOGO as the hero when there was
+           no banner — and the same logo already renders as the avatar beside
+           the company name, so a card showed one image twice, once huge and
+           once small. Reported from the live board as looking homemade, and
+           it did.
+           The logo-hero component is deleted with this change. It sampled
+           each logo on a canvas PER CARD to pick a treatment, and silently
+           guessed whenever a cross-origin read was blocked. That judgement
+           now happens once, server-side, at upload. */
       {model.banner
         ? <div className={styles.cardBg} style={{ backgroundImage: `url(${model.banner})` }} aria-hidden="true" />
-        : model.logo
-          ? <BrandedLogoFallback logoUrl={model.logo} company={model.company} seed={model.id} />
-          : <BrandedJobFallback company={model.company} seed={model.id} />}
+        : <BrandedJobFallback company={model.company} seed={model.id} />}
       <div className={styles.cardScrim} aria-hidden="true" />
 
       {/* THE WASH — one element that greys the photo, the branded fallback and

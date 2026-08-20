@@ -77,6 +77,12 @@ function PostJobContent() {
   const [logoUploadError, setLogoUploadError] = useState('')
   const [logoFileName, setLogoFileName] = useState('')
   const [bannerUploading, setBannerUploading] = useState(false)
+  // Generated-artwork state. Kept beside the upload state because the two are
+  // the same decision from the employer's side — "what picture goes on this?"
+  const [artworkLoading, setArtworkLoading] = useState(false)
+  const [artworkError, setArtworkError] = useState('')
+  /** What we drew, in words, so it can be said rather than left to be noticed. */
+  const [artworkSubject, setArtworkSubject] = useState('')
   const [bannerUploadError, setBannerUploadError] = useState('')
   const [bannerFileName, setBannerFileName] = useState('')
 
@@ -596,7 +602,20 @@ function PostJobContent() {
   const handlePostcodeFound = (address: AddressData) => {
     setFormData(prev => ({
       ...prev,
-      area: `${address.city} ${address.postcode}`.trim(),
+      // THE CITY USED TO GO IN TWICE. This wrote
+      //   area = `${address.city} ${address.postcode}`
+      // while `location` below takes the city as well, and every card renders
+      // `location, area` — so Ricci's first advert read "London, London E9 5EN"
+      // and every employer using the address finder got their town twice.
+      //
+      // `area` is now left alone, which is not a gap: lib/jobAreaSync fills it
+      // server-side with the COUNTY LABEL ("Somerset", "Greater London") when it
+      // is empty, and refuses to overwrite one the employer set themselves. That
+      // is the same value the 243 imported listings carry, so a form-posted
+      // advert now reads like the rest of the board instead of like an exception.
+      //
+      // The postcode is not lost — it is kept in `postcode` and in fullLocation,
+      // which is what the map link and the address block use.
       postcode: address.postcode,
       city: address.city,
       location: prev.location || address.city,
@@ -699,6 +718,46 @@ function PostJobContent() {
     } finally {
       setBannerUploading(false)
       e.target.value = ''
+    }
+  }
+
+  /**
+   * "Draw one for me" — house-style artwork for an advert with no photograph.
+   *
+   * NOTHING IS ATTACHED TO ANYTHING. /api/jobs/artwork generates, stores the
+   * file and returns a URL; it lands in this form's own state and reaches the
+   * database only if the employer goes on to publish. Generate it, dislike it,
+   * close the tab, and nothing has changed.
+   *
+   * It is also always a choice, never a default. An image on a job advert is
+   * read as evidence of the workplace, so it is not something to do to someone
+   * quietly — the picture is drawn because they asked and they can see it in
+   * the preview beside this button before it is anyone's advert.
+   */
+  const handleDrawArtwork = async () => {
+    setArtworkError('')
+    setArtworkLoading(true)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const res = await fetch('/api/jobs/artwork', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(session ? { Authorization: `Bearer ${session.access_token}` } : {}),
+        },
+        body: JSON.stringify({ jobTitle: formData.title }),
+      })
+      const json = await res.json()
+      if (!res.ok) {
+        setArtworkError(json.error || 'Could not create an image just now.')
+        return
+      }
+      setFormData(prev => ({ ...prev, companyBanner: json.url }))
+      setArtworkSubject(json.subject || '')
+    } catch {
+      setArtworkError('Could not create an image just now. You can publish without one.')
+    } finally {
+      setArtworkLoading(false)
     }
   }
 
@@ -2222,11 +2281,105 @@ function PostJobContent() {
             )}
           </div>
           </>)}
+          {/* ── THE PICTURE, BEFORE PUBLISHING ──────────────────────────────
+              This used to live at step 3, AFTER the advert went live, under
+              "Your ad is live. Three things that make it work harder." with a
+              "Not now" beside it. The reasoning was sound — don't put work
+              between someone and being live — but the result was that almost
+              nobody added a photo, and the cards looked homemade next to the
+              imported listings that all carry one.
+
+              It sits here now because this is the last moment the decision is
+              still part of making the advert rather than an improvement to
+              something already finished. It is still entirely optional and
+              still one click to skip; what has changed is that skipping is now
+              a choice someone makes, rather than a screen they never reach.
+
+              And it is two options, not one, because "upload a photo" is a task
+              and "draw me something" is a button. Most employers have no
+              photograph of the kitchen to hand. */}
+          {stepped && step === 2 && (
+            <div className={flow.extrasCard} style={{ marginBottom: '1rem' }}>
+              <h3 className={flow.extrasHeading}>A picture for the card</h3>
+              <p className={flow.extrasBody}>
+                Optional, and it makes more difference than anything else here. A real
+                photo of the kitchen or the room tells a chef more than a logo does —
+                or we can draw something in the Thrive style.
+              </p>
+
+              {formData.companyBanner ? (
+                <div style={{ marginTop: '0.75rem' }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={formData.companyBanner}
+                    alt="The image that will appear on your advert"
+                    style={{ width: '100%', maxWidth: 420, borderRadius: 10, display: 'block' }}
+                  />
+                  {artworkSubject && (
+                    <p className={flow.extrasBody} style={{ marginTop: '0.5rem' }}>
+                      We&apos;ve drawn {artworkSubject}. Draw it again for a different take,
+                      or upload your own photo instead.
+                    </p>
+                  )}
+                  <button
+                    type="button"
+                    className={flow.notNow}
+                    style={{ marginTop: '0.5rem' }}
+                    onClick={() => {
+                      setFormData(prev => ({ ...prev, companyBanner: '' }))
+                      setArtworkSubject('')
+                      setArtworkError('')
+                    }}
+                  >
+                    Remove this image
+                  </button>
+                </div>
+              ) : (
+                <div className={flow.extrasActions} style={{ marginTop: '0.75rem', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  <label className={flow.outlineBtn} style={{ cursor: 'pointer', margin: 0 }}>
+                    {bannerUploading ? 'Uploading…' : 'Upload a photo'}
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,image/gif"
+                      onChange={handleBannerUpload}
+                      style={{ display: 'none' }}
+                    />
+                  </label>
+                  {/* DISABLED WITHOUT A TITLE, because the picture is chosen from
+                      the role and nothing else — the description is never
+                      consulted, since that is where "Michelin Star" and "Luxury
+                      5 Star Hotel" live and those are claims about a venue we
+                      have never seen. */}
+                  <button
+                    type="button"
+                    className={flow.outlineBtn}
+                    onClick={handleDrawArtwork}
+                    disabled={artworkLoading || !formData.title.trim()}
+                  >
+                    {artworkLoading ? 'Drawing…' : 'Draw one for me'}
+                  </button>
+                </div>
+              )}
+
+              {bannerUploadError && (
+                <p className={flow.extrasBody} role="alert" style={{ color: '#b91c1c', marginTop: '0.5rem' }}>
+                  {bannerUploadError}
+                </p>
+              )}
+              {artworkError && (
+                <p className={flow.extrasBody} role="alert" style={{ color: '#b91c1c', marginTop: '0.5rem' }}>
+                  {artworkError}
+                </p>
+              )}
+            </div>
+          )}
+
           {stepped && step === 2 && (
             <div className={flow.publishRow}>
               <div className={flow.publishCopy}>
                 <p className={flow.publishLead}>That&apos;s enough to go live.</p>
-                <p className={flow.publishSub}>Photos, tags and screening questions can be added while it&apos;s running.</p>
+                {/* Photos are no longer on that list — they are the block above. */}
+                <p className={flow.publishSub}>Tags and screening questions can be added while it&apos;s running.</p>
               </div>
               <button type="button" className={flow.outlineBtn} onClick={() => goToStep(1)}>← Back</button>
               <button type="submit" className={flow.primaryBtn} disabled={loading || loadingJobData}>
