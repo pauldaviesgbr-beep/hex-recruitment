@@ -15,16 +15,24 @@
     linear-gradient(var(--fb-angle, 140deg), #0a1628 0%, #12294a 100%);
 }
 
-/* Centres the logo in the upper portion of the panel: padding-bottom reserves
-   the lower band for the slot's overlaid job text (card slot) so the logo and
-   the title/company/salary never collide. Hidden until analysis resolves. */
+/* CENTRED, as of 20 Aug 2026.
+   This used to read `padding: 8cqh 8cqw 22cqh` — a deliberately heavier bottom
+   pad that reserved the lower band for the slot's overlaid title/company/salary
+   and, as a side effect, pushed the logo about 7% of the panel height above
+   centre. Reported from the live board as simply looking odd, and it does: an
+   optically centred mark reads as placed, while one sitting slightly high reads
+   as a mistake nobody caught.
+   The collision the old padding guarded against is handled by the size caps
+   instead (.plaque / .bareLogo below), which keep the mark clear of the text
+   band without moving it off centre. Verified on the real card rather than
+   argued: see the report. Hidden until analysis resolves. */
 .logoLayer {
   position: absolute;
   inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 8cqh 8cqw 22cqh;
+  padding: 8cqh 8cqw;
   opacity: 0;
 }
 
@@ -74,7 +82,10 @@
 /* Older engines without container units: fixed sizes so the logo still renders
    at a sensible scale rather than collapsing. */
 @supports not (width: 1cqmin) {
-  .logoLayer { padding: 24px 24px 64px; }
+  /* Symmetric here too — the container-unit rule above was centred and this
+     fallback would otherwise keep the old off-centre look on older engines,
+     which is the kind of split nobody notices until someone screenshots it. */
+  .logoLayer { padding: 24px; }
   .bareLogo { max-width: 60%; max-height: 130px; filter: drop-shadow(0 8px 18px rgba(0, 0, 0, 0.38)); }
   .plaque { padding: 18px; max-width: 64%; max-height: 150px; border-radius: 16px; box-shadow: 0 12px 38px rgba(0, 0, 0, 0.3); }
   .plaqueLogo { max-width: 240px; max-height: 110px; }

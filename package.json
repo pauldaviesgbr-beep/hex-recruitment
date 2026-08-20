@@ -28,7 +28,8 @@
     "cvvocab:prove": "node scripts/prove-cv-vocabulary.mjs",
     "cv:backfill": "npx tsx scripts/backfill-cv-parse.mjs",
     "redirects:prove": "node scripts/prove-redirect-targets.mjs",
-    "employercard:prove": "node scripts/prove-employer-card.mjs"
+    "employercard:prove": "node scripts/prove-employer-card.mjs",
+    "bannertreatment:prove": "node scripts/prove-banner-treatment.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.98.0",

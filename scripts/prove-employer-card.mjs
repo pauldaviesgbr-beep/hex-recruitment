@@ -31,11 +31,13 @@ const entry = join(dir, 'run.mts')
 const cardMod = pathToFileURL(join(process.cwd(), 'lib', 'jobCard.ts')).href
 const lineMod = pathToFileURL(join(process.cwd(), 'lib', 'answerLine.ts')).href
 const trimMod = pathToFileURL(join(process.cwd(), 'lib', 'trimDeep.ts')).href
+const artMod = pathToFileURL(join(process.cwd(), 'lib', 'jobArtwork.ts')).href
 
 writeFileSync(entry, `
 import { cardModelFromPostedJob } from ${JSON.stringify(cardMod)}
 import { justPostedAnswerLine } from ${JSON.stringify(lineMod)}
 import { trimDeep } from ${JSON.stringify(trimMod)}
+import { buildArtworkPrompt } from ${JSON.stringify(artMod)}
 
 const out: any[] = []
 // Thunked so a throw becomes one named failure with the rest still reported,
@@ -107,6 +109,37 @@ rec('internal whitespace is preserved', () => trimDeep(' Front  of House '), 'Fr
 rec('already-clean input is untouched', () => trimDeep({ title: 'Head Chef' }), { title: 'Head Chef' })
 rec('trimming actually changed something',
   () => JSON.stringify(trimDeep({ t: 'a ' })) !== JSON.stringify({ t: 'a ' }), true)
+
+// -- GENERATED ARTWORK: THE PROMPT MAY NOT MAKE A CLAIM ------------------
+// An image on an advert is read as evidence of the workplace, so the prompt
+// is built from the ROLE only. Board titles are Role -- Marketing Phrase and
+// the half after the dash is sales copy about the venue: the exact material
+// that must never reach the picture.
+const claimy = 'Head Chef - Michelin Star Fine Dining, Luxury 5 Star Hotel'
+const built = buildArtworkPrompt(claimy.replace(' - ', ' – '))
+rec('venue sales copy never reaches the prompt',
+  () => /michelin|luxury|5 star|fine dining|hotel/i.test(built.prompt), false)
+rec('but the role still picks the right subject',
+  () => /kitchen pass/.test(built.subject), true)
+
+// LONGEST MATCH FIRST, the rule the CV vocabulary needed too: a pastry chef
+// is not a line chef, and a badly ordered table lets 'chef' swallow it.
+rec('pastry is not swallowed by chef',
+  () => buildArtworkPrompt('Head Pastry Chef').subject !== buildArtworkPrompt('Head Chef').subject, true)
+rec('a bar role gets a bar', () => /bar counter/.test(buildArtworkPrompt('Bar Manager').subject), true)
+rec('an unknown role still gets something',
+  () => buildArtworkPrompt('Chief Vibes Officer').subject.length > 10, true)
+
+// THE HOUSE STYLE IS ALWAYS ATTACHED, or the images stop being a family.
+const missingStyle = ['Head Chef', 'Bar Manager', 'Receptionist', 'Chief Vibes Officer']
+  .filter(t => {
+    const p = buildArtworkPrompt(t).prompt
+    return !/Flat vector illustration/.test(p) || !/No text, no lettering/.test(p)
+  })
+rec('house style attached to every prompt', () => missingStyle, [])
+
+// NO FACES — an invented person on an employer's advert is worse than none.
+rec('faces are excluded', () => /No faces/.test(buildArtworkPrompt('Head Chef').prompt), true)
 
 console.log(JSON.stringify(out))
 `)

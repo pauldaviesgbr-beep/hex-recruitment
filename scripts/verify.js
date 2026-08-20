@@ -115,6 +115,11 @@ const ALL = [
   // bug only appears on a row we are not allowed to drive. Pure functions, no
   // network, no database.
   { name: 'employercard:prove', cmd: process.execPath, args: [path.join(ROOT, 'scripts', 'prove-employer-card.mjs')] },
+  // WHATEVER SOMEONE UPLOADS HAS TO COME OUT USABLE. Four branches decide
+  // how an image meets the 16:11 card slot, and a check that only fed it a
+  // tidy landscape photo would pass while three of them were broken. Each
+  // branch gets a fixture built with sharp, in memory, every run.
+  { name: 'bannertreatment:prove', cmd: process.execPath, args: [path.join(ROOT, 'scripts', 'prove-banner-treatment.mjs')] },
 ]
 const CHECKS = FAST ? ALL.filter(c => !c.slow) : ALL
 
