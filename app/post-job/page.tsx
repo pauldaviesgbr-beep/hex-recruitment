@@ -1472,8 +1472,23 @@ function PostJobContent() {
                 // live, the useful destination is the ad itself — she has just
                 // published it and the thing she'd want is to see it. Before
                 // that there is nothing to look at, so it's the dashboard.
+                //
+                // SINGULAR. THE THIRD INSTANCE OF THE SAME 404, found 20 Aug
+                // 2026 — a day AFTER the other two were fixed and reported as
+                // done. /jobs/<uuid> matches the /jobs/[city] segment, cityInfo
+                // is undefined for a uuid, and the employer lands on "City Not
+                // Found" having just published successfully.
+                //
+                // prove-redirect-targets.mjs PASSED ON THIS, and that is the
+                // more important half. Its regex required the path literal to
+                // be the first token after router.push( — here the first token
+                // is `adStatus`, because the path is inside a ternary — so the
+                // call was never scanned. Not reported as unparseable: simply
+                // invisible. 33 of the app's 190 push/replace calls were in
+                // that blind spot. The check now counts what it cannot parse
+                // and fails rather than printing a clean bill.
                 onBack={() => router.push(
-                  adStatus === 'live' && publishedJobId ? `/jobs/${publishedJobId}` : '/employer/dashboard',
+                  adStatus === 'live' && publishedJobId ? `/job/${publishedJobId}` : '/employer/dashboard',
                 )}
                 // The ONLY place she is told her work is safe. She will be
                 // interrupted mid-form — this is what makes that survivable,
