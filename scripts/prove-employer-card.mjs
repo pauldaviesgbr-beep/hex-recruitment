@@ -30,10 +30,12 @@ const entry = join(dir, 'run.mts')
 
 const cardMod = pathToFileURL(join(process.cwd(), 'lib', 'jobCard.ts')).href
 const lineMod = pathToFileURL(join(process.cwd(), 'lib', 'answerLine.ts')).href
+const trimMod = pathToFileURL(join(process.cwd(), 'lib', 'trimDeep.ts')).href
 
 writeFileSync(entry, `
 import { cardModelFromPostedJob } from ${JSON.stringify(cardMod)}
 import { justPostedAnswerLine } from ${JSON.stringify(lineMod)}
+import { trimDeep } from ${JSON.stringify(trimMod)}
 
 const out: any[] = []
 // Thunked so a throw becomes one named failure with the rest still reported,
@@ -78,6 +80,33 @@ rec('eyebrow marks it as an event', () => justPostedAnswerLine('X').eyebrow, 'Ju
 // title is being dropped somewhere and nobody would see it.
 rec('titled and untitled differ',
   () => justPostedAnswerLine('Head of Sales').sentence !== justPostedAnswerLine('').sentence, true)
+
+// ── TRIMMING ON THE WAY TO THE DATABASE ──────────────────────────────────
+// The fault this prevents is invisible at every stage except the last: a
+// trailing space in the form, in the payload and in the row all look like
+// nothing, and then the board renders "London , London".
+rec('the exact case from production', () => trimDeep({ title: 'Head of Sales ', location: 'London ' }),
+  { title: 'Head of Sales', location: 'London' })
+rec('nested objects too', () => trimDeep({ fullLocation: { city: ' Bath ', postcode: '' } }),
+  { fullLocation: { city: 'Bath', postcode: '' } })
+rec('arrays of strings', () => trimDeep({ tags: [' Urgent ', 'Full-time'] }),
+  { tags: ['Urgent', 'Full-time'] })
+
+// IT MUST LEAVE NON-STRINGS ALONE. A trimmer that quietly turned 0 into "" or
+// dropped a null would be a far worse bug than the one it fixes.
+rec('numbers, booleans and null survive',
+  () => trimDeep({ salaryMin: 0, urgent: false, area: null, x: undefined }),
+  { salaryMin: 0, urgent: false, area: null, x: undefined })
+
+// INTERNAL SPACE IS NOT COLLAPSED — that is a typo for the employer to fix,
+// not something we silently rewrite.
+rec('internal whitespace is preserved', () => trimDeep(' Front  of House '), 'Front  of House')
+
+// The pair that makes the check able to fail: trimmed input must come back
+// UNCHANGED, so a no-op implementation cannot satisfy both this and the first.
+rec('already-clean input is untouched', () => trimDeep({ title: 'Head Chef' }), { title: 'Head Chef' })
+rec('trimming actually changed something',
+  () => JSON.stringify(trimDeep({ t: 'a ' })) !== JSON.stringify({ t: 'a ' }), true)
 
 console.log(JSON.stringify(out))
 `)

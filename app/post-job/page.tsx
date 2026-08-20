@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { markJustPosted } from '@/lib/justPosted'
+import { trimDeep } from '@/lib/trimDeep'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
 import Header from '@/components/Header'
@@ -1218,11 +1219,24 @@ function PostJobContent() {
         isRecruiterPosting: !isOwnCompany,
       }
 
+      // EVERY STRING TRIMMED, ONCE, ON THE WAY OUT — see lib/trimDeep.
+      //
+      // `venue` above was the only field that trimmed itself, which is how the
+      // other dozen went unnoticed. Thrive's own first advert stored "Head of
+      // Sales " and "London ", and the board rendered "London , London".
+      // Applied to the whole payload rather than per field so the next field
+      // added here is covered without anyone remembering to.
+      //
+      // BOTH BRANCHES, deliberately. Editing an advert writes the same payload,
+      // so trimming only the insert would leave an employer able to reintroduce
+      // the space by correcting a typo.
+      const cleanPayload = trimDeep(jobPayload)
+
       let newJob: any = null
       if (isEditMode && editJobId) {
-        await updateJob(editJobId, jobPayload)
+        await updateJob(editJobId, cleanPayload)
       } else {
-        newJob = await addJob(jobPayload, employerId)
+        newJob = await addJob(cleanPayload, employerId)
 
         // Mark employer as recruiter if posting for another company
         if (!isOwnCompany) {
