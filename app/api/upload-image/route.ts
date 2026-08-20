@@ -3,6 +3,10 @@ import { randomUUID } from 'crypto'
 import sharp from 'sharp'
 import { createClient } from '@supabase/supabase-js'
 import { rateLimit } from '@/lib/rateLimit'
+import {
+  analyseImage, chooseTreatment, renderBanner,
+  type ImageFacts, type Treatment,
+} from '@/lib/bannerRender'
 
 const BANNER_BUCKET = 'job-banners'
 
@@ -34,16 +38,20 @@ const PURPOSES = {
   'company-logos': { bucket: 'company-logos', capability: 'edit_company', plain: 'edit the company profile' },
 } as const
 
-const MIN_WIDTH = 400
-const MIN_HEIGHT = 300
-// Target a fixed 16:11 landscape — the candidate job-card slot. Every stored
-// banner is centre/attention-cropped to this once, at upload, so the card shows
-// the uploaded image in full (no surprise per-slot crop) and the post-job
-// preview reflects the true result. 1200px wide keeps it crisp on desktop/retina.
-const TARGET_WIDTH = 1200
-const TARGET_HEIGHT = 825
+// THE BANNER GEOMETRY AND THE SIZE THRESHOLDS BOTH MOVED TO lib/bannerRender.
+//
+// It is the only thing that renders a banner now, and it owns the 16:11 frame
+// (TARGET_WIDTH/TARGET_HEIGHT) — two copies of a frame size is how a stored
+// image and the card slot drift apart.
+//
+// The old MIN_WIDTH/MIN_HEIGHT are CRISP_MIN_* there, and they no longer
+// REFUSE anything: they choose between cropping to fill and containing on a
+// filled frame. Every banner is still normalised exactly once, at upload, so
+// the card, the preview, the modal and the shared-link image all show the same
+// artefact rather than each cropping their own.
+//
 // Company logos: square, contained on white, matching what the old client-side
-// canvas produced so nothing changes visually when the storage moves.
+// canvas produced so nothing changes visually now the storage has moved.
 const LOGO_SIZE = 200
 const WEBP_QUALITY = 80
 const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
@@ -190,18 +198,21 @@ export async function POST(request: NextRequest) {
     const srcW = rotated ? metadata.height : metadata.width
     const srcH = rotated ? metadata.width : metadata.height
 
-    // Banners must meet a minimum so the fixed job-card slot stays crisp. Temp
-    // Work posts have no size requirement — the person posting a Saturday shift
-    // is on a phone and should not meet a dimensions error. Nor do logos: a small
-    // square logo is a perfectly good logo.
-    if (!isTempPost && !isLogo && (srcW < MIN_WIDTH || srcH < MIN_HEIGHT)) {
-      return NextResponse.json(
-        {
-          error: `Image is too small (${srcW}x${srcH}px). Minimum size is ${MIN_WIDTH}x${MIN_HEIGHT}px — smaller images will look blurry.`
-        },
-        { status: 400 }
-      )
-    }
+    // THE SIZE REJECTION IS GONE, DELIBERATELY.
+    //
+    // This used to refuse anything under 400x300 with "Image is too small…
+    // smaller images will look blurry." It was honest and it was the wrong
+    // trade: it is the moment a chef on a phone gives up, and it produced
+    // exactly the back-and-forth the product is trying to delete. A small image
+    // is now CONTAINED on a filled frame instead — see lib/bannerRender. It is
+    // slightly soft and unmistakably deliberate, which beats being sent away.
+    //
+    // Temp posts were already exempt, and the reason written here was "the
+    // person posting a Saturday shift is on a phone and should not meet a
+    // dimensions error". That was always just as true of a job.
+    //
+    // MIN_WIDTH/MIN_HEIGHT still exist as the CRISPNESS threshold — they now
+    // choose a treatment rather than refuse the upload.
 
     // ONE GEOMETRY FOR BOTH, as of the shared card.
     //
@@ -220,6 +231,11 @@ export async function POST(request: NextRequest) {
     // the target — guarantees the stored image is exactly 16:11, so the card
     // shows it uncropped and the composer's preview is an exact match.
     let processedBuffer: Buffer
+    // Recorded so the response can say what happened to the image. Undefined
+    // on the logo path, which is not chosen — a logo is always contained on
+    // white at 200x200.
+    let facts: ImageFacts | undefined
+    let treatment: Treatment | undefined
     if (isLogo) {
       // A LOGO IS NOT A BANNER. Cropping one to 16:11 would cut the top and
       // bottom off a square mark. Contain it in a 200x200 square on white —
@@ -231,14 +247,23 @@ export async function POST(request: NextRequest) {
         .webp({ quality: WEBP_QUALITY })
         .toBuffer()
     } else {
-      const fitW = Math.min(TARGET_WIDTH, srcW, Math.floor((srcH * TARGET_WIDTH) / TARGET_HEIGHT))
-      const outW = Math.max(1, fitW)
-      const outH = Math.max(1, Math.round((outW * TARGET_HEIGHT) / TARGET_WIDTH))
-      processedBuffer = await sharp(buffer)
-        .rotate() // honour EXIF orientation from phone photos
-        .resize(outW, outH, { fit: 'cover', position: 'attention' })
-        .webp({ quality: WEBP_QUALITY })
-        .toBuffer()
+      // WHAT THE IMAGE IS, NOT WHICH BOX IT CAME FROM.
+      //
+      // `isLogo` above means "arrived via the company-logos purpose" — it is a
+      // fact about the FORM FIELD, not about the file. So a company logo
+      // dropped into the banner box, which is precisely what a business does
+      // with an empty image box, used to be cover-cropped to 16:11 and
+      // enlarged, slicing the top and bottom off the mark. Ricci's first
+      // advert is the worked example.
+      //
+      // The file is now inspected and the treatment chosen from what is
+      // actually in it. A photograph still takes the attention-crop path that
+      // already worked; a graphic, an extreme shape or a small image is
+      // contained on a filled frame instead. Either way the output is exactly
+      // 16:11, so the board stays uniform however varied the uploads are.
+      facts = await analyseImage(buffer)
+      treatment = chooseTreatment(facts)
+      processedBuffer = await renderBanner(buffer, treatment, WEBP_QUALITY)
     }
 
     // Store the processed banner as a file in the public 'job-banners' bucket and
@@ -272,6 +297,21 @@ export async function POST(request: NextRequest) {
       originalSize: file.size,
       processedSize: processedBuffer.length,
       originalDimensions: { width: srcW, height: srcH },
+      // WHAT WE DID AND WHY. Returned so the composer can eventually say
+      // "we've fitted your logo onto a Thrive panel" rather than silently
+      // changing what someone uploaded — and so the shape of real uploads is
+      // visible at all. NOTHING PERSISTS IT YET; see the report.
+      treatment: treatment
+        ? { mode: treatment.mode, reason: treatment.reason, fill: treatment.fill }
+        : null,
+      sourceFacts: facts
+        ? {
+            width: facts.width, height: facts.height,
+            aspect: Number(facts.aspect.toFixed(3)),
+            transparent: facts.transparent,
+            entropy: Number(facts.entropy.toFixed(2)),
+          }
+        : null,
     })
   } catch (error) {
     console.error('Image processing error:', error)
