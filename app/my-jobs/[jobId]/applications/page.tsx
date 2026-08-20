@@ -797,7 +797,11 @@ export default function JobApplicationsPage() {
               <button
                 className={styles.shareBtn}
                 onClick={() => {
-                  navigator.clipboard.writeText(window.location.origin + '/jobs?id=' + jobId)
+                  // /job/ singular — the advert's own server-rendered page, so
+                  // a pasted link previews with the role's title, salary and
+                  // photograph. /jobs?id= is the BOARD, whose preview is the
+                  // generic site card. See the note in JobDetailModal.
+                  navigator.clipboard.writeText(window.location.origin + '/job/' + jobId)
                   alert('Job link copied to clipboard!')
                 }}
               >

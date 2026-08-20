@@ -121,7 +121,23 @@ export default function JobDetailModal({
 
   const handleShare = async (method: 'copy' | 'email' | 'whatsapp') => {
     trackClickEvent(job.id, 'share_click')
-    const jobUrl = `${window.location.origin}/jobs?id=${job.id}`
+    // SINGULAR, AND THIS IS A SHARE URL RATHER THAN A NAVIGATION ONE.
+    //
+    // /jobs?id=<uuid> works perfectly for a human: the board reads the param
+    // and opens this modal. But it is the BOARD's route, so the crawler that
+    // builds a link preview gets the board's metadata — og:title "Hospitality
+    // Jobs in the UK — Thrive" and the default site image. No role, no salary,
+    // no photograph. /job/<uuid> is server-rendered per advert and carries the
+    // role's own title, company, location, salary and 1200x630 image.
+    //
+    // Both forms load. Only one previews, and the difference is invisible
+    // until someone pastes it into LinkedIn — which is exactly what a recruiter
+    // does all day.
+    //
+    // The board's own router.push calls further down the codebase KEEP the
+    // ?id= form: that is the page's internal selection state, not a link
+    // anyone shares, and rewriting those would break the modal.
+    const jobUrl = `${window.location.origin}/job/${job.id}`
     const jobTitle = `${job.title} at ${job.company}`
 
     switch (method) {
@@ -395,14 +411,40 @@ export default function JobDetailModal({
             >
               <span className={styles.locationIcon}><Ico name="map-pin" size={20} /></span>
               <div className={styles.locationDetails}>
+                {/* "London," WITH A TRAILING COMMA AND NOTHING AFTER IT.
+                    226 OF THE 247 LIVE ADVERTS, not an edge case, and the
+                    reason is that the guilty line is the one nobody would
+                    look at. `fullLocation` is SYNTHESISED when the column is
+                    null — lib/types.ts:121 returns
+                    { addressLine1: row.location, city: '', postcode: '' } —
+                    so addressLine1 is truthy for every ordinary advert, the
+                    FIRST branch is taken, and it rendered
+                    `{city}, {postcode}` with both empty: a paragraph
+                    containing a comma and nothing else.
+
+                    The obvious suspect was the else-branch below, which joins
+                    location and area. It is barely reached, and "fixing" it
+                    would have changed nothing on 226 pages while looking
+                    exactly like a fix.
+
+                    Both are guarded now, with the same filter(Boolean).join
+                    idiom app/job/[id]/page.tsx already uses in three places —
+                    and the empty line is dropped rather than rendered blank.
+
+                    DISPLAY ONLY. The address data underneath is tangled (22
+                    Goldenkeys rows with swapped fields, and line 180 writes
+                    the synthesised object back) and is deliberately untouched
+                    here. */}
                 {job.fullLocation?.addressLine1 ? (
                   <>
                     <p>{job.fullLocation.addressLine1}</p>
                     {job.fullLocation.addressLine2 && <p>{job.fullLocation.addressLine2}</p>}
-                    <p>{job.fullLocation.city}, {job.fullLocation.postcode}</p>
+                    {[job.fullLocation.city, job.fullLocation.postcode].filter(Boolean).length > 0 && (
+                      <p>{[job.fullLocation.city, job.fullLocation.postcode].filter(Boolean).join(', ')}</p>
+                    )}
                   </>
                 ) : (
-                  <p>{job.location}, {job.area}</p>
+                  <p>{[job.location, job.area].filter(Boolean).join(', ')}</p>
                 )}
               </div>
             </a>

@@ -366,7 +366,22 @@ export default function JobDetailPage() {
                     <>
                       <p>{job.fullLocation.addressLine1}</p>
                       {job.fullLocation.addressLine2 && <p>{job.fullLocation.addressLine2}</p>}
-                      <p>{job.fullLocation.city}, {job.fullLocation.postcode}</p>
+                      {/* THE DANGLING COMMA, and this is the copy of it that
+                          matters most: the dedicated advert page is where a
+                          shared link lands, and every share control now points
+                          here. fullLocation is SYNTHESISED when the column is
+                          null (lib/types.ts:121 returns addressLine1 = the
+                          city, with city and postcode both empty), so this
+                          branch runs for 226 of the 247 live adverts and
+                          rendered a paragraph containing only ", ".
+
+                          The same fault is in JobDetailModal — see the longer
+                          note there. Two copies, which is why the search that
+                          found neither was the wrong shape: it looked for
+                          job.city rather than for the JOIN. */}
+                      {[job.fullLocation.city, job.fullLocation.postcode].filter(Boolean).length > 0 && (
+                        <p>{[job.fullLocation.city, job.fullLocation.postcode].filter(Boolean).join(', ')}</p>
+                      )}
                     </>
                   ) : (
                     <p>{[job.location, job.area].filter(Boolean).join(', ')}</p>
