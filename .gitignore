@@ -64,3 +64,8 @@ scripts/tmp-*
 # is PUBLIC. Regenerated on demand; never committed.
 THRIVE-REPORT*.md
 THRIVE-REPORT*.txt
+
+# Drive/screenshot output. *.png was already ignored; .webp was not, so a
+# generated test render was committed by accident on 20 Aug 2026. Ignore the
+# whole directory rather than chase file extensions.
+drive-shots/
