@@ -27,6 +27,11 @@ interface PostedJob {
   title: string
   company: string
   companyLogo: string
+  /** The employer's uploaded banner — the big image on the card. Carried here
+   *  because the card is now the board's own FeedCard, which renders it. It was
+   *  missing from this interface, so the employer's view of their own advert
+   *  showed the branded fallback while the board showed the real photograph. */
+  companyBanner?: string
   location: string
   /** Optional property/site name for multi-venue operators (e.g. "The Ember", "Ember Soho").
    *  Null for single-site operators or multi-site roles. */
@@ -149,6 +154,7 @@ function MyJobsContent() {
           title: row.title,
           company: row.company,
           companyLogo: row.company_logo_url || '',
+          companyBanner: row.company_banner_url || undefined,
           location: row.location || '',
           venue: row.venue || undefined,
           postedDate: row.posted_at ? new Date(row.posted_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],

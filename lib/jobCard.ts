@@ -96,20 +96,29 @@ export function formatJobSalary(job: Job): string {
  * eighth would be the worst place for the difference to live.
  *
  * WHAT THE EMPLOYER'S VERSION CANNOT KNOW. PostedJob is loaded straight off
- * `jobs` for one employer and carries no tags, no companyBanner, no
- * workLocationType and no isRecruiterPosting. Rather than invent them:
- *   · the banner falls back to the category art, exactly as a job with no
- *     banner does on the board — so this is the same fallback, not a
- *     different one;
- *   · "Easy apply" is OMITTED rather than assumed. It is computed from tags,
- *     and claiming it on a card whose advert requires a CV would be a promise
- *     to the employer about their own advert that the board would then break.
+ * `jobs` for one employer and carries no tags, no workLocationType and no
+ * isRecruiterPosting. Rather than invent them, "Easy apply" is OMITTED rather
+ * than assumed: it is computed from tags, and claiming it on a card whose
+ * advert requires a CV would be a promise to the employer about their own
+ * advert that the board would then break.
+ *
+ * THE BANNER IS NOT IN THAT LIST, and this comment used to say it was. It
+ * claimed PostedJob had no companyBanner and that the card "falls back to the
+ * category art" — both false. The column was in the row the whole time
+ * (/my-jobs does select('*')), it simply was not mapped, and there has been no
+ * category art since resolveJobBanner stopped guessing stock images: the
+ * fallback is the branded Thrive card. So the comment described a limitation
+ * that did not exist, in a product that no longer had the thing it named, and
+ * it read as a reason not to look. Fixed 20 Aug 2026 — see
+ * scripts/prove-employer-card.mjs, which asks the one question our own
+ * fixtures cannot answer.
  */
 export function cardModelFromPostedJob(job: {
   id: string
   title: string
   company: string
   companyLogo?: string
+  companyBanner?: string | null
   location: string
   salaryMin: number
   salaryMax: number
@@ -132,7 +141,13 @@ export function cardModelFromPostedJob(job: {
   return {
     id: job.id,
     banner: resolveJobBanner({
-      id: job.id, companyBanner: null, company: job.company, category: job.category,
+      // WAS HARD-CODED null, which made resolveJobBanner return null every
+      // time, so every employer card rendered the branded fallback while the
+      // board rendered the employer's real photograph for the same advert.
+      // Reported 20 Aug 2026: "the image on the job card in manage job ads
+      // doesn't show but it shows in browse jobs". The column was in the row
+      // all along — /my-jobs does select('*') — it just was not mapped.
+      id: job.id, companyBanner: job.companyBanner ?? null, company: job.company, category: job.category,
     }),
     logo: job.companyLogo || null,
     company: job.company,
