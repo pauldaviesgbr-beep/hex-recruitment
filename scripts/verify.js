@@ -120,6 +120,12 @@ const ALL = [
   // tidy landscape photo would pass while three of them were broken. Each
   // branch gets a fixture built with sharp, in memory, every run.
   { name: 'bannertreatment:prove', cmd: process.execPath, args: [path.join(ROOT, 'scripts', 'prove-banner-treatment.mjs')] },
+  // WHO GETS EMAILED IS THE WHOLE RISK of the reminder feature, so the rules
+  // that decide it are asserted rather than read. Most of these prove a
+  // REFUSAL — a scraped listing, an advert posted yesterday, one asked about
+  // last week — because the dangerous direction is a false positive, and a
+  // false positive here is somebody's inbox.
+  { name: 'reminders:prove', cmd: process.execPath, args: [path.join(ROOT, 'scripts', 'prove-job-reminders.mjs')] },
 ]
 const CHECKS = FAST ? ALL.filter(c => !c.slow) : ALL
 
