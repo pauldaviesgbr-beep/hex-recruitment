@@ -17,7 +17,8 @@ import AnswerLine from '@/components/AnswerLine'
 import SetupStrip from '@/components/SetupStrip'
 // nothingLiveShort is the panel register of the sentence the answer line's row
 // 5b says in full at the top of this page. One root string, two lengths.
-import { employerAnswerLine, nothingLiveShort } from '@/lib/answerLine'
+import { employerAnswerLine, justPostedAnswerLine, nothingLiveShort } from '@/lib/answerLine'
+import { readJustPosted, type JustPosted } from '@/lib/justPosted'
 import PipelineRows from '@/components/PipelineRows'
 // The same function StageDurationBadge uses, so "waiting 4d" on a phone and
 // "4 days in Shortlisted" on desktop can never disagree.
@@ -946,7 +947,19 @@ export default function EmployerDashboardPage() {
   // Rows 3 and 4 (interview today/tomorrow, unread messages) are not wired:
   // this page queries neither interviews nor conversations, so each would add
   // one. Four rows working beats six half-wired.
+  // Consumed once, on mount, by the tab that just published. Null on every
+  // ordinary visit, which is why the answer line below is unchanged for
+  // everyone who did not arrive here straight from posting.
+  const [justPosted, setJustPosted] = useState<JustPosted | null>(null)
+  useEffect(() => { setJustPosted(readJustPosted()) }, [])
+
   const answerLineModel = useMemo(() => {
+    // THE ONE EVENT THAT OUTRANKS THE STATE. An employer who has just pressed
+    // publish is owed confirmation before they are told what is quiet — and
+    // for exactly one view, because readJustPosted has already consumed the
+    // flag by the time this runs.
+    if (justPosted) return justPostedAnswerLine(justPosted.title)
+
     // Longest-stalled shortlisted candidate. Longest rather than first, because
     // the one that has waited most is the one not deciding has hurt most.
     let stalled: { name: string; days: number } | null = null
@@ -973,7 +986,7 @@ export default function EmployerDashboardPage() {
       // the clause turns itself on rather than needing a code change.
       viewsThisWeek: null,
     })
-  }, [applications, lastSeenAt, totalJobs, activeJobs])
+  }, [applications, lastSeenAt, totalJobs, activeJobs, justPosted])
 
   const statusCounts = useMemo(() => {
     const counts: Record<string, number> = {}

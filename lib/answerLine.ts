@@ -402,3 +402,47 @@ export function candidatesAnswerLine(state: CandidatesAnswerState): AnswerLineMo
       : 'Nobody is available right now.',
   }
 }
+
+/**
+ * THE ONE EVENT SENTENCE IN THIS FILE, and it is worth saying why it is here
+ * rather than as its own panel on the dashboard.
+ *
+ * Publishing an advert used to end on router.push to /job/<id> — the PUBLIC,
+ * candidate-facing page, the one with the Apply button — with nothing anywhere
+ * confirming the post had worked. Reported 20 Aug 2026: "it directs to the
+ * apply page when you've posted but you don't have a post success message".
+ * That is the same fault as the /jobs/<id> 404 one step further on: both leave
+ * the employer with no evidence the advert exists, and the expensive version of
+ * that doubt is posting the role a second time.
+ *
+ * The first draft was a green confirmation panel above the answer line. Paul's
+ * question -- could it go in the box that is already there -- is the better
+ * answer, and the component agrees: AnswerLine's eyebrow is documented as
+ * "TODAY, or a relative time", so an event in that slot is a shape it was
+ * built for. A dashboard whose stated design is five blocks collapsed into one
+ * sentence should not grow a sixth to say something worth one sentence.
+ *
+ * EVERY OTHER ROW IN THIS FILE IS A STATE; this is the exception, so it is
+ * bounded rather than computed: the page shows it once, from a one-shot flag,
+ * and the next load reverts to whatever is actually true. It does not linger
+ * and it never competes with a real state — it replaces the line for one view.
+ *
+ * ONE ACTION, and the choice is "Post another job" over "View your advert",
+ * because that is what was asked for and because the advert is one tap away on
+ * Manage job ads whereas posting again from here is not. The sentence carries
+ * the proof it is live; the action carries the next thing someone might want.
+ */
+export function justPostedAnswerLine(title?: string | null): AnswerLineModel {
+  const named = (title || '').trim()
+  return {
+    eyebrow: 'Just now',
+    // The advert's own title, in full and never truncated. On this board the
+    // marketing phrase after the en dash is often the only thing telling two
+    // listings apart, and the employer confirming their own post is precisely
+    // who needs to see which one went live.
+    sentence: named
+      ? `${named} is live on the job board.`
+      : 'Your advert is live on the job board.',
+    action: { label: 'Post another job', href: '/post-job' },
+  }
+}

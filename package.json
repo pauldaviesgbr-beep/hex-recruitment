@@ -27,7 +27,8 @@
     "datefilter:prove": "node scripts/prove-datefilter-contrast.mjs",
     "cvvocab:prove": "node scripts/prove-cv-vocabulary.mjs",
     "cv:backfill": "npx tsx scripts/backfill-cv-parse.mjs",
-    "redirects:prove": "node scripts/prove-redirect-targets.mjs"
+    "redirects:prove": "node scripts/prove-redirect-targets.mjs",
+    "employercard:prove": "node scripts/prove-employer-card.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.98.0",

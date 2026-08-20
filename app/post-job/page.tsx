@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { markJustPosted } from '@/lib/justPosted'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
 import Header from '@/components/Header'
@@ -1338,7 +1339,18 @@ function PostJobContent() {
       // board full of duplicates, which is the first thing an agency notices.
       //
       // Reported 19 Aug 2026 after posting a real advert on production.
-      router.push(`/job/${publishedJobId}`)
+      //
+      // AND NOT TO THE ADVERT EITHER, as of 20 Aug 2026. /job/<id> is the
+      // PUBLIC page — the one with the Apply button — so the last thing an
+      // employer saw after publishing was a page inviting them to apply for
+      // their own vacancy, with nothing confirming the post had worked.
+      // Reported after posting a real advert on production.
+      //
+      // The dashboard is where they can act next, and the confirmation rides
+      // in the answer line already at the top of it rather than as a panel of
+      // its own — see justPostedAnswerLine.
+      markJustPosted(publishedJobId, formData.title)
+      router.push('/employer/dashboard')
     } catch (err: any) {
       // The ad is already live, so a failure here loses the extras, not the ad.
       // Say that, rather than letting it read as "the post failed".

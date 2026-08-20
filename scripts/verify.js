@@ -109,6 +109,12 @@ const ALL = [
   // check that cries wolf about a URL that plainly works is one nobody trusts
   // by the end of the week. Filesystem only, milliseconds, fast tier.
   { name: 'redirects:prove', cmd: process.execPath, args: [path.join(ROOT, 'scripts', 'prove-redirect-targets.mjs')] },
+  // The employer's own view of their advert. Its fault class is invisible to
+  // a browser drive on our data: Thrive Test Employer's four adverts all have
+  // a null banner, so the fallback they render is the correct output and the
+  // bug only appears on a row we are not allowed to drive. Pure functions, no
+  // network, no database.
+  { name: 'employercard:prove', cmd: process.execPath, args: [path.join(ROOT, 'scripts', 'prove-employer-card.mjs')] },
 ]
 const CHECKS = FAST ? ALL.filter(c => !c.slow) : ALL
 
