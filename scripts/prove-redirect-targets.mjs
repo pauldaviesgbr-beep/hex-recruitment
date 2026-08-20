@@ -102,8 +102,83 @@ function resolve(segments) {
 const files = execSync('git ls-files "app/**/*.tsx" "app/**/*.ts" "components/**/*.tsx" "lib/**/*.ts"',
   { encoding: 'utf8' }).trim().split('\n').filter(Boolean)
 
-const NAV = /router\.(?:push|replace)\(\s*(`[^`]*`|'[^']*'|"[^"]*")/g
+// THIS USED TO BE ONE REGEX AND IT HAD A 33-CALL BLIND SPOT.
+//
+//   /router\.(?:push|replace)\(\s*(`[^`]*`|'[^']*'|"[^"]*")/g
+//
+// It required the path literal to be the FIRST token after the opening paren.
+// app/post-job/page.tsx wrapped its target in a ternary —
+//   router.push(adStatus === 'live' && publishedJobId ? `/jobs/${id}` : '/…')
+// — so the first token was an identifier, the call was never scanned, and this
+// script printed "no dead or mis-shaped redirect targets" while a live 404 sat
+// in the file. Found 20 Aug 2026, one day after the same script was written to
+// prevent exactly that bug, and reported as fixed on the strength of it.
+//
+// Of 190 push/replace calls in the app, 157 matched the old regex and 33 did
+// not. It did not know the 33 existed.
+//
+// So: take the WHOLE argument list of each call, and scan every path-shaped
+// literal anywhere inside it. Calls with no literal at all are genuinely
+// undecidable here (a variable, a helper) — those are COUNTED AND PRINTED
+// rather than passed over, because a check that bounds its own coverage and
+// says nothing reads as "I looked everywhere".
+const CALL = /router\.(?:push|replace)\(/g
+const LITERAL = /(`[^`]*`|'[^']*'|"[^"]*")/g
 const ID_VAR = /\b(id|.*Id|.*ID|uuid)\b/
+
+/**
+ * Blank out comments, preserving length so every offset and line number still
+ * points where it did.
+ *
+ * NEEDED BECAUSE THE SCANNER READ ITS OWN PROSE. The comment above the fixed
+ * call in app/post-job/page.tsx contains the words "router.push(" while
+ * explaining the bug, and this script's own header does too. Both matched, and
+ * one of them was reported as an unparseable call whose argument was a
+ * sentence of English. A check that cannot tell code from a comment about code
+ * is the same family as the emoji grep that found nothing in a file it had
+ * just written.
+ */
+function stripComments(src) {
+  let out = '', i = 0, quote = null
+  while (i < src.length) {
+    const c = src[i], d = src[i + 1]
+    if (quote) {
+      if (c === '\\') { out += src.slice(i, i + 2); i += 2; continue }
+      if (c === quote) quote = null
+      out += c; i++; continue
+    }
+    if (c === '`' || c === "'" || c === '"') { quote = c; out += c; i++; continue }
+    if (c === '/' && d === '/') {
+      while (i < src.length && src[i] !== '\n') { out += ' '; i++ }
+      continue
+    }
+    if (c === '/' && d === '*') {
+      while (i < src.length && !(src[i] === '*' && src[i + 1] === '/')) { out += src[i] === '\n' ? '\n' : ' '; i++ }
+      out += '  '; i += 2; continue
+    }
+    out += c; i++
+  }
+  return out
+}
+
+/** Text of the call's arguments, by walking to the matching close paren.
+ *  Quote- and template-aware so a paren inside a string cannot end it early. */
+function argsOf(src, openIdx) {
+  let depth = 1, i = openIdx, quote = null
+  while (i < src.length && depth > 0) {
+    const c = src[i]
+    if (quote) {
+      if (c === '\\') { i += 2; continue }
+      if (c === quote) quote = null
+    } else if (c === '`' || c === "'" || c === '"') {
+      quote = c
+    } else if (c === '(') depth++
+    else if (c === ')') depth--
+    if (depth === 0) break
+    i++
+  }
+  return depth === 0 ? src.slice(openIdx, i) : null
+}
 
 /** Paths deliberately allowed to look wrong. Each needs a reason. */
 const ALLOW = new Set([
@@ -112,14 +187,29 @@ const ALLOW = new Set([
 
 const findings = []
 let scanned = 0
+let calls = 0
+const undecidable = []   // calls with no path literal at all — printed, not hidden
 
 for (const file of files) {
-  const src = readFileSync(path.join(ROOT, file), 'utf8')
-  for (const m of src.matchAll(NAV)) {
-    const raw = m[1].slice(1, -1)
-    if (!raw.startsWith('/')) continue          // relative / computed: skip
+  const src = stripComments(readFileSync(path.join(ROOT, file), 'utf8'))
+  for (const c of src.matchAll(CALL)) {
+    calls++
+    const args = argsOf(src, c.index + c[0].length)
+    const callLine = src.slice(0, c.index).split('\n').length
+    if (args === null) {
+      undecidable.push({ file, line: callLine, note: 'unbalanced parens — could not read the argument list' })
+      continue
+    }
+    const literals = [...args.matchAll(LITERAL)]
+      .map(l => l[1].slice(1, -1))
+      .filter(s => s.startsWith('/'))
+    if (!literals.length) {
+      undecidable.push({ file, line: callLine, note: args.replace(/\s+/g, ' ').trim().slice(0, 70) })
+      continue
+    }
+    for (const raw of literals) {
     scanned++
-    const line = src.slice(0, m.index).split('\n').length
+    const line = callLine
     const pathOnly = raw.split('?')[0].split('#')[0]
     if (ALLOW.has(pathOnly)) continue
 
@@ -155,10 +245,37 @@ for (const file of files) {
         })
       }
     })
+    }
   }
 }
 
+console.log(`${calls} router.push/replace calls found`)
 console.log(`scanned ${scanned} absolute navigation targets against ${ROUTE_TABLE.length} routes`)
+
+// NO SILENT CAPS. The previous version of this script skipped 33 calls and said
+// nothing, so "no problems found" was indistinguishable from "did not look".
+// Anything this cannot decide is named here, every run.
+console.log(`${undecidable.length} calls carry no literal path (variable or helper) — NOT CHECKED:`)
+for (const u of undecidable) console.log(`    ${u.file}:${u.line}  ${u.note}`)
+console.log('')
+
+// POSITIVE CONTROL FOR THE SCANNER ITSELF, not just the resolver. The bug that
+// got through was a path inside a ternary, so the control is a ternary: if this
+// fixture yields fewer than two literals, the scanner has regressed to only
+// reading the first token and every clean run below is worthless.
+{
+  const fixture = "router.push(cond ? `/job/${id}` : '/employer/dashboard')"
+  const open = fixture.indexOf('(') + 1
+  const got = [...(argsOf(fixture, open) || '').matchAll(LITERAL)]
+    .map(l => l[1].slice(1, -1)).filter(s => s.startsWith('/'))
+  if (got.length !== 2) {
+    console.error('CONTROL FAILED — the scanner cannot see a path inside a ternary.')
+    console.error(`  found ${got.length} of 2: ${JSON.stringify(got)}`)
+    console.error('  This is the exact shape that produced a live 404 while this script passed.')
+    process.exit(1)
+  }
+  console.log('control ok — the scanner reads both arms of a ternary')
+}
 
 // POSITIVE CONTROL. If the resolver cannot fail, every pass above is a claim
 // about the instrument. Hand it two paths whose answers must differ.
