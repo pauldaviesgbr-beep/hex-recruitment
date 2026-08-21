@@ -77,6 +77,12 @@ function PostJobContent() {
   const [logoUploadError, setLogoUploadError] = useState('')
   const [logoFileName, setLogoFileName] = useState('')
   const [bannerUploading, setBannerUploading] = useState(false)
+  // Generated-artwork state. Kept beside the upload state because the two are
+  // the same decision from the employer's side — "what picture goes on this?"
+  const [artworkLoading, setArtworkLoading] = useState(false)
+  const [artworkError, setArtworkError] = useState('')
+  /** What we drew, in words, so it can be said rather than left to be noticed. */
+  const [artworkSubject, setArtworkSubject] = useState('')
   const [bannerUploadError, setBannerUploadError] = useState('')
   const [bannerFileName, setBannerFileName] = useState('')
 
@@ -319,7 +325,9 @@ function PostJobContent() {
       if (d.screeningQuestions) setScreeningQuestions(d.screeningQuestions)
       if (typeof d.hideSalary === 'boolean') setHideSalary(d.hideSalary)
       if (typeof d.salaryNegotiable === 'boolean') setSalaryNegotiable(d.salaryNegotiable)
-      if (d.step === 1 || d.step === 2) setStep(d.step)
+      // Step 3 included: it is a pre-publish step now, so a draft abandoned
+      // there has to come back there rather than to step 2.
+      if (d.step === 1 || d.step === 2 || d.step === 3) setStep(d.step)
       if (d.savedAt) setSavedAt(new Date(d.savedAt))
     } catch {
       // A corrupt draft must never block posting a job. Drop it and carry on.
@@ -596,7 +604,20 @@ function PostJobContent() {
   const handlePostcodeFound = (address: AddressData) => {
     setFormData(prev => ({
       ...prev,
-      area: `${address.city} ${address.postcode}`.trim(),
+      // THE CITY USED TO GO IN TWICE. This wrote
+      //   area = `${address.city} ${address.postcode}`
+      // while `location` below takes the city as well, and every card renders
+      // `location, area` — so Ricci's first advert read "London, London E9 5EN"
+      // and every employer using the address finder got their town twice.
+      //
+      // `area` is now left alone, which is not a gap: lib/jobAreaSync fills it
+      // server-side with the COUNTY LABEL ("Somerset", "Greater London") when it
+      // is empty, and refuses to overwrite one the employer set themselves. That
+      // is the same value the 243 imported listings carry, so a form-posted
+      // advert now reads like the rest of the board instead of like an exception.
+      //
+      // The postcode is not lost — it is kept in `postcode` and in fullLocation,
+      // which is what the map link and the address block use.
       postcode: address.postcode,
       city: address.city,
       location: prev.location || address.city,
@@ -699,6 +720,46 @@ function PostJobContent() {
     } finally {
       setBannerUploading(false)
       e.target.value = ''
+    }
+  }
+
+  /**
+   * "Generate one for me" — house-style artwork for an advert with no photograph.
+   *
+   * NOTHING IS ATTACHED TO ANYTHING. /api/jobs/artwork generates, stores the
+   * file and returns a URL; it lands in this form's own state and reaches the
+   * database only if the employer goes on to publish. Generate it, dislike it,
+   * close the tab, and nothing has changed.
+   *
+   * It is also always a choice, never a default. An image on a job advert is
+   * read as evidence of the workplace, so it is not something to do to someone
+   * quietly — the picture is generated because they asked and they can see it
+   * the preview beside this button before it is anyone's advert.
+   */
+  const handleGenerateArtwork = async () => {
+    setArtworkError('')
+    setArtworkLoading(true)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const res = await fetch('/api/jobs/artwork', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(session ? { Authorization: `Bearer ${session.access_token}` } : {}),
+        },
+        body: JSON.stringify({ jobTitle: formData.title }),
+      })
+      const json = await res.json()
+      if (!res.ok) {
+        setArtworkError(json.error || 'Could not create an image just now.')
+        return
+      }
+      setFormData(prev => ({ ...prev, companyBanner: json.url }))
+      setArtworkSubject(json.subject || '')
+    } catch {
+      setArtworkError('Could not create an image just now. You can publish without one.')
+    } finally {
+      setArtworkLoading(false)
     }
   }
 
@@ -1282,12 +1343,27 @@ function PostJobContent() {
         })()
       }
 
-      // PUBLISHING MOVES TO STEP 3 IN PLACE. It does not navigate away and come
-      // back, because the whole premise of step 3 is that the ad is already
-      // live and the rest is optional — a redirect to /my-jobs ends the session
-      // and the photo, the tags and the screening question never get added.
-      // The old flow redirected here, which is why those three were the fields
-      // nobody filled in.
+      // PUBLISHING IS NOW THE END OF STEP 3, NOT THE END OF STEP 2.
+      //
+      // It used to publish here and then move to step 3 in place, so the advert
+      // went live and the employer was then offered "three things that make it
+      // work harder". That was itself a fix for something worse — the flow
+      // before it REDIRECTED away after publishing, "which is why those three
+      // were the fields nobody filled in". But the problem being fixed was
+      // leaving the page, not the ordering, and publishing early bought a
+      // different fault: two endings, and a stepper that advertised three steps
+      // while ending the job at two (furthest was literally capped at 2 until
+      // the ad was live).
+      //
+      // So the flow keeps all three steps and publishes once, at the end. Step
+      // 3 is visibly optional and carries the publish button itself, which is
+      // what stops it becoming a third hurdle — you cannot skip past the thing
+      // you have to press.
+      //
+      // NOTHING IS LOST BY WAITING: every field step 3 collects — the banner,
+      // tags, screening questions, venue, work location, reference — is already
+      // in jobPayload above, so one insert carries the finished advert instead
+      // of an insert plus an update.
       if (stepped && !isEditMode && newJob?.id) {
         // The draft is finished, not abandoned. Leaving it would offer her the
         // ad she just published back as unfinished work the next time she
@@ -1296,9 +1372,9 @@ function PostJobContent() {
         setPublishedJobId(newJob.id)
         setPublishedAt(new Date())
         setAdStatus('live')
-        setStep(3)
+        markJustPosted(newJob.id, formData.title)
         setLoading(false)
-        window.scrollTo({ top: 0, behavior: 'smooth' })
+        router.push('/employer/dashboard')
         return
       }
 
@@ -1316,62 +1392,6 @@ function PostJobContent() {
     }
   }
 
-  /**
-   * Step 3 edits an ad that is ALREADY LIVE, so each extra is an update to an
-   * existing row rather than part of the thing being created. Saved on Done
-   * rather than per-block: three separate writes to a live row for what the
-   * employer experiences as one sitting is three chances to half-apply.
-   */
-  const handleFinishExtras = async () => {
-    if (!publishedJobId) { router.push('/my-jobs'); return }
-    setLoading(true)
-    showError('')
-    try {
-      // Everything step 3 can change. A field that only APPEARS here is a field
-      // that only SAVES here — venue and work location moved into this step, so
-      // leaving them out would have made them silently uneditable rather than
-      // optional.
-      await updateJob(publishedJobId, {
-        companyBanner: formData.companyBanner || undefined,
-        tags: Array.from(formData.tags),
-        screeningQuestions: screeningQuestions.filter(q => q.question.trim()),
-        shiftSchedule: formData.shiftSchedule || undefined,
-        experienceRequired: formData.experienceRequired || undefined,
-        jobReference: formData.jobReference || undefined,
-        venue: formData.venue.trim() || undefined,
-        workLocationType: formData.workLocationType,
-      } as any)
-      // SINGULAR. /jobs/<uuid> matched the /jobs/[city] segment, cityInfo came
-      // back undefined for a uuid, and app/jobs/[city]/page.tsx called
-      // notFound() — so the last click of posting a job landed the employer on
-      // a page titled "City Not Found".
-      //
-      // THE ADVERT WAS ALREADY LIVE by then: publishing happens at the step 1→2
-      // boundary, so this handler only saves the extras. That is what made it
-      // dangerous rather than merely broken — the employer sees a 404, concludes
-      // the post failed, and posts again. Across a batch of roles that is a
-      // board full of duplicates, which is the first thing an agency notices.
-      //
-      // Reported 19 Aug 2026 after posting a real advert on production.
-      //
-      // AND NOT TO THE ADVERT EITHER, as of 20 Aug 2026. /job/<id> is the
-      // PUBLIC page — the one with the Apply button — so the last thing an
-      // employer saw after publishing was a page inviting them to apply for
-      // their own vacancy, with nothing confirming the post had worked.
-      // Reported after posting a real advert on production.
-      //
-      // The dashboard is where they can act next, and the confirmation rides
-      // in the answer line already at the top of it rather than as a panel of
-      // its own — see justPostedAnswerLine.
-      markJustPosted(publishedJobId, formData.title)
-      router.push('/employer/dashboard')
-    } catch (err: any) {
-      // The ad is already live, so a failure here loses the extras, not the ad.
-      // Say that, rather than letting it read as "the post failed".
-      showError(`Your ad is live, but these extras didn't save: ${err.message || 'unknown error'}`)
-      setLoading(false)
-    }
-  }
 
   if (checkingAuth) {
     return (
@@ -1510,7 +1530,10 @@ function PostJobContent() {
           <div className={stepped ? flow.body : ''}>
           {stepped && (
             <>
-              <Stepper current={step} furthest={adStatus === 'live' ? 3 : 2} onGo={goToStep} />
+              {/* FURTHEST IS 3, FULL STOP. It was capped at 2 until the ad went live, so
+                  the stepper advertised three steps and then ended the job at two.
+                  All three exist before publishing now. */}
+              <Stepper current={step} furthest={3} onGo={goToStep} />
               <StepProgress current={step} />
             </>
           )}
@@ -2222,15 +2245,24 @@ function PostJobContent() {
             )}
           </div>
           </>)}
+
           {stepped && step === 2 && (
             <div className={flow.publishRow}>
               <div className={flow.publishCopy}>
                 <p className={flow.publishLead}>That&apos;s enough to go live.</p>
-                <p className={flow.publishSub}>Photos, tags and screening questions can be added while it&apos;s running.</p>
+                {/* Photos are no longer on that list — they are the block above. */}
+                <p className={flow.publishSub}>Tags and screening questions can be added while it&apos;s running.</p>
               </div>
               <button type="button" className={flow.outlineBtn} onClick={() => goToStep(1)}>← Back</button>
-              <button type="submit" className={flow.primaryBtn} disabled={loading || loadingJobData}>
-                {loading ? 'Posting…' : 'Post this job'}
+              {/* ADVANCES, DOES NOT PUBLISH. Posting is the end of step 3 now —
+                  see the note in handleSubmit. */}
+              <button
+                type="button"
+                className={flow.primaryBtn}
+                disabled={loading || loadingJobData}
+                onClick={() => goToStep(3)}
+              >
+                Next — the details →
               </button>
             </div>
           )}
@@ -2238,8 +2270,13 @@ function PostJobContent() {
           {(!stepped || step === 3) && (<>
           {stepped && (
             <div>
-              <h3 className={flow.screenTitle}>Your ad is live. Three things that make it work harder.</h3>
-              <p className={flow.screenSub}>All optional. You can close this and come back from Manage Job Ads whenever.</p>
+              {/* IT NO LONGER SAYS "Your ad is live", because it is not — the advert
+                  is created by the button at the BOTTOM of this step now. That
+                  sentence was true while publishing happened at the end of step 2,
+                  and would be a straight lie on the one screen where somebody is
+                  deciding whether they are finished. */}
+              <h3 className={flow.screenTitle}>Anything else? All optional.</h3>
+              <p className={flow.screenSub}>Skip any of it — post the job whenever you&apos;re ready.</p>
             </div>
           )}
           {/* Job Banner Image */}
@@ -2323,6 +2360,45 @@ function PostJobContent() {
                   )}
                 </label>
               </div>
+              {/* NO PHOTO TO HAND? Most employers have not got one of the
+                  kitchen, which is the real reason this field goes unfilled —
+                  not that they were never told it matters. Generating something in
+                  the house style is one press.
+
+                  Deliberately BESIDE the upload and second to it: a real
+                  photograph of the actual room beats artwork every time, and
+                  this must read as the fallback rather than the offer.
+
+                  Disabled without a job title because the picture is chosen
+                  from the ROLE and nothing else — never the description, which
+                  is where "Michelin Star" and "Luxury 5 Star Hotel" live, and
+                  those are claims about a venue we have never seen. */}
+              {!formData.companyBanner && (
+                <div style={{ marginTop: '0.6rem' }}>
+                  <button
+                    type="button"
+                    className={styles.uploadAltBtn}
+                    onClick={handleGenerateArtwork}
+                    disabled={artworkLoading || !formData.title.trim()}
+                  >
+                    {artworkLoading ? 'Generating…' : 'No photo? Generate one for me'}
+                  </button>
+                  {!formData.title.trim() && (
+                    <p className={styles.uploadHint} style={{ marginTop: '0.3rem' }}>
+                      Add a job title first — the picture is chosen from the role.
+                    </p>
+                  )}
+                </div>
+              )}
+              {artworkSubject && formData.companyBanner && (
+                <p className={styles.uploadHint} style={{ marginTop: '0.4rem' }}>
+                  We&apos;ve generated {artworkSubject}. Generate again for a different take, or
+                  upload your own photo to replace it.
+                </p>
+              )}
+              {artworkError && (
+                <p className={styles.uploadError} role="alert">{artworkError}</p>
+              )}
               {bannerFileName && !bannerUploadError && (
                 <p className={styles.logoSuccess}>Uploaded: {bannerFileName}</p>
               )}
@@ -2417,10 +2493,14 @@ function PostJobContent() {
 
                 Moving work location out of step 1 breaks nothing: it is not in
                 stepOneProblem(), it keeps its default, and the payload reads
-                formData.workLocationType either way. The one thing it DID need
-                was adding to handleFinishExtras — step 3 saves against a live
-                row, so a field that only appears here is a field that only
-                saves here. Same for venue. */}
+                formData.workLocationType either way.
+
+                This used to need adding to a separate save handler, because
+                step 3 ran against an advert that was ALREADY LIVE and a field
+                appearing only here would have saved only there. That is no
+                longer true: publishing is the end of step 3, so one insert
+                carries every field on the form and there is nothing to keep
+                in step with. Same for venue. */}
 
             <div className={styles.formGroup}>
               <label className={styles.label} htmlFor="venue">Venue (optional)</label>
@@ -2807,8 +2887,15 @@ function PostJobContent() {
                   So the form promised an automatic expiry that does not exist.
                   Employer-posted ads never expire at all — see CLAUDE.md. */}
               <p className={flow.stepFooterNote}>The reference is on the ad&apos;s settings — generated for you if you leave it blank.</p>
-              <button type="button" className={flow.navyBtn} onClick={handleFinishExtras} disabled={loading}>
-                {loading ? 'Saving…' : 'Done — view my ad'}
+              {/* THE ONE ENDING. This used to read "Done — view my ad" and save
+                  extras against an advert that was ALREADY live; the advert is
+                  now created here, once, with everything on it. Nothing above
+                  this button is required, and the button sits on the same
+                  screen as the optional fields precisely so the optional step
+                  cannot become a hurdle — you cannot skip past the control you
+                  have to press. */}
+              <button type="submit" className={flow.navyBtn} disabled={loading || loadingJobData}>
+                {loading ? 'Posting…' : 'Post this job'}
               </button>
             </div>
           )}
