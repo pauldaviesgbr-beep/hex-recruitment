@@ -156,6 +156,31 @@ await rec('refused and clamped disagree on the same rgb', async () =>
   brandColourFrom({ r: 67, g: 52, b: 104, hueVariance: 0.54 }) !==
   brandColourFrom({ r: 67, g: 52, b: 104, hueVariance: 0.07 }), true)
 
+// STEP 3b: A COLOUR THE CLAMP WOULD HAVE TO DRAG IS REPLACED, NOT REPRESENTED.
+//
+// Our own yellow is the case. Its hue variance is low -- it is one flat colour,
+// so step 3 passes it happily -- and clamping it 0.42 units darker returns an
+// olive that is nobody's brand. This gate is the ONLY thing between that and a
+// stored colour, which is why it is asserted on the two sides of its own
+// threshold rather than on the answer.
+await rec('a light yellow is refused for the distance, not the hue', async () =>
+  brandColourFrom({ r: 227, g: 205, b: 5, hueVariance: 0.04 }), BRAND_FALLBACK)
+
+// THE PAIR FOR 3b, and the one that catches a gate wired to the wrong input:
+// same hue, same low variance, different LIGHTNESS, different answer. A rule
+// that ignored lightness would return two clamped colours here.
+await rec('lightness alone decides between two versions of one hue', async () => {
+  const light = brandColourFrom({ r: 227, g: 205, b: 5, hueVariance: 0.04 })   // far from the band
+  const dark = brandColourFrom({ r: 90, g: 80, b: 2, hueVariance: 0.04 })      // already near it
+  return [light === BRAND_FALLBACK, dark !== BRAND_FALLBACK]
+}, [true, true])
+
+// AND THE GATE'S OWN CONDITION MUST BE ABLE TO BE FALSE -- the "a gate that
+// never fires looks exactly like a gate that works" rule. Collins King sits at
+// L 0.368, inside the band, so its delta is zero and it must pass untouched.
+await rec('a colour already in the band travels zero and is kept', async () =>
+  brandColourFrom({ r: 67, g: 52, b: 104, hueVariance: 0.073 }), '#433468')
+
 // STEP 2: sampled from the KEYED image. Gold line art on white must report
 // GOLD, not white -- the Goldenkeys case, and the only reason it gets a colour.
 const goldOnWhite = await solid(300, 300, { r: 255, g: 255, b: 255, alpha: 1 })

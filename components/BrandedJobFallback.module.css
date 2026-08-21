@@ -1,85 +1,181 @@
-/* The "no uploaded photo" panel — fills its relatively-positioned parent and
-   sits behind the slot's scrim/content. Container-query units keep the initial
-   proportional whether the slot is a tall card or a short detail header. */
-.fallback {
+/* THE NO-PHOTOGRAPH PANEL — the employer's colour, carrying their own words.
+   See BrandedJobFallback.tsx for why there is no logo anywhere on it.
+
+   It fills its relatively-positioned parent and sits BEHIND the card's scrim
+   and content (z-index -2, same slot the photograph occupies), so one set of
+   overlay rules serves both card formats and the photograph never has to change
+   to accommodate this one.
+
+   container-type: size, so every measurement below scales with the slot — the
+   same component renders in the grid card, the detail header strip and Manage
+   Job Ads, and those are three different sizes. */
+.panel {
   position: absolute;
   inset: 0;
   z-index: -2;
   overflow: hidden;
   container-type: size;
-  background:
-    radial-gradient(130% 110% at var(--fb-glow-x, 80%) -10%, rgba(255, 229, 0, 0.13) 0%, rgba(255, 229, 0, 0) 46%),
-    linear-gradient(var(--fb-angle, 140deg), #0a1628 0%, #12294a 100%);
+  background: var(--panel, #0F172A);
 }
 
-/* THE COMPANY INITIAL, AND NOW THE ONLY THING ON THE PANEL.
-   The Thrive lockup that used to sit top-left is gone — see the component for
-   why — so this carries the card alone. Anchored right and vertically centred
-   so it sits FULLY on the card and reads as a deliberate background letter
-   rather than a bleed.
+/* THE CONTENT REGION, AND ITS TWO BOUNDS ARE BOTH LOAD-BEARING.
 
-   Slightly stronger than it was (0.055 -> 0.075): it was tuned to sit beside a
-   lockup, and on its own at that weight the panel read as empty rather than
-   quiet. Still well under the overlaid title, which is the only thing that
-   must stay crisp. */
-.ghost {
+   TOP 52px clears the NEW badge and the bookmark, which are absolutely
+   positioned by the card itself (.cardNew top 14px, .cardSave top 12px + 34px
+   tall) and are SHARED WITH THE PHOTO CARD. The handoff puts those badges in
+   the flow instead, costing 30px rather than a reservation — right in a
+   standalone panel, but here it would mean re-laying-out the photo card too,
+   and that card is the thing the handoff most asks us to protect. Design's own
+   frames position them absolutely on four of the five hero cards, so the
+   reservation is what was drawn for every card without a NEW badge.
+
+   BOTTOM 50% keeps the quotation clear of .cardContent, which is bottom-
+   anchored and holds the company, title, location, pay and pills. Without it a
+   long sentence renders straight down through the title — the panel spans the
+   whole card, so "it clips" is not the failure mode, "it collides" is. 50%
+   against the handoff's ~46% because our title wraps to two lines where theirs
+   is one.
+
+   min-height: 0 and overflow: hidden together are what stop a long sentence
+   pushing the block open. On a flex child the default min-height: auto means it
+   cannot shrink below its content, and the guard is what makes the 50% real
+   rather than advisory. */
+.body {
   position: absolute;
-  right: 3%;
-  top: 50%;
-  transform: translateY(-50%);
+  top: 52px;
+  left: 0;
+  right: 0;
+  bottom: 50%;
+  min-height: 0;
+  overflow: hidden;
+  padding: 0 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4cqh;
+  align-content: flex-start;
+}
+
+/* THE DETAIL HEADER STRIP — 160px tall, and it has NEITHER of the card's two
+   obstacles: the badges are not there and the title and company sit BELOW the
+   strip rather than over it. Given .body's bounds the sentence would get a 28px
+   band and effectively vanish.
+
+   So the whole strip is the content region, vertically centred. The same
+   component, the same three fallbacks, the same colour — only the bounds
+   differ, which is the one thing about this slot that is genuinely different. */
+.bodyHeader {
+  position: absolute;
+  inset: 0;
+  min-height: 0;
+  overflow: hidden;
+  padding: 18px 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+  align-content: center;
+}
+
+/* THE FORM PREVIEW — ~190px wide, so 131px tall.
+
+   The card variant reserves 52px at the top for badges the preview does not
+   draw, which would leave a 14px band here. Its own bounds, and a tighter type
+   scale below via the container units, because the whole job of this thumbnail
+   is to show an employer that skipping the photograph produces a finished card.
+   A six-line stack of wrapped text would demonstrate the opposite. */
+.bodyPreview {
+  position: absolute;
+  top: 10px;
+  left: 0;
+  right: 0;
+  bottom: 44%;
+  min-height: 0;
+  overflow: hidden;
+  padding: 0 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-content: flex-start;
+}
+
+/* ── FALLBACK 1 + 2 · THE QUOTATION ─────────────────────────────────────── */
+
+.quoteMark {
+  flex: none;
+  width: 5.4cqw;
+  height: 5.4cqw;
+  min-width: 16px;
+  min-height: 16px;
+  fill: rgba(255, 255, 255, 0.34);
+  stroke: none;
+}
+
+/* Sized in cqw so one rule covers the 410px hero, the ~360px grid card and the
+   detail header. The floor stops it collapsing on a narrow phone card and the
+   ceiling stops it outgrowing the title beneath it, which would inverted the
+   card's own hierarchy — the role is what the candidate came for. */
+.quote {
+  font-family: var(--font-serif), Georgia, serif;
+  font-weight: 600;
+  font-size: clamp(14px, 5.3cqw, 22px);
+  line-height: 1.28;
+  letter-spacing: -0.02em;
+  color: #fff;
+  text-wrap: pretty;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* ── FALLBACK 3 · THE TAGS, LARGE ───────────────────────────────────────── */
+
+/* Already structured, already the employer's own selections, and "Immediate
+   start" / "No experience required" are exactly what a candidate scans for.
+   A slightly stronger border than the small pills on .cardContent (.44 against
+   .35) because these are the subject of the panel rather than trim on it. */
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-content: flex-start;
+}
+
+.tag {
+  border: 1px solid rgba(255, 255, 255, 0.44);
+  border-radius: 99px;
+  padding: 6px 11px;
+  font-size: clamp(10.5px, 3.1cqw, 12.5px);
+  font-weight: 500;
+  line-height: 1;
+  color: #fff;
+  white-space: nowrap;
+}
+
+/* ── FALLBACK 4 · THE MONOGRAM ──────────────────────────────────────────── */
+
+/* TOP-LEFT AND ON THEIR COLOUR, not centred on our navy — which is what the
+   live board does today and what "it's just C" was a fair verdict on. Off-axis
+   it reads as a monogram; centred it reads as a placeholder.
+
+   line-height 0.85 crops the letterforms' own leading so the shape sits against
+   the top of the region rather than floating a third of the way down it. */
+.monogram {
   font-family: var(--font-serif), Georgia, serif;
   font-weight: 700;
-  font-size: 76cqmin;
-  line-height: 1;
-  color: rgba(255, 255, 255, 0.075);
+  font-size: 20cqw;
+  line-height: 0.85;
+  letter-spacing: -0.05em;
+  color: rgba(255, 255, 255, 0.16);
   -webkit-user-select: none;
   user-select: none;
   pointer-events: none;
 }
 
-/* Older engines without container units: a sensible fixed size so the initial
-   still renders rather than collapsing to 0. The .mark/.wordmark/.slogan rules
-   that used to live here went with the lockup. */
-@supports not (width: 1cqmin) {
-  .ghost { font-size: 200px; }
-}
-
-/* ── THE EMPLOYER'S LOGO, AT FULL STRENGTH ────────────────────────────────
-   A card with no photograph is the employer's card and should look like it —
-   "it needs to shout the Collins King brand". Two quieter versions came first
-   and both were wrong about the goal rather than the technique: a faded
-   watermark (which also fought the white ground the upload route bakes in) and
-   the company initial alone, which is just a letter.
-
-   NO PLAQUE, DELIBERATELY. An earlier component put every logo on a white
-   tile, and the first report in this whole thread was "a purple rectangle on a
-   white tile, floating in the middle of a dark card… looks homemade". The tile
-   added white around a logo that already had its own ground. Left alone, a
-   logo with a dark block reads as a brand panel and one on white reads as
-   their own card stock.
-
-   UPPER AREA, NOT DEAD CENTRE. The slot's scrim and the overlaid title, company
-   and salary occupy the lower half; floating the mark in the middle is what
-   made the old one look pasted on. Sitting it in the upper band gives it room
-   and keeps the text crisp.
-
-   The rounded corner is the only thing added, and only so a hard-edged export
-   does not fight the card's own radius. */
-.logoMark {
-  position: absolute;
-  top: 7%;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 60cqmin;
-  max-width: 74%;
-  height: 40cqh;
-  object-fit: contain;
-  border-radius: 3cqmin;
-  -webkit-user-select: none;
-  user-select: none;
-  pointer-events: none;
-}
-
-@supports not (width: 1cqmin) {
-  .logoMark { width: 170px; height: 110px; border-radius: 8px; }
+/* Engines without container units still get a card rather than an empty
+   coloured rectangle. Fixed sizes tuned to the grid card, which is where nearly
+   every one of these renders. */
+@supports not (width: 1cqw) {
+  .body { gap: 8px; }
+  .quoteMark { width: 18px; height: 18px; }
+  .quote { font-size: 17px; }
+  .monogram { font-size: 72px; }
 }

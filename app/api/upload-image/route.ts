@@ -134,6 +134,12 @@ export async function POST(request: NextRequest) {
       { auth: { persistSession: false }, global: { headers: { Authorization: `Bearer ${token}` } } }
     )
     let permitted = false
+    // WHICH employer they were permitted AS, not just whether they were. The
+    // logo path writes a brand colour onto that profile, and a member can
+    // belong to more than one — so "they are allowed" is not enough to know
+    // whose row to touch. Captured from the same iteration that granted it, so
+    // the two can never name different employers.
+    let permittedEmployerId: string | null = null
     for (const m of memberships) {
       const ownerId = (m as any).employer_profiles?.user_id
       if (!ownerId) continue
@@ -141,7 +147,11 @@ export async function POST(request: NextRequest) {
         target: ownerId,
         cap: purpose.capability,
       })
-      if (allowed === true) { permitted = true; break }
+      if (allowed === true) {
+        permitted = true
+        permittedEmployerId = (m as any).employer_id ?? null
+        break
+      }
     }
     if (!permitted) {
       return NextResponse.json(
@@ -315,6 +325,30 @@ export async function POST(request: NextRequest) {
     }
 
     const dataUrl = `data:${logoResult ? logoResult.contentType : 'image/webp'};base64,${processedBuffer.toString('base64')}`
+
+    // PERSIST THE BRAND COLOUR HERE, ALONGSIDE THE LOGO IT CAME FROM.
+    //
+    // It was computed and returned but written nowhere, so every no-photograph
+    // card rendered navy however good the extraction was — the whole colour
+    // rule was running and being thrown away. Found by asking what actually
+    // writes the column rather than by trusting that something did.
+    //
+    // Written HERE rather than by the caller for one reason: the colour and the
+    // logo must never disagree. A form that saves the logo and separately
+    // remembers to save the colour is a form that will one day save only the
+    // logo, and the card would then carry the previous logo's colour with
+    // nothing to show it was stale.
+    //
+    // Failure is logged and swallowed. The upload itself succeeded, the URL is
+    // in hand, and a missing colour degrades to navy — refusing the whole
+    // upload because a cosmetic column did not take would be the worse trade.
+    if (isLogo && brandColour && permittedEmployerId) {
+      const { error: colourErr } = await admin
+        .from('employer_profiles')
+        .update({ brand_colour: brandColour })
+        .eq('id', permittedEmployerId)
+      if (colourErr) console.error('[upload-image] brand colour not stored:', colourErr.message)
+    }
 
     return NextResponse.json({
       success: true,

@@ -4,6 +4,7 @@ import type { ReactNode } from 'react'
 import Link from 'next/link'
 import type { Job } from '@/lib/mockJobs'
 import { resolveJobBanner } from '@/lib/jobBanner'
+import { selectQuote } from '@/lib/jobQuote'
 import BrandedJobFallback from '@/components/BrandedJobFallback'
 import CompanyLogo from '@/components/CompanyLogo'
 import jobStyles from '@/app/jobs/page.module.css'
@@ -53,18 +54,29 @@ export default function JobCardLink({
         {banner ? (
           <div className={jobStyles.cardBg} style={{ backgroundImage: `url(${banner})` }} aria-hidden="true" />
         ) : (
-          <BrandedJobFallback company={job.company} seed={job.id} logoUrl={job.companyLogo} />
+          <BrandedJobFallback
+            company={job.company}
+            brandColour={job.brandColour}
+            quote={selectQuote(job)}
+            tags={job.tags}
+          />
         )}
         <div className={jobStyles.cardScrim} aria-hidden="true" />
         <div className={jobStyles.cardContent}>
           <div className={jobStyles.cardCompanyRow}>
-            <span className={jobStyles.cardChip}>
-              {job.companyLogo ? (
-                <CompanyLogo src={job.companyLogo} alt={job.company} className={jobStyles.cardChipImg} />
-              ) : (
-                initial
-              )}
-            </span>
+            {/* NO AVATAR WITHOUT A PHOTOGRAPH — the branded panel carries no
+                logo anywhere, and three of the five real marks are illegible at
+                this size anyway. Same rule as FeedCard; both cards use these
+                same styles, so they have to agree. */}
+            {banner && (
+              <span className={jobStyles.cardChip}>
+                {job.companyLogo ? (
+                  <CompanyLogo src={job.companyLogo} alt={job.company} className={jobStyles.cardChipImg} />
+                ) : (
+                  initial
+                )}
+              </span>
+            )}
             <span className={jobStyles.cardCompany}>
               {job.company}
               {job.isRecruiterPosting && <span className={jobStyles.cardViaRecruiter}> · via recruiter</span>}

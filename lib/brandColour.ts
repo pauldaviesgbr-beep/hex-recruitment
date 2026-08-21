@@ -60,6 +60,26 @@ export const C_MAX = 0.12
  */
 export const HUE_VARIANCE_MAX = 0.30
 
+/**
+ * If the clamp would move lightness further than this, store navy instead.
+ *
+ * THIS ONE CATCHES OUR OWN YELLOW, and it exists because hue survived while the
+ * brand did not. Thrive's #FFE500 sits at L 0.90; the band's ceiling is 0.42, so
+ * clamping darkens it by 0.48 and returns an olive. The hue is still yellow and
+ * the result is not Thrive — what makes yellow read AS yellow is largely its
+ * lightness, so a yellow dark enough to carry white type has stopped being the
+ * colour it came from.
+ *
+ * The tell was two employers landing on the same panel: Thrive #574E00 and
+ * Goldenkeys #5B4C00 are four units apart across three channels. Two brands
+ * indistinguishable from each other, and neither one their own.
+ *
+ * A colour needing this much darkening is being REPLACED, not represented, and
+ * navy is the honest answer for the same reason it is for Neway: we did not
+ * guess. Measured on the five real logos it takes Thrive and leaves the rest.
+ */
+export const LIGHTNESS_DELTA_MAX = 0.30
+
 // ── sRGB <-> OKLab ─────────────────────────────────────────────────────────
 // Björn Ottosson's OKLab. Used rather than HSL because HSL's "lightness" is
 // not perceptual: clamping it leaves some hues visibly brighter than others,
@@ -192,5 +212,13 @@ export interface ColourSample {
 export function brandColourFrom(sample: ColourSample | null): string {
   if (!sample) return BRAND_FALLBACK
   if (sample.hueVariance > HUE_VARIANCE_MAX) return BRAND_FALLBACK
+
+  // The lightness gate runs BEFORE the clamp, on the distance the clamp would
+  // have to travel. Asking it afterwards is not the same question: by then the
+  // value is inside the band by construction and the journey is invisible.
+  const { L } = rgbToOklab(sample.r, sample.g, sample.b)
+  const landing = Math.max(L_MIN, Math.min(L_MAX, L))
+  if (Math.abs(landing - L) > LIGHTNESS_DELTA_MAX) return BRAND_FALLBACK
+
   return clampToBrandBand(sample.r, sample.g, sample.b)
 }

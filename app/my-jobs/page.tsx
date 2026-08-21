@@ -47,6 +47,13 @@ interface PostedJob {
   employmentType: string[]
   category: string
   description: string
+  /** The advert body, for the no-photograph panel to lift its sentence from.
+   *  Empty on a row that predates the column; the panel falls to tags. */
+  fullDescription?: string
+  /** The employer's own tag selections, the panel's middle fallback. */
+  tags?: string[]
+  /** Stored hex from their logo. Null = navy. */
+  brandColour?: string | null
   expiresDate?: string
   applicationStatuses: string[]
   hiredCandidate?: { name: string; hiredAt: string }
@@ -167,6 +174,9 @@ function MyJobsContent() {
           employmentType: row.employment_type || ['Full-time'],
           category: row.category || '',
           description: row.description || '',
+          fullDescription: row.full_description || row.description || '',
+          tags: row.tags || [],
+          brandColour: row.brand_colour ?? null,
           expiresDate: row.expires_at || undefined,
           applicationStatuses: [],
         }))

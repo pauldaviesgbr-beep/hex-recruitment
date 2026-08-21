@@ -32,7 +32,8 @@
     "bannertreatment:prove": "node scripts/prove-banner-treatment.mjs",
     "reminders:prove": "node scripts/prove-job-reminders.mjs",
     "jsxcomments:prove": "node scripts/prove-no-stray-jsx-comments.mjs",
-    "logotreatment:prove": "node scripts/prove-logo-treatment.mjs"
+    "logotreatment:prove": "node scripts/prove-logo-treatment.mjs",
+    "jobquote:prove": "npx tsx scripts/prove-job-quote.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.98.0",

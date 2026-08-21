@@ -421,3 +421,91 @@
 @media (max-width: 768px) {
   .formCard { padding: 16px 18px; gap: 16px; }
 }
+
+/* ── "NOT YOUR LOGO" ────────────────────────────────────────────────────────
+   Ricci uploaded his company logo into the photo field because the field asked
+   for an image, and a business puts its logo in an empty image box. That is a
+   LABELLING FAULT, not a user error — four rejected card treatments were all
+   downstream attempts to make the wrong file look right, and none of them could
+   have worked. This line is the fix.
+
+   Deliberately an inset panel rather than another paragraph: the surrounding
+   copy is already two sentences of encouragement, and a correction that reads
+   like more encouragement gets skimmed with it. */
+.notLogoPanel {
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin: 12px 0 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.notLogoTitle { font-size: 13px; font-weight: 600; line-height: 1.3; color: #0F172A; }
+.notLogoBody { font-size: 13px; font-weight: 400; line-height: 1.5; color: #475569; }
+
+/* ── THE LIVE BRANDED PREVIEW ───────────────────────────────────────────────
+   Skipping the photo used to show nothing, so the advert read as unfinished —
+   which is why an agency reaches for the logo in the first place. Showing the
+   real card makes skipping a visible choice rather than a gap. */
+.brandPreviewRow {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+  flex-wrap: wrap;
+  border-top: 1px solid #EFF2F6;
+  margin-top: 16px;
+  padding-top: 16px;
+}
+
+/* 16:11 at 190px, matching the board's card so the preview is the same shape
+   as the thing it previews. position: relative because the panel inside is
+   absolutely positioned against it, exactly as it is inside a real card. */
+.brandPreviewCard {
+  flex: none;
+  position: relative;
+  isolation: isolate;
+  width: 190px;
+  aspect-ratio: 16 / 11;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #0F172A;
+}
+
+/* ALL THREE LINES ELLIPSISED. At 190px a wrapped title turns the thumbnail into
+   a six-line stack, which shows a BROKEN card to the one person we are trying
+   to convince the card is fine. min-width: 0 is what lets the ellipsis happen
+   at all inside a flex column. */
+.brandPreviewText {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 0 12px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.34) 60%);
+}
+.brandPreviewText > span {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.brandPreviewCompany { font-size: 8.5px; font-weight: 500; line-height: 1.2; color: rgba(255, 255, 255, 0.85); }
+.brandPreviewTitle {
+  font-family: var(--font-serif), Georgia, serif;
+  font-size: 11px; font-weight: 700; line-height: 1.15; color: #fff;
+}
+.brandPreviewMeta { font-size: 8.5px; font-weight: 400; line-height: 1.2; color: rgba(255, 255, 255, 0.8); }
+
+.brandPreviewNote {
+  flex: 1 1 220px;
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #475569;
+}

@@ -4,6 +4,9 @@ import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { markJustPosted } from '@/lib/justPosted'
 import { trimDeep } from '@/lib/trimDeep'
+import { composeDescription } from '@/lib/composeDescription'
+import { selectQuote } from '@/lib/jobQuote'
+import BrandedJobFallback from '@/components/BrandedJobFallback'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
 import Header from '@/components/Header'
@@ -475,7 +478,7 @@ function PostJobContent() {
       // Fetch employer profile for auto-fill
       const { data: empProfile } = await supabase
         .from('employer_profiles')
-        .select('company_name, logo_url, description, website, business_address, location')
+        .select('company_name, logo_url, description, website, business_address, location, brand_colour')
         .eq('user_id', session.user.id)
         .maybeSingle()
 
@@ -1201,15 +1204,12 @@ function PostJobContent() {
       //
       // Composed as HTML because the editor path stores HTML in the same
       // column, and the detail page renders it as such.
-      const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-      const para = (s: string) => s.trim().split(/\n{2,}/).map(b => `<p>${esc(b.trim()).replace(/\n/g, '<br />')}</p>`).join('')
-      const composedDescription = descView === 'guided'
-        ? [
-            guidedFields.dayToDay && `<h3>What you’ll be doing</h3>${para(guidedFields.dayToDay)}`,
-            guidedFields.experienceNeeded && `<h3>Experience or skills needed</h3>${para(guidedFields.experienceNeeded)}`,
-            guidedFields.whatWeOffer && `<h3>What we offer</h3>${para(guidedFields.whatWeOffer)}`,
-          ].filter(Boolean).join('')
-        : formData.description
+      // HOISTED to composeDescription so the step-3 PREVIEW composes the advert
+      // exactly as publishing does. The preview lifts its sentence from this
+      // same string; two copies of the composition would eventually disagree,
+      // and that failure is a preview promising a card the board does not
+      // render — worse than showing no preview at all.
+      const composedDescription = composeDescription(descView, guidedFields, formData.description)
 
       // Auto-generate short description from first 150 characters.
       //
@@ -1302,6 +1302,17 @@ function PostJobContent() {
         status: 'active' as const,
         screeningQuestions: screeningQuestions.filter(q => q.question.trim()),
         isRecruiterPosting: !isOwnCompany,
+        // THE PANEL COLOUR, STAMPED ONTO THE ROW RATHER THAN LOOKED UP LATER.
+        //
+        // Computed once from the logo at upload and copied here at publish, so
+        // an employer who changes their logo in six weeks does not restyle
+        // adverts that are already live and have already been seen. Same
+        // instinct as the pay period and the em dash: the card shows what was
+        // true when it was posted.
+        //
+        // Null is a real answer, not a gap -- the panel falls to navy, which is
+        // also what the rule itself returns when it cannot read a logo.
+        brandColour: employerProfile?.brand_colour ?? null,
       }
 
       // EVERY STRING TRIMMED, ONCE, ON THE WAY OUT — see lib/trimDeep.
@@ -2331,6 +2342,27 @@ function PostJobContent() {
                     {showPhotoTips ? 'Hide the guidance' : 'What makes a good photo →'}
                   </button>
                 </p>
+
+                {/* SAY WHAT IT ISN'T. One line, and it stops the only mistake
+                    anyone makes with this field.
+
+                    Ricci uploaded his company logo here because the field asked
+                    for an image and a business puts its logo in an empty image
+                    box. THAT IS A LABELLING FAULT, NOT A USER ERROR, and no card
+                    design fixes it — the four rejected card treatments were all
+                    downstream attempts to make the wrong file look right.
+
+                    Placed above the upload rather than beside it: it has to be
+                    read BEFORE the file picker opens, and a hint underneath a
+                    control that has already been used is a hint nobody needs. */}
+                <div className={flow.notLogoPanel}>
+                  <span className={flow.notLogoTitle}>Not your logo — we&rsquo;ve already got that.</span>
+                  <span className={flow.notLogoBody}>
+                    Your logo appears on the advert automatically. Use this for the
+                    kitchen, the dining room, the bar — or leave it and we&rsquo;ll
+                    build a branded card in your colours.
+                  </span>
+                </div>
               </>
             ) : (
               <h2 className={styles.sectionTitle}>
@@ -2423,6 +2455,49 @@ function PostJobContent() {
                       Add a job title first — the picture is chosen from the role.
                     </p>
                   )}
+                </div>
+              )}
+
+              {/* SHOW THE CARD THEY GET, NOT AN EMPTY BOX.
+                  Skipping the photo shows nothing today, so the advert reads as
+                  unfinished — which is exactly why an agency reaches for the
+                  logo. This makes skipping a legitimate, visible choice.
+
+                  It composes the advert through the SAME composeDescription and
+                  the SAME selectQuote the publish path uses, so the sentence
+                  here is the sentence on the board. A preview with its own copy
+                  of either would eventually promise a card we do not render.
+
+                  Only while there is no banner: once they have uploaded one,
+                  this panel is not what their card will look like. */}
+              {!formData.companyBanner && (
+                <div className={flow.brandPreviewRow}>
+                  <div className={flow.brandPreviewCard}>
+                    <BrandedJobFallback
+                      variant="preview"
+                      company={formData.company}
+                      brandColour={employerProfile?.brand_colour ?? null}
+                      quote={selectQuote({
+                        fullDescription: composeDescription(descView, guidedFields, formData.description),
+                      })}
+                      tags={Array.from(formData.tags)}
+                    />
+                    {/* Single-line and ellipsised, all three. At 190px a wrapped
+                        title turns the thumbnail into a six-line stack, which
+                        demonstrates a broken card to the person deciding
+                        whether to skip the photo — the opposite of the point. */}
+                    <div className={flow.brandPreviewText}>
+                      <span className={flow.brandPreviewCompany}>{formData.company || 'Your company'}</span>
+                      <span className={flow.brandPreviewTitle}>{formData.title || 'Your job title'}</span>
+                      <span className={flow.brandPreviewMeta}>
+                        {[formData.location, formData.salaryMin && `£${formData.salaryMin}`].filter(Boolean).join(' · ') || 'Location · Pay'}
+                      </span>
+                    </div>
+                  </div>
+                  <p className={flow.brandPreviewNote}>
+                    <strong>This is what yours looks like now.</strong> No photo needed —
+                    we build a card in your own colours, carrying a line from your advert.
+                  </p>
                 </div>
               )}
               {artworkSubject && formData.companyBanner && (

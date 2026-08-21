@@ -122,8 +122,19 @@
 .cardScrim { position: absolute; inset: 0; z-index: -1; background: linear-gradient(180deg, rgba(10,22,40,.10) 0%, rgba(10,22,40,.30) 42%, rgba(10,22,40,.78) 78%, rgba(10,22,40,.93) 100%); }
 
 /* fallback (no banner): the branded panel (<BrandedJobFallback>) sits behind a
-   lighter scrim so its watermark stays visible while card text stays crisp. */
-.jobCardFallback .cardScrim { background: linear-gradient(180deg, rgba(10,22,40,0) 30%, rgba(10,22,40,.55) 100%); }
+   lighter scrim so its quotation stays legible while the card text stays crisp.
+
+   NEUTRAL BLACK, NOT OUR NAVY. The photo scrim is rgba(10,22,40,…) and that was
+   right when the panel underneath was also navy — but the panel is now the
+   EMPLOYER'S colour, and a navy wash over it drags every card back toward
+   Thrive blue, which is the exact "two visual systems on one card" fault this
+   whole change exists to remove. Black darkens without tinting, so a purple
+   panel stays purple.
+
+   The band the colour is clamped to (OKLCH L <= 0.42) is what guarantees the
+   white type's contrast, so this gradient is for depth at the foot of the card
+   rather than for legibility, and it can afford to be light. */
+.jobCardFallback .cardScrim { background: linear-gradient(180deg, rgba(0,0,0,0) 40%, rgba(0,0,0,.34) 100%); }
 
 .cardNew { position: absolute; top: 14px; left: 14px; z-index: 2; background: #FFE500; color: #0A1628; font-weight: 700; font-size: 11px; letter-spacing: .03em; padding: 4px 9px; border-radius: 999px; text-transform: uppercase; }
 .cardSave { position: absolute; top: 12px; right: 12px; z-index: 2; width: 34px; height: 34px; border-radius: 50%; background: rgba(10,22,40,.35); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); border: 1px solid rgba(255,255,255,.25); display: grid; place-items: center; color: #fff; cursor: pointer; padding: 0; }

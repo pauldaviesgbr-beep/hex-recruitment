@@ -12,6 +12,7 @@ import type { Job } from './mockJobs'
 import type { FeedCardModel } from '@/components/FeedCard'
 import { resolveJobBanner } from './jobBanner'
 import { formatMoney } from './money'
+import { selectQuote } from './jobQuote'
 
 /**
  * "3 days ago" and friends, as a number of days. Job.postedAt is already a
@@ -126,6 +127,13 @@ export function cardModelFromPostedJob(job: {
   employmentType?: string[]
   category?: string
   postedDate: string
+  /* The no-photograph panel's three inputs. All optional: an employer whose
+     advert has a photograph never reaches them, and /my-jobs must keep working
+     against a row loaded before these columns existed. */
+  brandColour?: string | null
+  fullDescription?: string | null
+  description?: string | null
+  tags?: string[] | null
 }): FeedCardModel {
   const employmentBadges = Array.isArray(job.employmentType) ? job.employmentType.slice(0, 2) : []
 
@@ -160,6 +168,14 @@ export function cardModelFromPostedJob(job: {
     } as unknown as Job),
     isNew: days <= 2,
     badges: employmentBadges.map(label => ({ label })),
+
+    // THE SAME PANEL THE BOARD SHOWS. The promise this mapper exists to keep is
+    // that an employer sees their own advert as a candidate sees it — so if the
+    // branded card is what the board renders, it has to be what /my-jobs
+    // renders, from the same three inputs and the same selection rule.
+    brandColour: job.brandColour ?? null,
+    quote: selectQuote({ fullDescription: job.fullDescription, description: job.description }),
+    panelTags: job.tags || [],
   }
 }
 
@@ -187,5 +203,18 @@ export function cardModelFromJob(job: Job): FeedCardModel {
       ...(job.urgent ? [{ label: 'Urgent' }] : []),
       ...(easyApply ? [{ label: 'Easy apply', accent: true }] : []),
     ],
+
+    // THE NO-PHOTOGRAPH PANEL. Computed here rather than in the card because
+    // the card is the one place that must not know what a job is — and because
+    // selecting the sentence means parsing the advert body, which is server
+    // work that should not run per render.
+    //
+    // The quote is LIFTED, never written; see lib/jobQuote. Deliberately
+    // computed even when a banner exists: it costs a regex over a string that
+    // is already in memory, and a model whose fields depend on which branch
+    // the card will take is the kind of thing that goes stale silently.
+    brandColour: job.brandColour ?? null,
+    quote: selectQuote(job),
+    panelTags: job.tags || [],
   }
 }
