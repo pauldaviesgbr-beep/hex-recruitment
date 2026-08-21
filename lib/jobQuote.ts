@@ -17,8 +17,20 @@
  * selections and need no cutting.
  */
 
-/** Above this the sentence will not fit two lines on the panel. */
-export const QUOTE_MAX = 90
+/**
+ * Above this the line will not fit two lines on the panel.
+ *
+ * 100, NOT DESIGN'S 90. Their 90 was set against a 410px hero frame at 22px,
+ * which we render nowhere; and the type now scales with the length of the line
+ * (see the size bands in BrandedJobFallback), so a longer quotation is set
+ * smaller and still lands in two lines.
+ *
+ * The 10 characters matter more than they look. Collins King's advert is well
+ * written and its best line — "You'll be leading the culinary output for a
+ * boutique events brand operating across East London" — is 93. At 90 that
+ * advert got a ghosted monogram; at 100 it gets the employer's own words.
+ */
+export const QUOTE_MAX = 100
 
 /**
  * Openers the scrape uses constantly. Stripped BEFORE measuring, because
@@ -53,6 +65,18 @@ const BOILERPLATE = [
  */
 function toPlainText(html: string): string {
   return html
+    // A BLOCK ENDS A SENTENCE, EVEN WITH NO FULL STOP. Employers write bullet
+    // paragraphs — "<p>A competitive salary of £90,000 per annum</p><p>A
+    // full-time position</p>" — and replacing every tag with a space ran the
+    // two together into "A competitive salary of £90,000 per annum A full-time
+    // position", which the sentence splitter then treated as one sentence and
+    // the clause rule cut at its first comma. Same family as the card summary
+    // that once read "What you'll be doingCovering chef de partie shifts".
+    //
+    // A full stop is inserted only where there is not already terminal
+    // punctuation, so a properly written paragraph is untouched.
+    .replace(/([^.!?>\s])\s*<\/(p|li|h[1-6]|div|blockquote)>/gi, '$1.')
+    .replace(/<(br|hr)\s*\/?>/gi, '. ')
     .replace(/<[^>]*>/g, ' ')
     .replace(/&nbsp;/g, ' ')
     .replace(/&rsquo;/g, '’').replace(/&lsquo;/g, '‘')
@@ -142,6 +166,79 @@ export interface QuoteSource {
 }
 
 /**
+ * Words that cannot end a card line, because a phrase stopping on one reads as
+ * a sentence someone cut in half — which is the whole objection to truncating.
+ * "…for a boutique events brand" is a phrase; "…for a boutique events brand and"
+ * is a fragment.
+ */
+const DANGLING = new Set([
+  'and', 'or', 'but', 'so', 'as', 'if', 'than', 'then', 'that', 'which', 'who',
+  'whom', 'whose', 'where', 'when', 'while', 'with', 'without', 'for', 'from',
+  'to', 'of', 'in', 'on', 'at', 'by', 'a', 'an', 'the', 'is', 'are', 'was',
+  'were', 'be', 'been', 'plus', 'including',
+])
+
+/** Below this a clause is a fragment, not a line. "This is a full-time" is 19. */
+const CLAUSE_MIN = 30
+
+/**
+ * HEADINGS AN EMPLOYER TYPED AS ORDINARY TEXT. Skipped, and the rule moves on
+ * to the next sentence rather than giving up on the section.
+ *
+ * Treating a block end as a full stop — which it had to, or bullet paragraphs
+ * ran together — also turned these into one-line "sentences". One advert
+ * immediately started reporting "About the Role" as its card line. A fix that
+ * creates a new fault is not finished, and this is the other half of it.
+ *
+ * IT IS A LIST AND NOT A MINIMUM LENGTH, because length cannot tell the two
+ * apart. A 25-character floor did reject "About the Role" — and rejected
+ * "Pension and a bonus", "Breakfast service" and "Sous chef wanted in Bath"
+ * with it, which are exactly the short punchy lines this feature wants most.
+ * A check that cannot distinguish the two states is not a check.
+ */
+const HEADINGS = new Set([
+  'about the role', 'the role', 'about us', 'about the company', 'about',
+  'overview', 'the opportunity', 'the position', 'the job', 'the package',
+  'responsibilities', 'key responsibilities', 'requirements', 'the candidate',
+  'benefits', 'what we offer', 'what you offer', 'who we are', 'the company',
+  'summary', 'job description', 'role overview', 'duties', 'skills',
+])
+
+/** How far into a section to look before giving up on it. */
+const MAX_SENTENCES = 3
+
+/**
+ * THE FIRST CLAUSE OF A SENTENCE, WHEN THE WHOLE SENTENCE IS TOO LONG.
+ *
+ * Collins King's advert is the case. It is well written and every one of its
+ * nine sentences runs past 100 characters, so the whole-sentence rule dropped
+ * it to a ghosted monogram — a good advert getting the worst card purely
+ * because of how its author punctuates.
+ *
+ * THIS IS NOT TRUNCATION, and the distinction is the point. A clause ending at
+ * a comma is the employer's exact words in their exact order, stopping where
+ * they themselves put a break. Nothing is written, nothing is reordered, and
+ * there is no ellipsis. "You'll be leading the culinary output for a boutique
+ * events brand" is already sitting in that advert; it simply has a comma after
+ * it rather than a full stop.
+ *
+ * Two guards keep it a phrase rather than a fragment: it must be long enough to
+ * stand alone, and it must not stop on a word that leaves the reader waiting.
+ */
+export function firstClause(sentence: string): string | null {
+  const cut = sentence.search(/[,;—–]\s/)
+  if (cut < 0) return null
+
+  const clause = sentence.slice(0, cut).trim()
+  if (clause.length < CLAUSE_MIN) return null
+
+  const lastWord = (clause.match(/([A-Za-z’']+)\s*$/) || [])[1]
+  if (lastWord && DANGLING.has(lastWord.toLowerCase())) return null
+
+  return clause
+}
+
+/**
  * THE SELECTION RULE. Returns the sentence, or null to fall through to tags.
  *
  * Order, and why:
@@ -173,10 +270,31 @@ export function selectQuote(job: QuoteSource): string | null {
 
   for (const body of candidates) {
     if (!body) continue
-    const sentence = firstSentence(body)
-    // The length test is on the FINAL string. Measuring before the strip would
-    // reject a sentence for words we were about to remove.
-    if (sentence && sentence.length <= QUOTE_MAX) return sentence
+
+    // THE FIRST FEW SENTENCES, not only the first. A section can open with a
+    // heading the employer typed as ordinary text, and giving up on the whole
+    // section because of it throws away the real line sitting right behind it.
+    const sentences = body.split(/(?<=[.!?])\s+/).map(s => s.trim()).filter(Boolean)
+
+    for (let i = 0; i < Math.min(sentences.length, MAX_SENTENCES); i++) {
+      // The boilerplate strip only applies to the opener — "We are currently
+      // recruiting for" never appears mid-section.
+      const sentence = i === 0
+        ? firstSentence(sentences[0])
+        : sentences[i].replace(/\.$/, '').trim()
+      if (!sentence) continue
+
+      if (HEADINGS.has(sentence.toLowerCase())) continue
+
+      // The length test is on the FINAL string. Measuring before the strip
+      // would reject a sentence for words we were about to remove.
+      if (sentence.length <= QUOTE_MAX) return sentence
+
+      // TOO LONG WHOLE — try the employer's own first clause before moving on.
+      // Still their exact words, stopping at a break they put in themselves.
+      const clause = firstClause(sentence)
+      if (clause && clause.length <= QUOTE_MAX) return clause
+    }
   }
   return null
 }
