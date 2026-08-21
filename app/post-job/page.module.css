@@ -1104,3 +1104,33 @@
 }
 @keyframes aiShimmer { 0% { background-position: 100% 50% } 100% { background-position: 0 50% } }
 @media (prefers-reduced-motion: reduce) { .aiSkeleton { animation: none } }
+
+/* "No photo? Draw one for me" — the secondary route to a picture, for the
+   employer who has none of the kitchen to hand.
+
+   DELIBERATELY QUIETER THAN THE UPLOAD. The dashed drop zone above is the
+   primary action and should stay that way: a real photograph of the actual room
+   beats generated artwork every time, and this must read as the fallback rather
+   than the offer. So it is a plain bordered button, not a second drop zone. */
+.uploadAltBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.9rem;
+  border: 1px solid var(--border-gray);
+  border-radius: 8px;
+  background: var(--white);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-dark);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.uploadAltBtn:hover:not(:disabled) {
+  border-color: var(--primary-yellow);
+  background: var(--light-gray);
+}
+.uploadAltBtn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
