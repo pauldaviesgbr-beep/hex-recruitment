@@ -262,3 +262,68 @@ export async function renderLogo(buffer: Buffer, _facts: LogoFacts): Promise<Log
     },
   }
 }
+
+/**
+ * SAMPLE THE DOMINANT COLOUR OF A KEYED LOGO — step 2 of the brand-colour rule.
+ *
+ * IT MUST RUN ON THE KEYED RESULT, NOT THE ORIGINAL, and Goldenkeys is the
+ * reason. It is thin gold line art on white, so the dominant colour of the file
+ * as uploaded is white — sampling it would produce a near-white panel, which
+ * the clamp would then drag to a muddy grey. After the white is keyed out, the
+ * only opaque pixels left ARE the mark, and the answer is gold.
+ *
+ * Fully transparent pixels are skipped for the same reason: they are not the
+ * brand, they are the absence of it.
+ *
+ * The variance figure is what step 3 uses to decide the sample cannot be
+ * trusted at all — a rainbow gradient averages to mud, and admitting that is
+ * more honest than shipping the mud.
+ */
+export async function sampleBrandColour(buffer: Buffer): Promise<import('./brandColour').ColourSample | null> {
+  const { rgbToOklab } = await import('./brandColour')
+
+  // Small enough to be quick, large enough that a thin line survives.
+  const { data, info } = await sharp(buffer)
+    .resize(64, 64, { fit: 'inside', withoutEnlargement: true })
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true })
+
+  const ch = info.channels
+  let rs = 0, gs = 0, bs = 0, n = 0
+  // Circular mean of hue, weighted by chroma. Summing unit vectors is the only
+  // honest way to average an angle — a plain mean of hue degrees puts the
+  // average of red (5) and red (355) at 180, which is cyan.
+  let hx = 0, hy = 0, wsum = 0
+
+  for (let i = 0; i < data.length; i += ch) {
+    const a = ch === 4 ? data[i + 3] : 255
+    if (a < 200) continue                    // transparent — not the brand
+    const r = data[i], g = data[i + 1], b = data[i + 2]
+    // Near-white survivors of an unkeyed logo would drag the mean; a logo whose
+    // ground was NOT keyed (a filled block) has few of them, so this is safe.
+    if (r > 250 && g > 250 && b > 250) continue
+    rs += r; gs += g; bs += b; n++
+    const { a: oa, bb: ob } = rgbToOklab(r, g, b)
+    const chroma = Math.sqrt(oa * oa + ob * ob)
+    if (chroma > 1e-6) {
+      hx += (oa / chroma) * chroma
+      hy += (ob / chroma) * chroma
+      wsum += chroma
+    }
+  }
+
+  if (!n) return null
+
+  // Mean resultant length. 1 = every pixel the same hue, 0 = spread evenly
+  // round the wheel. Variance is its complement.
+  const R = wsum > 0 ? Math.sqrt(hx * hx + hy * hy) / wsum : 1
+  const hueVariance = 1 - Math.max(0, Math.min(1, R))
+
+  return {
+    r: Math.round(rs / n),
+    g: Math.round(gs / n),
+    b: Math.round(bs / n),
+    hueVariance,
+  }
+}

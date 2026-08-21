@@ -31,10 +31,12 @@ const dir = join(process.cwd(), 'scripts')
 mkdirSync(dir, { recursive: true })
 const entry = join(dir, 'tmp-prove-logo-run.mts')
 const mod = pathToFileURL(join(process.cwd(), 'lib', 'logoRender.ts')).href
+const colourMod = pathToFileURL(join(process.cwd(), 'lib', 'brandColour.ts')).href
 
 writeFileSync(entry, `
 import sharp from 'sharp'
-import { analyseLogo, renderLogo, shouldKeyWhite } from ${JSON.stringify(mod)}
+import { analyseLogo, renderLogo, shouldKeyWhite, sampleBrandColour } from ${JSON.stringify(mod)}
+import { brandColourFrom, clampToBrandBand, rgbToOklab, BRAND_FALLBACK, L_MIN, L_MAX, C_MAX } from ${JSON.stringify(colourMod)}
 
 const out: any[] = []
 const rec = async (name: string, get: () => any, want: any) => {
@@ -97,6 +99,73 @@ await rec('a keyed logo is stored as PNG', async () =>
   (await renderLogo(thinOnWhite, await analyseLogo(thinOnWhite))).extension, 'png')
 await rec('an opaque block stays WebP', async () =>
   (await renderLogo(lightOnBlock, await analyseLogo(lightOnBlock))).extension, 'webp')
+
+
+// -- THE BRAND COLOUR CLAMP -----------------------------------------------
+// This is the guarantee the whole card direction rests on: NO CARD CAN COME
+// OUT ILLEGIBLE AND NONE CAN COME OUT GARISH, whatever anyone uploads. So it
+// is asserted as a PROPERTY over the whole colour wheel, not spot-checked.
+
+const inBand = (hexStr: string) => {
+  const n = parseInt(hexStr.slice(1), 16)
+  const { L, a, bb } = rgbToOklab((n >> 16) & 255, (n >> 8) & 255, n & 255)
+  const C = Math.sqrt(a * a + bb * bb)
+  return L >= L_MIN - 0.02 && L <= L_MAX + 0.02 && C <= C_MAX + 0.01
+}
+
+await rec('every colour in the wheel lands inside the band', async () => {
+  const bad: string[] = []
+  for (let r = 0; r <= 255; r += 51)
+    for (let g = 0; g <= 255; g += 51)
+      for (let b = 0; b <= 255; b += 51) {
+        const o = clampToBrandBand(r, g, b)
+        if (!inBand(o)) bad.push(r + ',' + g + ',' + b + ' -> ' + o)
+      }
+  return bad.slice(0, 3)
+}, [])
+
+// The extremes are what the band exists for: a white slab and a void.
+await rec('white is dragged down into the band', async () => inBand(clampToBrandBand(255, 255, 255)), true)
+await rec('black is lifted up into the band', async () => inBand(clampToBrandBand(0, 0, 0)), true)
+
+// HUE IS NEVER TOUCHED -- it is the part that reads as their brand.
+await rec('hue survives the clamp', async () => {
+  const before = rgbToOklab(120, 40, 200)
+  const n = parseInt(clampToBrandBand(120, 40, 200).slice(1), 16)
+  const after = rgbToOklab((n >> 16) & 255, (n >> 8) & 255, n & 255)
+  return Math.abs(Math.atan2(before.bb, before.a) - Math.atan2(after.bb, after.a)) < 0.08
+}, true)
+
+// A grey logo must stay grey. atan2(0,0) is 0, which is RED, so without the
+// guard a black wordmark comes back tinted.
+await rec('grey stays grey', async () => {
+  const n = parseInt(clampToBrandBand(31, 31, 31).slice(1), 16)
+  const r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255
+  return Math.max(r, g, b) - Math.min(r, g, b) < 6
+}, true)
+
+// STEP 3: hues all round the wheel are REFUSED, not averaged into mud.
+await rec('a high hue-variance sample falls back to navy', async () =>
+  brandColourFrom({ r: 132, g: 168, b: 176, hueVariance: 0.54 }), BRAND_FALLBACK)
+await rec('a low hue-variance sample is clamped, not refused', async () =>
+  brandColourFrom({ r: 67, g: 52, b: 104, hueVariance: 0.07 }) !== BRAND_FALLBACK, true)
+await rec('no sample at all falls back to navy', async () => brandColourFrom(null), BRAND_FALLBACK)
+
+// THE PAIR a stub cannot satisfy: same colour, different variance, different answer.
+await rec('refused and clamped disagree on the same rgb', async () =>
+  brandColourFrom({ r: 67, g: 52, b: 104, hueVariance: 0.54 }) !==
+  brandColourFrom({ r: 67, g: 52, b: 104, hueVariance: 0.07 }), true)
+
+// STEP 2: sampled from the KEYED image. Gold line art on white must report
+// GOLD, not white -- the Goldenkeys case, and the only reason it gets a colour.
+const goldOnWhite = await solid(300, 300, { r: 255, g: 255, b: 255, alpha: 1 })
+  .composite([{ input: svg('<svg width="300" height="300"><circle cx="150" cy="150" r="110" fill="none" stroke="#c8a24a" stroke-width="10"/></svg>'), top: 0, left: 0 }])
+  .png().toBuffer()
+await rec('a keyed line-art logo samples its ink, not its page', async () => {
+  const keyed = await renderLogo(goldOnWhite, await analyseLogo(goldOnWhite))
+  const smp = await sampleBrandColour(keyed.buffer)
+  return !!smp && smp.r > smp.b + 30
+}, true)
 
 console.log(JSON.stringify(out))
 `)

@@ -7,7 +7,8 @@ import {
   analyseImage, chooseTreatment, renderBanner,
   type ImageFacts, type Treatment,
 } from '@/lib/bannerRender'
-import { analyseLogo, renderLogo, type LogoResult } from '@/lib/logoRender'
+import { analyseLogo, renderLogo, sampleBrandColour, type LogoResult } from '@/lib/logoRender'
+import { brandColourFrom } from '@/lib/brandColour'
 
 const BANNER_BUCKET = 'job-banners'
 
@@ -239,6 +240,7 @@ export async function POST(request: NextRequest) {
     let facts: ImageFacts | undefined
     let treatment: Treatment | undefined
     let logoResult: LogoResult | undefined
+    let brandColour: string | undefined
     if (isLogo) {
       // A LOGO IS NOT A BANNER, and it is no longer forced into a square on
       // white either.
@@ -259,6 +261,13 @@ export async function POST(request: NextRequest) {
       const logoFacts = await analyseLogo(buffer)
       logoResult = await renderLogo(buffer, logoFacts)
       processedBuffer = logoResult.buffer
+
+      // THE BRAND COLOUR, computed here and nowhere else. Sampled from the
+      // KEYED result rather than the upload: Goldenkeys is gold line art on
+      // white, so the dominant colour of the file as sent is white, and only
+      // the keyed version knows the answer is gold. See lib/brandColour for
+      // why the fallback is a hue-variance test and not a chroma one.
+      brandColour = brandColourFrom(await sampleBrandColour(logoResult.buffer))
     } else {
       // WHAT THE IMAGE IS, NOT WHICH BOX IT CAME FROM.
       //
@@ -325,6 +334,7 @@ export async function POST(request: NextRequest) {
       // What was done to a LOGO, for the same reason the banner reports its
       // treatment: so the shape of real uploads is visible rather than guessed.
       logoTreatment: logoResult ? logoResult.treatment : null,
+      brandColour: brandColour ?? null,
       sourceFacts: facts
         ? {
             width: facts.width, height: facts.height,
