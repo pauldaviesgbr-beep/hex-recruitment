@@ -148,7 +148,11 @@
    .cardContent stays absolutely positioned over the image exactly as it is
    today. Nothing about the photo card changes. */
 .jobCardFallback { display: flex; flex-direction: column; }
-.jobCardFallback .cardContent { position: static; margin-top: auto; }
+/* relative + z-index 2, not static: the panel body is positioned with z-index 1,
+   and a positioned element paints above a static one whatever the DOM order. The
+   two no longer overlap, so this changes nothing today — it is here so that if
+   they ever do, the TITLE wins rather than the decoration. */
+.jobCardFallback .cardContent { position: relative; z-index: 2; margin-top: auto; }
 
 .cardNew { position: absolute; top: 14px; left: 14px; z-index: 2; background: #FFE500; color: #0A1628; font-weight: 700; font-size: 11px; letter-spacing: .03em; padding: 4px 9px; border-radius: 999px; text-transform: uppercase; }
 .cardSave { position: absolute; top: 12px; right: 12px; z-index: 2; width: 34px; height: 34px; border-radius: 50%; background: rgba(10,22,40,.35); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); border: 1px solid rgba(255,255,255,.25); display: grid; place-items: center; color: #fff; cursor: pointer; padding: 0; }
