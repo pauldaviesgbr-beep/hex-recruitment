@@ -260,7 +260,7 @@
    two quote marks and no words -- a preview demonstrating a broken card to the
    one person we are trying to convince the card is fine. 360 matches the board
    grid card, which is the thing it claims to be previewing. */
-.extrasSplit { display: grid; grid-template-columns: 1fr 360px; gap: 26px; align-items: start; }
+.extrasSplit { display: grid; grid-template-columns: 1fr 400px; gap: 26px; align-items: start; }
 
 .extrasPair { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
 
@@ -367,13 +367,13 @@
 }
 
 /* Live card preview — the real card, at the size the handoff draws it. */
-.cardPreviewFrame { width: 360px; }
+.cardPreviewFrame { width: 400px; }
 .cardPreviewFrame :global(article) { width: 100% !important; }
 
 /* ── Responsive ──────────────────────────────────────────────────────── */
 @media (max-width: 1100px) {
   .extrasSplit { grid-template-columns: 1fr; }
-  .cardPreviewFrame { width: 100%; max-width: 340px; }
+  .cardPreviewFrame { width: 100%; max-width: 400px; }
 }
 
 @media (max-width: 860px) {

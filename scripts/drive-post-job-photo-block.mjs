@@ -150,21 +150,38 @@ try {
     const q = document.querySelector('[class*="quote"]:not([class*="quoteMark"])')
     if (!q) return null
     const card = q.closest('[class*="jobCard"]')
-    const title = card && card.querySelector('h3')
-    if (!title) return null
-    const a = q.getBoundingClientRect(), b = title.getBoundingClientRect()
+    const block = q.parentElement
+    if (!card || !block) return null
     const c = card.getBoundingClientRect()
+
+    // THE TWO QUESTIONS THAT ARE ACTUALLY THE FAULT, not a rect comparison.
+    // A clipped element still reports its FULL layout rect, so an overlap test
+    // reports collisions that are invisible and misses a quotation clipped to
+    // nothing. Ask whether content fits its block, and whether anything runs
+    // past the card — those are the two ways this card has broken so far.
+    const clippedBy = block.scrollHeight - block.clientHeight
+    const spills = [...card.querySelectorAll('*')].filter(n => {
+      const r = n.getBoundingClientRect()
+      if (r.width === 0 && r.height === 0) return false
+      return r.bottom > c.bottom + 1 || r.right > c.right + 1 || r.left < c.left - 1
+    }).map(n => String(n.className).slice(0, 40))
+
     return {
       cardH: Math.round(c.height), cardW: Math.round(c.width),
-      quote: [Math.round(a.top - c.top), Math.round(a.bottom - c.top)],
-      title: [Math.round(b.top - c.top), Math.round(b.bottom - c.top)],
-      overlap: a.bottom > b.top + 1 && a.top < b.bottom - 1,
+      quoteText: q.textContent.trim().slice(0, 40),
+      quoteVisible: q.getBoundingClientRect().height > 4,
+      clippedBy: clippedBy > 2 ? clippedBy : 0,
+      spills: spills.slice(0, 3),
     }
   })
   if (geom) {
-    console.log(`\n  preview card ${geom.cardW}x${geom.cardH} · quote y${geom.quote} · title y${geom.title}`)
-    check('the quote does not overlap the title in the preview',
-      geom.overlap ? `OVERLAP quote${geom.quote} title${geom.title}` : 'clear', geom.overlap === false)
+    console.log(`\n  preview card ${geom.cardW}x${geom.cardH} · quote "${geom.quoteText}"`)
+    check('the quotation is actually rendered, not collapsed to nothing',
+      geom.quoteVisible ? 'visible' : 'zero height', geom.quoteVisible)
+    check('the panel content fits its block in the preview',
+      geom.clippedBy ? `${geom.clippedBy}px clipped` : 'fits', geom.clippedBy === 0)
+    check('nothing in the preview card runs past its edges',
+      geom.spills.length ? geom.spills : 'none', geom.spills.length === 0)
   }
 
   if (hasNotLogo) {
