@@ -1024,7 +1024,7 @@ function PostJobContent() {
     // Back NEVER discards and never validates — the only reason someone goes
     // back is to change something, and refusing to let them is how a form
     // traps people.
-    if (next < step) { showError(''); setStep(next); window.scrollTo({ top: 0, behavior: 'smooth' }); return }
+    if (next < step) { showError(''); setStep(next); return }
 
     if (step === 1) {
       const problem = stepOneProblem()
@@ -1038,8 +1038,32 @@ function PostJobContent() {
     }
     showError('')
     setStep(next)
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+    // The scroll used to happen here and it did not work. See the effect below.
   }
+
+  /**
+   * EVERY STEP STARTS AT THE TOP.
+   *
+   * goToStep used to call window.scrollTo({ top: 0, behavior: 'smooth' })
+   * immediately after setStep, and pressing Next from step 1 landed you at the
+   * BOTTOM of step 2. Two things were wrong with that line and they compound:
+   *
+   *   · IT RAN BEFORE THE RENDER. setStep only queues an update, so the scroll
+   *     was animating the OLD page while React swapped in the new one, and the
+   *     browser abandons an in-flight smooth scroll when the document changes
+   *     under it. You were left wherever step 1 had scrolled you to.
+   *   · 'smooth' MADE IT A RACE rather than an instruction. The house rule here
+   *     is already written down for checks: never animate and measure. The same
+   *     applies to animating and re-rendering — make it instantaneous and there
+   *     is no window for anything to interrupt.
+   *
+   * An effect keyed on `step` runs AFTER the new step has committed, so there
+   * is a new page to be at the top of. Instant, for the reason above.
+   */
+  useEffect(() => {
+    if (!stepped) return
+    window.scrollTo(0, 0)
+  }, [step, stepped])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -1493,23 +1517,34 @@ function PostJobContent() {
                 // published it and the thing she'd want is to see it. Before
                 // that there is nothing to look at, so it's the dashboard.
                 //
-                // SINGULAR. THE THIRD INSTANCE OF THE SAME 404, found 20 Aug
-                // 2026 — a day AFTER the other two were fixed and reported as
-                // done. /jobs/<uuid> matches the /jobs/[city] segment, cityInfo
-                // is undefined for a uuid, and the employer lands on "City Not
-                // Found" having just published successfully.
+                // BACK MEANS THE PREVIOUS STEP, NOT THE EXIT.
                 //
-                // prove-redirect-targets.mjs PASSED ON THIS, and that is the
-                // more important half. Its regex required the path literal to
-                // be the first token after router.push( — here the first token
-                // is `adStatus`, because the path is inside a ternary — so the
-                // call was never scanned. Not reported as unparseable: simply
-                // invisible. 33 of the app's 190 push/replace calls were in
-                // that blind spot. The check now counts what it cannot parse
-                // and fails rather than printing a clean bill.
-                onBack={() => router.push(
-                  adStatus === 'live' && publishedJobId ? `/job/${publishedJobId}` : '/employer/dashboard',
-                )}
+                // This used to be a single router.push that left the form
+                // entirely, so from step 2 or 3 the back arrow threw away the
+                // flow and dropped the employer on the dashboard — with a draft
+                // saved, but nothing on screen saying so. Reported from a phone
+                // on 21 Aug 2026: "the back page doesn't go back to the previous
+                // job post page, it takes you back to dashboard."
+                //
+                // It was defensible when publishing happened at the end of step
+                // 2, because by step 3 the advert was already live and there was
+                // no earlier step worth returning to. It stopped being true the
+                // moment publishing moved to the end.
+                //
+                // Leaving the form is still what back means on step 1, where
+                // there IS no previous step.
+                //
+                // The branch it replaces also carried the third instance of the
+                // /jobs/<uuid> 404 — the plural matched /jobs/[city] and landed
+                // the employer on "City Not Found". prove-redirect-targets
+                // could not see it, because its regex needed the path literal to
+                // be the first token after router.push( and this one sat inside
+                // a ternary. That check now reads whole argument lists and names
+                // what it cannot parse; the unreachable push is gone with it.
+                onBack={() => {
+                  if (stepped && step > 1) { goToStep((step - 1) as 1 | 2 | 3); return }
+                  router.push('/employer/dashboard')
+                }}
                 // The ONLY place she is told her work is safe. She will be
                 // interrupted mid-form — this is what makes that survivable,
                 // so it says "Draft saved" once something has actually been
