@@ -150,6 +150,7 @@ export default function FeedCard({
             brandColour={model.brandColour}
             quote={model.quote}
             tags={model.panelTags}
+            retired={!!retired}
           />}
       <div className={styles.cardScrim} aria-hidden="true" />
 

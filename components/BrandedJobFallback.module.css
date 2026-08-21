@@ -120,10 +120,16 @@
   flex: none;
   font-family: var(--font-serif), Georgia, serif;
   font-weight: 600;
-  /* Capped by the block HEIGHT as well as the card width: two lines at 1.28
-     is 2.6em, so 24cqh keeps a two-line quote inside the space available. A
-     quote clipped mid-line reads as a broken card. */
-  font-size: clamp(12px, min(5.3cqw, 24cqh), 22px);
+  /* 4.6cqw, WHICH IS DESIGN'S GRID FIGURE — 17px on a ~370px card, not the
+     22px they specced for the standalone 410px hero. The previous ramp
+     resolved to about 20px, and that is the whole difference between an
+     88-character quotation wrapping to two lines and wrapping to three: at
+     20px a 371px card holds ~29 characters a line, at 17px it holds ~43.
+     The third line is what was being cut off on Manage Job Ads.
+
+     Measured on the card, not read off the handoff — their 22px belongs to a
+     frame we do not render at that size anywhere. */
+  font-size: clamp(12px, 4.6cqw, 22px);
   line-height: 1.28;
   letter-spacing: -0.02em;
   color: #fff;
