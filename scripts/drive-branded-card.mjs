@@ -169,6 +169,49 @@ try {
   await page.locator('[class*="jobsGrid"]').first().screenshot({ path: `${SHOTS}/branded-mixed-grid.png` }).catch(() => {})
   await page.screenshot({ path: `${SHOTS}/branded-board.png`, fullPage: false })
 
+  // THE DETAIL HEADER — the panel's OTHER slot, and the one a component gets
+  // wrong: it is a 160px strip with no badges above and no overlay below, so
+  // the card's bounds would give the sentence a 28px band. Driven because the
+  // second slot is where "it works" stops being true.
+  if (brandedCount > 0) {
+    // CLICK IT, don't look for a link. The board card opens a MODAL — it has an
+    // onClick, not an href — so the first version of this read a null href and
+    // skipped the whole check in silence, which looks exactly like a check that
+    // passed. Anything that cannot run now reports a failure instead.
+    await branded.first().click()
+    await page.waitForTimeout(2000)
+    {
+      const detail = page
+      const strip = detail.locator('[class*="bodyHeader"]').first()
+      const found = await strip.count()
+      check('the detail view opened and shows the branded strip', found ? 'open' : 'not found', found > 0)
+      if (found) {
+        const d = await strip.evaluate(el => {
+          const box = el.getBoundingClientRect()
+          // The content lives INSIDE .bodyHeader — the header variant is one
+          // absolute box rather than the card's spacer-plus-body pair.
+          const content = el.querySelector('[class*="quote"]:not([class*="quoteMark"])')
+            || el.querySelector('[class*="monogram"]') || el.querySelector('[class*="tag"]')
+          if (!content) return { h: Math.round(box.height), content: null }
+          const c = content.getBoundingClientRect()
+          return {
+            h: Math.round(box.height),
+            content: content.textContent.trim().slice(0, 40),
+            cut: Math.round(c.bottom - box.bottom),
+          }
+        })
+        console.log(`  detail strip ${d.h}px · ${d.content ? `"${d.content}"` : 'nothing rendered'}`)
+        check('the detail header renders the panel content',
+          d.content || 'nothing', !!d.content)
+        if (d.content) check('and does not cut it off',
+          d.cut > 1 ? d.cut + 'px cut' : 'fits', d.cut <= 1)
+        const shot = detail.locator('[class*="bannerWrapper"], [class*="detailBanner"]').first()
+        await (await shot.count() ? shot : strip)
+          .screenshot({ path: `${SHOTS}/branded-detail-header.png` }).catch(() => {})
+      }
+    }
+  }
+
   // AND ON A PHONE, where the card is widest relative to its type and the
   // quotation has the fewest characters per line.
   const phone = await ctx.newPage()
