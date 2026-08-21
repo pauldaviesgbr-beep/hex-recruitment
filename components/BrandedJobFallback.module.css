@@ -45,6 +45,10 @@
   min-height: 0;
   overflow: hidden;
   padding: 0 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-content: flex-start;
 }
 
 /* THE BADGE RESERVATION, AS A SPACER THAT GIVES WAY.
@@ -64,16 +68,6 @@
   display: block;
   flex: 0 500 52px;
   min-height: 0;
-  /* Its own container, so everything inside sizes to the space that is LEFT
-     rather than to the card. The monogram at 20% of the CARD width is 82px on
-     a 410px card, and the body it has to fit in is 80px tall -- so it rendered
-     cropped through the middle of the letterforms. cqh here is the answer to
-     the right question. */
-  container-type: size;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  align-content: flex-start;
 }
 
 /* THE DETAIL HEADER STRIP — 160px tall, and it has NEITHER of the card's two
@@ -166,7 +160,15 @@
   flex: none;
   font-family: var(--font-serif), Georgia, serif;
   font-weight: 700;
-  font-size: min(20cqw, 96cqh);
+  /* A HARD PX CEILING, NOT A CONTAINER EXPRESSION ALONE.
+     `min(20cqw, 96cqh)` computed to 256px on a 395px card — measured, not
+     assumed — and two letters at 256px hang off both edges. Whatever the cause
+     in the cascade, a decorative mark is not worth a container-query puzzle:
+     82px is design's own figure at 410px, and a ceiling means this cannot run
+     away again however the container resolves. overflow: hidden on .body
+     clips the remainder either way. */
+  font-size: clamp(40px, 18cqw, 82px);
+  max-width: 100%;
   line-height: 0.85;
   letter-spacing: -0.05em;
   color: rgba(255, 255, 255, 0.16);
