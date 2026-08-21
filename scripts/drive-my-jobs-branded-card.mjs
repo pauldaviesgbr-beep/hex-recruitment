@@ -128,9 +128,12 @@ try {
       all.filter(c => !c.panelBg || c.panelBg === 'rgba(0, 0, 0, 0)').map(c => c.title),
       all.every(c => c.panelBg && c.panelBg !== 'rgba(0, 0, 0, 0)'))
 
-    check('every branded card shows something',
-      all.filter(c => c.shows === 'nothing').map(c => c.title),
-      all.every(c => c.shows !== 'nothing'))
+    // A RETIRED PANEL IS COLOUR ONLY, on purpose — no quote, no tags, no
+    // monogram. The wash and the badge carry it. So the assertion is not
+    // "something is shown" but "the right thing for the state".
+    check('a retired panel is colour only',
+      all.filter(c => c.shows !== 'nothing').map(c => c.title + ': ' + c.shows),
+      all.every(c => c.shows === 'nothing'))
 
     check('nothing is cut off',
       all.filter(c => (c.cut ?? 0) > 1).map(c => `${c.title}: ${c.cut}px`),
@@ -142,14 +145,20 @@ try {
     check('no avatar on any branded card',
       all.filter(c => c.hasChip).map(c => c.title), all.every(c => !c.hasChip))
 
-    // THE PAIRING THAT IS NEW HERE.
+    // THE PAIRING THAT IS NEW HERE, and both halves changed because of it.
     const stamped = all.filter(c => c.stamp)
-    check('the retired stamp is still drawn over the panel',
-      stamped.length ? `${stamped.length} of ${all.length} stamped` : 'none stamped',
-      stamped.length > 0)
-    check('and it does not sit on top of the quotation',
-      all.filter(c => c.stampOverlap).map(c => c.title),
-      all.every(c => !c.stampOverlap))
+    check('every retired advert still says so',
+      stamped.length + ' of ' + all.length, stamped.length === all.length)
+    check('and the badge is inside the card',
+      all.filter(c => c.overflowing.length).map(c => c.title),
+      all.every(c => c.overflowing.length === 0))
+
+    // A RETIRED ADVERT MUST NOT SELL ITSELF. The quotation is the employer
+    // pitching the job; under FILLED it is pitching a job that has gone. This
+    // is the assertion for that decision, not for the layout it also fixed.
+    check('a retired advert shows no quotation',
+      all.filter(c => c.shows === 'quote').map(c => c.title),
+      all.every(c => c.shows !== 'quote'))
 
     await page.locator('[class*="jobCard"]').first().screenshot({ path: `${SHOTS}/myjobs-branded-card.png` })
   }

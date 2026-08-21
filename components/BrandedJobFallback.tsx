@@ -99,10 +99,19 @@ export default function BrandedJobFallback({
    * FILLED stamp it is selling a job that has gone. The stamp is the message,
    * and the card should not argue with it.
    *
-   * It also happens to resolve a collision nobody had looked at: the retired
-   * stamp is centred in the card's UPPER HALF and so is the quotation, and on
-   * Manage Job Ads the word FILLED was drawn straight across the sentence on
-   * all four adverts. The two were designed years apart and had never met.
+   * It also resolved a collision nobody had looked at: the retired stamp was
+   * centred in the card's UPPER HALF and so is the quotation, and on Manage
+   * Job Ads the word FILLED was drawn straight across the sentence on all four
+   * adverts. The two were designed years apart and had never met.
+   *
+   * THE MONOGRAM COMES OFF TOO, and it is the whole panel that goes quiet: a
+   * retired card is colour, wash and badge. The first attempt kept the mark and
+   * it was cut by 17px on the one advert whose title wraps to two lines — the
+   * taller title leaves the panel less room, and a mark sized off the card's
+   * WIDTH cannot know that. Rather than chase the arithmetic for a decoration:
+   * this is the employer's own page, they know whose advert it is, and the
+   * badge already fills the role the monogram exists for. A greyed rectangle
+   * with FILLED on it is not an empty card, it is a closed one.
    */
   retired?: boolean
 }) {
@@ -136,10 +145,7 @@ export default function BrandedJobFallback({
   // column and has nothing below the panel to make room for.
   const body = (
     <div className={variant === 'header' ? styles.bodyHeader : styles.body}>
-      {retired ? (
-        // Just the monogram, quietly. The stamp carries the card.
-        <span className={styles.monogram} aria-hidden="true">{companyInitials(company)}</span>
-      ) : sentence ? (
+      {retired ? null : sentence ? (
           <>
             {/* Decorative: the sentence beside it is the content, and a screen
                 reader announcing "left double quotation mark" adds nothing. */}
