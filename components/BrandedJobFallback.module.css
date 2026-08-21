@@ -43,3 +43,43 @@
 @supports not (width: 1cqmin) {
   .ghost { font-size: 200px; }
 }
+
+/* ── THE EMPLOYER'S LOGO, AT FULL STRENGTH ────────────────────────────────
+   A card with no photograph is the employer's card and should look like it —
+   "it needs to shout the Collins King brand". Two quieter versions came first
+   and both were wrong about the goal rather than the technique: a faded
+   watermark (which also fought the white ground the upload route bakes in) and
+   the company initial alone, which is just a letter.
+
+   NO PLAQUE, DELIBERATELY. An earlier component put every logo on a white
+   tile, and the first report in this whole thread was "a purple rectangle on a
+   white tile, floating in the middle of a dark card… looks homemade". The tile
+   added white around a logo that already had its own ground. Left alone, a
+   logo with a dark block reads as a brand panel and one on white reads as
+   their own card stock.
+
+   UPPER AREA, NOT DEAD CENTRE. The slot's scrim and the overlaid title, company
+   and salary occupy the lower half; floating the mark in the middle is what
+   made the old one look pasted on. Sitting it in the upper band gives it room
+   and keeps the text crisp.
+
+   The rounded corner is the only thing added, and only so a hard-edged export
+   does not fight the card's own radius. */
+.logoMark {
+  position: absolute;
+  top: 7%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60cqmin;
+  max-width: 74%;
+  height: 40cqh;
+  object-fit: contain;
+  border-radius: 3cqmin;
+  -webkit-user-select: none;
+  user-select: none;
+  pointer-events: none;
+}
+
+@supports not (width: 1cqmin) {
+  .logoMark { width: 170px; height: 110px; border-radius: 8px; }
+}

@@ -137,7 +137,7 @@ export default function FeedCard({
            now happens once, server-side, at upload. */}
       {model.banner
         ? <div className={styles.cardBg} style={{ backgroundImage: `url(${model.banner})` }} aria-hidden="true" />
-        : <BrandedJobFallback company={model.company} seed={model.id} />}
+        : <BrandedJobFallback company={model.company} seed={model.id} logoUrl={model.logo} />}
       <div className={styles.cardScrim} aria-hidden="true" />
 
       {/* THE WASH — one element that greys the photo, the branded fallback and
@@ -175,7 +175,12 @@ export default function FeedCard({
       <div className={styles.cardContent}>
         <div className={styles.cardCompanyRow}>
           <span className={styles.cardChip}>
-            {model.logo
+            {/* NOT WHEN THE LOGO IS ALREADY THE HERO. With no banner the
+                panel behind this shows the same mark at full size, and one
+                image twice — once huge, once small — is exactly what was
+                reported as looking homemade. The company name stays either
+                way; that is what the chip is for. */}
+            {model.logo && model.banner
               ? <CompanyLogo src={model.logo} alt={model.company} className={styles.cardChipImg} />
               : initial}
           </span>

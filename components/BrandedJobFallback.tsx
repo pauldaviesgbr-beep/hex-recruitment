@@ -5,54 +5,61 @@ import { fallbackVariant } from '@/lib/jobBanner'
 import styles from './BrandedJobFallback.module.css'
 
 /**
- * The universal "no uploaded photo" state for a job banner: a navy panel with
- * a per-employer gradient and a large ghosted company initial. All of it is
- * watermark-weight, so where job text is overlaid — the card, the inline
- * desktop detail, the modal — the title, company and salary stay crisp under
- * the bottom scrim. Rendered identically everywhere, so the look is consistent.
+ * The "no uploaded photo" panel: a navy ground with a per-employer gradient,
+ * carrying the EMPLOYER'S LOGO at full strength — or their initial when they
+ * have no logo.
  *
- * Sizes use container-query units so the same component scales across the tall
- * card slot and the short detail-header strips. It fills its (relatively
- * positioned) parent and brings no scrim of its own.
+ * It fills its (relatively positioned) parent and brings no scrim of its own,
+ * so the slot's existing scrim keeps the overlaid title and salary crisp.
+ * Container-query units keep it proportional across the tall card slot and the
+ * short detail-header strips.
  *
  * ───────────────────────────────────────────────────────────────────────────
- * IT USED TO CARRY THE THRIVE LOCKUP — our mark, our wordmark, "Hire faster.
- * Apply smarter." — on a card advertising SOMEBODY ELSE'S job. Paul asked for
- * the employer's branding instead, and he is right: the board is theirs to be
- * seen on. Measured at the time: the lockup was showing on effectively every
- * no-photo card, because nearly every employer has a logo but few have a
- * photograph.
+ * THREE VERSIONS OF THIS IN ONE MORNING, AND THE PATH IS WORTH KEEPING.
  *
- * THE EMPLOYER'S LOGO WAS TRIED HERE AND FAILED ON THE FIRST REAL ONE, which
- * is worth recording so it is not tried again the same way.
+ * 1. IT SHOWED THE THRIVE LOCKUP — our mark, our wordmark, "Hire faster. Apply
+ *    smarter." — on a card advertising somebody else's job. It was on
+ *    effectively every no-photo card, because nearly every employer has a logo
+ *    and few have a photograph.
  *
- * Every logo in the bucket is flattened onto WHITE by the upload route
- * (`resize(200, 200, { fit: 'contain', background: white })`), so it is opaque
- * — and an opaque rectangle laid over the navy shows as a RECTANGLE whatever is
- * done to its colours. The filter chosen for it (invert, so the white ground
- * goes black, then `screen` to drop the black) is right for a dark mark on
- * white and does exactly the wrong thing to Collins King, which is white type
- * on a dark purple square: it turned their square light and painted a visible
- * pale panel across the card. A treatment that suits one common logo shape and
- * inverts the other is a coin toss, and it lost on the first throw.
+ * 2. THE LOGO AS A FADED WATERMARK, centred, run through invert + grayscale +
+ *    screen to key out the white ground the upload route bakes in. Right for a
+ *    dark mark on white; exactly wrong for Collins King, which is white type on
+ *    a solid purple block — inverting turned their block light and painted a
+ *    grey panel across the card.
  *
- * A letter cannot do that. It is type, it takes the per-company gradient, and
- * it reads the same for every employer.
+ * 3. THE COMPANY INITIAL alone. Robust, and too quiet: "it's just C. Can we not
+ *    put the whole logo… it needs to SHOUT the Collins King brand."
  *
- * IF A REAL LOGO WATERMARK IS WANTED, THE FIX IS AT THE SOURCE: stop flattening
- * logos onto white when the upload carries transparency, and the mark can be
- * laid on alone with no ground to key out. That only helps logos uploaded
- * afterwards unless the existing ones are reprocessed, which is a write to real
- * employer rows.
+ * So it is the logo, at full strength, and the reasoning that produced the
+ * faded versions was wrong about the goal rather than the technique. A card
+ * with no photograph is not trying to be subtle — it is the employer's card and
+ * it should look like theirs.
+ *
+ * NO PLAQUE. An earlier component put every logo on a white tile, and Paul's
+ * first report of this whole thread was "a purple rectangle on a white tile,
+ * floating in the middle of a dark card… looks homemade". The tile added white
+ * around a logo that already had its own ground. A logo sits on the navy as it
+ * is: one that carries its own dark block reads as a brand panel, one on white
+ * reads as their own card stock. Neither needs help from us.
+ *
+ * NO PER-LOGO PIXEL SAMPLING EITHER. The component this replaced sampled each
+ * logo on a canvas, per card, to choose between treatments, and silently
+ * guessed whenever a cross-origin read was blocked. One treatment for everyone
+ * cannot fail in a way nobody sees.
  */
 export default function BrandedJobFallback({
   company,
   seed,
   className,
+  logoUrl,
 }: {
   company?: string | null
   seed?: string | null
   className?: string
+  /** The employer's logo. Shown at full strength; the initial is the fallback
+   *  for employers who have not uploaded one. */
+  logoUrl?: string | null
 }) {
   const initial = (company || '?').trim().charAt(0).toUpperCase() || '?'
   const v = fallbackVariant(seed || company || 'thrive')
@@ -60,10 +67,16 @@ export default function BrandedJobFallback({
     '--fb-angle': `${v.angle}deg`,
     '--fb-glow-x': `${v.glowX}%`,
   } as CSSProperties
+  const hasLogo = !!(logoUrl && logoUrl.trim())
 
   return (
     <div className={`${styles.fallback} ${className || ''}`} style={vars} aria-hidden="true">
-      <span className={styles.ghost}>{initial}</span>
+      {hasLogo ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={logoUrl as string} alt="" className={styles.logoMark} />
+      ) : (
+        <span className={styles.ghost}>{initial}</span>
+      )}
     </div>
   )
 }
