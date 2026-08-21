@@ -137,7 +137,7 @@ export default function FeedCard({
            now happens once, server-side, at upload. */}
       {model.banner
         ? <div className={styles.cardBg} style={{ backgroundImage: `url(${model.banner})` }} aria-hidden="true" />
-        : <BrandedJobFallback company={model.company} seed={model.id} />}
+        : <BrandedJobFallback company={model.company} seed={model.id} logoUrl={model.logo} />}
       <div className={styles.cardScrim} aria-hidden="true" />
 
       {/* THE WASH — one element that greys the photo, the branded fallback and

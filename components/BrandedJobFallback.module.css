@@ -75,3 +75,49 @@
   .slogan { font-size: 12px; }
   .brand { gap: 9px; }
 }
+
+/* ── THE EMPLOYER'S MARK AS THE WATERMARK ──────────────────────────────────
+   Used instead of the Thrive lockup when the employer has a logo, so a card
+   with no photograph still feels like theirs. The per-company gradient tint
+   above stays, and the big ghosted initial is dropped — two company marks on
+   one card is busy, and the logo says it better than the letter.
+
+   THE FILTER IS THE WHOLE TRICK, AND IT IS DECIDED BY WHAT WE STORE RATHER
+   THAN BY GUESSWORK. Every logo in the bucket has been flattened onto WHITE by
+   the upload route:
+
+       .resize(LOGO_SIZE, LOGO_SIZE, { fit: 'contain', background: white })
+
+   So fading one directly would paint a pale SQUARE on the navy, not a mark —
+   the white background is opaque and carries the fade with it.
+
+     invert(1)   turns the white ground black and the (usually dark) mark light
+     grayscale(1) drops the brand colour, which would otherwise fight the navy
+     screen       makes black transparent, so the ground disappears and only
+                  the lifted mark shows
+
+   The result is the employer's own shape, in pale grey, over the gradient.
+
+   NO PER-LOGO PIXEL SAMPLING. The component this replaces did exactly that on
+   a canvas, per card, and silently guessed whenever a cross-origin read was
+   blocked. A fixed treatment gets the overwhelming majority right and cannot
+   fail in a way nobody sees; a light-on-dark logo will come out weak, and that
+   is the accepted cost rather than a bug to chase. */
+.logoMark {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 62cqmin;
+  height: 62cqmin;
+  object-fit: contain;
+  opacity: 0.17;
+  filter: invert(1) grayscale(1);
+  mix-blend-mode: screen;
+  user-select: none;
+  pointer-events: none;
+}
+
+@supports not (width: 1cqmin) {
+  .logoMark { width: 170px; height: 170px; }
+}

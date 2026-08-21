@@ -53,7 +53,7 @@ export default function JobCardLink({
         {banner ? (
           <div className={jobStyles.cardBg} style={{ backgroundImage: `url(${banner})` }} aria-hidden="true" />
         ) : (
-          <BrandedJobFallback company={job.company} seed={job.id} />
+          <BrandedJobFallback company={job.company} seed={job.id} logoUrl={job.companyLogo} />
         )}
         <div className={jobStyles.cardScrim} aria-hidden="true" />
         <div className={jobStyles.cardContent}>

@@ -20,10 +20,21 @@ export default function BrandedJobFallback({
   company,
   seed,
   className,
+  logoUrl,
 }: {
   company?: string | null
   seed?: string | null
   className?: string
+  /**
+   * The employer's logo. When present it becomes the watermark INSTEAD of the
+   * Thrive lockup, so an advert with no photograph still reads as theirs.
+   *
+   * Not the same as the logo-hero this file replaced: that painted the mark at
+   * full strength as the picture, competing with the identical logo rendering
+   * as the avatar two centimetres below — one image twice, once huge and once
+   * small. At watermark weight it is texture rather than a second image.
+   */
+  logoUrl?: string | null
 }) {
   const initial = (company || '?').trim().charAt(0).toUpperCase() || '?'
   const v = fallbackVariant(seed || company || 'thrive')
@@ -31,20 +42,30 @@ export default function BrandedJobFallback({
     '--fb-angle': `${v.angle}deg`,
     '--fb-glow-x': `${v.glowX}%`,
   } as CSSProperties
+  const hasLogo = !!(logoUrl && logoUrl.trim())
 
   return (
     <div className={`${styles.fallback} ${className || ''}`} style={vars} aria-hidden="true">
-      <span className={styles.ghost}>{initial}</span>
-      <div className={styles.brand}>
-        <span className={styles.mark}>
-          <svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" aria-hidden="true">
-            <rect x="2" y="2" width="20" height="20" rx="5" fill="currentColor" />
-            <path d="M7 8h10M12 8v8" stroke="#0A1628" strokeWidth="2.2" strokeLinecap="round" />
-          </svg>
-        </span>
-        <span className={styles.wordmark}>Thrive</span>
-        <span className={styles.slogan}>Hire faster. Apply smarter.</span>
-      </div>
+      {hasLogo ? (
+        // THE EMPLOYER'S MARK. The ghosted initial goes with it — the logo is
+        // the same signal, better said, and both together is clutter.
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={logoUrl as string} alt="" className={styles.logoMark} />
+      ) : (
+        <>
+          <span className={styles.ghost}>{initial}</span>
+          <div className={styles.brand}>
+            <span className={styles.mark}>
+              <svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" aria-hidden="true">
+                <rect x="2" y="2" width="20" height="20" rx="5" fill="currentColor" />
+                <path d="M7 8h10M12 8v8" stroke="#0A1628" strokeWidth="2.2" strokeLinecap="round" />
+              </svg>
+            </span>
+            <span className={styles.wordmark}>Thrive</span>
+            <span className={styles.slogan}>Hire faster. Apply smarter.</span>
+          </div>
+        </>
+      )}
     </div>
   )
 }
