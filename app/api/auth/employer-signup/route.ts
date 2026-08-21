@@ -17,6 +17,59 @@ import { classifyEmail } from '@/lib/emailDomains'
 // the browser would have used directly. emailRedirectTo points at
 // /auth/confirm?role=employer, same as before.
 
+/**
+ * WHAT TO SAY WHEN THE EMAIL IS ALREADY IN USE.
+ *
+ * This used to say "This email is already in use. Try logging in instead."
+ * — which is sound advice if the existing account is an employer, and a DEAD
+ * END if it is a job seeker: the employer login gates on
+ * user_metadata.role === 'employer', so following the instruction lands them
+ * nowhere.
+ *
+ * That dead end has already cost us. Ricci Courtney had signed up as a
+ * candidate with his work address, tried to create an employer account with
+ * it, was told to log in instead, and — when that went nowhere — created two
+ * more employer accounts on personal addresses. Both were rejected by hand,
+ * and the whole thing took a manual conversion to untangle. The next person
+ * it hits is a chef who signed up to browse jobs and later wants to advertise,
+ * which is an ordinary thing to happen.
+ *
+ * The lookup is candidate_profiles rather than auth.users: it carries the
+ * email, and listing auth users to answer one question is a page-scan.
+ *
+ * A NOTE ON WHAT THIS REVEALS. The 409 already confirmed that an address is
+ * registered, so enumeration is not new here; naming the SIDE is. On a job
+ * board "this person is a job seeker" is the fact candidates most want kept
+ * quiet — it is why the discoverability machinery exists at all. Flagged
+ * rather than decided in passing: the trade was made deliberately for the
+ * person who is stuck, and it can be softened to "this email already has a
+ * Thrive account" without losing most of the benefit.
+ */
+
+async function clashMessage(email: string, mentionGoogle = false): Promise<string> {
+  const generic = mentionGoogle
+    ? 'This email is already registered. Try logging in instead, or use "Continue with Google" if you signed up with Google.'
+    : 'This email is already in use. Try logging in instead.'
+  try {
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+    if (!serviceKey || !url) return generic
+    const admin = createClient(url, serviceKey, { auth: { persistSession: false } })
+    const { data } = await admin
+      .from('candidate_profiles')
+      .select('user_id')
+      .ilike('email', email)
+      .maybeSingle()
+    if (data) {
+      return 'That email is already registered as a job seeker account. Use a different email for your employer account.'
+    }
+  } catch {
+    // A failed lookup must never block a signup response. The generic
+    // message is still true, just less useful.
+  }
+  return generic
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
@@ -93,7 +146,7 @@ export async function POST(req: NextRequest) {
       const msg = error.message.toLowerCase()
       if (msg.includes('already') || msg.includes('registered')) {
         return NextResponse.json(
-          { error: 'This email is already in use. Try logging in instead.', code: 'already_registered' },
+          { error: await clashMessage(email), code: 'already_registered' },
           { status: 409 },
         )
       }
@@ -107,11 +160,7 @@ export async function POST(req: NextRequest) {
     // when the email is already registered. Treat the same as 409.
     if (data.user && (!data.user.identities || data.user.identities.length === 0)) {
       return NextResponse.json(
-        {
-          error:
-            'This email is already registered. Try logging in instead, or use "Continue with Google" if you signed up with Google.',
-          code: 'already_registered',
-        },
+        { error: await clashMessage(email, true), code: 'already_registered' },
         { status: 409 },
       )
     }
