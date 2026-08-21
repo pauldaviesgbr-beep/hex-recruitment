@@ -142,8 +142,12 @@ try {
     check('nothing runs past a card edge',
       all.flatMap(c => c.overflowing), all.every(c => c.overflowing.length === 0))
 
-    check('no avatar on any branded card',
-      all.filter(c => c.hasChip).map(c => c.title), all.every(c => !c.hasChip))
+    // FLIPPED with its sibling on the board. The branded card carried no avatar
+    // — design's decision, on the grounds that three of five marks are
+    // illegible at 26px — until the live board put the two card types side by
+    // side and the missing chip read as a hole rather than as a choice.
+    check('every branded card has its avatar, like the photo card',
+      all.filter(c => !c.hasChip).map(c => c.title), all.every(c => c.hasChip))
 
     // THE PAIRING THAT IS NEW HERE, and both halves changed because of it.
     const stamped = all.filter(c => c.stamp)

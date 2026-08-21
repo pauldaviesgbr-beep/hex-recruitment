@@ -186,24 +186,23 @@ export default function FeedCard({
 
       <div className={styles.cardContent}>
         <div className={styles.cardCompanyRow}>
-          {/* NO AVATAR ON THE BRANDED CARD — not the logo, and not a letter.
-              Three of the five real marks are illegible at 26px (Sauce,
-              Collins King and Neway are wordmarks-in-a-block, ~5pt at that
-              size), so the slot was never going to carry them; and a letter
-              here would only move "it's just C" from the panel to the chip.
-              The company name beside it is the identifier and it is already
-              on the card.
-
-              The PHOTO card keeps its avatar, because there the image behind
-              carries no brand at all and the mark is the only signal. That
-              asymmetry is the point rather than an oversight. */}
-          {model.banner && (
-            <span className={styles.cardChip}>
-              {model.logo
-                ? <CompanyLogo src={model.logo} alt={model.company} className={styles.cardChipImg} />
-                : initial}
-            </span>
-          )}
+          {/* THE AVATAR IS ON BOTH CARDS AGAIN.
+              Design took it off the branded one — three of the five real marks
+              are illegible at 26px, and a letter there only moves "it's just C"
+              from the panel to the chip. That reasoning is about the MARK.
+              Seen on the live board it is a different question: the card beside
+              it has a chip and this one has a hole, and the eye reads a hole as
+              a fault rather than as a decision. Reported exactly that way —
+              "it's missing the actual logo in the box now".
+              The chip's own white ground is what makes it survivable: a purple
+              wordmark on white at 26px is small, not invisible, and it is the
+              same component and the same 5px radius as the photo card so the
+              two rows line up. */}
+          <span className={styles.cardChip}>
+            {model.logo
+              ? <CompanyLogo src={model.logo} alt={model.company} className={styles.cardChipImg} />
+              : initial}
+          </span>
           <span className={styles.cardCompany}>
             {model.company}
             {model.companyNote && <span className={styles.cardViaRecruiter}> {model.companyNote}</span>}
