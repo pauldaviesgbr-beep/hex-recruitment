@@ -159,7 +159,11 @@ try {
     // reports collisions that are invisible and misses a quotation clipped to
     // nothing. Ask whether content fits its block, and whether anything runs
     // past the card — those are the two ways this card has broken so far.
-    const clippedBy = block.scrollHeight - block.clientHeight
+    // How far the quotation's own box is cut by its block. NOT scrollHeight:
+    // the monogram's line-height is 0.85 on purpose, so glyph overflow is by
+    // design there and scrollHeight false-fails on a mark that is fully visible.
+    const qr0 = q.getBoundingClientRect(), br0 = block.getBoundingClientRect()
+    const clippedBy = Math.round(qr0.bottom - br0.bottom)
     const spills = [...card.querySelectorAll('*')].filter(n => {
       const r = n.getBoundingClientRect()
       if (r.width === 0 && r.height === 0) return false
