@@ -120,10 +120,16 @@ try {
         clipped: (() => {
           const content = quote || mono || tag
           if (!content) return null
-          const block = content.closest('[class]')
+          const block = content.parentElement
           if (!block) return null
-          const over = block.scrollHeight - block.clientHeight
-          return over > 2 ? `${over}px of content does not fit` : false
+          // NOT scrollHeight. The monogram has line-height 0.85 deliberately, so
+          // its glyphs overflow their own line box by design and scrollHeight
+          // false-failed on a mark that was completely visible. Measure how far
+          // the content's own box is cut by its block — the question a person
+          // asks looking at the card.
+          const a = content.getBoundingClientRect(), b = block.getBoundingClientRect()
+          const cut = Math.round(a.bottom - b.bottom)
+          return cut > 1 ? cut + 'px of the mark is cut off' : false
         })(),
       }
     })
