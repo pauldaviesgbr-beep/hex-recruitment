@@ -44,7 +44,26 @@
   flex: 1;
   min-height: 0;
   overflow: hidden;
-  padding: 52px 16px 0;
+  padding: 0 16px;
+}
+
+/* THE BADGE RESERVATION, AS A SPACER THAT GIVES WAY.
+
+   It was `padding-top: 52px`, and PADDING DOES NOT SHRINK. On the 300px form
+   preview the card is 206px tall and .cardContent alone is ~170px, so 52 + 170
+   overflowed the card and cut "Easy apply" off the bottom -- min-height: 0 is
+   powerless against padding. The screenshot showed it; no assertion did.
+
+   A flex spacer with a large shrink factor keeps the full 52px whenever there
+   is room, and collapses BEFORE the quotation does when there is not. The
+   badges then sit over the top of the sentence on a very short card, which is
+   the right trade: a NEW pill over a word beats a pill over nothing because
+   the card burst its own bounds. */
+.body::before {
+  content: '';
+  display: block;
+  flex: 0 500 52px;
+  min-height: 0;
   /* Its own container, so everything inside sizes to the space that is LEFT
      rather than to the card. The monogram at 20% of the CARD width is 82px on
      a 410px card, and the body it has to fit in is 80px tall -- so it rendered
@@ -95,6 +114,7 @@
    ceiling stops it outgrowing the title beneath it, which would inverted the
    card's own hierarchy — the role is what the candidate came for. */
 .quote {
+  flex: none;
   font-family: var(--font-serif), Georgia, serif;
   font-weight: 600;
   /* Capped by the block HEIGHT as well as the card width: two lines at 1.28
@@ -116,6 +136,7 @@
    A slightly stronger border than the small pills on .cardContent (.44 against
    .35) because these are the subject of the panel rather than trim on it. */
 .tags {
+  flex: none;
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
@@ -142,6 +163,7 @@
    line-height 0.85 crops the letterforms' own leading so the shape sits against
    the top of the region rather than floating a third of the way down it. */
 .monogram {
+  flex: none;
   font-family: var(--font-serif), Georgia, serif;
   font-weight: 700;
   font-size: min(20cqw, 96cqh);
