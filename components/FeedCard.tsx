@@ -37,17 +37,20 @@ export interface FeedCardBadge {
   disabled?: boolean
 }
 
-/**
- * How the "this is over" stamp is drawn. All three dim and desaturate the photo
- * identically — they differ only in the mark laid over it.
- */
-export type FeedCardRetiredVariant = 'stamp' | 'band' | 'watermark'
-
 export interface FeedCardRetired {
   /** The word itself — FILLED, CLOSED, EXPIRED. Never colour alone. */
   label: string
-  variant?: FeedCardRetiredVariant
 }
+
+/**
+ * THE THREE STAMP VARIANTS ARE GONE — 'stamp', 'band' and 'watermark'.
+ *
+ * All three laid a large mark across the middle of the card, which was right
+ * while the upper half was photograph and wrong the moment the branded panel
+ * started putting a quotation there. Neither call site ever passed one, so all
+ * three were rendering as the diagonal stamp anyway. The status is now a badge
+ * in the same slot as New; the grey wash still does the receding.
+ */
 
 export interface FeedCardModel {
   /** Used to seed the branded fallback so an employer's card looks the same each time. */
@@ -162,29 +165,24 @@ export default function FeedCard({
           lands, so the card still recedes; only the desaturation is lost. */}
       {retired && <div className={styles.cardRetiredWash} aria-hidden="true" />}
 
-      {/* A filled shift is not a new one. Suppressing this matters because a
-          shift posted yesterday and filled today would otherwise carry New and
-          FILLED at the same time, which is a straight contradiction. */}
-      {model.isNew && !retired && <span className={styles.cardNew}>New</span>}
-      {controls}
+      {/* THE STATUS SLOT. New and FILLED are the same kind of thing — what
+          state this advert is in — so they take the same position and are
+          mutually exclusive by nature: a shift posted yesterday and filled
+          today must not carry both.
 
-      {/* THE MARK. Confined to the upper band of the card by the wrapper, which
-          is what keeps the promise that it never covers the company, the title
-          or the rate — those are bottom-anchored in .cardContent, and someone
-          should still be able to see what the shift WAS. */}
-      {retired && (
-        <div className={styles.cardRetiredWrap}>
-          <span
-            className={
-              retired.variant === 'band' ? styles.cardRetiredBand
-                : retired.variant === 'watermark' ? styles.cardRetiredMark
-                : styles.cardRetiredStamp
-            }
-          >
-            {retired.label}
-          </span>
-        </div>
-      )}
+          FILLED WAS A DIAGONAL STAMP ACROSS THE MIDDLE OF THE CARD, and that
+          was right while the upper half was photograph. It is not right now
+          the branded panel puts a quotation there: on Manage Job Ads the word
+          was drawn straight through the employer's own sentence on all four
+          adverts. The two treatments were designed years apart and had never
+          been on the same card.
+
+          A badge cannot collide with anything, works over a photograph and
+          over a panel alike, and the grey wash above still does the receding —
+          which was always the half that made a dead card read as dead. */}
+      {model.isNew && !retired && <span className={styles.cardNew}>New</span>}
+      {retired && <span className={styles.cardRetiredBadge}>{retired.label}</span>}
+      {controls}
 
       <div className={styles.cardContent}>
         <div className={styles.cardCompanyRow}>
