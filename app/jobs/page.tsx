@@ -1207,7 +1207,7 @@ function JobsPageContent() {
                   <div className={styles.detailBanner}>
                     {detailBanner
                       ? <img src={detailBanner} alt={selectedJob.company} className={styles.detailBannerImg} />
-                      : <BrandedJobFallback company={selectedJob.company} seed={selectedJob.id} logoUrl={selectedJob.companyLogo} />}
+                      : <BrandedJobFallback company={selectedJob.company} seed={selectedJob.id} />}
                   </div>
                 )
               })()}

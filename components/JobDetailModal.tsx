@@ -259,7 +259,7 @@ export default function JobDetailModal({
                 <div className={styles.bannerWrapper}>
                   {detailBanner
                     ? <img src={detailBanner} alt="" className={styles.banner} />
-                    : <BrandedJobFallback company={job.company} seed={job.id} logoUrl={job.companyLogo} />}
+                    : <BrandedJobFallback company={job.company} seed={job.id} />}
                   <div className={styles.bannerOverlay} />
                 </div>
               )

@@ -1,5 +1,5 @@
-/* Branded Thrive fallback panel — fills its relatively-positioned parent and
-   sits behind the slot's scrim/content. Container-query units keep the lockup
+/* The "no uploaded photo" panel — fills its relatively-positioned parent and
+   sits behind the slot's scrim/content. Container-query units keep the initial
    proportional whether the slot is a tall card or a short detail header. */
 .fallback {
   position: absolute;
@@ -12,9 +12,16 @@
     linear-gradient(var(--fb-angle, 140deg), #0a1628 0%, #12294a 100%);
 }
 
-/* Large ghosted company initial — the per-employer signature. Anchored to the
-   right and vertically centred so it sits FULLY on the card (no edge clipping)
-   and reads as a deliberate background letter, not a bleed. */
+/* THE COMPANY INITIAL, AND NOW THE ONLY THING ON THE PANEL.
+   The Thrive lockup that used to sit top-left is gone — see the component for
+   why — so this carries the card alone. Anchored right and vertically centred
+   so it sits FULLY on the card and reads as a deliberate background letter
+   rather than a bleed.
+
+   Slightly stronger than it was (0.055 -> 0.075): it was tuned to sit beside a
+   lockup, and on its own at that weight the panel read as empty rather than
+   quiet. Still well under the overlaid title, which is the only thing that
+   must stay crisp. */
 .ghost {
   position: absolute;
   right: 3%;
@@ -24,100 +31,15 @@
   font-weight: 700;
   font-size: 76cqmin;
   line-height: 1;
-  color: rgba(255, 255, 255, 0.055);
+  color: rgba(255, 255, 255, 0.075);
+  -webkit-user-select: none;
   user-select: none;
   pointer-events: none;
 }
 
-/* Thrive lockup: mark + wordmark + slogan, top-left aligned to fill the upper
-   space, all watermark-weight. (% offsets so positioning holds without cq.) */
-.brand {
-  position: absolute;
-  top: 9%;
-  left: 7%;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 3cqh;
-  text-align: left;
-  pointer-events: none;
-}
-
-.mark {
-  display: block;
-  width: 15cqmin;
-  height: 15cqmin;
-  color: rgba(255, 229, 0, 0.22);
-}
-
-.wordmark {
-  font-family: var(--font-serif), Georgia, serif;
-  font-weight: 600;
-  font-size: 9cqmin;
-  letter-spacing: 0.01em;
-  line-height: 1;
-  color: rgba(255, 255, 255, 0.16);
-}
-
-.slogan {
-  font-size: 4.6cqmin;
-  font-weight: 500;
-  letter-spacing: 0.06em;
-  color: rgba(255, 255, 255, 0.13);
-}
-
-/* Older engines without container units: fall back to sensible fixed sizes so
-   the lockup still renders rather than collapsing to 0. */
+/* Older engines without container units: a sensible fixed size so the initial
+   still renders rather than collapsing to 0. The .mark/.wordmark/.slogan rules
+   that used to live here went with the lockup. */
 @supports not (width: 1cqmin) {
   .ghost { font-size: 200px; }
-  .mark { width: 38px; height: 38px; }
-  .wordmark { font-size: 24px; }
-  .slogan { font-size: 12px; }
-  .brand { gap: 9px; }
-}
-
-/* ── THE EMPLOYER'S MARK AS THE WATERMARK ──────────────────────────────────
-   Used instead of the Thrive lockup when the employer has a logo, so a card
-   with no photograph still feels like theirs. The per-company gradient tint
-   above stays, and the big ghosted initial is dropped — two company marks on
-   one card is busy, and the logo says it better than the letter.
-
-   THE FILTER IS THE WHOLE TRICK, AND IT IS DECIDED BY WHAT WE STORE RATHER
-   THAN BY GUESSWORK. Every logo in the bucket has been flattened onto WHITE by
-   the upload route:
-
-       .resize(LOGO_SIZE, LOGO_SIZE, { fit: 'contain', background: white })
-
-   So fading one directly would paint a pale SQUARE on the navy, not a mark —
-   the white background is opaque and carries the fade with it.
-
-     invert(1)   turns the white ground black and the (usually dark) mark light
-     grayscale(1) drops the brand colour, which would otherwise fight the navy
-     screen       makes black transparent, so the ground disappears and only
-                  the lifted mark shows
-
-   The result is the employer's own shape, in pale grey, over the gradient.
-
-   NO PER-LOGO PIXEL SAMPLING. The component this replaces did exactly that on
-   a canvas, per card, and silently guessed whenever a cross-origin read was
-   blocked. A fixed treatment gets the overwhelming majority right and cannot
-   fail in a way nobody sees; a light-on-dark logo will come out weak, and that
-   is the accepted cost rather than a bug to chase. */
-.logoMark {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 62cqmin;
-  height: 62cqmin;
-  object-fit: contain;
-  opacity: 0.17;
-  filter: invert(1) grayscale(1);
-  mix-blend-mode: screen;
-  user-select: none;
-  pointer-events: none;
-}
-
-@supports not (width: 1cqmin) {
-  .logoMark { width: 170px; height: 170px; }
 }

@@ -5,36 +5,54 @@ import { fallbackVariant } from '@/lib/jobBanner'
 import styles from './BrandedJobFallback.module.css'
 
 /**
- * The universal "no uploaded photo" state for a job banner: a branded Thrive
- * panel (navy gradient + faded Thrive lockup + slogan) with a large ghosted
- * company initial for per-employer variation. All branding is watermark-weight
- * so that, where job text is overlaid (the card), the title/company/salary stay
- * crisp under the bottom scrim. Rendered identically in the card, the inline
- * desktop detail, and the JobDetailModal so the look is consistent everywhere.
+ * The universal "no uploaded photo" state for a job banner: a navy panel with
+ * a per-employer gradient and a large ghosted company initial. All of it is
+ * watermark-weight, so where job text is overlaid — the card, the inline
+ * desktop detail, the modal — the title, company and salary stay crisp under
+ * the bottom scrim. Rendered identically everywhere, so the look is consistent.
  *
- * Sizes use container-query units so the same component scales correctly across
- * the tall card slot and the short detail-header strips. It fills its (relatively
- * positioned) parent — no scrim of its own; each slot keeps its existing scrim.
+ * Sizes use container-query units so the same component scales across the tall
+ * card slot and the short detail-header strips. It fills its (relatively
+ * positioned) parent and brings no scrim of its own.
+ *
+ * ───────────────────────────────────────────────────────────────────────────
+ * IT USED TO CARRY THE THRIVE LOCKUP — our mark, our wordmark, "Hire faster.
+ * Apply smarter." — on a card advertising SOMEBODY ELSE'S job. Paul asked for
+ * the employer's branding instead, and he is right: the board is theirs to be
+ * seen on. Measured at the time: the lockup was showing on effectively every
+ * no-photo card, because nearly every employer has a logo but few have a
+ * photograph.
+ *
+ * THE EMPLOYER'S LOGO WAS TRIED HERE AND FAILED ON THE FIRST REAL ONE, which
+ * is worth recording so it is not tried again the same way.
+ *
+ * Every logo in the bucket is flattened onto WHITE by the upload route
+ * (`resize(200, 200, { fit: 'contain', background: white })`), so it is opaque
+ * — and an opaque rectangle laid over the navy shows as a RECTANGLE whatever is
+ * done to its colours. The filter chosen for it (invert, so the white ground
+ * goes black, then `screen` to drop the black) is right for a dark mark on
+ * white and does exactly the wrong thing to Collins King, which is white type
+ * on a dark purple square: it turned their square light and painted a visible
+ * pale panel across the card. A treatment that suits one common logo shape and
+ * inverts the other is a coin toss, and it lost on the first throw.
+ *
+ * A letter cannot do that. It is type, it takes the per-company gradient, and
+ * it reads the same for every employer.
+ *
+ * IF A REAL LOGO WATERMARK IS WANTED, THE FIX IS AT THE SOURCE: stop flattening
+ * logos onto white when the upload carries transparency, and the mark can be
+ * laid on alone with no ground to key out. That only helps logos uploaded
+ * afterwards unless the existing ones are reprocessed, which is a write to real
+ * employer rows.
  */
 export default function BrandedJobFallback({
   company,
   seed,
   className,
-  logoUrl,
 }: {
   company?: string | null
   seed?: string | null
   className?: string
-  /**
-   * The employer's logo. When present it becomes the watermark INSTEAD of the
-   * Thrive lockup, so an advert with no photograph still reads as theirs.
-   *
-   * Not the same as the logo-hero this file replaced: that painted the mark at
-   * full strength as the picture, competing with the identical logo rendering
-   * as the avatar two centimetres below — one image twice, once huge and once
-   * small. At watermark weight it is texture rather than a second image.
-   */
-  logoUrl?: string | null
 }) {
   const initial = (company || '?').trim().charAt(0).toUpperCase() || '?'
   const v = fallbackVariant(seed || company || 'thrive')
@@ -42,30 +60,10 @@ export default function BrandedJobFallback({
     '--fb-angle': `${v.angle}deg`,
     '--fb-glow-x': `${v.glowX}%`,
   } as CSSProperties
-  const hasLogo = !!(logoUrl && logoUrl.trim())
 
   return (
     <div className={`${styles.fallback} ${className || ''}`} style={vars} aria-hidden="true">
-      {hasLogo ? (
-        // THE EMPLOYER'S MARK. The ghosted initial goes with it — the logo is
-        // the same signal, better said, and both together is clutter.
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={logoUrl as string} alt="" className={styles.logoMark} />
-      ) : (
-        <>
-          <span className={styles.ghost}>{initial}</span>
-          <div className={styles.brand}>
-            <span className={styles.mark}>
-              <svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" aria-hidden="true">
-                <rect x="2" y="2" width="20" height="20" rx="5" fill="currentColor" />
-                <path d="M7 8h10M12 8v8" stroke="#0A1628" strokeWidth="2.2" strokeLinecap="round" />
-              </svg>
-            </span>
-            <span className={styles.wordmark}>Thrive</span>
-            <span className={styles.slogan}>Hire faster. Apply smarter.</span>
-          </div>
-        </>
-      )}
+      <span className={styles.ghost}>{initial}</span>
     </div>
   )
 }
