@@ -122,6 +122,7 @@ export function supabaseJobToJob(row: any): Job {
     shiftSchedule: row.shift_schedule || '',
     description: row.description || '',
     fullDescription: row.full_description || row.description || '',
+    brandColour: row.brand_colour ?? null,
     responsibilities: row.responsibilities || [],
     requirements: row.requirements || [],
     benefits: row.benefits || [],
@@ -164,6 +165,9 @@ export function jobToSupabaseInsert(job: Partial<Job> & { company: string; title
     company_logo_url: job.companyLogo || null,
     company_banner_url: job.companyBanner || null,
     company_description: job.companyDescription || null,
+    // Stamped at publish, never joined at read: see the payload in post-job for
+    // why an advert keeps the colour it was posted with.
+    brand_colour: job.brandColour ?? null,
     job_reference: job.jobReference || `JOB-${Date.now().toString(36).toUpperCase()}`,
     description: job.description || null,
     full_description: job.fullDescription || job.description || null,

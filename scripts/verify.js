@@ -133,6 +133,22 @@ const ALL = [
   // page SAYS. Parses with the TypeScript compiler rather than a regex — the
   // regex version cried wolf 27 times out of 28.
   { name: 'jsxcomments:prove', cmd: process.execPath, args: [path.join(ROOT, 'scripts', 'prove-no-stray-jsx-comments.mjs')] },
+  // WHEN THE WHITE GROUND COMES OFF A LOGO. That one decision got the answer
+  // wrong twice on real employer logos — once by asking whether the mark was
+  // dark ON AVERAGE (a thin gold circle on white reads as blank), once by
+  // measuring the whole border instead of the corners. The dangerous
+  // direction is a false yes: keying white out of a logo that is white type
+  // on a coloured block erases the type on somebody's live advert.
+  { name: 'logotreatment:prove', cmd: process.execPath, args: [path.join(ROOT, 'scripts', 'prove-logo-treatment.mjs')] },
+
+  // WHAT THE NO-PHOTOGRAPH CARD SAYS. One sentence is lifted out of the advert
+  // and published at 22px under the employer's name, so the failures here are
+  // not layout: a half sentence ending in an ellipsis reads as scraped text, and
+  // a sentence composed rather than lifted is a claim about a workplace nobody
+  // at Thrive has seen. Also covers the composer the step-3 preview shares with
+  // the publish path — two copies of that would let the preview promise a card
+  // the board does not render.
+  { name: 'jobquote:prove', cmd: npm, args: ['run', 'jobquote:prove'] },
 ]
 const CHECKS = FAST ? ALL.filter(c => !c.slow) : ALL
 

@@ -1,45 +1,203 @@
-/* The "no uploaded photo" panel — fills its relatively-positioned parent and
-   sits behind the slot's scrim/content. Container-query units keep the initial
-   proportional whether the slot is a tall card or a short detail header. */
-.fallback {
+/* THE NO-PHOTOGRAPH PANEL — the employer's colour, carrying their own words.
+   See BrandedJobFallback.tsx for why there is no logo anywhere on it.
+
+   It fills its relatively-positioned parent and sits BEHIND the card's scrim
+   and content (z-index -2, same slot the photograph occupies), so one set of
+   overlay rules serves both card formats and the photograph never has to change
+   to accommodate this one.
+
+   container-type: size, so every measurement below scales with the slot — the
+   same component renders in the grid card, the detail header strip and Manage
+   Job Ads, and those are three different sizes. */
+.panel {
   position: absolute;
   inset: 0;
   z-index: -2;
   overflow: hidden;
   container-type: size;
-  background:
-    radial-gradient(130% 110% at var(--fb-glow-x, 80%) -10%, rgba(255, 229, 0, 0.13) 0%, rgba(255, 229, 0, 0) 46%),
-    linear-gradient(var(--fb-angle, 140deg), #0a1628 0%, #12294a 100%);
+  background: var(--panel, #0F172A);
 }
 
-/* THE COMPANY INITIAL, AND NOW THE ONLY THING ON THE PANEL.
-   The Thrive lockup that used to sit top-left is gone — see the component for
-   why — so this carries the card alone. Anchored right and vertically centred
-   so it sits FULLY on the card and reads as a deliberate background letter
-   rather than a bleed.
+/* THE CONTENT REGION — A FLEX CHILD OF THE CARD, NOT AN ABSOLUTE BOX.
+   `.jobCardFallback` makes the card a flex column (see app/jobs/page.module.css)
+   and `.cardContent` becomes the bottom item, so `flex: 1` here means "whatever
+   is left after the company, title, pay and pills".
 
-   Slightly stronger than it was (0.055 -> 0.075): it was tuned to sit beside a
-   lockup, and on its own at that weight the panel read as empty rather than
-   quiet. Still well under the overlaid title, which is the only thing that
-   must stay crisp. */
-.ghost {
+   THE FIRST VERSION BOUNDED THIS AT `bottom: 50%` AND WAS WRONG. It measured
+   clear on the 242px board card and overlapped the title in the 300px-wide form
+   preview, where the card is 206px tall and .cardContent carries four badges —
+   65% of the card, not 50%. A percentage of a height you do not know is a guess
+   that happens to hold at one size. Measured, not eyeballed: quote y76–117
+   against title y71–96.
+
+   min-height: 0 IS NOT OPTIONAL. A flex child defaults to min-height: auto and
+   cannot shrink below its content, so a long sentence would push the card open
+   and the clip would never happen. It is what makes `flex: 1` a real bound.
+
+   THE BADGE CLEARANCE IS THE ::before SPACER BELOW, not padding — see there for
+   why. It clears the NEW pill and the bookmark, which the card still positions
+   absolutely because they are SHARED WITH THE PHOTO CARD, the one thing the
+   handoff most asks us not to disturb. Design's own frames position them
+   absolutely on four of their five hero cards.
+
+   THE WHOLE BUDGET, measured on the 394px board card whose body is 124px:
+     spacer 48 + gap 5 + mark 14 + gap 5 + two lines at 19px  =  121
+   Three pixels spare. Every one of those numbers was arrived at by measuring a
+   rendered card, not by reading the stylesheet — the first four attempts at
+   this block were arithmetic against numbers that turned out not to be the
+   ones on screen. If you change any of them, drive it and look. */
+.body {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  padding: 0 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  align-content: flex-start;
+}
+
+/* THE BADGE RESERVATION, AS A SPACER THAT GIVES WAY.
+
+   It was `padding-top: 52px`, and PADDING DOES NOT SHRINK. On the 300px form
+   preview the card is 206px tall and .cardContent alone is ~170px, so 52 + 170
+   overflowed the card and cut "Easy apply" off the bottom -- min-height: 0 is
+   powerless against padding. The screenshot showed it; no assertion did.
+
+   A flex spacer with a large shrink factor keeps the full 52px whenever there
+   is room, and collapses BEFORE the quotation does when there is not. The
+   badges then sit over the top of the sentence on a very short card, which is
+   the right trade: a NEW pill over a word beats a pill over nothing because
+   the card burst its own bounds. */
+.body::before {
+  content: '';
+  display: block;
+  flex: 0 500 48px;
+  min-height: 0;
+}
+
+/* THE DETAIL HEADER STRIP — 160px tall, and it has NEITHER of the card's two
+   obstacles: the badges are not there and the title and company sit BELOW the
+   strip rather than over it. Given .body's bounds the sentence would get a 28px
+   band and effectively vanish.
+
+   So the whole strip is the content region, vertically centred. The same
+   component, the same three fallbacks, the same colour — only the bounds
+   differ, which is the one thing about this slot that is genuinely different. */
+.bodyHeader {
   position: absolute;
-  right: 3%;
-  top: 50%;
-  transform: translateY(-50%);
+  inset: 0;
+  min-height: 0;
+  overflow: hidden;
+  padding: 18px 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+  align-content: center;
+}
+
+/* ── FALLBACK 1 + 2 · THE QUOTATION ─────────────────────────────────────── */
+
+.quoteMark {
+  flex: none;
+  /* A plain ramp with a hard ceiling. min(5.4cqw, 14cqh) rendered at 25px on
+     a 394px card and ate half of the second line of the quotation -- the mark
+     is punctuation, and it was competing with the sentence. */
+  width: clamp(11px, 3.6cqw, 18px);
+  height: clamp(11px, 3.6cqw, 18px);
+  fill: rgba(255, 255, 255, 0.34);
+  stroke: none;
+}
+
+/* Sized in cqw so one rule covers the 410px hero, the ~360px grid card and the
+   detail header. The floor stops it collapsing on a narrow phone card and the
+   ceiling stops it outgrowing the title beneath it, which would inverted the
+   card's own hierarchy — the role is what the candidate came for. */
+.quote {
+  flex: none;
+  font-family: var(--font-serif), Georgia, serif;
+  font-weight: 600;
+  /* 4.6cqw, WHICH IS DESIGN'S GRID FIGURE — 17px on a ~370px card, not the
+     22px they specced for the standalone 410px hero. The previous ramp
+     resolved to about 20px, and that is the whole difference between an
+     88-character quotation wrapping to two lines and wrapping to three: at
+     20px a 371px card holds ~29 characters a line, at 17px it holds ~43.
+     The third line is what was being cut off on Manage Job Ads.
+
+     Measured on the card, not read off the handoff — their 22px belongs to a
+     frame we do not render at that size anywhere. */
+  font-size: clamp(12px, 4.6cqw, 22px);
+  line-height: 1.28;
+  letter-spacing: -0.02em;
+  color: #fff;
+  text-wrap: pretty;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* ── FALLBACK 3 · THE TAGS, LARGE ───────────────────────────────────────── */
+
+/* Already structured, already the employer's own selections, and "Immediate
+   start" / "No experience required" are exactly what a candidate scans for.
+   A slightly stronger border than the small pills on .cardContent (.44 against
+   .35) because these are the subject of the panel rather than trim on it. */
+.tags {
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-content: flex-start;
+}
+
+.tag {
+  border: 1px solid rgba(255, 255, 255, 0.44);
+  border-radius: 99px;
+  padding: 6px 11px;
+  font-size: clamp(10px, min(3.1cqw, 26cqh), 12.5px);
+  font-weight: 500;
+  line-height: 1;
+  color: #fff;
+  white-space: nowrap;
+}
+
+/* ── FALLBACK 4 · THE MONOGRAM ──────────────────────────────────────────── */
+
+/* TOP-LEFT AND ON THEIR COLOUR, not centred on our navy — which is what the
+   live board does today and what "it's just C" was a fair verdict on. Off-axis
+   it reads as a monogram; centred it reads as a placeholder.
+
+   line-height 0.85 crops the letterforms' own leading so the shape sits against
+   the top of the region rather than floating a third of the way down it. */
+.monogram {
+  flex: none;
   font-family: var(--font-serif), Georgia, serif;
   font-weight: 700;
-  font-size: 76cqmin;
-  line-height: 1;
-  color: rgba(255, 255, 255, 0.075);
+  /* A HARD PX CEILING, NOT A CONTAINER EXPRESSION ALONE.
+     `min(20cqw, 96cqh)` computed to 256px on a 395px card — measured, not
+     assumed — and two letters at 256px hang off both edges. Whatever the cause
+     in the cascade, a decorative mark is not worth a container-query puzzle:
+     82px is design's own figure at 410px, and a ceiling means this cannot run
+     away again however the container resolves. overflow: hidden on .body
+     clips the remainder either way. */
+  font-size: clamp(40px, 18cqw, 82px);
+  max-width: 100%;
+  line-height: 0.85;
+  letter-spacing: -0.05em;
+  color: rgba(255, 255, 255, 0.16);
   -webkit-user-select: none;
   user-select: none;
   pointer-events: none;
 }
 
-/* Older engines without container units: a sensible fixed size so the initial
-   still renders rather than collapsing to 0. The .mark/.wordmark/.slogan rules
-   that used to live here went with the lockup. */
-@supports not (width: 1cqmin) {
-  .ghost { font-size: 200px; }
+/* Engines without container units still get a card rather than an empty
+   coloured rectangle. Fixed sizes tuned to the grid card, which is where nearly
+   every one of these renders. */
+@supports not (width: 1cqw) {
+  .body { gap: 8px; }
+  .quoteMark { width: 18px; height: 18px; }
+  .quote { font-size: 17px; }
+  .monogram { font-size: 72px; }
 }

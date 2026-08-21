@@ -122,8 +122,37 @@
 .cardScrim { position: absolute; inset: 0; z-index: -1; background: linear-gradient(180deg, rgba(10,22,40,.10) 0%, rgba(10,22,40,.30) 42%, rgba(10,22,40,.78) 78%, rgba(10,22,40,.93) 100%); }
 
 /* fallback (no banner): the branded panel (<BrandedJobFallback>) sits behind a
-   lighter scrim so its watermark stays visible while card text stays crisp. */
-.jobCardFallback .cardScrim { background: linear-gradient(180deg, rgba(10,22,40,0) 30%, rgba(10,22,40,.55) 100%); }
+   lighter scrim so its quotation stays legible while the card text stays crisp.
+
+   NEUTRAL BLACK, NOT OUR NAVY. The photo scrim is rgba(10,22,40,…) and that was
+   right when the panel underneath was also navy — but the panel is now the
+   EMPLOYER'S colour, and a navy wash over it drags every card back toward
+   Thrive blue, which is the exact "two visual systems on one card" fault this
+   whole change exists to remove. Black darkens without tinting, so a purple
+   panel stays purple.
+
+   The band the colour is clamped to (OKLCH L <= 0.42) is what guarantees the
+   white type's contrast, so this gradient is for depth at the foot of the card
+   rather than for legibility, and it can afford to be light. */
+.jobCardFallback .cardScrim { background: linear-gradient(180deg, rgba(0,0,0,0) 40%, rgba(0,0,0,.34) 100%); }
+
+/* THE FALLBACK CARD IS A FLEX COLUMN; THE PHOTO CARD IS NOT.
+   The branded panel's quotation has to take whatever height is left after the
+   company, title, pay and pills — not a guessed percentage. Bounding it at 50%
+   held on the 242px board card and put the sentence straight through the title
+   on the 206px form preview, where four badges make .cardContent 65% of the
+   card. `flex: 1` on the panel body plus `margin-top: auto` here is the same
+   geometry the handoff specified, and this is the reason it specified it.
+
+   SCOPED TO .jobCardFallback ON PURPOSE. A photograph fills the card, so its
+   .cardContent stays absolutely positioned over the image exactly as it is
+   today. Nothing about the photo card changes. */
+.jobCardFallback { display: flex; flex-direction: column; }
+/* relative + z-index 2, not static: the panel body is positioned with z-index 1,
+   and a positioned element paints above a static one whatever the DOM order. The
+   two no longer overlap, so this changes nothing today — it is here so that if
+   they ever do, the TITLE wins rather than the decoration. */
+.jobCardFallback .cardContent { position: relative; z-index: 2; margin-top: auto; }
 
 .cardNew { position: absolute; top: 14px; left: 14px; z-index: 2; background: #FFE500; color: #0A1628; font-weight: 700; font-size: 11px; letter-spacing: .03em; padding: 4px 9px; border-radius: 999px; text-transform: uppercase; }
 .cardSave { position: absolute; top: 12px; right: 12px; z-index: 2; width: 34px; height: 34px; border-radius: 50%; background: rgba(10,22,40,.35); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); border: 1px solid rgba(255,255,255,.25); display: grid; place-items: center; color: #fff; cursor: pointer; padding: 0; }
@@ -166,61 +195,29 @@
 .jobCardRetired:hover { transform: none; }
 .jobCardRetired:hover .cardBg { transform: none; }
 
-/* THE UPPER BAND. Constraining the mark to the top half is what guarantees it
-   never covers the company, the title or the rate, all of which are anchored to
-   the bottom of the card. container-type is set HERE rather than on .jobCard so
-   the mark can size itself in cqw — scaling with the card at phone and desktop
-   width from one rule — without imposing containment on the card itself, which
-   /jobs also uses. */
-.cardRetiredWrap {
-  position: absolute; left: 0; right: 0; top: 0; height: 50%;
-  z-index: 2; display: grid; place-items: center;
-  pointer-events: none; container-type: inline-size;
-}
+/* THE RETIRED BADGE — same slot as New, because they are the same kind of
+   fact about the advert and are mutually exclusive.
 
-/* Variant A — the rubber stamp. Angled, outlined, semi-transparent, the way a
-   stamp sits on paper rather than the way a label sits on a card. */
-.cardRetiredStamp {
-  transform: rotate(-11deg);
-  border: 3px solid rgba(255,255,255,.72);
-  border-radius: 9px;
-  padding: 6px 18px;
-  max-width: 86%;
-  font-weight: 800; font-size: clamp(15px, 8.5cqw, 32px);
-  letter-spacing: .12em; text-transform: uppercase; white-space: nowrap;
-  color: rgba(255,255,255,.88);
-  background: rgba(12,20,34,.22);
-  text-shadow: 0 1px 3px rgba(10,22,40,.5);
-  box-shadow: 0 1px 4px rgba(10,22,40,.35);
-}
+   IT REPLACES A DIAGONAL STAMP ACROSS THE CARD'S MIDDLE. That was right while
+   the upper half was photograph; once the branded panel started carrying a
+   quotation there, the word FILLED was drawn straight through the employer's
+   own sentence — on all four adverts on Manage Job Ads. A badge cannot
+   collide with anything, reads the same over a photo or a panel, and
+   .cardRetiredWash above still does the receding, which was always the half
+   that made a dead card read as dead.
 
-/* Variant B — the straight band. A ribbon across the photo, no rotation. */
-.cardRetiredBand {
-  width: 100%; text-align: center;
-  padding: 7px 0;
-  background: rgba(12,20,34,.62);
-  border-top: 1px solid rgba(255,255,255,.3);
-  border-bottom: 1px solid rgba(255,255,255,.3);
-  -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px);
-  color: #fff; font-weight: 700; font-size: clamp(11px, 4.6cqw, 18px);
-  /* letter-spacing pads the right of the last glyph, so indent by the same to
-     keep the word optically centred rather than sitting a touch left. */
-  letter-spacing: .3em; text-indent: .3em; text-transform: uppercase;
+   Solid slate rather than the yellow New uses: New is an invitation and this
+   is the opposite. Uppercase comes from the label, not from CSS — a
+   text-transform would make the word unfindable to a selector, which this
+   project has been caught by before. */
+.cardRetiredBadge {
+  position: absolute; top: 14px; left: 14px; z-index: 3;
+  background: rgba(15,23,42,.82);
+  -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
+  border: 1px solid rgba(255,255,255,.34);
+  color: #fff; font-weight: 700; font-size: 11px; letter-spacing: .08em;
+  padding: 4px 10px; border-radius: 999px; white-space: nowrap;
 }
-
-/* Variant C — the watermark. No box at all: hollow letterforms straight onto
-   the photo, which is the quietest of the three while still being the largest.
-   -webkit-text-stroke is the only cross-browser way to get an unfilled glyph;
-   the transparent fill is what keeps it from reading as a label. */
-.cardRetiredMark {
-  font-weight: 800; font-size: clamp(18px, 11cqw, 42px);
-  letter-spacing: .16em; text-indent: .16em; text-transform: uppercase;
-  white-space: nowrap;
-  color: transparent;
-  -webkit-text-stroke: 1.6px rgba(255,255,255,.82);
-  filter: drop-shadow(0 1px 3px rgba(10,22,40,.55));
-}
-
 @media (prefers-reduced-motion: reduce) {
   .jobCard, .cardBg { transition: none; }
   .jobCard:hover { transform: none; }

@@ -11,6 +11,7 @@ import { Job } from '@/lib/mockJobs'
 import { useJobs } from '@/lib/JobsContext'
 import { SEO_SECTORS } from '@/lib/seo'
 import styles from './page.module.css'
+import { formatJobLocation } from '@/lib/jobCard'
 
 export default function SectorJobsPage() {
   const params = useParams()
@@ -103,7 +104,7 @@ export default function SectorJobsPage() {
                   <div className={styles.listCardContent}>
                     <h3 className={styles.listCardTitle}>{job.title}</h3>
                     <p className={styles.listCardCompany}>{job.company}</p>
-                    <p className={styles.listCardLocation}>{job.location}{job.area ? `, ${job.area}` : ''}</p>
+                    <p className={styles.listCardLocation}>{formatJobLocation(job)}</p>
                     <p className={styles.listCardSalary}>{formatSalary(job)}</p>
                   </div>
                 </div>
@@ -117,7 +118,7 @@ export default function SectorJobsPage() {
                   <div className={styles.detailHeader}>
                     <h2 className={styles.detailTitle}>{selectedJob.title}</h2>
                     <p className={styles.detailCompany}>{selectedJob.company}</p>
-                    <p className={styles.detailLocation}>{selectedJob.location}{selectedJob.area ? `, ${selectedJob.area}` : ''}</p>
+                    <p className={styles.detailLocation}>{formatJobLocation(selectedJob)}</p>
                     <p className={styles.detailSalary}>{formatSalary(selectedJob)}</p>
                     <div className={styles.detailBadges}>
                       {selectedJob.employmentType.map(t => (

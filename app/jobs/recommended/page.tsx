@@ -20,6 +20,7 @@ import { getTagCategory, WORK_STYLE_TAGS } from '@/lib/jobTags'
 import { useAnalyticsTracking } from '@/hooks/useAnalyticsTracking'
 import styles from './page.module.css'
 import { Ico } from '@/components/icons'
+import { formatJobLocation } from '@/lib/jobCard'
 
 export default function RecommendedJobsPage() {
   const { jobs, loading: jobsLoading } = useJobs()
@@ -361,7 +362,7 @@ export default function RecommendedJobsPage() {
                       <div className={styles.listCardContent}>
                         <h3 className={styles.listCardTitle}>{job.title}</h3>
                         <p className={styles.listCardCompany}>{job.company}</p>
-                        <p className={styles.listCardLocation}>{job.location}{job.area ? `, ${job.area}` : ''}</p>
+                        <p className={styles.listCardLocation}>{formatJobLocation(job)}</p>
                         <p className={styles.listCardSalary}>{formatSalary(job)}</p>
                       </div>
                       {shortlistedJobIds.has(job.id) && (

@@ -12,6 +12,7 @@ import type { Job } from './mockJobs'
 import type { FeedCardModel } from '@/components/FeedCard'
 import { resolveJobBanner } from './jobBanner'
 import { formatMoney } from './money'
+import { selectQuote } from './jobQuote'
 
 /**
  * "3 days ago" and friends, as a number of days. Job.postedAt is already a
@@ -75,6 +76,38 @@ export function formatJobSalary(job: Job): string {
 }
 
 /**
+ * THE PLACE LINE — "Bath, Somerset", but never "London, London".
+ *
+ * NINE PLACES BUILT THIS STRING INDEPENDENTLY, all of them
+ * `${location}${area ? ', ' + area : ''}`, and every one of them printed the
+ * town twice whenever `area` already began with it. On the live board that is
+ * ELEVEN ACTIVE ADVERTS: ten reading "London, London" and one reading
+ * "London, London E9 5EN". Exactly the habit that produced seven disagreeing
+ * salary formatters, so this goes beside formatJobSalary rather than being
+ * patched in the one place someone happened to notice.
+ *
+ * WHY THE PREFIX TEST AND NOT AN EQUALITY TEST. Ricci's advert has location
+ * "London" and area "London E9 5EN" — not equal, still a repeat. When the area
+ * already opens with the town, the area is the more specific of the two and is
+ * shown alone; the postcode is worth keeping and design's own frame has it.
+ *
+ * WHY IT IS NOT A DATA FIX. `area` is PRINTED verbatim on every card, board and
+ * job page, and these are real employer rows. The 243 imported rows pair a town
+ * with a county — "Bath" with "Somerset" — which is correct and must keep its
+ * comma. Rewriting the column would risk all of those to fix eleven; a display
+ * rule risks none.
+ */
+export function formatJobLocation(job: { location?: string | null; area?: string | null }): string {
+  const location = (job.location || '').trim()
+  const area = (job.area || '').trim()
+  if (!area) return location
+  if (!location) return area
+  // Case-insensitive, because "london E9 5EN" against "London" is the same repeat.
+  if (area.toLowerCase().startsWith(location.toLowerCase())) return area
+  return `${location}, ${area}`
+}
+
+/**
  * A job as the shared card sees it.
  *
  * The card itself does no formatting and knows nothing about jobs — this is the
@@ -126,6 +159,13 @@ export function cardModelFromPostedJob(job: {
   employmentType?: string[]
   category?: string
   postedDate: string
+  /* The no-photograph panel's three inputs. All optional: an employer whose
+     advert has a photograph never reaches them, and /my-jobs must keep working
+     against a row loaded before these columns existed. */
+  brandColour?: string | null
+  fullDescription?: string | null
+  description?: string | null
+  tags?: string[] | null
 }): FeedCardModel {
   const employmentBadges = Array.isArray(job.employmentType) ? job.employmentType.slice(0, 2) : []
 
@@ -160,6 +200,14 @@ export function cardModelFromPostedJob(job: {
     } as unknown as Job),
     isNew: days <= 2,
     badges: employmentBadges.map(label => ({ label })),
+
+    // THE SAME PANEL THE BOARD SHOWS. The promise this mapper exists to keep is
+    // that an employer sees their own advert as a candidate sees it — so if the
+    // branded card is what the board renders, it has to be what /my-jobs
+    // renders, from the same three inputs and the same selection rule.
+    brandColour: job.brandColour ?? null,
+    quote: selectQuote({ fullDescription: job.fullDescription, description: job.description }),
+    panelTags: job.tags || [],
   }
 }
 
@@ -178,7 +226,7 @@ export function cardModelFromJob(job: Job): FeedCardModel {
     company: job.company,
     companyNote: job.isRecruiterPosting ? '· via recruiter' : null,
     title: job.title,
-    where: `${job.location}${job.area ? `, ${job.area}` : ''}`,
+    where: formatJobLocation(job),
     pay: formatJobSalary(job),
     isNew: getPostedDaysAgo(job.postedAt) <= 2,
     badges: [
@@ -187,5 +235,18 @@ export function cardModelFromJob(job: Job): FeedCardModel {
       ...(job.urgent ? [{ label: 'Urgent' }] : []),
       ...(easyApply ? [{ label: 'Easy apply', accent: true }] : []),
     ],
+
+    // THE NO-PHOTOGRAPH PANEL. Computed here rather than in the card because
+    // the card is the one place that must not know what a job is — and because
+    // selecting the sentence means parsing the advert body, which is server
+    // work that should not run per render.
+    //
+    // The quote is LIFTED, never written; see lib/jobQuote. Deliberately
+    // computed even when a banner exists: it costs a regex over a string that
+    // is already in memory, and a model whose fields depend on which branch
+    // the card will take is the kind of thing that goes stale silently.
+    brandColour: job.brandColour ?? null,
+    quote: selectQuote(job),
+    panelTags: job.tags || [],
   }
 }

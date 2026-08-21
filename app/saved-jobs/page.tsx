@@ -16,6 +16,7 @@ import { getTagCategory } from '@/lib/jobTags'
 import CompanyReviewsSummary from '@/components/CompanyReviewsSummary'
 import { useAnalyticsTracking } from '@/hooks/useAnalyticsTracking'
 import styles from './page.module.css'
+import { formatJobLocation } from '@/lib/jobCard'
 
 export default function SavedJobsPage() {
   const { jobs, loading: jobsLoading } = useJobs()
@@ -249,7 +250,7 @@ export default function SavedJobsPage() {
                   <div className={styles.listCardContent}>
                     <h3 className={styles.listCardTitle}>{job.title}</h3>
                     <p className={styles.listCardCompany}>{job.company}</p>
-                    <p className={styles.listCardLocation}>{job.location}{job.area ? `, ${job.area}` : ''}</p>
+                    <p className={styles.listCardLocation}>{formatJobLocation(job)}</p>
                     <p className={styles.listCardSalary}>{formatSalary(job)}</p>
                     {savedTimestamps[job.id] && (
                       <p className={styles.listCardSavedAt}>{formatSavedDate(savedTimestamps[job.id])}</p>

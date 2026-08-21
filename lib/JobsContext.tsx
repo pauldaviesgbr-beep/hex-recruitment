@@ -72,6 +72,18 @@ export function JobsProvider({ children }: { children: ReactNode }) {
   const updateJob = async (jobId: string, updates: Partial<Job>) => {
     try {
       // Map camelCase updates to snake_case for Supabase
+      // BRAND COLOUR IS DELIBERATELY ABSENT FROM THIS LIST.
+      //
+      // post-job sends one payload down both branches, so `brandColour` does
+      // arrive here on an edit — and is dropped, on purpose. The colour is
+      // STAMPED AT PUBLISH: an advert that is already live and already been
+      // seen should not restyle itself because the employer has since changed
+      // their logo, and an edit to fix a typo in the salary is not consent to
+      // repaint the card.
+      //
+      // Written down because the current behaviour is otherwise correct only by
+      // omission, and the next person adding a field here would "fix" it in
+      // thirty seconds without knowing there was a decision underneath.
       const supabaseUpdates: any = {}
       if (updates.status !== undefined) supabaseUpdates.status = updates.status
       if (updates.title !== undefined) supabaseUpdates.title = updates.title

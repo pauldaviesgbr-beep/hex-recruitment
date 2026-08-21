@@ -255,7 +255,12 @@
   padding: 24px 26px;
 }
 
-.extrasSplit { display: grid; grid-template-columns: 1fr 300px; gap: 26px; align-items: start; }
+/* 360px, not 300px. At 300 the preview card is 206px tall and .cardContent
+   takes ~170 of it, so the branded panel got 22px and the quotation rendered as
+   two quote marks and no words -- a preview demonstrating a broken card to the
+   one person we are trying to convince the card is fine. 360 matches the board
+   grid card, which is the thing it claims to be previewing. */
+.extrasSplit { display: grid; grid-template-columns: 1fr 400px; gap: 26px; align-items: start; }
 
 .extrasPair { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
 
@@ -362,13 +367,13 @@
 }
 
 /* Live card preview — the real card, at the size the handoff draws it. */
-.cardPreviewFrame { width: 300px; }
+.cardPreviewFrame { width: 400px; }
 .cardPreviewFrame :global(article) { width: 100% !important; }
 
 /* ── Responsive ──────────────────────────────────────────────────────── */
 @media (max-width: 1100px) {
   .extrasSplit { grid-template-columns: 1fr; }
-  .cardPreviewFrame { width: 100%; max-width: 340px; }
+  .cardPreviewFrame { width: 100%; max-width: 400px; }
 }
 
 @media (max-width: 860px) {
@@ -420,4 +425,39 @@
 
 @media (max-width: 768px) {
   .formCard { padding: 16px 18px; gap: 16px; }
+}
+
+/* ── "NOT YOUR LOGO" ────────────────────────────────────────────────────────
+   Ricci uploaded his company logo into the photo field because the field asked
+   for an image, and a business puts its logo in an empty image box. That is a
+   LABELLING FAULT, not a user error — four rejected card treatments were all
+   downstream attempts to make the wrong file look right, and none of them could
+   have worked. This line is the fix.
+
+   Deliberately an inset panel rather than another paragraph: the surrounding
+   copy is already two sentences of encouragement, and a correction that reads
+   like more encouragement gets skimmed with it. */
+.notLogoPanel {
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin: 12px 0 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.notLogoTitle { font-size: 13px; font-weight: 600; line-height: 1.3; color: #0F172A; }
+.notLogoBody { font-size: 13px; font-weight: 400; line-height: 1.5; color: #475569; }
+
+/* THE CAPTION UNDER THE EXISTING BOARD PREVIEW.
+   A first pass added a SECOND 190px preview here. The screenshot showed two
+   previews of the same card disagreeing with each other -- one carried the
+   quotation, the other a monogram, because only one was fed the advert body.
+   Deleted; the caption stayed, under the real one. */
+.previewNote {
+  margin: 10px 0 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: #475569;
 }

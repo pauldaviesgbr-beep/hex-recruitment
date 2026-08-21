@@ -4,9 +4,11 @@ import type { ReactNode } from 'react'
 import Link from 'next/link'
 import type { Job } from '@/lib/mockJobs'
 import { resolveJobBanner } from '@/lib/jobBanner'
+import { selectQuote } from '@/lib/jobQuote'
 import BrandedJobFallback from '@/components/BrandedJobFallback'
 import CompanyLogo from '@/components/CompanyLogo'
 import jobStyles from '@/app/jobs/page.module.css'
+import { formatJobLocation } from '@/lib/jobCard'
 
 // Single-source image-led job card. The card visual lives in /jobs
 // (page.module.css `jobCard*` classes); this wraps that exact markup so the
@@ -53,18 +55,29 @@ export default function JobCardLink({
         {banner ? (
           <div className={jobStyles.cardBg} style={{ backgroundImage: `url(${banner})` }} aria-hidden="true" />
         ) : (
-          <BrandedJobFallback company={job.company} seed={job.id} />
+          <BrandedJobFallback
+            company={job.company}
+            brandColour={job.brandColour}
+            quote={selectQuote(job)}
+            tags={job.tags}
+          />
         )}
         <div className={jobStyles.cardScrim} aria-hidden="true" />
         <div className={jobStyles.cardContent}>
           <div className={jobStyles.cardCompanyRow}>
-            <span className={jobStyles.cardChip}>
-              {job.companyLogo ? (
-                <CompanyLogo src={job.companyLogo} alt={job.company} className={jobStyles.cardChipImg} />
-              ) : (
-                initial
-              )}
-            </span>
+            {/* NO AVATAR WITHOUT A PHOTOGRAPH — the branded panel carries no
+                logo anywhere, and three of the five real marks are illegible at
+                this size anyway. Same rule as FeedCard; both cards use these
+                same styles, so they have to agree. */}
+            {banner && (
+              <span className={jobStyles.cardChip}>
+                {job.companyLogo ? (
+                  <CompanyLogo src={job.companyLogo} alt={job.company} className={jobStyles.cardChipImg} />
+                ) : (
+                  initial
+                )}
+              </span>
+            )}
             <span className={jobStyles.cardCompany}>
               {job.company}
               {job.isRecruiterPosting && <span className={jobStyles.cardViaRecruiter}> · via recruiter</span>}
@@ -72,7 +85,7 @@ export default function JobCardLink({
           </div>
           <h3 className={jobStyles.cardRole}>{job.title}</h3>
           <div className={jobStyles.cardMeta}>
-            <span>{job.location}{job.area ? `, ${job.area}` : ''}</span>
+            <span>{formatJobLocation(job)}</span>
             <span className={jobStyles.cardDot}>·</span>
             <span className={jobStyles.cardSalary}>{formatSalary(job)}</span>
           </div>

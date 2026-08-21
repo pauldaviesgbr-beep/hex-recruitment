@@ -22,6 +22,7 @@ import { annualisedOrNull } from '@/lib/salaryInput'
 import { resolveJobBanner } from '@/lib/jobBanner'
 import BrandedJobFallback from '@/components/BrandedJobFallback'
 import JobPostingSchema from '@/components/JobPostingSchema'
+import { selectQuote } from '@/lib/jobQuote'
 import { useAnalyticsTracking } from '@/hooks/useAnalyticsTracking'
 import styles from './page.module.css'
 
@@ -1207,7 +1208,13 @@ function JobsPageContent() {
                   <div className={styles.detailBanner}>
                     {detailBanner
                       ? <img src={detailBanner} alt={selectedJob.company} className={styles.detailBannerImg} />
-                      : <BrandedJobFallback company={selectedJob.company} seed={selectedJob.id} />}
+                      : <BrandedJobFallback
+                          company={selectedJob.company}
+                          brandColour={selectedJob.brandColour}
+                          quote={selectQuote(selectedJob)}
+                          tags={selectedJob.tags}
+                          variant="header"
+                        />}
                   </div>
                 )
               })()}

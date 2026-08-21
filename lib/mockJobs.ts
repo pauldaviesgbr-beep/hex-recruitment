@@ -61,6 +61,9 @@ export interface Job {
   status: 'active' | 'expired' | 'filled'
   screeningQuestions?: { id: string; question: string; required: boolean }[]
   isRecruiterPosting?: boolean
+  /** Stored hex for the no-photograph panel, computed from the employer logo
+   *  at upload time. Absent/null = navy. Never read when a banner exists. */
+  brandColour?: string | null
 }
 
 // Mock data removed — all jobs now come from Supabase

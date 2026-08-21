@@ -9,6 +9,7 @@ import { resolveJobBanner } from '@/lib/jobBanner'
 import BrandedJobFallback from '@/components/BrandedJobFallback'
 import JobPostingSchema from '@/components/JobPostingSchema'
 import { getTagCategory, WORK_STYLE_TAGS } from '@/lib/jobTags'
+import { selectQuote } from '@/lib/jobQuote'
 import CompanyReviewsSummary from '@/components/CompanyReviewsSummary'
 import { useAnalyticsTracking, ViewSource } from '@/hooks/useAnalyticsTracking'
 import ApplyNowModal from '@/components/ApplyNowModal'
@@ -259,7 +260,13 @@ export default function JobDetailModal({
                 <div className={styles.bannerWrapper}>
                   {detailBanner
                     ? <img src={detailBanner} alt="" className={styles.banner} />
-                    : <BrandedJobFallback company={job.company} seed={job.id} />}
+                    : <BrandedJobFallback
+                        company={job.company}
+                        brandColour={job.brandColour}
+                        quote={selectQuote(job)}
+                        tags={job.tags}
+                        variant="header"
+                      />}
                   <div className={styles.bannerOverlay} />
                 </div>
               )

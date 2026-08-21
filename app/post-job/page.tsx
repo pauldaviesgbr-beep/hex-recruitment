@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { markJustPosted } from '@/lib/justPosted'
 import { trimDeep } from '@/lib/trimDeep'
+import { composeDescription } from '@/lib/composeDescription'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
 import Header from '@/components/Header'
@@ -28,6 +29,7 @@ import { FlowAppBar, Stepper, StepProgress } from './FlowChrome'
 import styles from './page.module.css'
 import flow from './flow.module.css'
 import { Ico, type IconName } from '@/components/icons'
+import { formatJobLocation } from '@/lib/jobCard'
 
 const RichTextEditor = dynamic(() => import('@/components/RichTextEditor'), { ssr: false })
 
@@ -400,7 +402,19 @@ function PostJobContent() {
     fullLocation: { addressLine1: '', city: formData.city || '', postcode: formData.postcode || '' },
     shiftSchedule: formData.shiftSchedule || '',
     description: '',
-    fullDescription: '',
+    // THE ADVERT BODY, SO THE PREVIEW CAN SHOW THE NO-PHOTO CARD PROPERLY.
+    //
+    // This was '' — which was harmless while the fallback panel was a ghosted
+    // letter, and became a lie the moment the panel started carrying a sentence
+    // lifted from the advert. An employer with no photograph would have been
+    // shown a monogram, published, and got a quotation instead.
+    //
+    // Composed through composeDescription, the same function the publish
+    // payload uses, so the sentence here IS the sentence on the board.
+    fullDescription: composeDescription(descView, guidedFields, formData.description),
+    // Their stored colour, so the preview is in their colours rather than navy
+    // — which is the specific claim the caption underneath makes.
+    brandColour: employerProfile?.brand_colour ?? null,
     responsibilities: [], requirements: [], benefits: [], skillsRequired: [],
     experienceRequired: formData.experienceRequired || '',
     workAuthorization: [],
@@ -475,7 +489,7 @@ function PostJobContent() {
       // Fetch employer profile for auto-fill
       const { data: empProfile } = await supabase
         .from('employer_profiles')
-        .select('company_name, logo_url, description, website, business_address, location')
+        .select('company_name, logo_url, description, website, business_address, location, brand_colour')
         .eq('user_id', session.user.id)
         .maybeSingle()
 
@@ -1201,15 +1215,12 @@ function PostJobContent() {
       //
       // Composed as HTML because the editor path stores HTML in the same
       // column, and the detail page renders it as such.
-      const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-      const para = (s: string) => s.trim().split(/\n{2,}/).map(b => `<p>${esc(b.trim()).replace(/\n/g, '<br />')}</p>`).join('')
-      const composedDescription = descView === 'guided'
-        ? [
-            guidedFields.dayToDay && `<h3>What you’ll be doing</h3>${para(guidedFields.dayToDay)}`,
-            guidedFields.experienceNeeded && `<h3>Experience or skills needed</h3>${para(guidedFields.experienceNeeded)}`,
-            guidedFields.whatWeOffer && `<h3>What we offer</h3>${para(guidedFields.whatWeOffer)}`,
-          ].filter(Boolean).join('')
-        : formData.description
+      // HOISTED to composeDescription so the step-3 PREVIEW composes the advert
+      // exactly as publishing does. The preview lifts its sentence from this
+      // same string; two copies of the composition would eventually disagree,
+      // and that failure is a preview promising a card the board does not
+      // render — worse than showing no preview at all.
+      const composedDescription = composeDescription(descView, guidedFields, formData.description)
 
       // Auto-generate short description from first 150 characters.
       //
@@ -1302,6 +1313,17 @@ function PostJobContent() {
         status: 'active' as const,
         screeningQuestions: screeningQuestions.filter(q => q.question.trim()),
         isRecruiterPosting: !isOwnCompany,
+        // THE PANEL COLOUR, STAMPED ONTO THE ROW RATHER THAN LOOKED UP LATER.
+        //
+        // Computed once from the logo at upload and copied here at publish, so
+        // an employer who changes their logo in six weeks does not restyle
+        // adverts that are already live and have already been seen. Same
+        // instinct as the pay period and the em dash: the card shows what was
+        // true when it was posted.
+        //
+        // Null is a real answer, not a gap -- the panel falls to navy, which is
+        // also what the rule itself returns when it cannot read a logo.
+        brandColour: employerProfile?.brand_colour ?? null,
       }
 
       // EVERY STRING TRIMMED, ONCE, ON THE WAY OUT — see lib/trimDeep.
@@ -2331,6 +2353,27 @@ function PostJobContent() {
                     {showPhotoTips ? 'Hide the guidance' : 'What makes a good photo →'}
                   </button>
                 </p>
+
+                {/* SAY WHAT IT ISN'T. One line, and it stops the only mistake
+                    anyone makes with this field.
+
+                    Ricci uploaded his company logo here because the field asked
+                    for an image and a business puts its logo in an empty image
+                    box. THAT IS A LABELLING FAULT, NOT A USER ERROR, and no card
+                    design fixes it — the four rejected card treatments were all
+                    downstream attempts to make the wrong file look right.
+
+                    Placed above the upload rather than beside it: it has to be
+                    read BEFORE the file picker opens, and a hint underneath a
+                    control that has already been used is a hint nobody needs. */}
+                <div className={flow.notLogoPanel}>
+                  <span className={flow.notLogoTitle}>Not your logo — we&rsquo;ve already got that.</span>
+                  <span className={flow.notLogoBody}>
+                    Your logo appears on the advert automatically. Use this for the
+                    kitchen, the dining room, the bar — or leave it and we&rsquo;ll
+                    build a branded card in your colours.
+                  </span>
+                </div>
               </>
             ) : (
               <h2 className={styles.sectionTitle}>
@@ -2425,6 +2468,7 @@ function PostJobContent() {
                   )}
                 </div>
               )}
+
               {artworkSubject && formData.companyBanner && (
                 <p className={styles.uploadHint} style={{ marginTop: '0.4rem' }}>
                   We&apos;ve generated {artworkSubject}. Generate again for a different take, or
@@ -2481,6 +2525,23 @@ function PostJobContent() {
                 <div className={flow.cardPreviewFrame}>
                   <JobCard job={draftJob} />
                 </div>
+                {/* THE CAPTION THAT MAKES SKIPPING A CHOICE RATHER THAN A GAP.
+                    Without a photo the card used to look unfinished, which is
+                    exactly why an agency reaches for the logo. Naming what they
+                    are looking at turns it into an outcome.
+
+                    Under the EXISTING preview, not a second one. A first pass
+                    added its own 190px thumbnail here and the screenshot showed
+                    the cost immediately: two previews of the same card, side by
+                    side, disagreeing — this one had the quotation and that one
+                    had a monogram, because only one of them was being fed the
+                    advert body. One preview, the real component. */}
+                {!formData.companyBanner && (
+                  <p className={flow.previewNote}>
+                    <strong>This is what yours looks like now.</strong> No photo needed — we
+                    build a card in your own colours, carrying a line from your advert.
+                  </p>
+                )}
                 {formData.companyBanner && (
                   <button
                     type="button"
@@ -2862,7 +2923,7 @@ function PostJobContent() {
                 </div>
 
                 <div className={styles.previewDetails}>
-                  <span className={styles.previewDetail}><Ico name="map-pin" size={16} /> {formData.location || 'Location'}{formData.area ? `, ${formData.area}` : ''}</span>
+                  <span className={styles.previewDetail}><Ico name="map-pin" size={16} /> {formatJobLocation({ location: formData.location || 'Location', area: formData.area })}</span>
                   {/* Collapses to one figure exactly as the board and the detail
                       page do. It printed "£0 - £0" before either box was
                       touched, and would have contradicted the helper text
