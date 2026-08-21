@@ -99,8 +99,19 @@ function resolve(segments) {
 }
 
 // ── find every navigation literal ──────────────────────────────────────────
-const files = execSync('git ls-files "app/**/*.tsx" "app/**/*.ts" "components/**/*.tsx" "lib/**/*.ts"',
+// THE GLOB HAS TO INCLUDE TOP-LEVEL FILES, AND `**/` DOES NOT.
+//
+// This read git ls-files "components/**/*.tsx", which in git pathspec requires
+// an intervening directory -- so components/FeedCard.tsx, and every other file
+// sitting directly in components/, was never scanned. 124 files of 204.
+//
+// That is how a stray-comment check was written, run, and reported clean while
+// the exact fault it exists for sat in an unscanned file. A plain listing
+// filtered in JS instead: one source of paths, and no pathspec semantics to be
+// wrong about.
+const files = execSync('git ls-files',
   { encoding: 'utf8' }).trim().split('\n').filter(Boolean)
+  .filter(f => /^(app|components|lib)\//.test(f) && /.(tsx|ts)$/.test(f))
 
 // THIS USED TO BE ONE REGEX AND IT HAD A 33-CALL BLIND SPOT.
 //
