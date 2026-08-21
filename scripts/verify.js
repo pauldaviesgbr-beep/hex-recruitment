@@ -133,6 +133,13 @@ const ALL = [
   // page SAYS. Parses with the TypeScript compiler rather than a regex — the
   // regex version cried wolf 27 times out of 28.
   { name: 'jsxcomments:prove', cmd: process.execPath, args: [path.join(ROOT, 'scripts', 'prove-no-stray-jsx-comments.mjs')] },
+  // WHEN THE WHITE GROUND COMES OFF A LOGO. That one decision got the answer
+  // wrong twice on real employer logos — once by asking whether the mark was
+  // dark ON AVERAGE (a thin gold circle on white reads as blank), once by
+  // measuring the whole border instead of the corners. The dangerous
+  // direction is a false yes: keying white out of a logo that is white type
+  // on a coloured block erases the type on somebody's live advert.
+  { name: 'logotreatment:prove', cmd: process.execPath, args: [path.join(ROOT, 'scripts', 'prove-logo-treatment.mjs')] },
 ]
 const CHECKS = FAST ? ALL.filter(c => !c.slow) : ALL
 

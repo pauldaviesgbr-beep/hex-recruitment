@@ -7,6 +7,7 @@ import {
   analyseImage, chooseTreatment, renderBanner,
   type ImageFacts, type Treatment,
 } from '@/lib/bannerRender'
+import { analyseLogo, renderLogo, type LogoResult } from '@/lib/logoRender'
 
 const BANNER_BUCKET = 'job-banners'
 
@@ -52,7 +53,8 @@ const PURPOSES = {
 //
 // Company logos: square, contained on white, matching what the old client-side
 // canvas produced so nothing changes visually now the storage has moved.
-const LOGO_SIZE = 200
+// LOGO_SIZE is gone with the forced square — lib/logoRender owns the logo
+// geometry now, and it keeps the natural aspect inside LOGO_MAX.
 const WEBP_QUALITY = 80
 const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
 
@@ -236,16 +238,27 @@ export async function POST(request: NextRequest) {
     // white at 200x200.
     let facts: ImageFacts | undefined
     let treatment: Treatment | undefined
+    let logoResult: LogoResult | undefined
     if (isLogo) {
-      // A LOGO IS NOT A BANNER. Cropping one to 16:11 would cut the top and
-      // bottom off a square mark. Contain it in a 200x200 square on white —
-      // deliberately the same geometry the old canvas code produced, so existing
-      // logos are unchanged in appearance and only their storage moves.
-      processedBuffer = await sharp(buffer)
-        .rotate()
-        .resize(LOGO_SIZE, LOGO_SIZE, { fit: 'contain', background: { r: 255, g: 255, b: 255, alpha: 1 } })
-        .webp({ quality: WEBP_QUALITY })
-        .toBuffer()
+      // A LOGO IS NOT A BANNER, and it is no longer forced into a square on
+      // white either.
+      //
+      // The old geometry — resize(200, 200, contain, background: white) — baked
+      // WHITE PADDING into every non-square logo and flattened away whatever
+      // transparency the employer supplied. Invisible on a white page, and
+      // obvious the moment the mark goes anywhere else: on the navy card panel
+      // a wide wordmark arrived with white strips above and below it and read
+      // as a sticker. The card could not recover, because an opaque rectangle
+      // laid on navy IS a rectangle whatever CSS does to it — two attempts at
+      // fixing it in the browser failed, one of them visibly on the live board.
+      //
+      // lib/logoRender trims the mark out of its padding, keys off a white
+      // ground where the mark does not depend on one, and keeps the natural
+      // aspect. See that file for why the keying decision is taken at the
+      // CORNERS, and after the trim rather than before it.
+      const logoFacts = await analyseLogo(buffer)
+      logoResult = await renderLogo(buffer, logoFacts)
+      processedBuffer = logoResult.buffer
     } else {
       // WHAT THE IMAGE IS, NOT WHICH BOX IT CAME FROM.
       //
@@ -277,17 +290,22 @@ export async function POST(request: NextRequest) {
       // removed, because that fallback would silently downgrade an authorised
       // upload into an anon-key write and fail against the storage policies for
       // reasons that would look nothing like a missing env var.
-      const path = `${randomUUID()}.webp`
+      // The extension follows the treatment: PNG where transparency was kept
+      // or created, WebP where the mark is opaque.
+      const path = `${randomUUID()}.${logoResult ? logoResult.extension : 'webp'}`
       const { error: upErr } = await admin.storage
         .from(targetBucket)
-        .upload(path, processedBuffer, { contentType: 'image/webp', upsert: false })
+        .upload(path, processedBuffer, {
+          contentType: logoResult ? logoResult.contentType : 'image/webp',
+          upsert: false,
+        })
       if (upErr) throw upErr
       url = admin.storage.from(targetBucket).getPublicUrl(path).data.publicUrl
     } catch (e: any) {
       console.error('[upload-image] Storage upload failed, falling back to base64:', e?.message)
     }
 
-    const dataUrl = `data:image/webp;base64,${processedBuffer.toString('base64')}`
+    const dataUrl = `data:${logoResult ? logoResult.contentType : 'image/webp'};base64,${processedBuffer.toString('base64')}`
 
     return NextResponse.json({
       success: true,
@@ -304,6 +322,9 @@ export async function POST(request: NextRequest) {
       treatment: treatment
         ? { mode: treatment.mode, reason: treatment.reason, fill: treatment.fill }
         : null,
+      // What was done to a LOGO, for the same reason the banner reports its
+      // treatment: so the shape of real uploads is visible rather than guessed.
+      logoTreatment: logoResult ? logoResult.treatment : null,
       sourceFacts: facts
         ? {
             width: facts.width, height: facts.height,
