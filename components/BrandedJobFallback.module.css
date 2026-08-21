@@ -34,10 +34,18 @@
    cannot shrink below its content, so a long sentence would push the card open
    and the clip would never happen. It is what makes `flex: 1` a real bound.
 
-   PADDING-TOP 52px clears the NEW badge and the bookmark, which the card still
-   positions absolutely because they are SHARED WITH THE PHOTO CARD — the one
-   thing the handoff most asks us not to disturb. Design's own frames position
-   them absolutely on four of their five hero cards. */
+   THE BADGE CLEARANCE IS THE ::before SPACER BELOW, not padding — see there for
+   why. It clears the NEW pill and the bookmark, which the card still positions
+   absolutely because they are SHARED WITH THE PHOTO CARD, the one thing the
+   handoff most asks us not to disturb. Design's own frames position them
+   absolutely on four of their five hero cards.
+
+   THE WHOLE BUDGET, measured on the 394px board card whose body is 124px:
+     spacer 48 + gap 5 + mark 14 + gap 5 + two lines at 19px  =  121
+   Three pixels spare. Every one of those numbers was arrived at by measuring a
+   rendered card, not by reading the stylesheet — the first four attempts at
+   this block were arithmetic against numbers that turned out not to be the
+   ones on screen. If you change any of them, drive it and look. */
 .body {
   position: relative;
   z-index: 1;
