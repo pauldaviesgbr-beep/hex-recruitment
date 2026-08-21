@@ -140,6 +140,33 @@ try {
   const quoted = (await quoteEl.count()) ? (await quoteEl.textContent() || '').trim() : '(no quote element)'
   check('the preview lifts the sentence that was typed', quoted, quoted === EXPECTED)
 
+  // AND IT MUST NOT SIT ON TOP OF THE TITLE. The board card measured clear and
+  // this one does not: the preview frame is 300px, so the card is ~206px tall
+  // while .cardContent still holds a company, a title, a meta line and four
+  // badges. The panel's bottom bound is a PERCENTAGE, and a percentage of a
+  // short card is not enough room. Measured rather than eyeballed, because the
+  // overlap is the kind of thing a passing text assertion cannot see.
+  const geom = await page.evaluate(() => {
+    const q = document.querySelector('[class*="quote"]:not([class*="quoteMark"])')
+    if (!q) return null
+    const card = q.closest('[class*="jobCard"]')
+    const title = card && card.querySelector('h3')
+    if (!title) return null
+    const a = q.getBoundingClientRect(), b = title.getBoundingClientRect()
+    const c = card.getBoundingClientRect()
+    return {
+      cardH: Math.round(c.height), cardW: Math.round(c.width),
+      quote: [Math.round(a.top - c.top), Math.round(a.bottom - c.top)],
+      title: [Math.round(b.top - c.top), Math.round(b.bottom - c.top)],
+      overlap: a.bottom > b.top + 1 && a.top < b.bottom - 1,
+    }
+  })
+  if (geom) {
+    console.log(`\n  preview card ${geom.cardW}x${geom.cardH} · quote y${geom.quote} · title y${geom.title}`)
+    check('the quote does not overlap the title in the preview',
+      geom.overlap ? `OVERLAP quote${geom.quote} title${geom.title}` : 'clear', geom.overlap === false)
+  }
+
   if (hasNotLogo) {
     await notLogo.scrollIntoViewIfNeeded()
     await page.waitForTimeout(400)

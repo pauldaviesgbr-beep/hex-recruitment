@@ -104,10 +104,24 @@ export default function BrandedJobFallback({
 
   const vars = { '--panel': colour } as CSSProperties
 
-  return (
-    <div className={`${styles.panel} ${className || ''}`} style={vars}>
-      <div className={variant === 'header' ? styles.bodyHeader : styles.body}>
-        {sentence ? (
+  // TWO SIBLINGS, NOT A WRAPPER, AND THE REASON IS GEOMETRY.
+  //
+  // The colour is an absolute layer behind everything. The CONTENT is a flex
+  // child of the card itself, so it takes whatever height is left after the
+  // company/title/pay block rather than a guessed percentage of the card.
+  //
+  // The first version nested the content inside the absolute panel and bounded
+  // it at `bottom: 50%`. That measured clear on the 242px board card and
+  // overlapped the title in the 206px form preview, where .cardContent holds
+  // four badges and takes 65% of the card. A percentage of an unknown height is
+  // a guess; `flex: 1` is an answer. This is the geometry the handoff specified
+  // and the reason it specified it.
+  //
+  // The header variant keeps the absolute form: the detail strip is not a flex
+  // column and has nothing below the panel to make room for.
+  const body = (
+    <div className={variant === 'header' ? styles.bodyHeader : styles.body}>
+      {sentence ? (
           <>
             {/* Decorative: the sentence beside it is the content, and a screen
                 reader announcing "left double quotation mark" adds nothing. */}
@@ -124,7 +138,13 @@ export default function BrandedJobFallback({
         ) : (
           <span className={styles.monogram} aria-hidden="true">{companyInitials(company)}</span>
         )}
-      </div>
     </div>
+  )
+
+  return (
+    <>
+      <div className={`${styles.panel} ${className || ''}`} style={vars} aria-hidden="true" />
+      {body}
+    </>
   )
 }

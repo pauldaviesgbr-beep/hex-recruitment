@@ -18,40 +18,36 @@
   background: var(--panel, #0F172A);
 }
 
-/* THE CONTENT REGION, AND ITS TWO BOUNDS ARE BOTH LOAD-BEARING.
+/* THE CONTENT REGION — A FLEX CHILD OF THE CARD, NOT AN ABSOLUTE BOX.
+   `.jobCardFallback` makes the card a flex column (see app/jobs/page.module.css)
+   and `.cardContent` becomes the bottom item, so `flex: 1` here means "whatever
+   is left after the company, title, pay and pills".
 
-   TOP 52px clears the NEW badge and the bookmark, which are absolutely
-   positioned by the card itself (.cardNew top 14px, .cardSave top 12px + 34px
-   tall) and are SHARED WITH THE PHOTO CARD. The handoff puts those badges in
-   the flow instead, costing 30px rather than a reservation — right in a
-   standalone panel, but here it would mean re-laying-out the photo card too,
-   and that card is the thing the handoff most asks us to protect. Design's own
-   frames position them absolutely on four of the five hero cards, so the
-   reservation is what was drawn for every card without a NEW badge.
+   THE FIRST VERSION BOUNDED THIS AT `bottom: 50%` AND WAS WRONG. It measured
+   clear on the 242px board card and overlapped the title in the 300px-wide form
+   preview, where the card is 206px tall and .cardContent carries four badges —
+   65% of the card, not 50%. A percentage of a height you do not know is a guess
+   that happens to hold at one size. Measured, not eyeballed: quote y76–117
+   against title y71–96.
 
-   BOTTOM 50% keeps the quotation clear of .cardContent, which is bottom-
-   anchored and holds the company, title, location, pay and pills. Without it a
-   long sentence renders straight down through the title — the panel spans the
-   whole card, so "it clips" is not the failure mode, "it collides" is. 50%
-   against the handoff's ~46% because our title wraps to two lines where theirs
-   is one.
+   min-height: 0 IS NOT OPTIONAL. A flex child defaults to min-height: auto and
+   cannot shrink below its content, so a long sentence would push the card open
+   and the clip would never happen. It is what makes `flex: 1` a real bound.
 
-   min-height: 0 and overflow: hidden together are what stop a long sentence
-   pushing the block open. On a flex child the default min-height: auto means it
-   cannot shrink below its content, and the guard is what makes the 50% real
-   rather than advisory. */
+   PADDING-TOP 52px clears the NEW badge and the bookmark, which the card still
+   positions absolutely because they are SHARED WITH THE PHOTO CARD — the one
+   thing the handoff most asks us not to disturb. Design's own frames position
+   them absolutely on four of their five hero cards. */
 .body {
-  position: absolute;
-  top: 52px;
-  left: 0;
-  right: 0;
-  bottom: 50%;
+  position: relative;
+  z-index: 1;
+  flex: 1;
   min-height: 0;
   overflow: hidden;
-  padding: 0 16px;
+  padding: 52px 16px 0;
   display: flex;
   flex-direction: column;
-  gap: 4cqh;
+  gap: 6px;
   align-content: flex-start;
 }
 

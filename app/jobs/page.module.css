@@ -136,6 +136,20 @@
    rather than for legibility, and it can afford to be light. */
 .jobCardFallback .cardScrim { background: linear-gradient(180deg, rgba(0,0,0,0) 40%, rgba(0,0,0,.34) 100%); }
 
+/* THE FALLBACK CARD IS A FLEX COLUMN; THE PHOTO CARD IS NOT.
+   The branded panel's quotation has to take whatever height is left after the
+   company, title, pay and pills — not a guessed percentage. Bounding it at 50%
+   held on the 242px board card and put the sentence straight through the title
+   on the 206px form preview, where four badges make .cardContent 65% of the
+   card. `flex: 1` on the panel body plus `margin-top: auto` here is the same
+   geometry the handoff specified, and this is the reason it specified it.
+
+   SCOPED TO .jobCardFallback ON PURPOSE. A photograph fills the card, so its
+   .cardContent stays absolutely positioned over the image exactly as it is
+   today. Nothing about the photo card changes. */
+.jobCardFallback { display: flex; flex-direction: column; }
+.jobCardFallback .cardContent { position: static; margin-top: auto; }
+
 .cardNew { position: absolute; top: 14px; left: 14px; z-index: 2; background: #FFE500; color: #0A1628; font-weight: 700; font-size: 11px; letter-spacing: .03em; padding: 4px 9px; border-radius: 999px; text-transform: uppercase; }
 .cardSave { position: absolute; top: 12px; right: 12px; z-index: 2; width: 34px; height: 34px; border-radius: 50%; background: rgba(10,22,40,.35); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); border: 1px solid rgba(255,255,255,.25); display: grid; place-items: center; color: #fff; cursor: pointer; padding: 0; }
 .cardSave svg { width: 16px; height: 16px; }
