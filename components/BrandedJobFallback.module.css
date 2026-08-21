@@ -76,28 +76,6 @@
   align-content: center;
 }
 
-/* THE FORM PREVIEW — ~190px wide, so 131px tall.
-
-   The card variant reserves 52px at the top for badges the preview does not
-   draw, which would leave a 14px band here. Its own bounds, and a tighter type
-   scale below via the container units, because the whole job of this thumbnail
-   is to show an employer that skipping the photograph produces a finished card.
-   A six-line stack of wrapped text would demonstrate the opposite. */
-.bodyPreview {
-  position: absolute;
-  top: 10px;
-  left: 0;
-  right: 0;
-  bottom: 44%;
-  min-height: 0;
-  overflow: hidden;
-  padding: 0 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  align-content: flex-start;
-}
-
 /* ── FALLBACK 1 + 2 · THE QUOTATION ─────────────────────────────────────── */
 
 .quoteMark {

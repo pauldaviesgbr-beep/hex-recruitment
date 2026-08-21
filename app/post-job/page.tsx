@@ -5,8 +5,6 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { markJustPosted } from '@/lib/justPosted'
 import { trimDeep } from '@/lib/trimDeep'
 import { composeDescription } from '@/lib/composeDescription'
-import { selectQuote } from '@/lib/jobQuote'
-import BrandedJobFallback from '@/components/BrandedJobFallback'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
 import Header from '@/components/Header'
@@ -403,7 +401,19 @@ function PostJobContent() {
     fullLocation: { addressLine1: '', city: formData.city || '', postcode: formData.postcode || '' },
     shiftSchedule: formData.shiftSchedule || '',
     description: '',
-    fullDescription: '',
+    // THE ADVERT BODY, SO THE PREVIEW CAN SHOW THE NO-PHOTO CARD PROPERLY.
+    //
+    // This was '' — which was harmless while the fallback panel was a ghosted
+    // letter, and became a lie the moment the panel started carrying a sentence
+    // lifted from the advert. An employer with no photograph would have been
+    // shown a monogram, published, and got a quotation instead.
+    //
+    // Composed through composeDescription, the same function the publish
+    // payload uses, so the sentence here IS the sentence on the board.
+    fullDescription: composeDescription(descView, guidedFields, formData.description),
+    // Their stored colour, so the preview is in their colours rather than navy
+    // — which is the specific claim the caption underneath makes.
+    brandColour: employerProfile?.brand_colour ?? null,
     responsibilities: [], requirements: [], benefits: [], skillsRequired: [],
     experienceRequired: formData.experienceRequired || '',
     workAuthorization: [],
@@ -2458,48 +2468,6 @@ function PostJobContent() {
                 </div>
               )}
 
-              {/* SHOW THE CARD THEY GET, NOT AN EMPTY BOX.
-                  Skipping the photo shows nothing today, so the advert reads as
-                  unfinished — which is exactly why an agency reaches for the
-                  logo. This makes skipping a legitimate, visible choice.
-
-                  It composes the advert through the SAME composeDescription and
-                  the SAME selectQuote the publish path uses, so the sentence
-                  here is the sentence on the board. A preview with its own copy
-                  of either would eventually promise a card we do not render.
-
-                  Only while there is no banner: once they have uploaded one,
-                  this panel is not what their card will look like. */}
-              {!formData.companyBanner && (
-                <div className={flow.brandPreviewRow}>
-                  <div className={flow.brandPreviewCard}>
-                    <BrandedJobFallback
-                      variant="preview"
-                      company={formData.company}
-                      brandColour={employerProfile?.brand_colour ?? null}
-                      quote={selectQuote({
-                        fullDescription: composeDescription(descView, guidedFields, formData.description),
-                      })}
-                      tags={Array.from(formData.tags)}
-                    />
-                    {/* Single-line and ellipsised, all three. At 190px a wrapped
-                        title turns the thumbnail into a six-line stack, which
-                        demonstrates a broken card to the person deciding
-                        whether to skip the photo — the opposite of the point. */}
-                    <div className={flow.brandPreviewText}>
-                      <span className={flow.brandPreviewCompany}>{formData.company || 'Your company'}</span>
-                      <span className={flow.brandPreviewTitle}>{formData.title || 'Your job title'}</span>
-                      <span className={flow.brandPreviewMeta}>
-                        {[formData.location, formData.salaryMin && `£${formData.salaryMin}`].filter(Boolean).join(' · ') || 'Location · Pay'}
-                      </span>
-                    </div>
-                  </div>
-                  <p className={flow.brandPreviewNote}>
-                    <strong>This is what yours looks like now.</strong> No photo needed —
-                    we build a card in your own colours, carrying a line from your advert.
-                  </p>
-                </div>
-              )}
               {artworkSubject && formData.companyBanner && (
                 <p className={styles.uploadHint} style={{ marginTop: '0.4rem' }}>
                   We&apos;ve generated {artworkSubject}. Generate again for a different take, or
@@ -2556,6 +2524,23 @@ function PostJobContent() {
                 <div className={flow.cardPreviewFrame}>
                   <JobCard job={draftJob} />
                 </div>
+                {/* THE CAPTION THAT MAKES SKIPPING A CHOICE RATHER THAN A GAP.
+                    Without a photo the card used to look unfinished, which is
+                    exactly why an agency reaches for the logo. Naming what they
+                    are looking at turns it into an outcome.
+
+                    Under the EXISTING preview, not a second one. A first pass
+                    added its own 190px thumbnail here and the screenshot showed
+                    the cost immediately: two previews of the same card, side by
+                    side, disagreeing — this one had the quotation and that one
+                    had a monogram, because only one of them was being fed the
+                    advert body. One preview, the real component. */}
+                {!formData.companyBanner && (
+                  <p className={flow.previewNote}>
+                    <strong>This is what yours looks like now.</strong> No photo needed — we
+                    build a card in your own colours, carrying a line from your advert.
+                  </p>
+                )}
                 {formData.companyBanner && (
                   <button
                     type="button"

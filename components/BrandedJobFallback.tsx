@@ -84,13 +84,12 @@ export default function BrandedJobFallback({
    * sentence would get a 28px band and be invisible, which is precisely the
    * class of fault that only shows up in the second slot a component is used in.
    *
-   * 'preview' is the ~190px thumbnail in the post-a-job form. Same card shape,
-   * but 190px wide is 131px tall and the card's 52px badge reservation would
-   * leave a 14px band. Its own bounds and its own type scale, because a preview
-   * that renders a broken card is worse than no preview -- it is a demonstration
-   * of the thing we are trying to persuade them is fine.
+   * There was briefly a third, 'preview', for a 190px thumbnail in the post-a-job
+   * form. It is gone: that form already renders the REAL card component, and a
+   * second preview beside it showed the same advert two different ways. The
+   * fix was to feed the existing one, not to add another.
    */
-  variant?: 'card' | 'header' | 'preview'
+  variant?: 'card' | 'header'
 }) {
   // A stored colour that is not a hex is not trusted onto a live card: the
   // white type's contrast is guaranteed by the BAND, and a value that never
@@ -107,7 +106,7 @@ export default function BrandedJobFallback({
 
   return (
     <div className={`${styles.panel} ${className || ''}`} style={vars}>
-      <div className={variant === 'header' ? styles.bodyHeader : variant === 'preview' ? styles.bodyPreview : styles.body}>
+      <div className={variant === 'header' ? styles.bodyHeader : styles.body}>
         {sentence ? (
           <>
             {/* Decorative: the sentence beside it is the content, and a screen
