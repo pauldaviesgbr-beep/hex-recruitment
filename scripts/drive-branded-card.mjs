@@ -107,13 +107,23 @@ try {
         titleText: title ? title.textContent.trim() : null,
         hasChip: !!chip,
         overflowing: overflowing.slice(0, 4),
-        // Do the panel content and the title overlap? The one geometric fault
-        // that a bottom bound exists to prevent, measured rather than assumed.
-        collides: (() => {
+        // IS THE PANEL CONTENT CLIPPED BY ITS OWN BLOCK?
+        //
+        // This started as an overlap test between the content's rect and the
+        // title's, and that was the wrong question twice over. A clipped
+        // element still reports its FULL layout rect, so the test reported an
+        // overlap that was not visible — and it reported "clear" on a monogram
+        // that was cropped straight through the letterforms, because a cropped
+        // letter does not overlap anything.
+        //
+        // Clipping is the fault. Ask the block whether its content fits.
+        clipped: (() => {
           const content = quote || mono || tag
-          if (!content || !title) return false
-          const a = content.getBoundingClientRect(), b = title.getBoundingClientRect()
-          return a.bottom > b.top + 1 && a.top < b.bottom - 1
+          if (!content) return null
+          const block = content.closest('[class]')
+          if (!block) return null
+          const over = block.scrollHeight - block.clientHeight
+          return over > 2 ? `${over}px of content does not fit` : false
         })(),
       }
     })
@@ -126,8 +136,8 @@ try {
     check('NO avatar on the branded card', m.hasChip ? 'chip present' : 'none', m.hasChip === false)
     check('nothing inside the panel overflows the card',
       m.overflowing.length ? m.overflowing : 'none', m.overflowing.length === 0)
-    check('the panel content does not collide with the title',
-      m.collides ? 'OVERLAP' : 'clear', m.collides === false)
+    check('the panel content is not clipped by its own block',
+      m.clipped === false ? 'fits' : m.clipped, m.clipped === false)
 
     if (m.quoteColour && m.panelBg) {
       const [l1, l2] = [lum(parseRgb(m.quoteColour)), lum(parseRgb(m.panelBg))].sort((a, b) => b - a)

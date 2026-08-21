@@ -45,6 +45,12 @@
   min-height: 0;
   overflow: hidden;
   padding: 52px 16px 0;
+  /* Its own container, so everything inside sizes to the space that is LEFT
+     rather than to the card. The monogram at 20% of the CARD width is 82px on
+     a 410px card, and the body it has to fit in is 80px tall -- so it rendered
+     cropped through the middle of the letterforms. cqh here is the answer to
+     the right question. */
+  container-type: size;
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -76,10 +82,10 @@
 
 .quoteMark {
   flex: none;
-  width: 5.4cqw;
-  height: 5.4cqw;
-  min-width: 16px;
-  min-height: 16px;
+  width: min(5.4cqw, 14cqh);
+  height: min(5.4cqw, 14cqh);
+  min-width: 12px;
+  min-height: 12px;
   fill: rgba(255, 255, 255, 0.34);
   stroke: none;
 }
@@ -91,7 +97,10 @@
 .quote {
   font-family: var(--font-serif), Georgia, serif;
   font-weight: 600;
-  font-size: clamp(14px, 5.3cqw, 22px);
+  /* Capped by the block HEIGHT as well as the card width: two lines at 1.28
+     is 2.6em, so 24cqh keeps a two-line quote inside the space available. A
+     quote clipped mid-line reads as a broken card. */
+  font-size: clamp(12px, min(5.3cqw, 24cqh), 22px);
   line-height: 1.28;
   letter-spacing: -0.02em;
   color: #fff;
@@ -117,7 +126,7 @@
   border: 1px solid rgba(255, 255, 255, 0.44);
   border-radius: 99px;
   padding: 6px 11px;
-  font-size: clamp(10.5px, 3.1cqw, 12.5px);
+  font-size: clamp(10px, min(3.1cqw, 26cqh), 12.5px);
   font-weight: 500;
   line-height: 1;
   color: #fff;
@@ -135,7 +144,7 @@
 .monogram {
   font-family: var(--font-serif), Georgia, serif;
   font-weight: 700;
-  font-size: 20cqw;
+  font-size: min(20cqw, 96cqh);
   line-height: 0.85;
   letter-spacing: -0.05em;
   color: rgba(255, 255, 255, 0.16);
