@@ -152,7 +152,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       success: true,
       url,
       // What we drew and why, so the employer can be told rather than left to
-      // notice. "We've drawn a kitchen pass" is a different experience from an
+      // notice. "We've generated a kitchen pass" is a different experience from an
       // image appearing.
       subject: artwork.subject,
       model: ARTWORK_MODEL,

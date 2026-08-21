@@ -724,7 +724,7 @@ function PostJobContent() {
   }
 
   /**
-   * "Draw one for me" — house-style artwork for an advert with no photograph.
+   * "Generate one for me" — house-style artwork for an advert with no photograph.
    *
    * NOTHING IS ATTACHED TO ANYTHING. /api/jobs/artwork generates, stores the
    * file and returns a URL; it lands in this form's own state and reaches the
@@ -733,10 +733,10 @@ function PostJobContent() {
    *
    * It is also always a choice, never a default. An image on a job advert is
    * read as evidence of the workplace, so it is not something to do to someone
-   * quietly — the picture is drawn because they asked and they can see it in
+   * quietly — the picture is generated because they asked and they can see it
    * the preview beside this button before it is anyone's advert.
    */
-  const handleDrawArtwork = async () => {
+  const handleGenerateArtwork = async () => {
     setArtworkError('')
     setArtworkLoading(true)
     try {
@@ -2362,7 +2362,7 @@ function PostJobContent() {
               </div>
               {/* NO PHOTO TO HAND? Most employers have not got one of the
                   kitchen, which is the real reason this field goes unfilled —
-                  not that they were never told it matters. Drawing something in
+                  not that they were never told it matters. Generating something in
                   the house style is one press.
 
                   Deliberately BESIDE the upload and second to it: a real
@@ -2378,10 +2378,10 @@ function PostJobContent() {
                   <button
                     type="button"
                     className={styles.uploadAltBtn}
-                    onClick={handleDrawArtwork}
+                    onClick={handleGenerateArtwork}
                     disabled={artworkLoading || !formData.title.trim()}
                   >
-                    {artworkLoading ? 'Drawing…' : 'No photo? Draw one for me'}
+                    {artworkLoading ? 'Generating…' : 'No photo? Generate one for me'}
                   </button>
                   {!formData.title.trim() && (
                     <p className={styles.uploadHint} style={{ marginTop: '0.3rem' }}>
@@ -2392,7 +2392,7 @@ function PostJobContent() {
               )}
               {artworkSubject && formData.companyBanner && (
                 <p className={styles.uploadHint} style={{ marginTop: '0.4rem' }}>
-                  We&apos;ve drawn {artworkSubject}. Draw again for a different take, or
+                  We&apos;ve generated {artworkSubject}. Generate again for a different take, or
                   upload your own photo to replace it.
                 </p>
               )}

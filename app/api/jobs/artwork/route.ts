@@ -6,11 +6,12 @@ import { generateJobArtwork, ARTWORK_MODEL } from '@/lib/jobArtwork'
 import { TARGET_WIDTH, TARGET_HEIGHT } from '@/lib/bannerRender'
 
 /**
- * DRAW ME AN IMAGE FOR AN ADVERT I HAVE NOT PUBLISHED YET.
+ * GENERATE AN IMAGE FOR AN ADVERT I HAVE NOT PUBLISHED YET.
  *
  * The sibling route, /api/jobs/[id]/artwork, needs an advert to exist. This one
- * does not, and that is the point: the photo decision now happens at step 2,
- * BEFORE publishing, so there is no advert to attach anything to.
+ * does not, and that is the point: the picture is chosen on step 3, and
+ * publishing is the button at the bottom of step 3 — so at the moment someone
+ * presses this there is no advert to attach anything to.
  *
  * IT WRITES NOTHING ANYWHERE. It generates, stores the file, and hands back a
  * URL. The form holds that URL in its own state and it reaches the database
@@ -106,7 +107,7 @@ export async function POST(request: NextRequest) {
       console.error('[job-artwork-draft] generation failed:', (e as Error).message)
       return NextResponse.json(
         {
-          error: 'We could not draw an image just now. You can publish without one, or upload a photo.',
+          error: 'We could not generate an image just now. You can publish without one, or upload a photo.',
           reason: 'generation_failed',
         },
         { status: 503 })
@@ -128,8 +129,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       url: pub.publicUrl,
-      // Named so the employer is told what was drawn rather than left to guess:
-      // "we've drawn a kitchen pass" reads as a choice, an image appearing does
+      // Named so the employer is told what was generated rather than left to guess:
+      // "we've generated a kitchen pass" reads as a choice, an image appearing does
       // not.
       subject: artwork.subject,
       model: ARTWORK_MODEL,
