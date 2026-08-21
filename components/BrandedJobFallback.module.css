@@ -47,7 +47,7 @@
   padding: 0 16px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 5px;
   align-content: flex-start;
 }
 
@@ -66,7 +66,7 @@
 .body::before {
   content: '';
   display: block;
-  flex: 0 500 52px;
+  flex: 0 500 48px;
   min-height: 0;
 }
 
@@ -95,10 +95,11 @@
 
 .quoteMark {
   flex: none;
-  width: min(5.4cqw, 14cqh);
-  height: min(5.4cqw, 14cqh);
-  min-width: 12px;
-  min-height: 12px;
+  /* A plain ramp with a hard ceiling. min(5.4cqw, 14cqh) rendered at 25px on
+     a 394px card and ate half of the second line of the quotation -- the mark
+     is punctuation, and it was competing with the sentence. */
+  width: clamp(11px, 3.6cqw, 18px);
+  height: clamp(11px, 3.6cqw, 18px);
   fill: rgba(255, 255, 255, 0.34);
   stroke: none;
 }
