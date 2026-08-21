@@ -139,7 +139,11 @@ try {
     check('it shows a quote, tags or a monogram',
       m.quoteText || m.tagText || m.monogram || '(nothing)',
       !!(m.quoteText || m.tagText || m.monogram))
-    check('NO avatar on the branded card', m.hasChip ? 'chip present' : 'none', m.hasChip === false)
+    // FLIPPED. It asserted the branded card had NO avatar, which was design's
+    // decision until the live board showed the two cards side by side and the
+    // missing chip read as a hole rather than as a choice.
+    check('the branded card has its avatar, like the photo card',
+      m.hasChip ? 'chip present' : 'missing', m.hasChip === true)
     check('nothing inside the panel overflows the card',
       m.overflowing.length ? m.overflowing : 'none', m.overflowing.length === 0)
     check('the panel content is not clipped by its own block',

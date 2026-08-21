@@ -65,19 +65,17 @@ export default function JobCardLink({
         <div className={jobStyles.cardScrim} aria-hidden="true" />
         <div className={jobStyles.cardContent}>
           <div className={jobStyles.cardCompanyRow}>
-            {/* NO AVATAR WITHOUT A PHOTOGRAPH — the branded panel carries no
-                logo anywhere, and three of the five real marks are illegible at
-                this size anyway. Same rule as FeedCard; both cards use these
-                same styles, so they have to agree. */}
-            {banner && (
-              <span className={jobStyles.cardChip}>
-                {job.companyLogo ? (
-                  <CompanyLogo src={job.companyLogo} alt={job.company} className={jobStyles.cardChipImg} />
-                ) : (
-                  initial
-                )}
-              </span>
-            )}
+            {/* THE AVATAR IS ON BOTH CARDS. Same rule as FeedCard — see there
+                for why it came off and why it went back. These two share the
+                stylesheet, so they have to agree or the home strip and the
+                board disagree about the same advert. */}
+            <span className={jobStyles.cardChip}>
+              {job.companyLogo ? (
+                <CompanyLogo src={job.companyLogo} alt={job.company} className={jobStyles.cardChipImg} />
+              ) : (
+                initial
+              )}
+            </span>
             <span className={jobStyles.cardCompany}>
               {job.company}
               {job.isRecruiterPosting && <span className={jobStyles.cardViaRecruiter}> · via recruiter</span>}
