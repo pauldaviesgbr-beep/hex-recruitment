@@ -12,7 +12,7 @@
 //
 // No network, no database, no images.
 
-import { selectQuote, firstSentence, companyInitials, QUOTE_MAX } from '../lib/jobQuote'
+import { selectQuote, firstSentence, firstClause, companyInitials, QUOTE_MAX } from '../lib/jobQuote'
 import { composeDescription } from '../lib/composeDescription'
 import { formatJobLocation } from '../lib/jobCard'
 
@@ -87,7 +87,11 @@ rec('a sentence exactly at the limit is kept', () => {
 // opener and under it without. Measuring first would throw away a usable line
 // on the strength of words we were about to remove.
 
-const withOpener = 'We are currently recruiting for a live-in Chef de Partie for a two rosette countryside kitchen.'
+// LENGTHENED WHEN QUOTE_MAX WENT 90 -> 100. The old fixture was 95 characters,
+// so "the opener pushes it over the limit" stopped being true and the pair
+// stopped demonstrating anything. A fixture pinned to a constant has to move
+// with the constant, or it quietly tests nothing.
+const withOpener = 'We are currently recruiting for a live-in Chef de Partie for a two rosette countryside kitchen in Somerset.'
 rec('the opener pushes it over the limit', () => withOpener.length > QUOTE_MAX, true)
 rec('and stripping the opener brings it under', () => {
   const s = firstSentence(withOpener)
@@ -95,7 +99,7 @@ rec('and stripping the opener brings it under', () => {
 }, true)
 rec('so the sentence survives, without the opener',
   () => selectQuote({ fullDescription: `<h3>What we offer</h3><p>${withOpener}</p>` }),
-  'A live-in Chef de Partie for a two rosette countryside kitchen')
+  'A live-in Chef de Partie for a two rosette countryside kitchen in Somerset')
 
 // ── PUNCTUATION ────────────────────────────────────────────────────────────
 // A decimal or an abbreviation must not end a sentence two words in. This is
@@ -117,9 +121,19 @@ rec('entities are decoded, and &amp; last',
   () => selectQuote({ fullDescription: '<h3>What we offer</h3><p>Fish &amp; chips, you&rsquo;ll love it.</p>' }),
   'Fish & chips, you’ll love it')
 
-rec('blocks do not run together when tags are stripped',
-  () => selectQuote({ fullDescription: '<h3>What we offer</h3><p>Pension</p><p>and parking.</p>' }),
-  'Pension and parking')
+// THIS TEST WAS WRONG ONCE THE BLOCK RULE LANDED. It asserted that two
+// paragraphs join into ONE sentence — which is what they used to do, and is
+// exactly what produced "A competitive salary of £90,000 per annum A full-time
+// position" on a real advert. Each block is now its own sentence.
+//
+// What actually matters is that adjacent blocks never FUSE into "Apensionand",
+// and that the second block is still reachable. So it asks those two things.
+rec('adjacent blocks never fuse into one word',
+  () => selectQuote({ fullDescription: '<h3>What we offer</h3><p>A pension</p><p>and parking for everyone.</p>' }),
+  'A pension')
+rec('and the block behind a heading is still reachable',
+  () => selectQuote({ fullDescription: '<h3>What we offer</h3><p>About the Role</p><p>Parking for everyone.</p>' }),
+  'Parking for everyone')
 
 // ── UNSECTIONED PROSE, AND ITS GUARD ───────────────────────────────────────
 // The free-text editor writes one block with no headings, so without this every
@@ -190,6 +204,53 @@ rec('the composer emits the headings jobQuote looks for', () => {
 rec('typed HTML is escaped, not rendered',
   () => composeDescription('guided', { whatWeOffer: 'Under <10 covers & calm.' }, '').includes('&lt;10 covers &amp; calm'),
   true)
+
+// ── THE FIRST CLAUSE, WHEN THE WHOLE SENTENCE IS TOO LONG ─────────────────
+// Collins King's advert is well written and every one of its nine sentences
+// runs past 100 characters, so the whole-sentence rule sent it to a ghosted
+// monogram. A clause cut at a comma is the employer's exact words stopping
+// where they put a break — not a truncation, and never an ellipsis.
+
+rec('a long sentence yields its first clause',
+  () => selectQuote({ fullDescription:
+    '<h3>What we offer</h3><p>You will be leading the whole food offer for a boutique events brand, designing menus that push creative boundaries for a busy calendar.</p>' }),
+  'You will be leading the whole food offer for a boutique events brand')
+
+// THE PAIR: the same sentence short enough is returned WHOLE, comma and all.
+rec('a short sentence keeps its commas',
+  () => selectQuote({ fullDescription: '<h3>What we offer</h3><p>Four days a week, no late finishes.</p>' }),
+  'Four days a week, no late finishes')
+
+rec('a clause too short to stand alone is refused',
+  () => firstClause('This is a full-time, permanent position offering a competitive salary that reflects the role'),
+  null)
+
+rec('a clause ending on a dangling word is refused',
+  () => firstClause('We are looking for someone who can lead a brigade and, above all, stay calm'),
+  null)
+
+rec('a sentence with no comma has no clause',
+  () => firstClause('A genuine opportunity for a forward thinking chef to step into a senior position'),
+  null)
+
+// ── BLOCK ENDS ARE SENTENCE ENDS ──────────────────────────────────────────
+// Employers write bullet paragraphs with no full stops. Replacing every tag
+// with a space ran them together, and the clause rule then cut the run-on at
+// its first comma. Same family as the card summary that read
+// "What you'll be doingCovering chef de partie shifts".
+
+rec('two paragraphs without full stops do not run together',
+  () => selectQuote({ fullDescription:
+    '<h3>What we offer</h3><p>A competitive salary of ninety thousand pounds</p><p>A full-time permanent position</p>' }),
+  'A competitive salary of ninety thousand pounds')
+
+// AND THE FAULT THAT FIX CREATED: a heading typed as a plain paragraph became
+// its own one-line sentence, and one advert started reporting "About the Role"
+// as its card line.
+rec('a heading is too short to be a line',
+  () => selectQuote({ fullDescription:
+    '<h3>What we offer</h3><p>About the Role</p><p>A settled team and a rota published two weeks ahead</p>' }),
+  'A settled team and a rota published two weeks ahead')
 
 // ── THE PLACE LINE ─────────────────────────────────────────────────────────
 // Nine call sites built this string by hand and all nine printed the town

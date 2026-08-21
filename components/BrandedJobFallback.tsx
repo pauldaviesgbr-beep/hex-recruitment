@@ -126,6 +126,22 @@ export default function BrandedJobFallback({
   const sentence = (quote || '').trim()
   const pills = (tags || []).filter(t => (t || '').trim()).slice(0, 4)
 
+  // TYPE SIZE FOLLOWS THE LENGTH OF THE LINE, so a long quotation still lands
+  // in two lines instead of clipping at three.
+  //
+  // The alternative was design's badges-in-the-flow change, which frees the
+  // ~20px a third line needs. It is not cheap here: the bookmark and the
+  // application count are passed in as `controls` by each PAGE and position
+  // themselves absolutely, so putting them in the flow means editing the
+  // control CSS on every page that renders a card. Scaling the type touches
+  // one file and reads as an editorial decision rather than a compromise — a
+  // short punchy line gets the big treatment, a longer one gets set smaller.
+  //
+  // Bands rather than a formula because the characters-per-line depends on the
+  // card width, which this component cannot know at render. The numbers came
+  // off measured cards, not arithmetic.
+  const size = sentence.length <= 55 ? 'lg' : sentence.length <= 78 ? 'md' : 'sm'
+
   const vars = { '--panel': colour } as CSSProperties
 
   // TWO SIBLINGS, NOT A WRAPPER, AND THE REASON IS GEOMETRY.
@@ -153,7 +169,7 @@ export default function BrandedJobFallback({
               <path d="M9.5 6.5C6.9 8 5.5 10.3 5.5 13.2c0 2.4 1.3 4.3 3.4 4.3 1.8 0 3.1-1.3 3.1-3 0-1.7-1.2-2.9-2.8-2.9-.3 0-.6 0-.8.1.3-1.5 1.3-2.8 2.9-3.8Z" />
               <path d="M19 6.5c-2.6 1.5-4 3.8-4 6.7 0 2.4 1.3 4.3 3.4 4.3 1.8 0 3.1-1.3 3.1-3 0-1.7-1.2-2.9-2.8-2.9-.3 0-.6 0-.8.1.3-1.5 1.3-2.8 2.9-3.8Z" />
             </svg>
-            <span className={styles.quote}>{sentence}</span>
+            <span className={styles.quote} data-size={size}>{sentence}</span>
           </>
         ) : pills.length ? (
           <div className={styles.tags}>

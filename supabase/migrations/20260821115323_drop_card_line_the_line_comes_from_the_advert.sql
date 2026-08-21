@@ -1,0 +1,16 @@
+-- REVERTING card_line, added minutes ago and never read by anything.
+--
+-- The problem it was meant to solve is real: Collins King's advert is well
+-- written and every one of its nine sentences runs past 100 characters, so it
+-- falls to a ghosted monogram. My answer was to let the employer type a line
+-- for the card. Paul's answer is better and simpler: TAKE IT FROM THE ADVERT.
+--
+-- A first clause, cut at a comma, is still the employer's exact words in their
+-- exact order — nothing written, nothing reordered, no ellipsis. It is a
+-- shorter unit than a sentence, not a truncated one. "You'll be leading the
+-- culinary output for a boutique events brand" is sitting in that advert
+-- already; it just has a comma after it rather than a full stop.
+--
+-- Dropped rather than left in place unused, because an unread column is a
+-- question the next person has to answer.
+alter table jobs drop column if exists card_line;

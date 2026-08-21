@@ -138,6 +138,17 @@
   user-select: none;
 }
 
+/* THREE BANDS, SET BY THE LENGTH OF THE LINE — see the component for why bands
+   and not a formula. The block holds two lines and no more; a long line at the
+   short line's size runs to three and is cut, which is what sent Collins King's
+   well-written advert all the way down to a ghosted monogram.
+
+   The base rule above still carries everything that is not size, so a quotation
+   with no band attribute is styled, not naked. */
+.quote[data-size='lg'] { font-size: clamp(13px, 4.9cqw, 22px); }
+.quote[data-size='md'] { font-size: clamp(12px, 4.2cqw, 19px); }
+.quote[data-size='sm'] { font-size: clamp(11px, 3.6cqw, 16px); }
+
 /* ── FALLBACK 3 · THE TAGS, LARGE ───────────────────────────────────────── */
 
 /* Already structured, already the employer's own selections, and "Immediate
