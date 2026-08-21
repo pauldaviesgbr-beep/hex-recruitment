@@ -154,6 +154,13 @@ try {
   process.exit(1)
 }
 
+// CLEANED UP ON THE WAY OUT, NOT ONLY ON THE WAY DOWN. rmSync sat inside the
+// catch alone, so the generated entry file was removed when the run FAILED and
+// left behind every time it SUCCEEDED — the inversion of the usual bug, and
+// invisible because scripts/tmp-* is gitignored. Its sibling
+// prove-logo-treatment already deletes after the try/catch; this now matches.
+rmSync(entry, { force: true })
+
 const results = JSON.parse(raw.trim().split('\n').filter(Boolean).pop())
 let failed = 0
 for (const r of results) {
