@@ -30,7 +30,7 @@
 // reason beside it. Better a heuristic that fires and is argued with than a
 // mechanical check that watched this ship.
 
-import { readFileSync, readdirSync, statSync } from 'node:fs'
+import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs'
 import path from 'node:path'
 import { execSync } from 'node:child_process'
 
@@ -202,6 +202,9 @@ let calls = 0
 const undecidable = []   // calls with no path literal at all — printed, not hidden
 
 for (const file of files) {
+  // Deleted-but-uncommitted files are still named by `git ls-files`; reading
+  // one throws ENOENT and the sweep dies before it checks anything. Skip.
+  if (!existsSync(path.join(ROOT, file))) continue
   const src = stripComments(readFileSync(path.join(ROOT, file), 'utf8'))
   for (const c of src.matchAll(CALL)) {
     calls++

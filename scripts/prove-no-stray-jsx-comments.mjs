@@ -34,7 +34,7 @@
 // renders, so asking it removes the judgement entirely.
 
 import ts from 'typescript'
-import { readFileSync } from 'node:fs'
+import { readFileSync, existsSync } from 'node:fs'
 import { execSync } from 'node:child_process'
 import path from 'node:path'
 
@@ -76,8 +76,18 @@ function strayComments(src, fileName) {
   return out
 }
 
+// A FILE GIT STILL LISTS BUT DISK NO LONGER HAS IS A DELETION IN PROGRESS,
+// NOT A FINDING. The list comes from `git ls-files`, which keeps naming a
+// deleted file until the deletion is committed — so removing a route mid-work
+// made this guard CRASH with ENOENT before it checked anything. A stack trace
+// reads as a broken harness rather than as a fact about the code, and this
+// project has lost a session to exactly that shape before. Skip them, and say
+// how many, so the skip is visible rather than silent.
+const gone = files.filter(f => !existsSync(path.join(ROOT, f)))
+if (gone.length) console.log(`skipped ${gone.length} file(s) deleted but not yet committed`)
+
 const findings = []
-for (const file of files) {
+for (const file of files.filter(f => existsSync(path.join(ROOT, f)))) {
   const src = readFileSync(path.join(ROOT, file), 'utf8')
   for (const hit of strayComments(src, file)) findings.push({ file, ...hit })
 }
