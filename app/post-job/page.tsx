@@ -29,6 +29,7 @@ import { FlowAppBar, Stepper, StepProgress } from './FlowChrome'
 import styles from './page.module.css'
 import flow from './flow.module.css'
 import { Ico, type IconName } from '@/components/icons'
+import { formatJobLocation } from '@/lib/jobCard'
 
 const RichTextEditor = dynamic(() => import('@/components/RichTextEditor'), { ssr: false })
 
@@ -2922,7 +2923,7 @@ function PostJobContent() {
                 </div>
 
                 <div className={styles.previewDetails}>
-                  <span className={styles.previewDetail}><Ico name="map-pin" size={16} /> {formData.location || 'Location'}{formData.area ? `, ${formData.area}` : ''}</span>
+                  <span className={styles.previewDetail}><Ico name="map-pin" size={16} /> {formatJobLocation({ location: formData.location || 'Location', area: formData.area })}</span>
                   {/* Collapses to one figure exactly as the board and the detail
                       page do. It printed "£0 - £0" before either box was
                       touched, and would have contradicted the helper text

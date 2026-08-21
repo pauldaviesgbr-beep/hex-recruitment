@@ -10,9 +10,21 @@
 // than predicted: design called it "the judgement call — keeps its olive if it
 // measures under" and nothing in the handoff knows its lightness.
 //
-//   npx tsx scripts/measure-brand-colours.mts
+//   npx tsx scripts/measure-brand-colours.mts            read only, the default
+//   npx tsx scripts/measure-brand-colours.mts --write    store the results
 //
-// Writes nothing, to the database or to disk.
+// --write SETS employer_profiles.brand_colour AND NOTHING ELSE, on the rows that
+// carry a logo. Safe to run, and here is why rather than an assurance:
+//
+//   · the only trigger on that table is AFTER INSERT, so an update fires
+//     nothing and no email path exists
+//   · the column is additive and null today, so this cannot destroy a value
+//   · it is fully reversible — set it back to null
+//   · nothing on main reads it, so it is invisible in production until the
+//     branded card merges
+//
+// It counts the non-null column before and after, so "five rows changed" is a
+// measurement rather than a hope.
 
 import fs from 'node:fs'
 import { createClient } from '@supabase/supabase-js'
@@ -29,7 +41,17 @@ const env = Object.fromEntries(
 )
 const supa = createClient(env.NEXT_PUBLIC_SUPABASE_URL!, env.SUPABASE_SERVICE_ROLE_KEY!, { auth: { persistSession: false } })
 
+const WRITE = process.argv.includes('--write')
+
 async function main() {
+  // BEFORE. Counted from the database rather than assumed to be zero, so the
+  // after-count means something.
+  const { count: filledBefore } = await supa
+    .from('employer_profiles')
+    .select('id', { count: 'exact', head: true })
+    .not('brand_colour', 'is', null)
+  console.log(`\n${WRITE ? 'WRITE' : 'DRY RUN'} · rows carrying a brand colour before: ${filledBefore ?? 0}`)
+
   const bytesOf = async (src: string): Promise<Buffer> => {
     if (src.startsWith('data:')) return Buffer.from(src.slice(src.indexOf(',') + 1), 'base64')
     const r = await fetch(src)
@@ -39,7 +61,7 @@ async function main() {
 
   const { data, error } = await supa
     .from('employer_profiles')
-    .select('company_name, logo_url')
+    .select('id, company_name, logo_url')
     .not('logo_url', 'is', null)
     .order('company_name')
   if (error) throw error
@@ -47,6 +69,7 @@ async function main() {
   const rows = (data || []).filter(r => (r.logo_url || '').trim())
   console.log(`\n${rows.length} employers carry a logo.\n`)
 
+  let written = 0
   const pad = (s: string, n: number) => s.padEnd(n)
   console.log(pad('employer', 26) + pad('sampled', 16) + pad('hueVar', 9) + pad('L', 7) + pad('ΔL', 7) + pad('stored', 10) + 'why')
   console.log('─'.repeat(100))
@@ -81,9 +104,33 @@ async function main() {
       line += pad(delta.toFixed(3), 7)
       line += pad(stored, 10)
       console.log(line + why)
+
+      if (WRITE) {
+        // ONE COLUMN, ONE ROW, BY ID. Not a bulk update behind a filter — a
+        // filter is what goes wrong quietly, and with five rows there is
+        // nothing to gain from batching them.
+        const { error: upErr } = await supa
+          .from('employer_profiles')
+          .update({ brand_colour: stored })
+          .eq('id', (row as any).id)
+        if (upErr) console.log('        WRITE FAILED: ' + upErr.message)
+        else written++
+      }
     } catch (e: any) {
       console.log(line + 'FAILED: ' + e.message)
     }
+  }
+
+  if (WRITE) {
+    // AFTER, counted from the database. "Five rows written" is what the script
+    // believes; this is what the table says.
+    const { count: filledAfter } = await supa
+      .from('employer_profiles')
+      .select('id', { count: 'exact', head: true })
+      .not('brand_colour', 'is', null)
+    console.log(`\n${written} rows written · carrying a brand colour after: ${filledAfter ?? 0}`)
+  } else {
+    console.log('\nNothing written. Re-run with --write to store these.')
   }
 
   console.log(`\nband L ${L_MIN}–${L_MAX} · hue variance max ${HUE_VARIANCE_MAX} · lightness delta max ${LIGHTNESS_DELTA_MAX} · fallback ${BRAND_FALLBACK}\n`)

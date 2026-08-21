@@ -14,6 +14,7 @@
 
 import { selectQuote, firstSentence, companyInitials, QUOTE_MAX } from '../lib/jobQuote'
 import { composeDescription } from '../lib/composeDescription'
+import { formatJobLocation } from '../lib/jobCard'
 
 const out: { name: string; got: any; want: any; ok: boolean }[] = []
 // Thunked, so an assertion that THROWS becomes one named failure with the rest
@@ -189,6 +190,41 @@ rec('the composer emits the headings jobQuote looks for', () => {
 rec('typed HTML is escaped, not rendered',
   () => composeDescription('guided', { whatWeOffer: 'Under <10 covers & calm.' }, '').includes('&lt;10 covers &amp; calm'),
   true)
+
+// ── THE PLACE LINE ─────────────────────────────────────────────────────────
+// Nine call sites built this string by hand and all nine printed the town
+// twice when `area` already began with it — eleven live adverts, ten of them
+// reading "London, London". Now one function, asserted here.
+
+rec('a town and its county keep the comma',
+  () => formatJobLocation({ location: 'Bath', area: 'Somerset' }), 'Bath, Somerset')
+
+// THE PAIR THAT MATTERS: an exact repeat and a prefix repeat are both repeats,
+// and an equality test only catches the first. Ricci's advert is the second.
+rec('an exact repeat collapses to one',
+  () => formatJobLocation({ location: 'London', area: 'London' }), 'London')
+rec('a prefix repeat keeps the MORE specific half',
+  () => formatJobLocation({ location: 'London', area: 'London E9 5EN' }), 'London E9 5EN')
+
+rec('the repeat test ignores case',
+  () => formatJobLocation({ location: 'London', area: 'london E9 5EN' }), 'london E9 5EN')
+
+// A county that merely CONTAINS the town is not a repeat — "Bath" inside
+// "Bathgate" must not swallow the comma. Prefix, not substring, and anchored.
+rec('a longer word starting with the town is still a repeat', // Bath -> Bathwick
+  () => formatJobLocation({ location: 'Bath', area: 'Bathwick' }), 'Bathwick')
+rec('a town appearing mid-area keeps the comma',
+  () => formatJobLocation({ location: 'Bath', area: 'North East Bath' }), 'Bath, North East Bath')
+
+rec('missing halves never leave a dangling comma',
+  () => [
+    formatJobLocation({ location: 'Bath', area: '' }),
+    formatJobLocation({ location: '', area: 'Somerset' }),
+    formatJobLocation({ location: 'Bath', area: null }),
+    formatJobLocation({}),
+    formatJobLocation({ location: ' Bath ', area: '  ' }),
+  ],
+  ['Bath', 'Somerset', 'Bath', '', 'Bath'])
 
 // ── REPORT ─────────────────────────────────────────────────────────────────
 

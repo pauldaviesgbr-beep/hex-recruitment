@@ -8,6 +8,7 @@ import { selectQuote } from '@/lib/jobQuote'
 import BrandedJobFallback from '@/components/BrandedJobFallback'
 import CompanyLogo from '@/components/CompanyLogo'
 import jobStyles from '@/app/jobs/page.module.css'
+import { formatJobLocation } from '@/lib/jobCard'
 
 // Single-source image-led job card. The card visual lives in /jobs
 // (page.module.css `jobCard*` classes); this wraps that exact markup so the
@@ -84,7 +85,7 @@ export default function JobCardLink({
           </div>
           <h3 className={jobStyles.cardRole}>{job.title}</h3>
           <div className={jobStyles.cardMeta}>
-            <span>{job.location}{job.area ? `, ${job.area}` : ''}</span>
+            <span>{formatJobLocation(job)}</span>
             <span className={jobStyles.cardDot}>·</span>
             <span className={jobStyles.cardSalary}>{formatSalary(job)}</span>
           </div>
