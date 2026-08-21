@@ -126,6 +126,13 @@ const ALL = [
   // last week — because the dangerous direction is a false positive, and a
   // false positive here is somebody's inbox.
   { name: 'reminders:prove', cmd: process.execPath, args: [path.join(ROOT, 'scripts', 'prove-job-reminders.mjs')] },
+  // A BARE /* IN JSX CHILDREN IS TEXT AND PRINTS ON THE PAGE. One went out
+  // to production and rendered four paragraphs of explanation across every
+  // card on the job board. tsc passed, the build passed and three browser
+  // drives passed, because all of them measured state and none read what the
+  // page SAYS. Parses with the TypeScript compiler rather than a regex — the
+  // regex version cried wolf 27 times out of 28.
+  { name: 'jsxcomments:prove', cmd: process.execPath, args: [path.join(ROOT, 'scripts', 'prove-no-stray-jsx-comments.mjs')] },
 ]
 const CHECKS = FAST ? ALL.filter(c => !c.slow) : ALL
 

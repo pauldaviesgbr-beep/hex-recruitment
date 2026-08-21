@@ -125,7 +125,7 @@ export default function FeedCard({
       tabIndex={onSelect ? 0 : undefined}
       onKeyDown={e => { if (onSelect && e.key === 'Enter') onSelect() }}
     >
-        /* ONE FALLBACK FOR "NO PHOTO", AND IT IS THE BRANDED PANEL.
+      {/* ONE FALLBACK FOR "NO PHOTO", AND IT IS THE BRANDED PANEL.
            This used to feature the employer LOGO as the hero when there was
            no banner — and the same logo already renders as the avatar beside
            the company name, so a card showed one image twice, once huge and
@@ -134,7 +134,7 @@ export default function FeedCard({
            The logo-hero component is deleted with this change. It sampled
            each logo on a canvas PER CARD to pick a treatment, and silently
            guessed whenever a cross-origin read was blocked. That judgement
-           now happens once, server-side, at upload. */
+           now happens once, server-side, at upload. */}
       {model.banner
         ? <div className={styles.cardBg} style={{ backgroundImage: `url(${model.banner})` }} aria-hidden="true" />
         : <BrandedJobFallback company={model.company} seed={model.id} />}
