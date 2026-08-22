@@ -7,7 +7,7 @@ import { provisionFoundingEmployer } from '@/lib/foundingSignup'
 import type { EmailClass } from '@/lib/emailDomains'
 import { parseAttrCookie, attributionColumns, type Attribution } from '@/lib/attribution'
 import { geoColumnsFromRequest } from '@/lib/geo'
-import { safeInternalPath } from '@/lib/safeRedirect'
+import { safeReturnPath } from '@/lib/safeRedirect'
 
 // Shared OAuth callback logic. Used by:
 // - /auth/callback (email flow — reads role from ?role= query param)
@@ -347,11 +347,30 @@ export async function handleAuthCallback(
   // 'waitlisted', in which case they belong on the under-review page.
   // Pre-pivot behaviour (Stripe required before dashboard) is preserved
   // for when the flag is flipped off.
-  // Honor ?next= only for returning users with an existing role —
-  // same-origin paths only.
+  // Honor ?next= only for returning users — same-origin only.
+  //
+  // THE TEST USED TO BE `existingRole`, AND THAT IS NOT WHAT "RETURNING"
+  // MEANS. Email sign-ups stamp the role into user_metadata at signUp time
+  // (see the comment above, and CandidateSignupForm's `data: { role }`), so
+  // existingRole is true for somebody who has existed for ninety seconds and
+  // has never seen a single screen. The first branch therefore always won for
+  // them, and /welcome — the three-field step built precisely because
+  // candidates were being left at name-only — was skipped by EVERY email
+  // sign-up since it was written. It was never skipped for OAuth, where no
+  // role is stamped until this route runs, so the two paths silently
+  // disagreed and only the OAuth one behaved as designed.
+  //
+  // `type=signup` is the honest discriminator: that token is minted once, for
+  // a first confirmation, and cannot be the artefact of a returning visit.
+  // Recovery (`type=recovery` → /reset-password) and the OAuth code flow
+  // (no otpType at all) both keep their existing behaviour exactly.
+  const isFirstConfirmation = otpType === 'signup'
   let destination = '/dashboard'
-  const safeNext = safeInternalPath(nextParam)
-  if (existingRole && safeNext) {
+  // safeReturnPath, not safeInternalPath: the confirmation template hands us
+  // Supabase's `{{ .RedirectTo }}`, which is an absolute URL. `origin` comes
+  // from the request, never from the query string.
+  const safeNext = safeReturnPath(nextParam, origin)
+  if (!isFirstConfirmation && existingRole && safeNext) {
     destination = safeNext
   } else if (role === 'employee') {
     // A candidate reaching this route is confirming their email — a one-time,

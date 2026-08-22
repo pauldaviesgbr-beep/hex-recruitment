@@ -109,3 +109,51 @@ export function safeInternalPath(raw: string | null | undefined): string | null 
   const normalized = `${parsed.pathname}${parsed.search}${parsed.hash}`
   return normalized.startsWith('//') ? null : normalized
 }
+
+/**
+ * Same as safeInternalPath, but also accepts an ABSOLUTE url when — and only
+ * when — its origin is exactly ours.
+ *
+ * WHY THIS EXISTS AND WHY IT IS SEPARATE. Supabase's `{{ .RedirectTo }}` is a
+ * full URL, not a path, because it is the value handed to `emailRedirectTo`
+ * and Supabase validates it against the project's redirect allow list. Their
+ * documented template pattern drops it straight into `?next=`. Our confirm
+ * route has always required a PATH, so before this the whole value was
+ * rejected and every email confirmation fell back to a hardcoded destination.
+ *
+ * THIS DOES NOT LOOSEN safeInternalPath — that function is unchanged and is
+ * still the only thing that decides. All this does is strip a leading origin
+ * that we have proved is our own, and hand the remainder to it. An absolute
+ * URL pointing anywhere else returns null before any parsing of the path, so
+ * `https://evil.com/x` and `https://thrivecareer.co.uk.evil.com/x` are both
+ * rejected on the origin comparison, not on a prefix test.
+ *
+ * `origin` must come from the request, never from a query parameter.
+ */
+export function safeReturnPath(
+  raw: string | null | undefined,
+  origin: string
+): string | null {
+  if (typeof raw !== 'string') return null
+  const candidate = raw.trim()
+  if (!candidate) return null
+
+  // Already a path (or a trick that looks like one) — the existing check owns
+  // every one of those cases, including `//evil.com` and the backslash forms.
+  if (candidate.startsWith('/')) return safeInternalPath(candidate)
+
+  let parsed: URL
+  let ours: URL
+  try {
+    parsed = new URL(candidate)
+    ours = new URL(origin)
+  } catch {
+    return null
+  }
+
+  // Exact origin equality — scheme, host AND port. Not startsWith, not
+  // endsWith, not includes.
+  if (parsed.origin !== ours.origin) return null
+
+  return safeInternalPath(`${parsed.pathname}${parsed.search}${parsed.hash}`)
+}

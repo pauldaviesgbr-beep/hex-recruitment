@@ -56,6 +56,16 @@ function RegisterEmployeePageContent() {
             account would arrive at a bare login and, after signing in, land on
             the dashboard instead of the role they wanted. The one door out of
             this page that forgot where the person was going.
+
+            CORRECTION, 22 Aug 2026: "the email form via the confirmation
+            link's ?next" WAS NOT TRUE WHEN THIS WAS WRITTEN. The form did
+            compute that value, and the Supabase email template discarded it
+            and sent everyone to /dashboard, so the email path was the one
+            door on this page that did NOT carry the job — while this comment
+            listed it among the ones that did. It is true now. Left in place
+            rather than quietly edited, because a comment that confidently
+            described working behaviour is how it survived unexamined for
+            eleven weeks.
           */}
           <Link href={redirectTo ? `/login/employee?redirect=${encodeURIComponent(redirectTo)}` : '/login/employee'}>
             Log in here

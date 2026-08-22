@@ -15,7 +15,21 @@
 
 const SITE = 'https://thrivecareer.co.uk'
 
-/** Literal mirror of emailLayout() — used only to build the auth templates below. */
+/**
+ * Literal mirror of emailLayout() — used only to build the auth templates below.
+ *
+ * `&mdash;` AND `&middot;` IN THE FOOTER ARE ENTITIES ON PURPOSE. Do not
+ * "tidy" them back into literal — and — · characters. Found 22 Aug 2026 by
+ * diffing what this file produces against the template actually live in the
+ * Supabase dashboard: someone had entity-encoded those two by hand there, and
+ * this file never caught up. Anyone pasting from here would silently have
+ * reverted their fix.
+ *
+ * THE DRIFT RAN IN THE DIRECTION NOBODY CHECKS — the repo being worse than
+ * production. It was invisible because the obvious check ("is the confirm link
+ * in the live template?") answers a question about one substring and says
+ * nothing about the other 3,900 characters. Compare the whole string.
+ */
 function authShell(opts: {
   preheader: string
   heading: string
@@ -68,9 +82,9 @@ function authShell(opts: {
           </tr>
           <tr>
             <td style="padding:24px 32px 28px;background-color:#fbfbfc;border-top:1px solid #eef0f3;text-align:center;">
-              <p style="margin:0 0 10px;font-size:14px;color:#334155;font-weight:600;">— The Thrive Team</p>
+              <p style="margin:0 0 10px;font-size:14px;color:#334155;font-weight:600;">&mdash; The Thrive Team</p>
               <p style="margin:0 0 10px;font-size:13px;color:#94a3b8;line-height:1.5;">
-                Thrive · hospitality hiring made simple<br />
+                Thrive &middot; hospitality hiring made simple<br />
                 <a href="${SITE}" style="color:#64748b;text-decoration:none;">thrivecareer.co.uk</a>
               </p>
               <p style="margin:0;font-size:12px;color:#a8b0bd;">&copy; 2026 Thrive</p>
@@ -90,14 +104,36 @@ function authShell(opts: {
  * IMPORTANT: this CTA uses the app's VERIFIED token_hash link pattern, NOT the
  * generic {{ .ConfirmationURL }}. The app's confirmation handler
  * (app/auth/confirm/route.ts → lib/authCallback.ts) consumes the OTP via
- * verifyOtp({ token_hash, type }), reading ?token_hash, ?type and ?next. The
- * &next=/dashboard landing self-routes by role (app/dashboard/page.tsx redirects
- * employers → /employer/dashboard → the server gate → dashboard or
- * /account-under-review). This exact pattern was driven end-to-end on prod and
- * confirms + lands correctly — do NOT swap it for {{ .ConfirmationURL }}.
+ * verifyOtp({ token_hash, type }), reading ?token_hash, ?type and ?next.
+ * Do NOT swap it for {{ .ConfirmationURL }}.
+ *
+ * `next` IS NOW {{ .RedirectTo }} AND IT USED TO BE THE STRING "/dashboard".
+ * That hardcoding is the whole reason an apply-gate sign-up never came back to
+ * the job: the app computed the right return path, passed it as
+ * `emailRedirectTo`, and this template threw it away and sent everyone to the
+ * dashboard. `{{ .RedirectTo }}` is Supabase's own documented pattern for
+ * exactly this, and it carries whatever `emailRedirectTo` was given.
+ *
+ * THE OLD COMMENT HERE CLAIMED THIS "was driven end-to-end on prod and
+ * confirms + lands correctly". That was true about CONFIRMING and blind to
+ * where it landed — the test could not tell the two apart, because landing on
+ * the dashboard is exactly what a working confirmation looked like when the
+ * dashboard was the only destination it could produce. Removed rather than
+ * softened: a claim of end-to-end proof is worth nothing if it names the half
+ * that could not fail.
+ *
+ * {{ .RedirectTo }} arrives as an ABSOLUTE url. lib/safeRedirect.ts's
+ * safeReturnPath is what accepts it — same-origin only, then straight into
+ * the unchanged safeInternalPath.
+ *
+ * ⚠️ NOTHING IN THIS REPO SENDS THIS EMAIL OR CHECKS THIS STRING. It is
+ * reference source for a value pasted into the Supabase dashboard. tsc cannot
+ * see it, the build cannot see it, verify cannot see it. If you change one,
+ * change both, and drive a real sign-up afterwards — reading the link out of
+ * a real inbox is the only check that exists.
  */
 export const CONFIRM_SIGNUP_LINK =
-  '{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=signup&next=/dashboard'
+  '{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=signup&next={{ .RedirectTo }}'
 
 export const confirmSignupTemplate = authShell({
   preheader: 'Confirm your email to finish setting up your Thrive account.',
