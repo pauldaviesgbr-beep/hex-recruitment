@@ -29,7 +29,7 @@
 // fault it found. The failure mode of a check is part of the check.
 
 import { safeReturnPath, safeInternalPath } from '../lib/safeRedirect'
-import { CONFIRM_SIGNUP_LINK } from '../emails/supabase-auth-templates'
+import { CONFIRM_SIGNUP_LINK, confirmSignupTemplate } from '../emails/supabase-auth-templates'
 
 const OURS = 'https://thrivecareer.co.uk'
 
@@ -145,6 +145,24 @@ const cases: Case[] = [
   {
     name: 'the confirm template still uses the verified token_hash pattern',
     got: () => CONFIRM_SIGNUP_LINK.includes('token_hash={{ .TokenHash }}'),
+    want: true,
+  },
+
+  // ── THE FOOTER ENTITIES ───────────────────────────────────────────────
+  // The live dashboard template entity-encodes the two non-ASCII marks and
+  // this file did not, so the repo produced HTML subtly worse than what is
+  // in production and a paste from here would have reverted someone's fix.
+  // Convergence was proved by diffing the whole string against live on
+  // 22 Aug 2026; these two cases keep it that way offline, because the real
+  // comparison needs the Management API and verify must never need a network.
+  {
+    name: 'the footer em dash is an entity, not a literal',
+    got: () => confirmSignupTemplate.includes('&mdash; The Thrive Team'),
+    want: true,
+  },
+  {
+    name: 'the footer middot is an entity, not a literal',
+    got: () => confirmSignupTemplate.includes('Thrive &middot; hospitality'),
     want: true,
   },
 ]

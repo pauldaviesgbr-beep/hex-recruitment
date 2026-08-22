@@ -15,7 +15,21 @@
 
 const SITE = 'https://thrivecareer.co.uk'
 
-/** Literal mirror of emailLayout() — used only to build the auth templates below. */
+/**
+ * Literal mirror of emailLayout() — used only to build the auth templates below.
+ *
+ * `&mdash;` AND `&middot;` IN THE FOOTER ARE ENTITIES ON PURPOSE. Do not
+ * "tidy" them back into literal — and — · characters. Found 22 Aug 2026 by
+ * diffing what this file produces against the template actually live in the
+ * Supabase dashboard: someone had entity-encoded those two by hand there, and
+ * this file never caught up. Anyone pasting from here would silently have
+ * reverted their fix.
+ *
+ * THE DRIFT RAN IN THE DIRECTION NOBODY CHECKS — the repo being worse than
+ * production. It was invisible because the obvious check ("is the confirm link
+ * in the live template?") answers a question about one substring and says
+ * nothing about the other 3,900 characters. Compare the whole string.
+ */
 function authShell(opts: {
   preheader: string
   heading: string
@@ -68,9 +82,9 @@ function authShell(opts: {
           </tr>
           <tr>
             <td style="padding:24px 32px 28px;background-color:#fbfbfc;border-top:1px solid #eef0f3;text-align:center;">
-              <p style="margin:0 0 10px;font-size:14px;color:#334155;font-weight:600;">— The Thrive Team</p>
+              <p style="margin:0 0 10px;font-size:14px;color:#334155;font-weight:600;">&mdash; The Thrive Team</p>
               <p style="margin:0 0 10px;font-size:13px;color:#94a3b8;line-height:1.5;">
-                Thrive · hospitality hiring made simple<br />
+                Thrive &middot; hospitality hiring made simple<br />
                 <a href="${SITE}" style="color:#64748b;text-decoration:none;">thrivecareer.co.uk</a>
               </p>
               <p style="margin:0;font-size:12px;color:#a8b0bd;">&copy; 2026 Thrive</p>
