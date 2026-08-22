@@ -7,6 +7,7 @@ import PreferredAreasPicker from '@/components/PreferredAreasPicker'
 import { supabase } from '@/lib/supabase'
 import { categories } from '@/lib/categories'
 import { safeInternalPath } from '@/lib/safeRedirect'
+import { clearPendingConfirm } from '@/lib/pendingConfirm'
 import type { NudgeKey } from '@/lib/nudges'
 import styles from './page.module.css'
 
@@ -44,6 +45,12 @@ function WelcomeContent() {
       const { data: { session } } = await supabase.auth.getSession()
       if (cancelled) return
       if (!session) { router.replace('/login/employee'); return }
+      // THIS IS WHERE A CONFIRMED SIGN-UP ACTUALLY ARRIVES. Somebody who
+      // clicks the link in the confirmation email lands here, not on the login
+      // page, so clearing the pending-confirm notice only over there would
+      // leave them being told to confirm an email they have just confirmed —
+      // for seven days, or until they happened to visit /login/employee.
+      clearPendingConfirm()
       setChecking(false)
     })()
     return () => { cancelled = true }

@@ -9,6 +9,7 @@ import PasswordInput from '@/components/PasswordInput'
 import GoogleSignInButton from '@/components/GoogleSignInButton'
 import LinkedInSignInButton from '@/components/LinkedInSignInButton'
 import { safeInternalPath } from '@/lib/safeRedirect'
+import { getPendingConfirm, setPendingConfirm, clearPendingConfirm } from '@/lib/pendingConfirm'
 import styles from '../page.module.css'
 
 function EmployeeLoginPageContent() {
@@ -90,6 +91,12 @@ function EmployeeLoginPageContent() {
     const checkExistingSession = async () => {
       const { data: { session } } = await supabase.auth.getSession()
       if (session) {
+        // A SESSION MEANS THE SIGN-UP FINISHED, however it finished.
+        // Clearing only on a successful PASSWORD login was the whole reason
+        // the notice outlived the account: confirmation happens server-side on
+        // /auth/confirm, which never touches this browser key, so somebody who
+        // clicked the link in the email kept being told to confirm their email.
+        clearPendingConfirm()
         router.push(safeInternalPath(redirectTo) || '/dashboard')
         return
       }
@@ -104,7 +111,7 @@ function EmployeeLoginPageContent() {
   // Surface a pending unconfirmed sign-up (stashed at sign-up time).
   useEffect(() => {
     try {
-      const pending = localStorage.getItem('thrive_pending_confirm')
+      const pending = getPendingConfirm()
       if (pending) setPendingEmail(pending)
     } catch { /* ignore */ }
   }, [])
@@ -145,7 +152,7 @@ function EmployeeLoginPageContent() {
       // (with the resend prompt) rather than showing a bare error.
       if (/not confirmed|confirm/i.test(loginError.message)) {
         setPendingEmail(email)
-        try { localStorage.setItem('thrive_pending_confirm', email) } catch { /* ignore */ }
+        setPendingConfirm(email)
         setError('Please confirm your email first — check your inbox for the link (or resend below).')
       } else {
         setError(loginError.message)
@@ -174,7 +181,7 @@ function EmployeeLoginPageContent() {
     // signInWithPassword has already written the session to the shared
     // cookie store (createBrowserClient), which the server reads directly.
     // No cookie bridge is needed any more.
-    try { localStorage.removeItem('thrive_pending_confirm') } catch { /* ignore */ }
+    clearPendingConfirm()
     router.push(safeInternalPath(redirectTo) || '/dashboard')
   }
 
