@@ -149,6 +149,26 @@ const ALL = [
   // the publish path — two copies of that would let the preview promise a card
   // the board does not render.
   { name: 'jobquote:prove', cmd: npm, args: ['run', 'jobquote:prove'] },
+  // THE LOCATION LINE, ASSERTED AS A SHAPE RATHER THAN AS TWO EXAMPLES.
+  //
+  // "London, London" was fixed on the cards and the JOB PAGE kept its own
+  // inline ternary, whose address branch was a raw template literal with no
+  // filter for the missing parts. It rendered "London,  " — the town, a comma
+  // pointing at nothing, two trailing spaces — on 226 of 251 live adverts, on
+  // the page every LinkedIn link and every Google result lands on. It was found
+  // by Paul looking at his phone. No check saw it, including the one written
+  // for the fault directly above it.
+  //
+  // So this does not ask "is the duplicate gone" — that was true and
+  // insufficient, because the duplicate and the dangling comma are two faults
+  // of one line. It asks whether the returned string is MALFORMED: ends in
+  // punctuation, starts with a separator, doubles a comma, runs spaces
+  // together. That catches the next variant nobody has thought of yet.
+  //
+  // Watched failing on purpose 22 Aug 2026 by restoring the shipped template
+  // literal: exit 1, nine named failures, and one of them reproduced the live
+  // string "London,  " exactly. Green again on restore.
+  { name: 'locationline:prove', cmd: npm, args: ['run', 'locationline:prove'] },
 ]
 const CHECKS = FAST ? ALL.filter(c => !c.slow) : ALL
 
