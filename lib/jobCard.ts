@@ -108,6 +108,50 @@ export function formatJobLocation(job: { location?: string | null; area?: string
 }
 
 /**
+ * The location line on the JOB PAGE, which has a street address the cards do not.
+ *
+ * THE JOB PAGE NEVER USED formatJobLocation AND STILL SHOWED A DANGLING COMMA.
+ * The fix above removed "London, London" from the cards; the job page has its
+ * own inline ternary, and its address branch was a raw template literal —
+ * `${addressLine1}, ${city} ${postcode}` — with no filter for the parts that are
+ * missing. So a job whose address is only a town rendered "London,  ": the town,
+ * a comma pointing at nothing, and two trailing spaces. Read out of the served
+ * DOM on 22 Aug 2026, not inferred.
+ *
+ * IT WAS ON 226 OF 251 LIVE ADVERTS, because that branch is not the rare one —
+ * it is the ONLY one. lib/types.ts synthesises a fullLocation from `location`
+ * when the column is null (`{ addressLine1: location, city: '', postcode: '' }`),
+ * so `fullLocation?.addressLine1` is truthy for every job in the table and the
+ * else-branch beside it is unreachable on the job page. A discriminator that is
+ * always true is not a discriminator.
+ *
+ * WHY AN EMPTY CITY FALLS ALL THE WAY BACK. A synthesised address is not an
+ * address — it is the town wearing an address's shape. Returning `addressLine1`
+ * alone would print "Bath" and silently drop "Somerset", which is the pairing
+ * the 243 imported rows carry. So when there is no city and no postcode we defer
+ * to formatJobLocation, which knows about the town/area pair and its repeats.
+ * Checked against the data before choosing that: of the 25 live adverts with a
+ * real full_location, 24 carry a city or a postcode and ZERO carry an address
+ * line without one, so nothing real is lost by falling back.
+ */
+export function formatJobAddress(job: {
+  location?: string | null
+  area?: string | null
+  fullLocation?: { addressLine1?: string | null; city?: string | null; postcode?: string | null } | null
+}): string {
+  const full = job.fullLocation
+  const line1 = (full?.addressLine1 || '').trim()
+  // City and postcode read as one line — "Bath BA1 1AA", space not comma.
+  const cityLine = [full?.city, full?.postcode]
+    .map(part => (part || '').trim())
+    .filter(Boolean)
+    .join(' ')
+
+  if (!cityLine) return formatJobLocation(job)
+  return [line1, cityLine].filter(Boolean).join(', ')
+}
+
+/**
  * A job as the shared card sees it.
  *
  * The card itself does no formatting and knows nothing about jobs — this is the

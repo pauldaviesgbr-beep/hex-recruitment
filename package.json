@@ -34,7 +34,8 @@
     "jsxcomments:prove": "node scripts/prove-no-stray-jsx-comments.mjs",
     "logotreatment:prove": "node scripts/prove-logo-treatment.mjs",
     "jobquote:prove": "npx tsx scripts/prove-job-quote.ts",
-    "returnpath:prove": "npx tsx scripts/prove-safe-return-path.ts"
+    "returnpath:prove": "npx tsx scripts/prove-safe-return-path.ts",
+    "locationline:prove": "npx tsx scripts/prove-location-line.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.98.0",

@@ -223,7 +223,15 @@ function EmployeeLoginPageContent() {
           {pendingEmail && (
             <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 10, padding: '0.9rem 1rem', margin: '0 0 1rem', textAlign: 'left' }}>
               <p style={{ margin: '0 0 0.35rem', fontWeight: 700, color: '#1e3a8a' }}>Confirm your email to apply</p>
-              <p style={{ margin: '0 0 0.7rem', fontSize: '0.9rem', color: '#334155', lineHeight: 1.5 }}>
+              {/* overflowWrap ANYWHERE, BECAUSE AN EMAIL ADDRESS HAS NO SPACES.
+                  A plus-address ran 101px past this box on a 390px screen —
+                  off the card and off the viewport — because the browser had
+                  nowhere legal to break "pauldavies.gbr+thrivetest100@gmail.com".
+                  `break-word` is not enough: it only breaks where a word could
+                  already wrap. `anywhere` is what breaks mid-token.
+                  Measured on a phone 22 Aug 2026: element right edge 394px,
+                  container right edge 293px. */}
+              <p style={{ margin: '0 0 0.7rem', fontSize: '0.9rem', color: '#334155', lineHeight: 1.5, overflowWrap: 'anywhere' }}>
                 You signed up as <strong>{pendingEmail}</strong>. Click the link we emailed you to start applying for roles.
               </p>
               <button type="button" onClick={handleResend} disabled={resend === 'sending'} style={{ border: '1px solid #93c5fd', background: '#fff', color: '#1e3a8a', padding: '0.5rem 1rem', borderRadius: 8, fontWeight: 600, cursor: 'pointer' }}>
