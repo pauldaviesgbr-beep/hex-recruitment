@@ -31,12 +31,29 @@ export default function CandidateSignupForm() {
   const [resend, setResend] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
 
   // Carry an Apply-gate return path (?redirect=/job/<id>?apply=1) through the
-  // confirmation email as ?next, so the link lands them back on the job.
+  // confirmation email, so the link lands them back on the job.
+  //
+  // THIS USED TO BUILD THE WHOLE /auth/confirm URL AND IT WAS DEAD CODE. The
+  // confirmation email is not rendered by us — Supabase renders it from a
+  // template pasted into its dashboard, and that template built its own link
+  // with `next=/dashboard` hardcoded. So everything computed here was
+  // discarded, in silence, and every candidate who signed up by email from a
+  // job page was returned to the dashboard instead of the role. Proved on
+  // 22 Aug 2026 by reading the actual email and clicking the actual link.
+  //
+  // What we hand over now is the FINAL DESTINATION, not a confirm URL. The
+  // template puts it in `?next=` via `{{ .RedirectTo }}`, which is Supabase's
+  // own documented pattern. `role=` is no longer threaded through the URL and
+  // does not need to be: signUp below stamps `role: 'employee'` into
+  // user_metadata, and the callback reads it from there.
+  //
+  // IF THE TEMPLATE IS EVER EDITED IN THE DASHBOARD, THIS BREAKS SILENTLY
+  // AGAIN. It is the one link in this chain that no check in the repo can
+  // see — not tsc, not the build, not verify.
   const applyRedirect = safeInternalPath(searchParams.get('redirect'))
-  const nextQS = applyRedirect ? `&next=${encodeURIComponent(applyRedirect)}` : ''
   const confirmRedirect = () => {
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin
-    return `${siteUrl}/auth/confirm?role=employee${nextQS}`
+    return `${siteUrl}${applyRedirect || '/dashboard'}`
   }
 
   const handleSubmit = async (e: React.FormEvent) => {

@@ -861,8 +861,14 @@ export default function JobSeekerProfileForm({ mode, existingData, userId }: Job
         // If the candidate arrived from an Apply gate (?redirect=/job/<id>?apply=1),
         // carry that return path through the confirmation email so that clicking
         // the link lands them back on the job ready to apply — not the dashboard.
+        //
+        // HAND OVER THE DESTINATION, NOT A CONFIRM URL. Supabase renders the
+        // confirmation email from its own dashboard template and builds the
+        // link itself; this value reaches it as `{{ .RedirectTo }}` and goes
+        // into `?next=`. Building an /auth/confirm URL here, as this did until
+        // 22 Aug 2026, was discarded entirely. Same change as
+        // CandidateSignupForm — the long version of why is in that file.
         const applyRedirect = safeInternalPath(searchParams.get('redirect'))
-        const nextQS = applyRedirect ? `&next=${encodeURIComponent(applyRedirect)}` : ''
         const { data: authData, error: authError } = await supabase.auth.signUp({
           email: formData.email,
           password: formData.password,
@@ -871,7 +877,7 @@ export default function JobSeekerProfileForm({ mode, existingData, userId }: Job
               full_name: `${formData.firstName} ${formData.lastName}`,
               role: 'employee'
             },
-            emailRedirectTo: `${siteUrl}/auth/confirm?role=employee${nextQS}`,
+            emailRedirectTo: `${siteUrl}${applyRedirect || '/dashboard'}`,
           }
         })
 

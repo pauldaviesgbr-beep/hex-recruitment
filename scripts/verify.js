@@ -149,6 +149,27 @@ const ALL = [
   // the publish path — two copies of that would let the preview promise a card
   // the board does not render.
   { name: 'jobquote:prove', cmd: npm, args: ['run', 'jobquote:prove'] },
+  // THE APPLY-GATE RETURN PATH, AND THE ONE STRING NO OTHER CHECK CAN SEE.
+  //
+  // Half of this is a security control: safeReturnPath widened the accepted
+  // input to include absolute URLs, which is the exact move that reintroduces
+  // an open redirect. It is watched refusing a suffix lookalike host, a prefix
+  // lookalike, a wrong scheme and a wrong port — and watched confirming that
+  // safeInternalPath itself was not loosened to make the new function easier.
+  //
+  // The other half guards emails/supabase-auth-templates.ts, whose contents are
+  // PASTED BY HAND into the Supabase dashboard. Nothing else in this repo can
+  // see that string: not tsc, not the build, not migrations:check. It hardcoded
+  // next=/dashboard for eleven weeks while the app computed the correct return
+  // path and had it silently discarded, so every candidate who signed up by
+  // email from a job page was dropped on the dashboard instead of the role.
+  // Two questions with different answers before and after: the hardcoded
+  // destination is GONE, and {{ .RedirectTo }} is PRESENT. Asking only the
+  // second would pass on a template carrying both.
+  //
+  // Watched failing on purpose 22 Aug 2026 by swapping the origin equality for
+  // a startsWith: exit 1, two named failures, the other seventeen still green.
+  { name: 'returnpath:prove', cmd: npm, args: ['run', 'returnpath:prove'] },
 ]
 const CHECKS = FAST ? ALL.filter(c => !c.slow) : ALL
 

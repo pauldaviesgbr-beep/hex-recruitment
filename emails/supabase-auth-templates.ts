@@ -90,14 +90,36 @@ function authShell(opts: {
  * IMPORTANT: this CTA uses the app's VERIFIED token_hash link pattern, NOT the
  * generic {{ .ConfirmationURL }}. The app's confirmation handler
  * (app/auth/confirm/route.ts → lib/authCallback.ts) consumes the OTP via
- * verifyOtp({ token_hash, type }), reading ?token_hash, ?type and ?next. The
- * &next=/dashboard landing self-routes by role (app/dashboard/page.tsx redirects
- * employers → /employer/dashboard → the server gate → dashboard or
- * /account-under-review). This exact pattern was driven end-to-end on prod and
- * confirms + lands correctly — do NOT swap it for {{ .ConfirmationURL }}.
+ * verifyOtp({ token_hash, type }), reading ?token_hash, ?type and ?next.
+ * Do NOT swap it for {{ .ConfirmationURL }}.
+ *
+ * `next` IS NOW {{ .RedirectTo }} AND IT USED TO BE THE STRING "/dashboard".
+ * That hardcoding is the whole reason an apply-gate sign-up never came back to
+ * the job: the app computed the right return path, passed it as
+ * `emailRedirectTo`, and this template threw it away and sent everyone to the
+ * dashboard. `{{ .RedirectTo }}` is Supabase's own documented pattern for
+ * exactly this, and it carries whatever `emailRedirectTo` was given.
+ *
+ * THE OLD COMMENT HERE CLAIMED THIS "was driven end-to-end on prod and
+ * confirms + lands correctly". That was true about CONFIRMING and blind to
+ * where it landed — the test could not tell the two apart, because landing on
+ * the dashboard is exactly what a working confirmation looked like when the
+ * dashboard was the only destination it could produce. Removed rather than
+ * softened: a claim of end-to-end proof is worth nothing if it names the half
+ * that could not fail.
+ *
+ * {{ .RedirectTo }} arrives as an ABSOLUTE url. lib/safeRedirect.ts's
+ * safeReturnPath is what accepts it — same-origin only, then straight into
+ * the unchanged safeInternalPath.
+ *
+ * ⚠️ NOTHING IN THIS REPO SENDS THIS EMAIL OR CHECKS THIS STRING. It is
+ * reference source for a value pasted into the Supabase dashboard. tsc cannot
+ * see it, the build cannot see it, verify cannot see it. If you change one,
+ * change both, and drive a real sign-up afterwards — reading the link out of
+ * a real inbox is the only check that exists.
  */
 export const CONFIRM_SIGNUP_LINK =
-  '{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=signup&next=/dashboard'
+  '{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=signup&next={{ .RedirectTo }}'
 
 export const confirmSignupTemplate = authShell({
   preheader: 'Confirm your email to finish setting up your Thrive account.',
