@@ -1,7 +1,16 @@
+/* THE LANE APPLIES TO FIXED THINGS TOO, AND body padding CANNOT REACH THEM.
+   The launcher sits at z-index 120 against the consent banner's 1001, so
+   while the banner is unanswered document.elementFromPoint at the launcher's
+   own centre returns the BANNER — it is not merely overlapped, it is
+   unclickable, and no amount of scrolling frees a fixed element.
+   Measured at 1440 on 23 Aug 2026: launcher 812–876, banner top 828.
+   --consent-h is 0px the moment the banner is answered, so these collapse
+   back to the original offsets on their own. */
+
 /* Chat Button */
 .chatButton {
   position: fixed;
-  bottom: 24px;
+  bottom: calc(24px + var(--consent-h, 0px));
   right: 24px;
   width: 64px;
   height: 64px;
@@ -71,7 +80,7 @@
 /* Chat Window */
 .chatWindow {
   position: fixed;
-  bottom: 24px;
+  bottom: calc(24px + var(--consent-h, 0px));
   right: 24px;
   width: 350px;
   height: 450px;
@@ -112,7 +121,7 @@
   .chatWindow {
     width: calc(100% - 16px);
     height: 420px;
-    bottom: 8px;
+    bottom: calc(8px + var(--consent-h, 0px));
     right: 8px;
     border-radius: 12px;
   }
