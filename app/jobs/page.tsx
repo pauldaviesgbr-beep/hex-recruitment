@@ -81,6 +81,12 @@ const getPostedDaysAgo = (postedAt: string): number => {
 }
 
 import { categories as sharedCategories } from '@/lib/categories'
+import {
+  resolvePrefFilters,
+  workStylePref,
+  sectorPref,
+  type PrefFilter,
+} from '@/lib/candidatePrefs'
 import { Ico } from '@/components/icons'
 const categories = [{ id: 'all', label: 'All Jobs' }, ...sharedCategories]
 
@@ -884,6 +890,10 @@ function JobsPageContent() {
   // Candidate personalisation
   const [candidatePrefs, setCandidatePrefs] = useState<{ sector?: string; jobTypes?: string[]; workPrefs?: string[] } | null>(null)
   const [prefsBannerDismissed, setPrefsBannerDismissed] = useState(false)
+  // Messages for preferences the board could not honour. Empty is the normal
+  // case and says nothing; a candidate only ever sees this when one of their
+  // choices would have shown them an empty page.
+  const [relaxedPrefs, setRelaxedPrefs] = useState<string[]>([])
 
   useEffect(() => {
     if (currentUserRole !== 'employee') return
@@ -906,25 +916,59 @@ function JobsPageContent() {
               jobTypes: data.preferred_job_types || [],
               workPrefs: data.work_location_preferences || [],
             })
-            // Pre-set filters from profile (only if user hasn't manually set them)
-            if (!quickWorkStyle && data.work_location_preferences?.length > 0) {
-              const wp = data.work_location_preferences[0]
-              if (['Remote', 'Hybrid', 'On-site'].includes(wp)) setQuickWorkStyle(wp)
-            }
-            if (activeCategory === 'all' && data.job_sector) {
-              const match = categories.find(c => c.id === data.job_sector)
-              // Only pre-set sector if it has matching jobs — otherwise show all
-              if (match) {
-                const hasMatchingJobs = jobs.some(j => j.category === match.id)
-                if (hasMatchingJobs) {
-                  setActiveCategory(match.id)
-                }
-              }
-            }
+            // The preferences are only READ here. Deciding which of them the
+            // board can honour happens in its own effect below, once there is
+            // a board to test them against — see the comment there.
           }
         })
     })
   }, [currentUserRole])
+
+  /**
+   * DECIDE WHICH PREFERENCES THE BOARD CAN ACTUALLY HONOUR.
+   *
+   * Separate from the fetch above, and it has to be. That effect depends on
+   * [currentUserRole], so it runs while `jobs` is still empty — and a
+   * preference tested against an empty list can only ever look impossible.
+   * The old sector guard (`jobs.some(...)`) sat inside that same effect and
+   * had exactly this flaw, which is why the sector pre-set almost never fired
+   * while the unguarded work-style one always did.
+   *
+   * So: read the profile there, decide here, once both are in hand.
+   *
+   * ONCE ONLY. `prefsApplied` stops this fighting the candidate — without it,
+   * every refetch of the board would re-apply a preference they had just
+   * cleared by hand, which is a worse bug than the one being fixed.
+   */
+  const prefsApplied = useRef(false)
+  useEffect(() => {
+    if (prefsApplied.current) return
+    if (!candidatePrefs) return
+    if (jobs.length === 0) return
+
+    const wp = (candidatePrefs.workPrefs || [])
+      .find(p => ['Remote', 'Hybrid', 'On-site'].includes(p))
+    const sectorMatch = candidatePrefs.sector
+      ? categories.find(c => c.id === candidatePrefs.sector)
+      : undefined
+
+    const wanted: PrefFilter<Job>[] = []
+    if (activeCategory === 'all' && sectorMatch) {
+      wanted.push(sectorPref<Job>(sectorMatch.id, sectorMatch.label))
+    }
+    if (!quickWorkStyle && wp) wanted.push(workStylePref<Job>(wp))
+    if (wanted.length === 0) { prefsApplied.current = true; return }
+
+    const resolved = resolvePrefFilters(jobs, wanted)
+    if (resolved.undecided) return   // board not loaded — say nothing, decide nothing
+
+    for (const pref of resolved.applied) {
+      if (pref.key === 'sector' && sectorMatch) setActiveCategory(sectorMatch.id)
+      if (pref.key === 'workStyle') setQuickWorkStyle(pref.value)
+    }
+    setRelaxedPrefs(resolved.relaxed.map(p => p.message))
+    prefsApplied.current = true
+  }, [candidatePrefs, jobs, activeCategory, quickWorkStyle])
 
   const dismissPrefsBanner = () => {
     setPrefsBannerDismissed(true)
@@ -1122,9 +1166,19 @@ function JobsPageContent() {
       )}
 
       {/* Personalisation Banner */}
-      {candidatePrefs && !prefsBannerDismissed && (activeCategory !== 'all' || quickWorkStyle) && (
+      {/* RELAXED PREFERENCES ARE ANNOUNCED, NOT SWALLOWED.
+          The condition includes relaxedPrefs deliberately: a candidate whose
+          ONLY preference was dropped has no active filter, so the old
+          condition would have hidden the banner and left them wondering why
+          they were looking at on-site roles they never asked for. The whole
+          point of relaxing rather than suppressing is that they get told. */}
+      {candidatePrefs && !prefsBannerDismissed && (activeCategory !== 'all' || quickWorkStyle || relaxedPrefs.length > 0) && (
         <div className={styles.prefsBanner}>
-          <span>Showing jobs matching your profile</span>
+          <span>
+            {relaxedPrefs.length > 0
+              ? relaxedPrefs.join(' ')
+              : 'Showing jobs matching your profile'}
+          </span>
           <Link href="/settings/profile" className={styles.prefsBannerLink}>Edit preferences</Link>
           <button className={styles.prefsBannerClose} onClick={dismissPrefsBanner}>✕</button>
         </div>

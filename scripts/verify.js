@@ -190,6 +190,42 @@ const ALL = [
   // literal: exit 1, nine named failures, and one of them reproduced the live
   // string "London,  " exactly. Green again on restore.
   { name: 'locationline:prove', cmd: npm, args: ['run', 'locationline:prove'] },
+  // NO PREFERENCE MAY SILENTLY EMPTY THE BOARD.
+  //
+  // Found by Paul on his own phone: signed in, and /jobs said "No jobs match
+  // your search" under a Hybrid chip he never pressed. His profile carries a
+  // Hybrid work-location preference and all 251 live adverts are on site, so
+  // the one personalised feature on the product could only ever return nothing
+  // — for the people who had already bothered to join.
+  //
+  // The sector pre-set beside it ALREADY had the right guard and the
+  // work-style one did not; somebody had this idea, applied it to one of the
+  // two, and moved on. Third instance-not-class fault in one day, so it is a
+  // rule now and this watches the rule.
+  //
+  // The load-bearing case is `undecided`: an empty board and an impossible
+  // preference produce the same zero, and only that flag separates them. Watched
+  // failing on purpose 22 Aug 2026 by deleting the guard — exit 1, two named
+  // failures, and the broken version announces "We've ignored your Hybrid
+  // preference" on a board that had simply not loaded yet.
+  { name: 'prefsrelax:prove', cmd: npm, args: ['run', 'prefsrelax:prove'] },
+  // THE PENDING-CONFIRM NOTICE EXPIRES.
+  //
+  // Paul's phone showed "You signed up as ...+thrivetest100@gmail.com" with a
+  // Resend button, for an account DELETED the day before. Written at sign-up,
+  // cleared on exactly one event (a successful password login), so for anyone
+  // who abandoned a signup it was PERMANENT — 34% of the fold, above the form.
+  //
+  // Seven days, and cleared on CONFIRMATION as well as login: confirmation
+  // happens server-side on a route that never touches this browser key, which
+  // is why clicking the link in the email left the notice standing.
+  //
+  // The load-bearing case is the LEGACY one. Every browser that has already
+  // visited holds a bare email string with no timestamp; treating those as
+  // fresh would make exactly the values that caused this bug immortal. Watched
+  // failing on purpose 22 Aug 2026 with the expiry removed — exit 1, seven
+  // named failures, the legacy case handing back the stale address.
+  { name: 'pendingconfirm:prove', cmd: npm, args: ['run', 'pendingconfirm:prove'] },
 ]
 const CHECKS = FAST ? ALL.filter(c => !c.slow) : ALL
 

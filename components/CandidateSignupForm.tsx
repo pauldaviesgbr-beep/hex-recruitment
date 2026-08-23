@@ -9,6 +9,7 @@ import { getStoredAttribution, attributionColumns } from '@/lib/attribution'
 import { countryColumns } from '@/lib/geo'
 import { isValidEmail, isDisposableEmail } from '@/lib/validateEmail'
 import { safeInternalPath } from '@/lib/safeRedirect'
+import { setPendingConfirm } from '@/lib/pendingConfirm'
 import PasswordInput from './PasswordInput'
 import LiveJobCount from './LiveJobCount'
 import { Ico } from '@/components/icons'
@@ -116,7 +117,7 @@ export default function CandidateSignupForm() {
       // Remember the pending confirmation so the apply-gate / login page can show
       // a "confirm your email to apply" prompt instead of a bare login they can't
       // complete yet. Cleared on successful login.
-      try { localStorage.setItem('thrive_pending_confirm', email.trim()) } catch { /* ignore */ }
+      setPendingConfirm(email.trim())
       setSubmitted(true)
     } catch (err: any) {
       // Supabase's leaked-password protection (HaveIBeenPwned) rejects any
