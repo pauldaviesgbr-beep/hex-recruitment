@@ -114,6 +114,21 @@ body {
   color: var(--text-gray);
   line-height: 1.6;
   overflow-x: clip;
+  /* THE CONSENT LANE IS RESERVED FROM THE SHELL, NOT WORKED AROUND PER PAGE.
+     The cookie banner has covered the Apply button on a job post — which cost
+     Javier Salido his application on 13 Aug 2026 — and the password field on
+     the apply gate. Both were fixed by MOVING THE CONTROL, which is the wrong
+     fix: it leaves the next new screen to break the same way, and it did.
+     components/CookieConsent.tsx publishes its height here while the banner is
+     unanswered, and 0 the moment it is not. One rule, every page, including
+     pages nobody has written yet. */
+  padding-bottom: var(--consent-h, 0px);
+}
+
+:root {
+  /* Declared so the fallback is never needed and the variable is greppable
+     from the stylesheet as well as the component that sets it. */
+  --consent-h: 0px;
 }
 
 /* ──────────────────────────────────────────────────────────

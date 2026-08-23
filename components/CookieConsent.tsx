@@ -26,6 +26,36 @@ export default function CookieConsent() {
     }
   }, [])
 
+  /**
+   * THE LANE IS RESERVED, NOT OVERLAID — and this variable is how.
+   *
+   * This banner has now covered the Apply button on a job post (which cost
+   * Javier Salido his application on 13 Aug 2026) and the password field on
+   * the apply gate. BOTH WERE FIXED BY MOVING THE CONTROL, which is the wrong
+   * fix: it leaves the next new screen to break the same way, and it did.
+   *
+   * So the page shell reserves the space instead. `--consent-h` is 88px on a
+   * phone and 72px on desktop while the banner is unanswered, and 0 the
+   * moment it is not — set on <html> because that is the one element every
+   * page already has, and read by a single padding-bottom in globals.css.
+   *
+   * NEVER A MARGIN ON THE LAST ELEMENT. That is the version of this fix that
+   * looks identical and breaks on the next page somebody adds.
+   */
+  useEffect(() => {
+    const root = document.documentElement
+    if (!showBanner) { root.style.setProperty('--consent-h', '0px'); return }
+    const set = () => root.style.setProperty('--consent-h', window.innerWidth >= 900 ? '72px' : '88px')
+    set()
+    window.addEventListener('resize', set)
+    return () => {
+      window.removeEventListener('resize', set)
+      // Unmounting with the lane still reserved would leave a dead gap at the
+      // foot of every page.
+      root.style.setProperty('--consent-h', '0px')
+    }
+  }, [showBanner])
+
   const handleAcceptAll = useCallback(() => {
     acceptAllCookies()
     setShowBanner(false)

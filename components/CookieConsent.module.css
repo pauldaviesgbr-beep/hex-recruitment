@@ -1,14 +1,31 @@
-/* Banner */
+/* THE CONSENT LANE — A FIXED HEIGHT, NOT A BOX THAT GROWS.
+   88px on a phone, 72px on desktop, matching --consent-h in
+   components/CookieConsent.tsx. The two numbers must agree: the component
+   publishes the height and the page shell reserves it, so if this box grows
+   past what it declared it starts covering things again — which is how the
+   Apply button and a password field were both hidden.
+   prove-consent-lane.ts asserts the AGREEMENT, not either number. */
 .banner {
   position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
   z-index: 1001;
-  background: #1e293b;
-  border-top: 1px solid rgba(255, 229, 0, 0.2);
+  background: #0F172A;
+  border-top: 1px solid #24334D;
   box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
-  padding: 16px 20px;
+  padding: 12px 16px;
+  height: 88px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+}
+
+@media (min-width: 900px) {
+  .banner {
+    height: 72px;
+    padding: 12px 40px;
+  }
 }
 
 .bannerInner {

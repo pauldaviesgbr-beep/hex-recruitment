@@ -43,7 +43,8 @@
     "headerdoors:prove": "npx tsx scripts/prove-header-doors.ts",
     "applygate:prove": "npx tsx scripts/prove-apply-gate.ts",
     "loginerrors:prove": "npx tsx scripts/prove-login-errors.ts",
-    "unifiedlogin:prove": "npx tsx scripts/prove-unified-login.ts"
+    "unifiedlogin:prove": "npx tsx scripts/prove-unified-login.ts",
+    "consentlane:prove": "npx tsx scripts/prove-consent-lane.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.98.0",
