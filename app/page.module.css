@@ -1,8 +1,10 @@
 /* Hero Section */
+/* Spec padding: 26/16/28 at 390, 56/40/52 at 1440. The horizontal half lives
+   on .heroInner, which is the box that actually has the width. */
 .hero {
   background: var(--dark-gray);
   min-height: auto;
-  padding: 2.5rem 0 2.5rem;
+  padding: 26px 0 28px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -23,11 +25,17 @@
   z-index: 2;
 }
 
+/* THIS BOX IS WHY THE SEARCH BAR WAS 736px WIDE WHILE ITS OWN RULE SAID 900.
+   A max-width on a child cannot widen it past its parent, and the parent was
+   800px with 32px of padding a side. The stylesheet said 900 the whole time
+   and nothing was wrong to read — only the measurement showed it. Same family
+   as `width: 112px` rendering at 145.
+   980 = the spec's 900px bar plus its 40px gutters. */
 .heroInner {
   width: 100%;
-  max-width: 800px;
+  max-width: 980px;
   margin: 0 auto;
-  padding: 0 2rem;
+  padding: 0 16px;
   position: relative;
   z-index: 1;
   box-sizing: border-box;
@@ -289,6 +297,9 @@
 /* ── 1440 ─────────────────────────────────────────────────────────────────── */
 
 @media (min-width: 900px) {
+  .hero { padding: 56px 0 52px; }
+  .heroInner { padding: 0 40px; }
+
   .heroTitle {
     font-size: 52px;
     line-height: 1.05;
