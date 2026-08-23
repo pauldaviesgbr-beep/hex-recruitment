@@ -891,7 +891,7 @@ export default function JobApplicationsPage() {
                         {application.interview.status === 'completed'
                           ? 'Interview Completed'
                           : application.interview.status === 'pending_selection'
-                          ? '⏳ Awaiting Time Selection'
+                          ? 'Awaiting Time Selection'
                           : application.interview.status === 'confirmed'
                           ? 'Confirmed Interview'
                           : 'Scheduled — Awaiting Confirmation'}

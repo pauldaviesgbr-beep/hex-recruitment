@@ -307,7 +307,7 @@ function CandidateCardSlider({ apps, totalApplications, styles }: {
             </div>
             <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '0.4rem', flexShrink: 0, textAlign: 'right' as const }}>
               {app.candidate_city && <span style={{ fontSize: '0.72rem', color: '#64748b' }}><Ico name="map-pin" size={16} /> {app.candidate_city}</span>}
-              {app.candidate_years_exp && <span style={{ fontSize: '0.72rem', color: '#64748b' }}>⏳ {app.candidate_years_exp} yrs exp</span>}
+              {app.candidate_years_exp && <span style={{ fontSize: '0.72rem', color: '#64748b' }}><Ico name="timer" size={16} /> {app.candidate_years_exp} yrs exp</span>}
               {app.candidate_availability && <span style={{ fontSize: '0.72rem', color: '#64748b' }}><Ico name="check" size={16} /> {app.candidate_availability}</span>}
               {app.candidate_sector && <span style={{ fontSize: '0.72rem', color: '#64748b' }}><Ico name="building" size={16} /> {app.candidate_sector}</span>}
             </div>
@@ -1160,7 +1160,7 @@ export default function EmployerDashboardPage() {
             queue) — staleApplications counts pending apps older than 2 weeks. */}
         {staleApplications > 0 && (
           <Link href="/applied" className={styles.staleNudge}>
-            <span className={styles.staleNudgeIcon}>⏳</span>
+            <span className={styles.staleNudgeIcon}><Ico name="clock" size={20} /></span>
             <div className={styles.staleNudgeText}>
               <strong>{staleApplications} application{staleApplications !== 1 ? 's' : ''}</strong> {staleApplications !== 1 ? 'have' : 'has'} been waiting for review for over 2 weeks.
             </div>

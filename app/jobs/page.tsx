@@ -1208,7 +1208,7 @@ function JobsPageContent() {
                 {selectedJob.expiresDate && (() => {
                   const daysLeft = Math.ceil((new Date(selectedJob.expiresDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
                   if (daysLeft <= 7 && daysLeft >= 0) {
-                    return <p className={styles.detailExpiry}>⏰ Closes in {daysLeft === 0 ? 'today' : `${daysLeft} day${daysLeft === 1 ? '' : 's'}`}</p>
+                    return <p className={styles.detailExpiry}><Ico name="clock" size={16} /> Closes in {daysLeft === 0 ? 'today' : `${daysLeft} day${daysLeft === 1 ? '' : 's'}`}</p>
                   }
                   return null
                 })()}
