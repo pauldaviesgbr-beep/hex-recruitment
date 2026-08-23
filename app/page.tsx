@@ -204,36 +204,45 @@ export default function Home() {
             </p>
           )}
 
-          {/* "NEWEST TODAY" IS A CLAIM ABOUT TODAY. Nothing was posted today —
-              the newest live role is from 21 Aug — so a hard-coded label would
-              be false on the day it shipped, and false again on most days: only
-              4 of the 251 live roles were posted in the last week. The label
-              follows the data. */}
-          {newestRoles.length > 0 && (
-            <>
-              <p className={styles.heroRolesEyebrow}>{newestLabel}</p>
-              <div className={styles.heroRoles}>
-                {newestRoles.map((job, i) => (
-                  <Link
-                    key={job.id}
-                    href={`/job/${job.id}`}
-                    className={`${styles.heroRoleCard} ${i > 1 ? styles.heroRoleCardWide : ''}`}
-                  >
-                    <span className={styles.heroRoleEmployer}>{job.company}</span>
-                    {/* THE FULL TITLE, NOT TRUNCATED AT THE EN DASH. Cutting
-                        there is right in admin and destroys the board: 40 live
-                        listings collapse to "Chef De Partie", all from one
-                        employer, and the phrase after the dash is the only
-                        thing telling them apart. It wraps instead. */}
-                    <span className={styles.heroRoleTitle}>{job.title}</span>
-                    <span className={styles.heroRoleMeta}>
-                      {formatJobSalary(job)} · {formatJobLocation(job)}
-                    </span>
-                  </Link>
-                ))}
-              </div>
-            </>
-          )}
+        </div>
+      </section>
+
+      {/* THE NEWEST ROLES SIT BELOW THE NAVY, NOT INSIDE IT. The design frame
+          closes the hero block after the roles-live line and puts the cards in
+          their own section on the page background — white cards on navy read as
+          part of the search, and they are not: they are the board starting. */}
+      <section className={styles.heroRolesSection}>
+        <div className={styles.heroRolesInner}>
+        {/* "NEWEST TODAY" IS A CLAIM ABOUT TODAY. Nothing was posted today —
+            the newest live role is from 21 Aug — so a hard-coded label would
+            be false on the day it shipped, and false again on most days: only
+            4 of the 251 live roles were posted in the last week. The label
+            follows the data. */}
+        {newestRoles.length > 0 && (
+          <>
+            <p className={styles.heroRolesEyebrow}>{newestLabel}</p>
+            <div className={styles.heroRoles}>
+              {newestRoles.map((job, i) => (
+                <Link
+                  key={job.id}
+                  href={`/job/${job.id}`}
+                  className={`${styles.heroRoleCard} ${i > 1 ? styles.heroRoleCardWide : ''}`}
+                >
+                  <span className={styles.heroRoleEmployer}>{job.company}</span>
+                  {/* THE FULL TITLE, NOT TRUNCATED AT THE EN DASH. Cutting
+                      there is right in admin and destroys the board: 40 live
+                      listings collapse to "Chef De Partie", all from one
+                      employer, and the phrase after the dash is the only
+                      thing telling them apart. It wraps instead. */}
+                  <span className={styles.heroRoleTitle}>{job.title}</span>
+                  <span className={styles.heroRoleMeta}>
+                    {formatJobSalary(job)} · {formatJobLocation(job)}
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </>
+        )}
         </div>
       </section>
 

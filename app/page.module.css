@@ -30,10 +30,15 @@
    800px with 32px of padding a side. The stylesheet said 900 the whole time
    and nothing was wrong to read — only the measurement showed it. Same family
    as `width: 112px` rendering at 145.
-   980 = the spec's 900px bar plus its 40px gutters. */
+
+   AND THE FIRST FIX WAS ALSO WRONG, in the other direction: capping this at
+   980 (the bar plus its gutters) made the bar right and squeezed the HEADLINE,
+   which wrapped to two lines because of the container rather than the font.
+   The design frame is the full 1440 with 40px padding — 1360 of content — and
+   only the BAR is 900. The cap belongs on the bar, not on everything. */
 .heroInner {
   width: 100%;
-  max-width: 980px;
+  max-width: 1440px;
   margin: 0 auto;
   padding: 0 16px;
   position: relative;
@@ -97,6 +102,7 @@
   flex-direction: column;
   gap: 10px;
   width: 100%;
+  max-width: 900px;   /* the cap lives HERE, not on the hero box */
   margin: 0 auto;
   text-align: left;
 }
@@ -165,6 +171,22 @@
 .heroUnderline strong { color: #fff; font-weight: 700; }
 
 /* ── THE NEWEST ROLES ─────────────────────────────────────────────────────── */
+
+/* The cards are their own block on the page background — the design frame
+   closes the navy after the roles-live line. White cards on navy read as part
+   of the search, and they are not: they are the board starting. */
+.heroRolesSection {
+  background: var(--off-white);
+  padding: 22px 0 26px;
+}
+
+.heroRolesInner {
+  width: 100%;
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 0 16px;
+  box-sizing: border-box;
+}
 
 .heroRolesEyebrow {
   font-family: ui-monospace, 'IBM Plex Mono', SFMono-Regular, Menlo, monospace;
@@ -348,9 +370,12 @@
 
   .heroRolesEyebrow { text-align: center; }
 
+  .heroRolesSection { padding: 34px 0; }
+  .heroRolesInner { padding: 0 40px; }
+
   .heroRoles {
     grid-template-columns: repeat(4, 1fr);
-    gap: 14px;
+    gap: 18px;
   }
 
   .heroRoleCardWide { display: flex; }
