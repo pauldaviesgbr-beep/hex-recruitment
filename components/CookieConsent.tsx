@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import Link from 'next/link'
 import {
   getCookieConsent,
@@ -11,6 +11,7 @@ import {
 import styles from './CookieConsent.module.css'
 
 export default function CookieConsent() {
+  const bannerRef = useRef<HTMLDivElement>(null)
   const [showBanner, setShowBanner] = useState(false)
   const [showModal, setShowModal] = useState(false)
   const [functional, setFunctional] = useState(true)
@@ -25,6 +26,49 @@ export default function CookieConsent() {
       setAnalytics(consent.analytics)
     }
   }, [])
+
+  /**
+   * THE LANE IS RESERVED, NOT OVERLAID — and this variable is how.
+   *
+   * This banner has now covered the Apply button on a job post (which cost
+   * Javier Salido his application on 13 Aug 2026) and the password field on
+   * the apply gate. BOTH WERE FIXED BY MOVING THE CONTROL, which is the wrong
+   * fix: it leaves the next new screen to break the same way, and it did.
+   *
+   * So the page shell reserves the space instead. `--consent-h` is 88px on a
+   * phone and 72px on desktop while the banner is unanswered, and 0 the
+   * moment it is not — set on <html> because that is the one element every
+   * page already has, and read by a single padding-bottom in globals.css.
+   *
+   * NEVER A MARGIN ON THE LAST ELEMENT. That is the version of this fix that
+   * looks identical and breaks on the next page somebody adds.
+   */
+  useEffect(() => {
+    const root = document.documentElement
+    if (!showBanner) { root.style.setProperty('--consent-h', '0px'); return }
+    const el = bannerRef.current
+    if (!el) return
+    // MEASURE THE BOX, DO NOT RESTATE IT. This published '88px' on a phone
+    // while the box actually drew taller than its content could fit — the copy
+    // ran out of the top of the navy and the buttons were cut off below the
+    // fold, with fifteen assertions green. A number in the CSS is not the
+    // number on the screen, and the only way the two cannot disagree is for
+    // there to be one number: the rendered one.
+    const set = () => root.style.setProperty('--consent-h', Math.ceil(el.getBoundingClientRect().height) + 'px')
+    set()
+    // ResizeObserver rather than a resize listener: the box also changes when
+    // the COPY rewraps, which no window event reports.
+    const ro = new ResizeObserver(set)
+    ro.observe(el)
+    window.addEventListener('resize', set)
+    return () => {
+      ro.disconnect()
+      window.removeEventListener('resize', set)
+      // Unmounting with the lane still reserved would leave a dead gap at the
+      // foot of every page.
+      root.style.setProperty('--consent-h', '0px')
+    }
+  }, [showBanner])
 
   const handleAcceptAll = useCallback(() => {
     acceptAllCookies()
@@ -104,7 +148,7 @@ export default function CookieConsent() {
     <>
       {/* Banner */}
       {showBanner && !showModal && (
-        <div className={styles.banner} role="dialog" aria-label="Cookie consent" data-cookie-banner>
+        <div ref={bannerRef} className={styles.banner} role="dialog" aria-label="Cookie consent" data-cookie-banner>
           <div className={styles.bannerInner}>
             <div className={styles.bannerText}>
               <p>

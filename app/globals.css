@@ -114,6 +114,24 @@ body {
   color: var(--text-gray);
   line-height: 1.6;
   overflow-x: clip;
+  /* THE CONSENT LANE IS RESERVED FROM THE SHELL, NOT WORKED AROUND PER PAGE.
+     The cookie banner has covered the Apply button on a job post — which cost
+     Javier Salido his application on 13 Aug 2026 — and the password field on
+     the apply gate. Both were fixed by MOVING THE CONTROL, which is the wrong
+     fix: it leaves the next new screen to break the same way, and it did.
+     components/CookieConsent.tsx publishes its height here while the banner is
+     unanswered, and 0 the moment it is not. One rule, every page, including
+     pages nobody has written yet. */
+  padding-bottom: calc(var(--chat-clear, 0px) + var(--consent-h, 0px));
+}
+
+:root {
+  /* Declared so the fallback is never needed and the variable is greppable
+     from the stylesheet as well as the component that sets it. */
+  --consent-h: 0px;
+  /* The Ask Thrive launcher sits fixed at the foot on a phone and needs its
+     own clearance. Zero on desktop, where it does not overlap content. */
+  --chat-clear: 0px;
 }
 
 /* ──────────────────────────────────────────────────────────
@@ -499,10 +517,18 @@ body[data-sidebar="expanded"] {
     padding-left: 0;
   }
 
+  /* THE LAUNCHER'S FOOTPRINT IS A TOKEN, NOT A SECOND padding-bottom.
+     It used to be `body { padding-bottom: 80px }` right here, which is a
+     later rule at the same specificity — so it silently WON over the
+     consent reserve, and on a phone (the width where both faults happened)
+     --consent-h was published and then ignored. Two things that must agree
+     need one path that sets both: body has ONE bottom reserve and this
+     feeds it. */
+  :root { --chat-clear: 80px; }
+
   /* Fixed header on mobile + chatbot button clearance */
   body {
     padding-top: 0;
-    padding-bottom: 80px;
     overflow-x: hidden;
   }
 

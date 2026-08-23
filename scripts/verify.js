@@ -338,6 +338,23 @@ const ALL = [
   // Watched failing on purpose 23 Aug 2026 by dropping the query from the
   // redirect — the silent way this breaks. Exit 1, one named failure.
   { name: 'unifiedlogin:prove', cmd: npm, args: ['run', 'unifiedlogin:prove'] },
+
+  // THE CONSENT LANE IS RESERVED, NOT OVERLAID. The cookie banner has covered
+  // the Apply button on a job post (13 Aug 2026 — it cost Javier Salido his
+  // application) and the password field on the apply gate (22 Aug). Both were
+  // "fixed" by moving the control, which leaves the next new screen to break
+  // the same way, and it did. The banner publishes its height as --consent-h
+  // and body reserves it once, from the shell.
+  //
+  // It asserts the AGREEMENT between the published height and the drawn box —
+  // not either number — because this repo already has the scar where
+  // `width: 112px` rendered at 145 and a --sticky-offset of 40 sat against a
+  // cell rendering at 52.
+  //
+  // Watched failing on purpose 23 Aug 2026 by growing the drawn box past the
+  // published height and swapping the reserve to a margin. Exit 1, three named
+  // failures, the other nine still reporting.
+  { name: 'consentlane:prove', cmd: npm, args: ['run', 'consentlane:prove'] },
 ]
 const CHECKS = FAST ? ALL.filter(c => !c.slow) : ALL
 
