@@ -38,6 +38,7 @@
  * the real board rather than assumed to match.
  */
 import { jobMatchesWorkLocation, workLocationLabel } from './workLocation'
+import { getJobSector } from './jobSector'
 
 export type PrefFilter<J> = {
   /** Stable name for the preference — 'workStyle', 'sector', 'salaryFloor'. */
@@ -137,12 +138,25 @@ export function workStylePref<J extends { workLocationType?: string | null }>(va
   }
 }
 
-/** The industry preference, as a testable filter. */
-export function sectorPref<J extends { category?: string | null }>(value: string, label: string): PrefFilter<J> {
+/**
+ * The industry preference, as a testable filter.
+ *
+ * CALLS THE SAME CLASSIFIER THE BOARD DOES, and that is the whole point of the
+ * change. This used to test `job.category` directly while the board's category
+ * filter called getJobSector — two predicates for one question, so the resolver
+ * could decide "the sector matches, apply it" and the board could then show
+ * something different. It never emptied a board in practice, because 235 of 251
+ * adverts agreed under both, but it is the same fault as everything else this
+ * week and I named it against myself rather than leave it on a list.
+ */
+export function sectorPref<J extends { title?: string | null; category?: string | null }>(
+  value: string,
+  label: string
+): PrefFilter<J> {
   return {
     key: 'sector',
     value: label,
     message: `We've ignored your ${label} preference — there are no ${label} roles live at the moment.`,
-    predicate: (job: J) => job.category === value,
+    predicate: (job: J) => getJobSector({ title: job.title || '', category: job.category || undefined }) === value,
   }
 }
