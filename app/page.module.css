@@ -53,109 +53,180 @@
   color: var(--primary-yellow);
 }
 
+/* ── THE HERO IS THE JOB SEARCH ────────────────────────────────────────────
+   Mobile-first, because the fault that started this was a stranger on a phone.
+   The design frames are 390x844 and 1440x900 and everything here is measured
+   against those two.
+
+   THE TYPEFACE IS THE PLATFORM'S, NOT THE SPEC'S. The handoff says Bricolage;
+   this codebase deliberately runs Inter as --font-display for every heading on
+   every surface ("one clean sans-serif look", app/layout.tsx). The sizes,
+   weights and tracking below are the spec's. Loading a second display family
+   is a platform decision and a page-weight cost, so it is Paul's call and not
+   something to slip in inside a hero branch. */
+
 .heroTitle {
-  font-size: 2.25rem; /* 36px */
-  font-weight: 500;
+  font-family: var(--font-display), Inter, system-ui, sans-serif;
+  font-size: 30px;
+  line-height: 1.08;
+  letter-spacing: -0.03em;
+  font-weight: 700;
   color: var(--white);
-  margin-bottom: 1.25rem;
-  line-height: 1.1;
-  letter-spacing: -0.6px;
+  margin: 0 0 1.25rem;
 }
 
-.heroSubtitle {
-  font-size: 1rem; /* 16px */
-  color: rgba(255, 255, 255, 0.7);
-  max-width: 480px;
-  margin: 0 auto 1.25rem;
-  line-height: 1.55;
-}
+/* Two lines at 390, breaking after "worth" — the break is explicit rather than
+   left to the box width, so it cannot land somewhere else on a narrower phone.
+   At 1440 the line is short enough to want no break at all. */
+.heroTitleBreak { display: inline; }
 
-/* Live inventory proof — real roles on the board right now. Rendered as centred
-   text (not inline-flex) so it wraps cleanly on mobile with the dot inline before
-   the number, instead of the dot/number floating out of line with the wrapped text. */
-.heroLiveCount {
-  display: block;
-  max-width: 440px;
-  margin: 0 auto 1.75rem;
-  font-size: 0.92rem;
-  color: rgba(255, 255, 255, 0.82);
-  line-height: 1.5;
-  text-align: center;
-}
-.heroLiveCount strong { color: #FFE500; font-weight: 800; }
-.heroLiveDot {
-  display: inline-block;
-  vertical-align: middle;
-  position: relative;
-  top: -1px;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #22c55e;
-  margin-right: 0.45rem;
-  animation: heroLivePulse 2s infinite;
-}
-@keyframes heroLivePulse {
-  0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.5); }
-  70% { box-shadow: 0 0 0 8px rgba(34, 197, 94, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
-}
-@media (prefers-reduced-motion: reduce) { .heroLiveDot { animation: none; } }
+/* ── SEARCH ───────────────────────────────────────────────────────────────
+   390: two stacked white fields, then a full-width yellow button.
+   1440: one 900px white bar with both fields and the button inside it. */
 
-
-/* Three proof points sitting between sub-copy and CTAs.
-   auto-fit + min 150px → wraps to 2 cards then 1 on narrower viewports
-   without needing media-query branching. */
-.heroProofGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 12px;
-  max-width: 720px;
-  margin: 0 auto 1.75rem;
-}
-
-.heroProofCard {
-  background: rgba(255, 255, 255, 0.04);
-  border-radius: 10px;
-  padding: 14px 16px;
-  text-align: left;
+.heroSearch {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  /* Floor so single-line-body cards keep visual rhythm with the
-     two-line one when stacked on mobile (grid auto-stretches in a
-     row, so this only matters once auto-fit wraps to one column). */
-  min-height: 110px;
+  gap: 10px;
+  width: 100%;
+  margin: 0 auto;
+  text-align: left;
 }
 
-.heroProofIcon {
-  color: var(--primary-yellow);
+.heroField {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;          /* a flex child defaults to min-width:auto and will
+                            refuse to shrink below its input's intrinsic size,
+                            which is how a control row ends up wider than the
+                            page it sits in */
+  background: #fff;
+  border-radius: 10px;
+  padding: 0 14px;
+  height: 52px;
+  color: #64748B;
 }
 
-.heroProofHeadline {
-  font-size: 1rem;
+.heroInput {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 15.5px;
+  color: #0F172A;
+  height: 100%;
+}
+
+.heroInput::placeholder { color: #94A3B8; }
+
+/* The 1px divider between the two fields. Only ever drawn on the desktop bar,
+   where the fields share one white box. */
+.heroFieldRule { display: none; }
+
+.heroSearchBtn {
+  width: 100%;
+  border: none;
+  border-radius: 10px;
+  background: var(--primary-yellow);
+  color: #0F172A;
+  font-family: inherit;
+  font-size: 16px;
   font-weight: 600;
-  color: var(--primary-yellow);
-  margin: 0;
-  line-height: 1.2;
+  padding: 16px;
+  cursor: pointer;
+  transition: background 0.15s;
 }
 
-.heroProofBody {
-  font-size: 0.85rem;
-  color: rgba(255, 255, 255, 0.75);
-  margin: 0;
-  line-height: 1.4;
+.heroSearchBtn:hover { background: var(--hover-yellow); }
+
+/* YELLOW IS THE PRIMARY HERE AND ONLY HERE IN THIS SET — the visitor has not
+   committed to anything and the action costs them nothing, which is the same
+   reasoning that puts yellow on Apply Now. */
+
+.heroUnderline {
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: #A9B7CB;
+  margin: 14px 0 0;
 }
 
-/* Bottom strip — replaces the 0/600 progress bar. Single muted line of
-   reassurance, not a counter. */
-.heroBottomStrip {
-  margin: 1.25rem auto 0;
-  max-width: 640px;
-  font-size: 0.78rem;
-  color: rgba(255, 255, 255, 0.5);
-  line-height: 1.45;
+.heroUnderline strong { color: #fff; font-weight: 700; }
+
+/* ── THE NEWEST ROLES ─────────────────────────────────────────────────────── */
+
+.heroRolesEyebrow {
+  font-family: ui-monospace, 'IBM Plex Mono', SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.07em;
+  color: #94A3B8;
+  margin: 26px 0 10px;
+  text-align: left;
 }
+
+.heroRoles {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  text-align: left;
+}
+
+.heroRoleCard {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  background: #fff;
+  border-radius: 12px;
+  padding: 14px 16px;
+  text-decoration: none;
+  border: 1px solid transparent;
+  transition: border-color 0.15s, transform 0.1s;
+}
+
+.heroRoleCard:hover {
+  border-color: #CBD5E1;
+  transform: translateY(-1px);
+}
+
+.heroRoleEmployer {
+  font-size: 12.5px;
+  color: #64748B;
+}
+
+/* NO CLAMP. The title is the only thing telling two listings apart — 40 live
+   roles share "Chef De Partie" and one employer — so it wraps to whatever
+   height it needs rather than being cut. */
+.heroRoleTitle {
+  font-family: var(--font-display), Inter, system-ui, sans-serif;
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  color: #0F172A;
+}
+
+.heroRoleMeta {
+  font-size: 14.5px;
+  font-weight: 600;
+  color: #475569;
+  margin-top: 2px;
+}
+
+/* TWO CARDS AT 390, FOUR AT 1440. The third and fourth are hidden rather than
+   not fetched — one query either way, and the desktop breakpoint does not need
+   a second round trip to fill out. */
+.heroRoleCardWide { display: none; }
+
+/* ── THE BOTTOM CALL TO ACTION ────────────────────────────────────────────
+   These three are NOT hero classes any more. The hero that used them is gone;
+   the closing section at the foot of the page still does, and deleting them
+   with the rest would have left that section unstyled and silent — no error,
+   no type failure, just a row of unstyled links nobody would notice until a
+   screenshot. Kept verbatim so the diff stays honest. */
 
 .heroCtas {
   display: flex;
@@ -201,6 +272,79 @@
   border-color: rgba(255, 255, 255, 0.5);
   transform: translateY(-2px);
 }
+
+/* ── THE FOUNDING OFFER, BELOW THE HERO ──────────────────────────────────── */
+
+.foundingStrip {
+  margin: 0;
+  padding: 12px 16px;
+  background: #F1F5F9;
+  border-bottom: 1px solid var(--border-gray);
+  text-align: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+}
+
+/* ── 1440 ─────────────────────────────────────────────────────────────────── */
+
+@media (min-width: 900px) {
+  .heroTitle {
+    font-size: 52px;
+    line-height: 1.05;
+    letter-spacing: -0.035em;
+    margin-bottom: 1.75rem;
+  }
+
+  .heroTitleBreak { display: none; }
+
+  /* One white bar: both fields and the button inside it. */
+  .heroSearch {
+    flex-direction: row;
+    align-items: center;
+    max-width: 900px;
+    background: #fff;
+    border-radius: 12px;
+    padding: 10px;
+    gap: 0;
+  }
+
+  .heroField {
+    height: 44px;
+    padding: 0 16px;
+    border-radius: 0;
+  }
+
+  .heroFieldRule {
+    display: block;
+    width: 1px;
+    height: 28px;
+    background: #E2E8F0;
+    flex: 0 0 1px;
+  }
+
+  .heroSearchBtn {
+    width: auto;
+    flex: 0 0 auto;
+    padding: 14px 26px;
+    margin-left: 10px;
+  }
+
+  .heroUnderline {
+    font-size: 14px;
+    margin-top: 18px;
+  }
+
+  .heroRolesEyebrow { text-align: center; }
+
+  .heroRoles {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+  }
+
+  .heroRoleCardWide { display: flex; }
+}
+
 
 /* Section Shared Styles */
 .sectionInner {

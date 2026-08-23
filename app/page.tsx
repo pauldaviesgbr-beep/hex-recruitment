@@ -7,6 +7,10 @@ import Header from '@/components/Header'
 import ThriveMark from '@/components/ThriveMark'
 import FeaturedJobs from '@/components/FeaturedJobs'
 import { supabase } from '@/lib/supabase'
+import { supabaseJobToJob } from '@/lib/types'
+import type { Job } from '@/lib/mockJobs'
+import { formatJobSalary, formatJobLocation } from '@/lib/jobCard'
+import { Ico } from '@/components/icons'
 import { EMPLOYER_COHORT_CAP } from '@/lib/constants/cohort'
 import { BRAND_NAME, BRAND_TAGLINE } from '@/lib/constants/brand'
 import { foundingPhraseShort } from '@/lib/trialUtils'
@@ -20,6 +24,10 @@ export default function Home() {
   const [authRedirecting, setAuthRedirecting] = useState(false)
   const [spotsRemaining, setSpotsRemaining] = useState<number | null>(null)
   const [liveJobs, setLiveJobs] = useState<number | null>(null)
+  const [rolesWithSalary, setRolesWithSalary] = useState<number | null>(null)
+  const [newestRoles, setNewestRoles] = useState<Job[]>([])
+  const [searchWhat, setSearchWhat] = useState('')
+  const [searchWhere, setSearchWhere] = useState('')
 
   // Redirect logged-in users to their dashboard (non-blocking — page renders immediately)
   useEffect(() => {
@@ -54,6 +62,55 @@ export default function Home() {
       .then(({ count }) => { if (typeof count === 'number') setLiveJobs(count) })
   }, [])
 
+  // HOW MANY LIVE ROLES ACTUALLY CARRY A FIGURE. `salary_max is not null` is
+  // the wrong test and would have passed: two imported Goldenkeys rows store a
+  // literal 0 in both salary columns. Above zero is the question, and there are
+  // no rows with a min but no max, so this one filter is exact.
+  //
+  // Fail-soft in the honest direction: if this never answers, rolesWithSalary
+  // stays null and the salary clause simply is not said. A claim we cannot
+  // support has to fall out of the sentence, not default into it.
+  useEffect(() => {
+    supabase.from('jobs').select('*', { count: 'exact', head: true })
+      .eq('status', 'active').gt('salary_max', 0)
+      .then(({ count }) => { if (typeof count === 'number') setRolesWithSalary(count) })
+  }, [])
+
+  // The newest live roles, for the cards under the search.
+  //
+  // select('*') deliberately — a widened select is a change to a query and a
+  // query is not type-checked. Naming a column that does not exist makes
+  // PostgREST reject the WHOLE request, and the page would fall into its
+  // no-roles branch and look like an empty board rather than an error. The
+  // mapper takes the whole row anyway.
+  useEffect(() => {
+    let alive = true
+    ;(async () => {
+      const { data } = await supabase
+        .from('jobs')
+        .select('*')
+        .eq('status', 'active')
+        .order('posted_at', { ascending: false })
+        .limit(4)
+      if (!alive) return
+      setNewestRoles((data || []).map(supabaseJobToJob))
+    })()
+    return () => { alive = false }
+  }, [])
+
+  // THE LABEL FOLLOWS THE DATA. "NEWEST TODAY" is a claim about today, and
+  // nothing has been posted today — the newest live role is two days old, and
+  // only 4 of 251 were posted in the last week. A hard-coded label would have
+  // been false on the day it shipped.
+  const newestPosted = newestRoles[0] ? new Date(newestRoles[0].postedDate || newestRoles[0].postedAt) : null
+  const daysSinceNewest = newestPosted && !isNaN(newestPosted.getTime())
+    ? Math.floor((Date.now() - newestPosted.getTime()) / 86400000)
+    : null
+  const newestLabel = daysSinceNewest === null ? 'NEWEST ON THRIVE'
+    : daysSinceNewest <= 0 ? 'NEWEST TODAY'
+    : daysSinceNewest <= 7 ? 'NEWEST THIS WEEK'
+    : 'NEWEST ON THRIVE'
+
   // If a logged-in session was found, show minimal UI while redirecting
   if (authRedirecting) {
     return (
@@ -68,82 +125,127 @@ export default function Home() {
     <main>
       <Header />
 
-      {/* Hero Section */}
+      {/* ── THE HERO IS THE JOB SEARCH ─────────────────────────────────────
+          It used to be "From job ad to signed offer, in one place." with four
+          employer proof cards and a "Hire on Thrive" primary. A stranger who
+          taps a job post and lands here is looking for WORK, and the page they
+          arrived on argued for the product to somebody else. Candidate signups
+          were down ~50% and this is the top of that funnel.
+
+          The employer story is not deleted — it is everything below this
+          section, which is where it belongs.
+
+          EVERY NUMBER AND CLAIM HERE COMES FROM THE ROWS. The design specified
+          "251 roles live now, with the salary on every one" and 251 was right
+          on the day it was written — but a figure typed into a page is a
+          figure that goes stale silently, and the salary half is a CLAIM, not
+          a count. Both are computed below. */}
       <section className={styles.hero}>
         <div className={styles.heroInner}>
           <h1 className={styles.heroTitle}>
-            From job ad to signed offer, in one place.
+            Hospitality jobs worth{' '}
+            <br className={styles.heroTitleBreak} />
+            leaving your shift for.
           </h1>
-          <p className={styles.heroSubtitle}>
-            A modern UK recruitment platform that handles the whole hire.
-          </p>
 
+          <form
+            className={styles.heroSearch}
+            role="search"
+            onSubmit={(e) => {
+              e.preventDefault()
+              const params = new URLSearchParams()
+              if (searchWhat.trim()) params.set('search', searchWhat.trim())
+              if (searchWhere.trim()) params.set('city', searchWhere.trim())
+              // Empty is not a dead end: with no terms this is "Browse all
+              // jobs", which is exactly what the button says it is.
+              router.push(params.toString() ? `/jobs?${params}` : '/jobs')
+            }}
+          >
+            <div className={styles.heroField}>
+              <Ico name="search" size={20} />
+              <input
+                type="search"
+                className={styles.heroInput}
+                value={searchWhat}
+                onChange={(e) => setSearchWhat(e.target.value)}
+                placeholder="Chef, bartender, manager…"
+                aria-label="Job title or keyword"
+              />
+            </div>
+            <span className={styles.heroFieldRule} aria-hidden="true" />
+            <div className={styles.heroField}>
+              <Ico name="map-pin" size={20} />
+              <input
+                type="text"
+                className={styles.heroInput}
+                value={searchWhere}
+                onChange={(e) => setSearchWhere(e.target.value)}
+                placeholder="Town or postcode"
+                aria-label="Town or postcode"
+              />
+            </div>
+            <button type="submit" className={styles.heroSearchBtn}>
+              Browse all jobs
+            </button>
+          </form>
+
+          {/* THE SALARY HALF IS A CLAIM AND IT IS FALSE TODAY FOR TWO ROWS.
+              Two imported Goldenkeys listings carry salary_min = 0 AND
+              salary_max = 0, so "the salary on every one" would be a sentence
+              the board does not support. It is rendered only when the count of
+              live roles with a real figure equals the count of live roles.
+              Note that `salary_max is not null` is NOT the test — both those
+              rows pass it. The value has to be above zero. */}
           {liveJobs !== null && liveJobs > 0 && (
-            <p className={styles.heroLiveCount}>
-              <span className={styles.heroLiveDot} aria-hidden="true" />
-              <strong>{liveJobs.toLocaleString()}</strong> live hospitality roles on Thrive right now — and growing every week
+            <p className={styles.heroUnderline}>
+              <strong>{liveJobs.toLocaleString()}</strong> roles live now
+              {rolesWithSalary !== null && rolesWithSalary === liveJobs && ', with the salary on every one'}
+              . No account needed to look.
             </p>
           )}
 
-          <div className={styles.heroProofGrid}>
-            <div className={styles.heroProofCard}>
-              <svg className={styles.heroProofIcon} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <circle cx="12" cy="12" r="10" />
-                <polyline points="12 6 12 12 16 14" />
-              </svg>
-              <p className={styles.heroProofHeadline}>3 minutes</p>
-              <p className={styles.heroProofBody}>AI-assisted job ad, posted live</p>
-            </div>
-            <div className={styles.heroProofCard}>
-              <svg className={styles.heroProofIcon} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <line x1="8" y1="6" x2="21" y2="6" />
-                <line x1="8" y1="12" x2="21" y2="12" />
-                <line x1="8" y1="18" x2="21" y2="18" />
-                <line x1="3" y1="6" x2="3.01" y2="6" />
-                <line x1="3" y1="12" x2="3.01" y2="12" />
-                <line x1="3" y1="18" x2="3.01" y2="18" />
-              </svg>
-              <p className={styles.heroProofHeadline}>Track everything</p>
-              <p className={styles.heroProofBody}>Every applicant, from CV to offer</p>
-            </div>
-            <div className={styles.heroProofCard}>
-              <svg className={styles.heroProofIcon} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                <polyline points="14 2 14 8 20 8" />
-                <polyline points="9 15 11 17 15 13" />
-              </svg>
-              <p className={styles.heroProofHeadline}>Sign in-platform</p>
-              <p className={styles.heroProofBody}>Offer letters, signed both sides</p>
-            </div>
-            <div className={styles.heroProofCard}>
-              <svg className={styles.heroProofIcon} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-                <line x1="16" y1="2" x2="16" y2="6" />
-                <line x1="8" y1="2" x2="8" y2="6" />
-                <line x1="3" y1="10" x2="21" y2="10" />
-              </svg>
-              <p className={styles.heroProofHeadline}>Sync your calendar</p>
-              <p className={styles.heroProofBody}>Interviews land in Google or Outlook</p>
-            </div>
-          </div>
-
-          <div className={styles.heroCtas}>
-            <span className="hideOnMobile" style={{ fontSize: '0.9rem', fontWeight: 600, color: 'rgba(255,255,255,0.7)', alignSelf: 'center', whiteSpace: 'nowrap' }}>Already have an account? →</span>
-            <Link href="/login/employer" className={styles.ctaPrimary}>
-              Hire on Thrive →
-            </Link>
-            <Link href="/login/employee" className={styles.ctaSecondary}>
-              Job seeker login
-            </Link>
-          </div>
-
-          <p className={styles.heroBottomStrip}>
-            {spotsRemaining !== null
-              ? `${spotsRemaining} of ${EMPLOYER_COHORT_CAP} founding spots left · ${foundingPhraseShort()} · no card needed`
-              : `First ${EMPLOYER_COHORT_CAP} employers get ${foundingPhraseShort()} · no card needed · free for candidates to apply`}
-          </p>
+          {/* "NEWEST TODAY" IS A CLAIM ABOUT TODAY. Nothing was posted today —
+              the newest live role is from 21 Aug — so a hard-coded label would
+              be false on the day it shipped, and false again on most days: only
+              4 of the 251 live roles were posted in the last week. The label
+              follows the data. */}
+          {newestRoles.length > 0 && (
+            <>
+              <p className={styles.heroRolesEyebrow}>{newestLabel}</p>
+              <div className={styles.heroRoles}>
+                {newestRoles.map((job, i) => (
+                  <Link
+                    key={job.id}
+                    href={`/job/${job.id}`}
+                    className={`${styles.heroRoleCard} ${i > 1 ? styles.heroRoleCardWide : ''}`}
+                  >
+                    <span className={styles.heroRoleEmployer}>{job.company}</span>
+                    {/* THE FULL TITLE, NOT TRUNCATED AT THE EN DASH. Cutting
+                        there is right in admin and destroys the board: 40 live
+                        listings collapse to "Chef De Partie", all from one
+                        employer, and the phrase after the dash is the only
+                        thing telling them apart. It wraps instead. */}
+                    <span className={styles.heroRoleTitle}>{job.title}</span>
+                    <span className={styles.heroRoleMeta}>
+                      {formatJobSalary(job)} · {formatJobLocation(job)}
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            </>
+          )}
         </div>
       </section>
+
+      {/* The founding-cohort offer. It was inside the hero, arguing to
+          employers on a screen that now belongs to candidates. It is the one
+          money claim we are allowed to make, so it moves rather than goes. */}
+      <p className={styles.foundingStrip}>
+        {spotsRemaining !== null
+          ? `${spotsRemaining} of ${EMPLOYER_COHORT_CAP} founding spots left · ${foundingPhraseShort()} · no card needed`
+          : `First ${EMPLOYER_COHORT_CAP} employers get ${foundingPhraseShort()} · no card needed · free for candidates to apply`}
+      </p>
+
 
       {/* Live roles strip — candidate funnel + proof of real inventory */}
       <FeaturedJobs />
