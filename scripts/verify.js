@@ -226,6 +226,24 @@ const ALL = [
   // failing on purpose 22 Aug 2026 with the expiry removed — exit 1, seven
   // named failures, the legacy case handing back the stale address.
   { name: 'pendingconfirm:prove', cmd: npm, args: ['run', 'pendingconfirm:prove'] },
+  // NO FILTER MAY OFFER A VALUE THE PRODUCT CANNOT PRODUCE — the CLASS.
+  //
+  // Four faults in this codebase have been this shape and each was fixed
+  // alone: six disagreeing copies of the work-TYPE vocabulary (one offering
+  // "Apprenticeship", a word nothing can write); the job-alert tag picker
+  // where all 34 options matched zero rows; the work-LOCATION split where the
+  // employer form wrote "In person" and the candidate form "On-site" with no
+  // map between them; and a "Work Arrangement" filter that was offered,
+  // counted in the active-filter badge, and applied NOWHERE.
+  //
+  // It asks what the PRODUCT can produce, not what the board currently
+  // matches. A check that went red whenever an option had no live matches
+  // would be red for "Remote" until Thrive broadens — true about this week's
+  // data, useless as a guard, and quickly ignored.
+  //
+  // Watched failing on purpose 23 Aug 2026 by putting the filter back on tags
+  // and un-applying Work Arrangement: exit 1, three named failures.
+  { name: 'filtervocab:prove', cmd: npm, args: ['run', 'filtervocab:prove'] },
 ]
 const CHECKS = FAST ? ALL.filter(c => !c.slow) : ALL
 

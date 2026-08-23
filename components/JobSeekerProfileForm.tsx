@@ -15,6 +15,7 @@ import PreferredAreasPicker from './PreferredAreasPicker'
 import { isValidEmail } from '@/lib/validateEmail'
 import { validateSalaryInput } from '@/lib/salaryInput'
 import { safeInternalPath } from '@/lib/safeRedirect'
+import { WORK_LOCATIONS } from '@/lib/workLocation'
 import { getStoredAttribution, attributionColumns, HEARD_FROM_OPTIONS } from '@/lib/attribution'
 import { countryColumns } from '@/lib/geo'
 import { focusField } from '@/lib/focusField'
@@ -1899,7 +1900,7 @@ export default function JobSeekerProfileForm({ mode, existingData, userId }: Job
       <div className={styles.formGroup}>
         <label className={styles.label}>Work Location Preference</label>
         <div className={styles.skillsGrid}>
-          {['On-site', 'Remote', 'Hybrid'].map(loc => (
+          {[...WORK_LOCATIONS].map(loc => (
             <button
               key={loc}
               type="button"
