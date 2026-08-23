@@ -21,9 +21,9 @@
 // where a constant in one file must agree with a value in another, ASSERT THE
 // AGREEMENT rather than either number.
 //
-// Filesystem and pure text. The RENDERED half — nothing primary inside the last
-// 112px — is a browser question and lives in the drive, because a stylesheet
-// cannot tell you where a button ended up.
+// Filesystem and pure text. The RENDERED half — nothing primary permanently
+// under the lane — is a browser question and lives in the drive, because a
+// stylesheet cannot tell you where a button ended up.
 
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
@@ -53,6 +53,11 @@ const check = (name: string, got: () => unknown, want: unknown) => {
     failed++
   } else console.log(`ok    ${name}`)
 }
+
+// Every `body { ... }` rule in the stylesheet, wherever it sits and whatever
+// media query it is nested in. The override that made the first version of this
+// fix do nothing was a body rule inside @media (max-width: 768px).
+const bodyRules = globals.match(/(^|[\s,{}])body\s*\{[^}]*\}/g) || []
 
 // ── THE TWO NUMBERS MUST AGREE ─────────────────────────────────────────────
 // The component publishes a height; the stylesheet draws a box. If the box is
@@ -93,19 +98,53 @@ check(
 
 check(
   'body reserves the lane from the shell',
-  () => /body\s*\{[^}]*padding-bottom:\s*var\(--consent-h/.test(globals),
+  () => /padding-bottom:\s*calc\(/.test(bodyRules.join('')),
   true
 )
 
 check(
   'NOT a margin on the last element — the version that breaks on the next page',
-  () => /body\s*\{[^}]*margin-bottom:\s*var\(--consent-h/.test(globals),
+  () => /margin-bottom:\s*var\(--consent-h/.test(bodyRules.join('')),
   false
 )
 
 check(
   'the variable has a declared default, so no page depends on the fallback',
   () => /--consent-h:\s*0px/.test(globals),
+  true
+)
+
+// ── ONE BOTTOM RESERVE, AND ONLY ONE ───────────────────────────────────────
+// THIS IS THE CHECK THAT WOULD HAVE CAUGHT IT, AND THE FIRST VERSION OF THIS
+// FILE DID NOT HAVE IT. The fix looked right in the file and did NOTHING on a
+// phone: `@media (max-width: 768px) { body { padding-bottom: 80px } }` for the
+// chat launcher sat further down globals.css at the same specificity, so it
+// won, and --consent-h was published and then ignored at exactly the width
+// where both faults happened. Found by driving it, never by reading it.
+//
+// The old check asked whether the calc EXISTS, which was true the entire time
+// it was being overridden — a question with the same answer in both states.
+// The question with two different answers is HOW MANY bottom reserves there
+// are. The launcher's 80px is a token feeding the one rule now.
+
+check(
+  'BODY HAS EXACTLY ONE BOTTOM RESERVE IN THE WHOLE STYLESHEET',
+  () => bodyRules.filter(r => /padding-bottom\s*:/.test(r)).length,
+  1
+)
+
+check(
+  'and it is the sum, so neither the launcher nor the lane can erase the other',
+  () => {
+    const reserve = bodyRules.find(r => /padding-bottom\s*:/.test(r)) || ''
+    return /padding-bottom:\s*calc\(\s*var\(--chat-clear[^)]*\)\s*\+\s*var\(--consent-h/.test(reserve)
+  },
+  true
+)
+
+check(
+  'the launcher clearance is a token, declared at both widths',
+  () => /--chat-clear:\s*0px/.test(globals) && /--chat-clear:\s*80px/.test(globals),
   true
 )
 
@@ -124,7 +163,7 @@ check(
   'unmounted → the lane collapses to zero',
   () => {
     const cleanup = component.split('return () => {')[1]?.split('}')[0] || ''
-    return cleanup.includes("--consent-h") && cleanup.includes("'0px'")
+    return cleanup.includes('--consent-h') && cleanup.includes("'0px'")
   },
   true
 )
