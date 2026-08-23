@@ -244,6 +244,22 @@ const ALL = [
   // Watched failing on purpose 23 Aug 2026 by putting the filter back on tags
   // and un-applying Work Arrangement: exit 1, three named failures.
   { name: 'filtervocab:prove', cmd: npm, args: ['run', 'filtervocab:prove'] },
+  // EVERY ADVERT MUST BE FINDABLE UNDER ITS OWN SECTOR.
+  //
+  // Sixteen live adverts were not. All 251 carry category='hospitality', and
+  // getJobSector matched the category column against a HAND-WRITTEN list of 19
+  // ids that did not include 'hospitality' — so only a title keyword could
+  // rescue them, and sixteen titles had none. They fell to the 'business'
+  // default: filed under Business, and invisible to anyone filtering the board
+  // to Hospitality, which is the only sector on the board.
+  //
+  // A SEVENTH COPY OF A VOCABULARY. lib/categories.ts holds 33 ids and the list
+  // typed out 19, so FOURTEEN sectors could never be matched on the column.
+  // Derived now, so the next omission is impossible rather than unlikely.
+  //
+  // Watched failing on purpose 23 Aug 2026 by restoring the hand-written 19:
+  // exit 1, five named failures, including one that names every sector dropped.
+  { name: 'jobsector:prove', cmd: npm, args: ['run', 'jobsector:prove'] },
 ]
 const CHECKS = FAST ? ALL.filter(c => !c.slow) : ALL
 

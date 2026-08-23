@@ -82,6 +82,7 @@ const getPostedDaysAgo = (postedAt: string): number => {
 
 import { categories as sharedCategories } from '@/lib/categories'
 import { WORK_LOCATIONS, jobMatchesWorkLocation, normaliseWorkLocation } from '@/lib/workLocation'
+import { getJobSector } from '@/lib/jobSector'
 import {
   resolvePrefFilters,
   workStylePref,
@@ -91,100 +92,7 @@ import {
 import { Ico } from '@/components/icons'
 const categories = [{ id: 'all', label: 'All Jobs' }, ...sharedCategories]
 
-// Map job data to sector categories
-const getJobSector = (job: { title: string; category?: string }): string => {
-  const titleLower = job.title.toLowerCase()
-  const catLower = (job.category || '').toLowerCase()
-
-  // Hospitality Tourism & Sport
-  if (['restaurant', 'hotel', 'cafe', 'contract catering', 'events', 'chef', 'waiter', 'bar', 'kitchen', 'barista', 'fastfood'].some(k => catLower.includes(k)))
-    return 'hospitality'
-  if (['chef', 'cook', 'waiter', 'waitress', 'bartender', 'bar ', 'barista', 'kitchen porter', 'porter', 'housekeeper', 'concierge', 'hotel', 'event', 'banquet', 'catering', 'sushi', 'server', 'host', 'coffee', 'restaurant', 'sommelier'].some(k => titleLower.includes(k)))
-    return 'hospitality'
-
-  // Direct sector category match (for jobs posted with sector categories)
-  const sectorIds = ['accountancy', 'business', 'charity', 'creative', 'digital', 'energy', 'engineering', 'environment', 'healthcare', 'law', 'marketing', 'media', 'property', 'public', 'recruitment', 'retail', 'science', 'teaching', 'transport']
-  if (sectorIds.includes(catLower)) return catLower
-
-  // Management roles
-  if (['manager', 'head', 'supervisor', 'director', 'consultant'].some(k => titleLower.includes(k)))
-    return 'business'
-
-  // Healthcare
-  if (['nurse', 'doctor', 'care', 'health', 'medical', 'pharmacy', 'dental'].some(k => titleLower.includes(k)))
-    return 'healthcare'
-
-  // Digital & IT
-  if (['developer', 'software', 'engineer', 'data', 'analyst', 'devops', 'cloud', 'cyber', 'tech'].some(k => titleLower.includes(k)))
-    return 'digital'
-
-  // Retail & Sales
-  if (['sales', 'retail', 'shop', 'store', 'cashier', 'merchandis'].some(k => titleLower.includes(k)))
-    return 'retail'
-
-  // Teaching & Education
-  if (['teacher', 'tutor', 'lecturer', 'education', 'training'].some(k => titleLower.includes(k)))
-    return 'teaching'
-
-  // Marketing
-  if (['marketing', 'advertising', 'pr ', 'social media', 'content', 'brand'].some(k => titleLower.includes(k)))
-    return 'marketing'
-
-  // Transport & Logistics
-  if (['driver', 'delivery', 'logistics', 'warehouse', 'transport'].some(k => titleLower.includes(k)))
-    return 'transport'
-
-  // Property & Construction
-  if (['builder', 'plumber', 'electrician', 'construction', 'property', 'estate agent'].some(k => titleLower.includes(k)))
-    return 'property'
-
-  // Accountancy Banking & Finance
-  if (['accountant', 'finance', 'banking', 'audit', 'tax', 'bookkeep'].some(k => titleLower.includes(k)))
-    return 'accountancy'
-
-  // Engineering & Manufacturing
-  if (['mechanical', 'manufacturing', 'production', 'factory', 'cnc'].some(k => titleLower.includes(k)))
-    return 'engineering'
-
-  // Charity & Voluntary
-  if (['charity', 'fundrais', 'volunteer', 'nonprofit', 'ngo'].some(k => titleLower.includes(k)))
-    return 'charity'
-
-  // Creative Arts & Design
-  if (['designer', 'artist', 'creative', 'photographer', 'illustrat', 'animator'].some(k => titleLower.includes(k)))
-    return 'creative'
-
-  // Energy & Utilities
-  if (['energy', 'solar', 'wind', 'oil', 'gas', 'renewable', 'utilities'].some(k => titleLower.includes(k)))
-    return 'energy'
-
-  // Environment & Agriculture
-  if (['environment', 'sustainab', 'ecology', 'conservation', 'agricult', 'farm'].some(k => titleLower.includes(k)))
-    return 'environment'
-
-  // Law & Legal
-  if (['lawyer', 'solicitor', 'legal', 'barrister', 'paralegal'].some(k => titleLower.includes(k)))
-    return 'law'
-
-  // Media & Publishing
-  if (['journalist', 'editor', 'broadcast', 'media', 'publish', 'reporter'].some(k => titleLower.includes(k)))
-    return 'media'
-
-  // Public Sector & Government
-  if (['civil servant', 'council', 'government', 'public sector', 'policy'].some(k => titleLower.includes(k)))
-    return 'public'
-
-  // Recruitment & HR
-  if (['recruit', 'talent acquisition', 'hiring', 'staffing', 'human resources', 'hr '].some(k => titleLower.includes(k)))
-    return 'recruitment'
-
-  // Science & Research
-  if (['scientist', 'research', 'laboratory', 'lab tech', 'biolog', 'chemist', 'physicist'].some(k => titleLower.includes(k)))
-    return 'science'
-
-  // Default to business for unrecognised titles
-  return 'business'
-}
+// getJobSector now lives in lib/jobSector.ts — the preference resolver needs it too.
 
 function JobsPageContent() {
   const { jobs, loading } = useJobs()

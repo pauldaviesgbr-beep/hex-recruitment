@@ -38,7 +38,8 @@
     "locationline:prove": "npx tsx scripts/prove-location-line.ts",
     "prefsrelax:prove": "npx tsx scripts/prove-prefs-relax.ts",
     "pendingconfirm:prove": "npx tsx scripts/prove-pending-confirm.ts",
-    "filtervocab:prove": "npx tsx scripts/prove-filter-vocabularies.ts"
+    "filtervocab:prove": "npx tsx scripts/prove-filter-vocabularies.ts",
+    "jobsector:prove": "npx tsx scripts/prove-job-sector.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.98.0",
