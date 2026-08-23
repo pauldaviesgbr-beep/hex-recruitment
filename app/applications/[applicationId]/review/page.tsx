@@ -45,7 +45,11 @@ export default function ReviewOfferPage() {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) {
         if (!cancelled) setPhase({ kind: 'redirecting' })
-        router.push(`/login/employee?next=${encodeURIComponent(`/applications/${applicationId}/review`)}`)
+        // ?redirect=, NOT ?next=. This sent ?next= to a page that only read
+        // ?redirect=, so the return path was silently dropped and somebody
+        // opening a review landed on their dashboard instead. The two names
+        // for one idea is the fault; the login screen owns ?redirect.
+        router.push(`/login?redirect=${encodeURIComponent(`/applications/${applicationId}/review`)}`)
         return
       }
 

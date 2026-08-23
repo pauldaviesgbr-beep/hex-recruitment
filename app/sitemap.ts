@@ -28,9 +28,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticPages: MetadataRoute.Sitemap = [
     { url: SITE_URL, lastModified: now, changeFrequency: 'daily', priority: 1.0 },
     { url: `${SITE_URL}/jobs`, lastModified: now, changeFrequency: 'hourly', priority: 0.9 },
+    // /login/employee and /login/employer came OUT of the sitemap on
+    // 23 Aug 2026, in the same change that made them redirects. A sitemap
+    // that advertises a redirect asks Google to index a bounce — and the
+    // employee one was publishing the bare "Job Seeker Login" face, which
+    // is one of the doors strangers arrived at instead of a sign-up form.
     { url: `${SITE_URL}/login`, lastModified: now, changeFrequency: 'monthly', priority: 0.3 },
-    { url: `${SITE_URL}/login/employee`, lastModified: now, changeFrequency: 'monthly', priority: 0.3 },
-    { url: `${SITE_URL}/login/employer`, lastModified: now, changeFrequency: 'monthly', priority: 0.3 },
     { url: `${SITE_URL}/register/employee`, lastModified: now, changeFrequency: 'monthly', priority: 0.5 },
     // /register/employer IS NOT LISTED. It now only exists as a redirect to
     // /register/employer-free, which is listed below — advertising a URL whose
