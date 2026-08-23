@@ -23,7 +23,7 @@
 
 import type { LucideIcon } from 'lucide-react'
 import {
-  AlertTriangle, Apple, Ban, Banknote, BarChart3, Bell, Box, Briefcase, Building2,
+  AlertTriangle, Apple, ArrowRight, Ban, Banknote, BarChart3, Bell, Box, Briefcase, Building2,
   Cake, Calendar, Camera, Check, ChefHat, Clock, Compass, CreditCard, Eye,
   File, FileText, Flag, FlaskConical, Flame, Folder, Gift, Globe, Handshake,
   HelpCircle, Home, Image as ImageIcon, Inbox, Info, Key, Laptop, Lightbulb,
@@ -37,6 +37,7 @@ import {
 export const ICONS = {
   'alert-triangle': AlertTriangle,
   apple: Apple,
+  'arrow-right': ArrowRight,
   ban: Ban,
   banknote: Banknote,
   'bar-chart-3': BarChart3,

@@ -260,6 +260,24 @@ const ALL = [
   // Watched failing on purpose 23 Aug 2026 by restoring the hand-written 19:
   // exit 1, five named failures, including one that names every sector dropped.
   { name: 'jobsector:prove', cmd: npm, args: ['run', 'jobsector:prove'] },
+  // THE HEADER'S TWO DOORS — the only join affordance on every page.
+  //
+  // A DEAD href IS A STRING AND tsc CANNOT SEE IT. That has shipped twice:
+  // /register/employer 404ing after its page was deleted, and posting a job
+  // landing on "City Not Found". The header now carries the ONLY way to join
+  // from a job post, where "Find a Job" used to be the sole affordance at
+  // 5,294 sq px of chip.
+  //
+  // It asserts the ROUTES EXIST ON DISK, not that the strings are present;
+  // that Sign up is a filled button and Log in a text link, because every
+  // review will want to balance them and the imbalance IS the design; and that
+  // a RETURNING person is not stranded — Log in survives on the apply gate,
+  // which has no password box, so the alternative is a sign-up form with no
+  // way out.
+  //
+  // Watched failing on purpose 23 Aug 2026 by restoring the old door and its
+  // dead destination: exit 1, two named failures.
+  { name: 'headerdoors:prove', cmd: npm, args: ['run', 'headerdoors:prove'] },
 ]
 const CHECKS = FAST ? ALL.filter(c => !c.slow) : ALL
 
