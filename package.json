@@ -37,7 +37,8 @@
     "returnpath:prove": "npx tsx scripts/prove-safe-return-path.ts",
     "locationline:prove": "npx tsx scripts/prove-location-line.ts",
     "prefsrelax:prove": "npx tsx scripts/prove-prefs-relax.ts",
-    "pendingconfirm:prove": "npx tsx scripts/prove-pending-confirm.ts"
+    "pendingconfirm:prove": "npx tsx scripts/prove-pending-confirm.ts",
+    "filtervocab:prove": "npx tsx scripts/prove-filter-vocabularies.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.98.0",

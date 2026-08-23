@@ -25,13 +25,15 @@ import {
   type PrefFilter,
 } from '../lib/candidatePrefs'
 
-type J = { id: string; tags?: string[] | null; category?: string | null }
+type J = { id: string; workLocationType?: string | null; category?: string | null }
 
-// The live board, in miniature: everything on site, everything hospitality.
+// The live board, in miniature: work_location is "In person" on all 251 real
+// adverts, so the fixture says so too. It used to model `tags`, which is the
+// field the filter wrongly read — a fixture shaped like the bug.
 const BOARD: J[] = [
-  { id: 'a', tags: ['On-site', 'Full-time'], category: 'hospitality' },
-  { id: 'b', tags: ['On-site'], category: 'hospitality' },
-  { id: 'c', tags: ['On-site'], category: 'retail' },
+  { id: 'a', workLocationType: 'In person', category: 'hospitality' },
+  { id: 'b', workLocationType: 'In person', category: 'hospitality' },
+  { id: 'c', workLocationType: 'In person', category: 'retail' },
 ]
 
 let failed = 0
@@ -87,12 +89,12 @@ check(
 
 // ── A PREFERENCE THAT DOES MATCH IS LEFT ALONE ─────────────────────────────
 check(
-  'an On-site preference IS honoured, because it matches',
+  'A STORED "On-site" IS THE SAME VALUE AS "In person" — the alias, which is the fix',
   () => {
     const r = resolvePrefFilters(BOARD, [workStylePref<J>('On-site')])
     return { applied: r.applied.map(p => p.value), relaxed: r.relaxed.length, matched: r.matched.length }
   },
-  { applied: ['On-site'], relaxed: 0, matched: 3 }
+  { applied: ['In person'], relaxed: 0, matched: 3 }
 )
 
 check(
@@ -109,7 +111,7 @@ check(
   () => {
     const r = resolvePrefFilters(BOARD, [
       sectorPref<J>('retail', 'Retail'),
-      workStylePref<J>('Full-time'),
+      workStylePref<J>('Hybrid'),
     ])
     return {
       applied: r.applied.map(p => p.key),
@@ -125,11 +127,11 @@ check(
   () => {
     const r = resolvePrefFilters(BOARD, [
       sectorPref<J>('hospitality', 'Hospitality'),
-      workStylePref<J>('Full-time'),
+      workStylePref<J>('In person'),
     ])
     return { applied: r.applied.map(p => p.key), matched: r.matched.map(j => j.id) }
   },
-  { applied: ['sector', 'workStyle'], matched: ['a'] }
+  { applied: ['sector', 'workStyle'], matched: ['a', 'b'] }
 )
 
 // ── THE ONE THAT KEEPS THE FIRST PAINT HONEST ──────────────────────────────
@@ -165,8 +167,8 @@ check(
 )
 
 check(
-  'a job with null tags does not throw',
-  () => resolvePrefFilters([{ id: 'x', tags: null, category: null }] as J[], [workStylePref<J>('Hybrid')]).relaxed.length,
+  'a job with a null work location does not throw',
+  () => resolvePrefFilters([{ id: 'x', workLocationType: null, category: null }] as J[], [workStylePref<J>('Hybrid')]).relaxed.length,
   1
 )
 

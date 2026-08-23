@@ -52,7 +52,7 @@ const filterSections = [
   { key: 'experienceLevel' as const, title: 'Experience Level', options: ['No experience required', 'Entry level (0-2 years)', 'Mid level (3-5 years)', 'Senior (6-10 years)', 'Executive (10+ years)'] },
   { key: 'salaryRange' as const, title: 'Salary Range', options: ['Under £20k', '£20k-£30k', '£30k-£40k', '£40k-£50k', '£50k-£75k', '£75k-£100k', '£100k+'] },
   { key: 'postedDate' as const, title: 'Posted Date', options: ['Last 24 hours', 'Last 3 days', 'Last 7 days', 'Last 14 days', 'Last 30 days'] },
-  { key: 'workArrangement' as const, title: 'Work Arrangement', options: ['On-site', 'Remote', 'Hybrid'] },
+  { key: 'workArrangement' as const, title: 'Work Arrangement', options: [...WORK_LOCATIONS] },
   { key: 'tags' as const, title: 'Job Tags', options: ['Immediate start', 'Urgent hire', 'Interviews this week', 'No experience required', 'Entry level', 'Mid level', 'Senior level', 'Management', 'Remote', 'Hybrid', 'On-site', 'Training provided', 'Career progression', 'CV required'] },
 ]
 
@@ -81,6 +81,7 @@ const getPostedDaysAgo = (postedAt: string): number => {
 }
 
 import { categories as sharedCategories } from '@/lib/categories'
+import { WORK_LOCATIONS, jobMatchesWorkLocation, normaliseWorkLocation } from '@/lib/workLocation'
 import {
   resolvePrefFilters,
   workStylePref,
@@ -566,10 +567,19 @@ function JobsPageContent() {
         if (!Array.from(filters.tags).some(ft => jobTags.includes(ft))) return false
       }
 
-      // Quick work style pill filter
+      // Quick work style pill filter.
+      // READS work_location (via workLocationType), NOT tags. Filtering on
+      // tags matched ONE advert out of 251 and is the fault this fixes.
       if (quickWorkStyle) {
-        const jobTags = job.tags || []
-        if (!jobTags.includes(quickWorkStyle)) return false
+        if (!jobMatchesWorkLocation(job, quickWorkStyle)) return false
+      }
+
+      // Work Arrangement — the SAME question as the pill above, and until
+      // 23 Aug 2026 it was declared, offered in the UI, counted in the
+      // active-filter badge, and applied NOWHERE. A filter that says it is on
+      // and changes nothing is worse than one that returns nothing.
+      if (filters.workArrangement.size > 0) {
+        if (!Array.from(filters.workArrangement).some(w => jobMatchesWorkLocation(job, w))) return false
       }
 
       // Quick experience level dropdown filter
@@ -947,7 +957,7 @@ function JobsPageContent() {
     if (jobs.length === 0) return
 
     const wp = (candidatePrefs.workPrefs || [])
-      .find(p => ['Remote', 'Hybrid', 'On-site'].includes(p))
+      .find((p: string) => normaliseWorkLocation(p) !== null)
     const sectorMatch = candidatePrefs.sector
       ? categories.find(c => c.id === candidatePrefs.sector)
       : undefined
@@ -1039,13 +1049,13 @@ function JobsPageContent() {
       <div className={styles.filterStrip}>
         <div className={styles.filterStripInner}>
           <div className={styles.filterStripLeft}>
-            {(['Remote', 'Hybrid', 'On-site'] as const).map(ws => (
+            {WORK_LOCATIONS.map(ws => (
               <button
                 key={ws}
                 className={`${styles.filterPill} ${quickWorkStyle === ws ? styles.filterPillActive : ''}`}
                 onClick={() => setQuickWorkStyle(quickWorkStyle === ws ? null : ws)}
               >
-                {ws === 'Remote' && ''}{ws === 'Hybrid' && ''}{ws === 'On-site' && ''}{ws}
+                {ws}
               </button>
             ))}
             <select

@@ -37,6 +37,8 @@
  * One candidate preference, expressed as something that can be tested against
  * the real board rather than assumed to match.
  */
+import { jobMatchesWorkLocation, workLocationLabel } from './workLocation'
+
 export type PrefFilter<J> = {
   /** Stable name for the preference — 'workStyle', 'sector', 'salaryFloor'. */
   key: string
@@ -118,12 +120,20 @@ export function relaxedPrefsMessage<J>(relaxed: PrefFilter<J>[]): string | null 
  * badly. When Thrive broadens, this preference starts matching and the message
  * simply stops appearing.
  */
-export function workStylePref<J extends { tags?: string[] | null }>(value: string): PrefFilter<J> {
+export function workStylePref<J extends { workLocationType?: string | null }>(value: string): PrefFilter<J> {
+  const label = workLocationLabel(value)
   return {
     key: 'workStyle',
-    value,
-    message: `We've ignored your ${value} preference — the roles on Thrive right now are all on site.`,
-    predicate: (job: J) => (job.tags || []).includes(value),
+    value: label,
+    // THE MESSAGE NAMES THE CANONICAL LABEL, NOT THE STORED STRING. A candidate
+    // who stored "On-site" is told about "In person", because that is the word
+    // the board and the job pages use and being told we ignored a preference
+    // you cannot see anywhere would read as a bug.
+    message: `We've ignored your ${label} preference — the roles on Thrive right now are all on site.`,
+    // READS work_location, NOT tags. Filtering on tags matched ONE advert out
+    // of 251, which is why eight candidates saw a board with a single job on
+    // it. See lib/workLocation.ts for the four stacked faults behind that.
+    predicate: (job: J) => jobMatchesWorkLocation(job, value),
   }
 }
 
