@@ -41,6 +41,39 @@ const KEYCAP = /[0-9#*]️?⃣/
 const FLAG = /[\u{1F1E6}-\u{1F1FF}]{2}/u
 const hasGlyph = (s: string) => PICTO.test(s) || KEYCAP.test(s) || FLAG.test(s)
 
+// ── DECODE BEFORE YOU DETECT ───────────────────────────────────────────────
+// THE FIRST VERSION OF THIS READ SOURCE AS TEXT AND MISSED ELEVEN. A glyph in
+// a file does not have to be written as a glyph:
+//
+//   &#128188;         HTML decimal entity — how 💼 and 💬 reach the employer
+//                     dashboard's empty states, and how 🎉 reaches the FOUNDING
+//                     EMPLOYER APPROVAL EMAIL, which lands in a real inbox
+//   \u{1F4BC}         a JS escape — the five analytics tab icons
+//   💼      the surrogate-pair form of the same thing
+//   &#x1F4BC;         the hex entity form
+//
+// All of them render as emoji and none of them is an emoji in the bytes. The
+// inventory reported SEVEN and the drive found 💼 and 💬 on a page the
+// inventory had called clean — the check was blind, not the page.
+//
+// So every file is normalised first and the detector runs on what the BROWSER
+// will end up with, not on what the editor shows.
+const decodeEscapes = (src: string) =>
+  src
+    .replace(/\\u\{([0-9A-Fa-f]{1,6})\}/g, (m, h) => {
+      const n = parseInt(h, 16)
+      return n <= 0x10FFFF ? String.fromCodePoint(n) : m
+    })
+    .replace(/\\u([0-9A-Fa-f]{4})/g, (_m, h) => String.fromCharCode(parseInt(h, 16)))
+    .replace(/&#x([0-9A-Fa-f]{1,6});/g, (m, h) => {
+      const n = parseInt(h, 16)
+      return n <= 0x10FFFF ? String.fromCodePoint(n) : m
+    })
+    .replace(/&#(\d{1,7});/g, (m, d) => {
+      const n = parseInt(d, 10)
+      return n <= 0x10FFFF ? String.fromCodePoint(n) : m
+    })
+
 const isColour = (ch: string, next: string | undefined) =>
   /\p{Emoji_Presentation}/u.test(ch) || next === '️'
 
@@ -100,9 +133,23 @@ const SPLITS: [string, string, boolean][] = [
   ['⚠️ with VS16 IS colour', '⚠️', true],
 ]
 
+// THE ENCODINGS. This is the control that would have saved eleven: the first
+// version read source as text and every one of these was invisible to it.
+const ENCODED: [string, string, boolean][] = [
+  ['a decimal HTML entity is decoded', '&#128188;', true],
+  ['a hex HTML entity is decoded', '&#x1F4BC;', true],
+  ['a JS code-point escape is decoded', '\\u{1F4BC}', true],
+  ['a surrogate pair escape is decoded', '\\uD83D\\uDCBC', true],
+  ['a NON-emoji entity stays innocent', '&#8212;', false],
+  ['and an ordinary number is not an entity', 'width: 128188px', false],
+]
+
 let controlsBad = 0
 for (const [name, sample, want] of DETECTS) {
   if (hasGlyph(sample) !== want) { console.log(`CONTROL FAIL  ${name}`); controlsBad++ }
+}
+for (const [name, sample, want] of ENCODED) {
+  if ((colourIn(decodeEscapes(sample)).length > 0) !== want) { console.log(`CONTROL FAIL  ${name}`); controlsBad++ }
 }
 for (const [name, sample, want] of SPLITS) {
   if ((colourIn(sample).length > 0) !== want) { console.log(`CONTROL FAIL  ${name}`); controlsBad++ }
@@ -111,7 +158,7 @@ if (controlsBad) {
   console.error(`\n${controlsBad} control(s) failed — the detector cannot be trusted, so NO COUNT IS REPORTED.`)
   process.exit(1)
 }
-console.log(`ok    ${DETECTS.length + SPLITS.length} controls: it finds what it should, ignores → – ©, and splits colour from text`)
+console.log(`ok    ${DETECTS.length + SPLITS.length + ENCODED.length} controls: it finds what it should, ignores → – ©, and splits colour from text`)
 
 // ── A LINE'S OWN START DOES NOT TELL YOU IT IS A COMMENT ───────────────────
 // The inventory's first pass called three ⚡ product UI. All three were
@@ -168,18 +215,59 @@ for (const f of files) {
   const rel = relative(ROOT, f).replace(/\\/g, '/')
   if (EXCLUDED.some(x => rel.startsWith(x))) continue
   const src = readFileSync(f, 'utf8')
-  if (!hasGlyph(src)) continue
+  // Decoded per line, so line numbers survive: every encoding sits inside one
+  // line, and decoding the whole file at once would be the same answer with
+  // worse reporting.
+  if (!hasGlyph(decodeEscapes(src))) continue
   const mask = commentMask(src, extname(f))
   src.split(/\r?\n/).forEach((line, i) => {
     if (mask[i]) return
-    const found = colourIn(line)
+    const found = colourIn(decodeEscapes(line))
     if (found.length) offenders.push(`${rel}:${i + 1}  ${found.join('')}  ${line.trim().slice(0, 70)}`)
   })
 }
 
+// ── THE HOLD LIST ──────────────────────────────────────────────────────────
+// Paul approved a scope of SEVEN on 23 Aug 2026. The count was wrong: this
+// check could not see encoded glyphs, so the real number was thirty. The
+// DECISION did not change — the instrument did — but a count is the thing he
+// approves, so the twenty-one still standing wait for his word rather than
+// being swept on my own authority.
+//
+// EVERY SURFACE THAT REACHES AN INBOX IS ALREADY DONE, because that was his
+// stated priority: interview-rescheduled 🎥, the founding-approval 🎉 and the
+// waitlist ✅. What is held is all in-product.
+//
+// This is a HOLD, not an exemption. The check pins the exact set: anything new
+// anywhere fails, and a held file gaining another emoji fails. Clearing one
+// means deleting its line here, which is what makes the list shrink rather
+// than rot. Keyed on file and glyph, not line number, so ordinary edits to
+// these files do not break it.
+const HELD_23_AUG_2026 = [
+  'app/dashboard/analytics/AnalyticsContent.tsx  📊🌐📋💼👥',
+  'app/dashboard/page.tsx  📋🎯💬✅🔖🔔📄🎯🔍⚡⚡',
+  'app/employer/dashboard/page.tsx  💼💬💬',
+  'app/register/employer-free/page.tsx  🎉🔴🟡',
+  'components/CandidateInsights.tsx  📋🎯⚡📊📊🕔',
+]
+
+const byFile: Record<string, string[]> = {}
+for (const o of offenders) {
+  const [loc, glyph] = [o.split('  ')[0], o.split('  ')[1]]
+  const file = loc.split(':')[0]
+  ;(byFile[file] ??= []).push(glyph)
+}
+const standing = Object.entries(byFile).map(([f, g]) => `${f}  ${g.join('')}`).sort()
+
 check(
-  'NO COLOUR EMOJI ON ANY SURFACE A CANDIDATE, AN EMPLOYER OR AN INBOX SEES',
-  () => offenders,
+  'NO NEW EMOJI, AND THE HELD SET HAS NOT GROWN',
+  () => standing,
+  HELD_23_AUG_2026.slice().sort()
+)
+
+check(
+  'NOTHING THAT REACHES AN INBOX CARRIES ONE',
+  () => offenders.filter(o => /^(emails\/|app\/api\/)/.test(o)),
   []
 )
 

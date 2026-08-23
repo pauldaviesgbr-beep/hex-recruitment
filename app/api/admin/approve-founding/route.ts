@@ -135,7 +135,7 @@ async function handle(req: NextRequest) {
       profile.email,
       approvedSubject,
       emailLayout(approvedSubject, `
-        <h1 style="margin:0 0 16px;font-size:22px;font-weight:700;color:#0f172a;">You're in${firstName ? `, ${firstName}` : ''} &#127881;</h1>
+        <h1 style="margin:0 0 16px;font-size:22px;font-weight:700;color:#0f172a;">You're in${firstName ? `, ${firstName}` : ''}</h1>
         <p style="margin:0 0 16px;font-size:15px;color:#475569;line-height:1.6;">
           Your account for <strong style="color:#0f172a;">${escapeHtml(companyName)}</strong> has been approved for the Thrive founding cohort. You now have the full hiring pipeline &mdash; post jobs, browse candidates, schedule interviews and make offers &mdash; <strong>free for 12 months</strong>.
         </p>
