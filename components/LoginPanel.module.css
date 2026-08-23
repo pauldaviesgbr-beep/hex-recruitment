@@ -1,0 +1,225 @@
+/* The one login. Values from design_handoff_auth_entry, 22 Aug 2026. */
+
+.panel {
+  max-width: 440px;
+  margin: 0 auto;
+  padding: 24px 16px 40px;
+}
+
+.title {
+  margin: 0 0 18px;
+  font-family: var(--font-bricolage), system-ui, sans-serif;
+  font-size: 27px;
+  font-weight: 700;
+  line-height: 1.12;
+  letter-spacing: -0.03em;
+  color: #0F172A;
+  text-align: center;
+}
+
+.success,
+.notice {
+  margin: 0 0 14px;
+  padding: 11px 13px;
+  border-radius: 10px;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.success { background: #F0FDF4; border: 1px solid #BBF7D0; color: #166534; }
+/* Amber, informational — a wrong-door notice is not an error and must not
+   read like one. */
+.notice { background: #FFFBEB; border: 1px solid #FDE68A; color: #92400E; }
+
+.pending {
+  background: #EFF6FF;
+  border: 1px solid #BFDBFE;
+  border-radius: 10px;
+  padding: 14px;
+  margin: 0 0 16px;
+}
+
+.pendingTitle { margin: 0 0 5px; font-weight: 700; color: #1E3A8A; font-size: 15px; }
+
+/* AN EMAIL ADDRESS HAS NO SPACES. A plus-address ran 101px past this box on a
+   390px screen — off the card and off the viewport — because the browser had
+   nowhere legal to break it. `break-word` is not enough: it only breaks where a
+   word could already wrap. `anywhere` breaks mid-token. */
+.pendingBody {
+  margin: 0 0 10px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #334155;
+  overflow-wrap: anywhere;
+}
+
+.resend {
+  border: 1px solid #93C5FD;
+  background: #fff;
+  color: #1E3A8A;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+/* OAUTH IS OUTLINED. The one filled button is the one that finishes the form.
+   THE BRAND GLYPH RULE BELOW IS NOT OPTIONAL — those SVGs carry no width or
+   height attributes and are sized only by a descendant rule. Omitting it made
+   them render at 280px square on the sign-up panel while every assertion
+   passed. */
+.oauth {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 15px;
+  border: 1px solid #CBD5E1;
+  border-radius: 10px;
+  background: #fff;
+  color: #0F172A;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.oauth:hover { background: #F8FAFC; }
+
+.oauth svg {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.oauthGap { margin-top: 10px; }
+
+.hint {
+  margin: 10px 0 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: #64748B;
+  text-align: center;
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 20px 0 16px;
+  font-family: var(--font-mono, ui-monospace), monospace;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #94A3B8;
+}
+
+.divider::before,
+.divider::after { content: ''; flex: 1; height: 1px; background: #E2E8F0; }
+
+.form { display: flex; flex-direction: column; }
+
+.label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: #475569;
+  margin-bottom: 6px;
+}
+
+.labelRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-top: 14px;
+}
+
+.forgot {
+  font-size: 13px;
+  font-weight: 500;
+  color: #64748B;
+  text-decoration: underline;
+}
+
+.input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 14px 13px;
+  border: 1px solid #CBD5E1;
+  border-radius: 10px;
+  background: #fff;
+  font-size: 15.5px;
+  color: #0F172A;
+}
+
+.input:focus {
+  outline: none;
+  border-color: #0F172A;
+  box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.08);
+}
+
+/* PER BROWSER, NOT PER TAB — the wording matters. sessionStorage is per
+   browsing CONTEXT, so the old implementation signed people out of the tab
+   they were working in when they opened a link in a new one. */
+.remember {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 14px 0 0;
+  font-size: 14px;
+  color: #475569;
+  cursor: pointer;
+}
+
+.error {
+  margin: 14px 0 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: #B42318;
+}
+
+.submit {
+  margin-top: 16px;
+  width: 100%;
+  padding: 16px;
+  border: none;
+  border-radius: 10px;
+  background: #0F172A;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.submit:hover:not(:disabled) { background: #1B2740; }
+.submit:disabled { opacity: 0.6; cursor: default; }
+
+/* CLEARS THE CONSENT LANE. Nothing level-1 or level-2 may end inside the last
+   112px at 390 — the cookie banner covered a password field on the old login
+   screen, and moving the control is the wrong fix because the next new screen
+   breaks again. */
+.foot {
+  margin: 20px 0 0;
+  text-align: center;
+  font-size: 14.5px;
+  line-height: 1.5;
+  color: #475569;
+}
+
+.footLink { color: #0F172A; font-weight: 700; text-decoration: underline; }
+
+@media (min-width: 900px) {
+  .panel {
+    padding: 32px;
+    background: #fff;
+    border: 1px solid #E2E8F0;
+    border-radius: 16px;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+    /* NOT vertically centred: centring pushes the primary under the fold on a
+       900px window once browser chrome is taken off. */
+    margin: 64px auto;
+  }
+  .title { font-size: 32px; }
+}

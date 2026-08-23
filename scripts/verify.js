@@ -297,6 +297,47 @@ const ALL = [
   // Watched failing on purpose 23 Aug 2026 by pointing Apply back at the login
   // page: exit 1, two named failures.
   { name: 'applygate:prove', cmd: npm, args: ['run', 'applygate:prove'] },
+  // A PERSON NEVER READS A SENTENCE WE DID NOT WRITE.
+  //
+  // Both messages Paul saw on his own phone came from somebody else's library
+  // and were shown to him verbatim by setError(error.message): "Invalid login
+  // credentials" is Supabase's wording, "Load failed" is SAFARI's wording for
+  // a fetch that never completed. He was trying to CREATE an account, so the
+  // first described a state he was not even in, and the second reads as though
+  // the product is broken when the phone lost signal for a second.
+  //
+  // It checks the PROPERTY, not the four known cases: no branch may hand back
+  // the raw string, INCLUDING the fallback — which is exactly where a "just
+  // show the error" hides. A check listing the known messages would pass on a
+  // fifth that leaked, and a database error reaching a login screen is worse
+  // than unhelpful.
+  //
+  // Watched failing on purpose 23 Aug 2026 by restoring the raw fallback: exit
+  // 1, four named failures including the database-error leak.
+  { name: 'loginerrors:prove', cmd: npm, args: ['run', 'loginerrors:prove'] },
+  // ONE LOGIN, AND NOWHERE TO BE WRONG.
+  //
+  // Two login screens and a chooser became one form. Signing in on the wrong
+  // one used to produce a dead end — "This login is for job seekers only" —
+  // for somebody who had typed the RIGHT password. The role is read after the
+  // session exists now and decides only where they land.
+  //
+  // THE REDIRECTS ARE THE RISKY PART, not the form. 79 references across 51
+  // files point at the two old paths, plus bookmarks, nine sent emails and
+  // Google's index — and deleting a page turned /register/employer into a 404
+  // once already. Both still resolve AND carry the query, because everything
+  // that bounces somebody there sends ?redirect= and dropping it lands them on
+  // a dashboard instead of the page they were opening.
+  //
+  // It also asserts the seven things the old screen carried — Remember me per
+  // BROWSER, the pending-confirm notice and its resend, the OAuth wrong-role
+  // notice, the webview hint, ?registered, and redirect threading. Each was
+  // earned by a real fault; losing one in a rewrite reintroduces a bug
+  // somebody already paid for.
+  //
+  // Watched failing on purpose 23 Aug 2026 by dropping the query from the
+  // redirect — the silent way this breaks. Exit 1, one named failure.
+  { name: 'unifiedlogin:prove', cmd: npm, args: ['run', 'unifiedlogin:prove'] },
 ]
 const CHECKS = FAST ? ALL.filter(c => !c.slow) : ALL
 

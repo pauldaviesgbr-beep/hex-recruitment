@@ -118,7 +118,7 @@ export default function SignupPanel({ returnTo }: { returnTo?: string | null }) 
             remembers they already have an account must not lose the job on the
             way to logging in. This link dropped it once already. */}
         <Link
-          href={safeReturn ? `/login/employee?redirect=${encodeURIComponent(safeReturn)}` : '/login/employee'}
+          href={safeReturn ? `/login?redirect=${encodeURIComponent(safeReturn)}` : '/login'}
           className={styles.footLink}
         >
           Log in
