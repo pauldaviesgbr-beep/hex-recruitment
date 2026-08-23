@@ -160,7 +160,7 @@ export default function JobDetailModal({
     if (!currentUserRole) {
       // Not logged in — gate at Apply, returning to the job's dedicated page
       // with ?apply=1 so the apply modal re-opens once authenticated.
-      window.location.href = `/login/employee?redirect=${encodeURIComponent(`/job/${job.id}?apply=1`)}`
+      window.location.href = `/register/employee?redirect=${encodeURIComponent(`/job/${job.id}?apply=1`)}`
       return
     }
     if (currentUserRole === 'employer') {

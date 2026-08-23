@@ -145,7 +145,7 @@ export default function JobDetailPage() {
       trackClickEvent(job.id, 'apply_click')
       // Send them through the login/sign-up gate, returning to THIS job with
       // ?apply=1 so the apply modal re-opens automatically once authenticated.
-      window.location.href = `/login/employee?redirect=${encodeURIComponent(`/job/${job.id}?apply=1`)}`
+      window.location.href = `/register/employee?redirect=${encodeURIComponent(`/job/${job.id}?apply=1`)}`
       return
     }
     if (currentUserRole === 'employer') {

@@ -40,7 +40,8 @@
     "pendingconfirm:prove": "npx tsx scripts/prove-pending-confirm.ts",
     "filtervocab:prove": "npx tsx scripts/prove-filter-vocabularies.ts",
     "jobsector:prove": "npx tsx scripts/prove-job-sector.ts",
-    "headerdoors:prove": "npx tsx scripts/prove-header-doors.ts"
+    "headerdoors:prove": "npx tsx scripts/prove-header-doors.ts",
+    "applygate:prove": "npx tsx scripts/prove-apply-gate.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.98.0",
