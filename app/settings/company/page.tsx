@@ -677,7 +677,7 @@ export default function CompanySettingsPage() {
             role="alert"
             aria-live="polite"
           >
-            {message.type === 'success' ? '✓ ' : '⚠ '}
+            {message.type === 'success' ? <>✓ </> : <><Ico name="alert-triangle" size={16} /> </>}
             {message.text}
           </div>
         )}

@@ -9,13 +9,33 @@
 // beside it. Beside a label it is decorative, so aria-hidden by default; an
 // icon-only control passes a label and gets role/aria-label instead.
 //
-// THE MONOCHROME GLYPHS (✓ ✕ ★ ☆ ➤ ⚠ and the CSS content ticks) ARE
+// THE MONOCHROME GLYPHS (✓ ✕ ★ ☆ ➤ and the CSS content ticks) ARE
 // TYPOGRAPHY, NOT ICONS — Paul's decision, 14 Aug 2026. They inherit
 // currentColor already, half of them sit inside prose ("Applied ✓",
 // "Email sent ✓", the ★★★ rating rows), and swapping them for SVGs
 // shifts baselines in two hundred places for no visible gain. The design
 // spec maps ✓→check and ✕→x, so it will look like an unfinished job:
 // it is not. Do not "finish" it without a new decision from Paul.
+//
+// ⚠ WAS ON THAT LIST AND HAS BEEN REMOVED FROM IT — 23 Aug 2026, Paul's call,
+// because the premise above turned out to be FALSE OF THAT ONE GLYPH.
+// "They inherit currentColor already" is true of ✓ ✕ ★ ☆ ➤ in every engine.
+// It is not true of ⚠ in WebKit, which is Safari, which is every iPhone:
+//
+//     Chromium   Segoe UI Symbol, painted 185,28,28 — the CSS colour
+//     WebKit     an EMOJI font, 255,180,86 — an amber triangle. Nothing in
+//                the CSS is amber.
+//
+// Measured, not assumed, and the obvious alternative was killed first: in the
+// same run WebKit rendered ⬇ ✓ ↗ © ⤴ ALL as text at the CSS colour, so it has
+// a text fallback and is singling ⚠ out deliberately. VS15 (U+FE0E), which
+// asks explicitly for text presentation, does not stop it either.
+//
+// It mattered because ⚠ is the error half of a success/error banner — the most
+// conspicuous glyph on the estate, on the screen where somebody is already
+// having a bad moment. It is alert-triangle now, in five places: the four
+// settings banners and PostcodeLookup's ::before, which uses the same icon as
+// an inlined mask because a pseudo-element cannot hold a component.
 //
 // Every emoji-as-iconography in the product routes through here now. If a new
 // surface needs an icon, it gets an entry in this table — not an emoji, and

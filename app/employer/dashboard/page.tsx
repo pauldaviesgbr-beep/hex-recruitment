@@ -1309,7 +1309,7 @@ export default function EmployerDashboardPage() {
                      totalJobs is already loaded for the tour and the checklist,
                      so the two states were always distinguishable. */
                   <div className={styles.emptyState}>
-                    <div className={styles.emptyIcon}>&#128188;</div>
+                    <div className={styles.emptyIcon}><Ico name="briefcase" size={24} /></div>
                     {totalJobs === 0 ? (
                       <p>No active jobs. Post your first listing!</p>
                     ) : (
@@ -1385,7 +1385,7 @@ export default function EmployerDashboardPage() {
                   </div>
                 ) : (
                   <div className={styles.emptyState}>
-                    <div className={styles.emptyIcon}>&#128172;</div>
+                    <div className={styles.emptyIcon}><Ico name="message-square" size={24} /></div>
                     <p>No messages yet.</p>
                   </div>
                 )}
@@ -1432,7 +1432,7 @@ export default function EmployerDashboardPage() {
                     </div>
                   ) : (
                     <div className={styles.emptyState}>
-                      <div className={styles.emptyIcon}>&#128172;</div>
+                      <div className={styles.emptyIcon}><Ico name="message-square" size={24} /></div>
                       <p>No messages yet.</p>
                     </div>
                   )}

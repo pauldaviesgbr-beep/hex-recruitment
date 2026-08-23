@@ -152,9 +152,23 @@
   gap: 0.375rem;
 }
 
+/* WAS content: '⚠'. Measured 23 Aug 2026: WebKit — Safari's engine, so every
+   iPhone — renders a bare ⚠ from an EMOJI font, amber, ignoring the colour this
+   rule sets. Chromium renders it as text in currentColor. In the same run
+   WebKit rendered ⬇ ✓ ↗ © ⤴ all as text, so it is singling this glyph out
+   rather than lacking a text font, and VS15 (U+FE0E) does not stop it.
+   A ::before cannot hold a React component, so this is the same lucide
+   alert-triangle as an inlined mask — which takes `background: currentColor`
+   and therefore really does inherit the colour the emoji only appeared to. */
 .errorText::before {
-  content: '⚠';
-  font-size: 0.9rem;
+  content: '';
+  width: 0.9rem;
+  height: 0.9rem;
+  flex-shrink: 0;
+  background: currentColor;
+  -webkit-mask: var(--warn-mask) center / contain no-repeat;
+  mask: var(--warn-mask) center / contain no-repeat;
+  --warn-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3'/%3E%3Cpath d='M12 9v4'/%3E%3Cpath d='M12 17h.01'/%3E%3C/svg%3E");
 }
 
 /* Success Text */
