@@ -278,6 +278,25 @@ const ALL = [
   // Watched failing on purpose 23 Aug 2026 by restoring the old door and its
   // dead destination: exit 1, two named failures.
   { name: 'headerdoors:prove', cmd: npm, args: ['run', 'headerdoors:prove'] },
+  // THE APPLY GATE IS A SIGN-UP SCREEN, NOT A LOGIN SCREEN.
+  //
+  // The fault this whole week started with. The gate was /login/employee,
+  // headed "Create a free account to apply" since 15 August — over an EMAIL
+  // AND PASSWORD LOGIN FORM with a Login button. A stranger read the
+  // invitation, typed an email, invented a password, pressed the only button
+  // on the screen and got "Invalid login credentials". Paul did it three times
+  // on his own phone before anyone knew.
+  //
+  // THE HEADING HAD BEEN FIXED AND THE FORM HAD NOT, which is why this does
+  // NOT check the heading. A check asking "does it say Create a free account"
+  // passed happily for the entire week the fault was live. It checks that the
+  // gate renders a SIGN-UP form, offers no password sign-IN, and that BOTH
+  // Apply call sites point at it — the job page and the board modal, because
+  // fixing only the one somebody noticed is this codebase's oldest habit.
+  //
+  // Watched failing on purpose 23 Aug 2026 by pointing Apply back at the login
+  // page: exit 1, two named failures.
+  { name: 'applygate:prove', cmd: npm, args: ['run', 'applygate:prove'] },
 ]
 const CHECKS = FAST ? ALL.filter(c => !c.slow) : ALL
 

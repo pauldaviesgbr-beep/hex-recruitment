@@ -1,0 +1,165 @@
+/* The candidate sign-up screen, both prop sets.
+   Values from design_handoff_auth_entry, 22 Aug 2026. */
+
+.panel {
+  max-width: 440px;
+  margin: 0 auto;
+  padding: 24px 16px 40px;
+}
+
+/* THE ROLE STRIP — the thing that makes this the apply gate rather than the
+   register screen. Yellow-tinted so it reads as context rather than as a
+   warning, and it sits ABOVE the heading because it is the reason the person
+   is here. */
+.roleStrip {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  background: #FFF9CC;
+  border: 1px solid #EBDD8A;
+  border-radius: 12px;
+  padding: 13px 14px;
+  margin: 0 0 18px;
+}
+
+.roleIcon {
+  display: inline-flex;
+  flex: 0 0 auto;
+  color: #8A7A00;
+  margin-top: 1px;
+}
+
+.roleText {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  /* A long "Chef De Partie – Luxury Boutique Hotel · Goldenkeys Recruitment"
+     must WRAP, not overflow. The pending-confirm notice ran 101px past its
+     container for the want of this exact pair of properties. */
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.roleTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: #0F172A;
+  line-height: 1.35;
+}
+
+.roleSub {
+  font-size: 12.5px;
+  color: #6B6021;
+  line-height: 1.4;
+}
+
+.title {
+  margin: 0 0 6px;
+  font-family: var(--font-bricolage), system-ui, sans-serif;
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.12;
+  letter-spacing: -0.03em;
+  color: #0F172A;
+  text-align: center;
+}
+
+.subtitle {
+  margin: 0 0 18px;
+  font-size: 14.5px;
+  line-height: 1.5;
+  color: #475569;
+  text-align: center;
+}
+
+.count {
+  margin: 0 0 18px;
+  color: #475569;
+}
+
+.eyebrow {
+  margin: 0 0 8px;
+  font-family: var(--font-mono, ui-monospace), monospace;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #94A3B8;
+  text-align: center;
+}
+
+/* OAUTH IS OUTLINED, NOT FILLED. The one filled button on this screen is the
+   one that finishes the form. Do not give these a background to make them feel
+   more important — two filled buttons is not a hierarchy. */
+.oauth {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 15px;
+  border: 1px solid #CBD5E1;
+  border-radius: 10px;
+  background: #fff;
+  color: #0F172A;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.oauth:hover { background: #F8FAFC; }
+
+.oauthGap { margin-top: 10px; }
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 20px 0 16px;
+  font-family: var(--font-mono, ui-monospace), monospace;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #94A3B8;
+}
+
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: #E2E8F0;
+}
+
+/* THE FOOT LINK CLEARS THE CONSENT LANE. Nothing level-1 or level-2 may end
+   inside the last 112px at 390 — the cookie banner covered a password field on
+   this very screen on 22 Aug 2026, and "move the control" is the wrong fix
+   because the next new screen breaks again. Reserved from the page shell. */
+.foot {
+  margin: 20px 0 0;
+  text-align: center;
+  font-size: 14.5px;
+  color: #475569;
+}
+
+.footLink {
+  color: #0F172A;
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+@media (min-width: 900px) {
+  .panel {
+    max-width: 440px;
+    padding: 32px;
+    background: #fff;
+    border: 1px solid #E2E8F0;
+    border-radius: 16px;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+    /* NOT vertically centred: centring pushes the primary under the fold on a
+       900px window once browser chrome is taken off. */
+    margin: 64px auto;
+  }
+  .title { font-size: 30px; }
+}
