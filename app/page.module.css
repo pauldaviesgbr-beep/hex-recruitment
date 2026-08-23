@@ -13,17 +13,14 @@
   overflow: hidden;
 }
 
-.hero::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 80px;
-  background: linear-gradient(to bottom, transparent 0%, rgba(255, 255, 255, 0.3) 50%, var(--white) 100%);
-  pointer-events: none;
-  z-index: 2;
-}
+/* THE 80px FADE-TO-WHITE IS GONE. It belonged to the old composition, where
+   the navy ran into a white section and the bottom of the hero held nothing.
+   The hero is shorter now and the last thing in it is the roles-live line —
+   which the gradient washed out, grey text on a grey-to-white ramp, at 390.
+   Every assertion passed; the screenshot showed it.
+
+   Nothing replaces it: the hero now ends on a hard edge into the roles
+   section, which is what the design frame does. */
 
 /* THIS BOX IS WHY THE SEARCH BAR WAS 736px WIDE WHILE ITS OWN RULE SAID 900.
    A max-width on a child cannot widen it past its parent, and the parent was
