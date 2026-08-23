@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import Link from 'next/link'
 import {
   getCookieConsent,
@@ -11,6 +11,7 @@ import {
 import styles from './CookieConsent.module.css'
 
 export default function CookieConsent() {
+  const bannerRef = useRef<HTMLDivElement>(null)
   const [showBanner, setShowBanner] = useState(false)
   const [showModal, setShowModal] = useState(false)
   const [functional, setFunctional] = useState(true)
@@ -45,10 +46,23 @@ export default function CookieConsent() {
   useEffect(() => {
     const root = document.documentElement
     if (!showBanner) { root.style.setProperty('--consent-h', '0px'); return }
-    const set = () => root.style.setProperty('--consent-h', window.innerWidth >= 900 ? '72px' : '88px')
+    const el = bannerRef.current
+    if (!el) return
+    // MEASURE THE BOX, DO NOT RESTATE IT. This published '88px' on a phone
+    // while the box actually drew taller than its content could fit — the copy
+    // ran out of the top of the navy and the buttons were cut off below the
+    // fold, with fifteen assertions green. A number in the CSS is not the
+    // number on the screen, and the only way the two cannot disagree is for
+    // there to be one number: the rendered one.
+    const set = () => root.style.setProperty('--consent-h', Math.ceil(el.getBoundingClientRect().height) + 'px')
     set()
+    // ResizeObserver rather than a resize listener: the box also changes when
+    // the COPY rewraps, which no window event reports.
+    const ro = new ResizeObserver(set)
+    ro.observe(el)
     window.addEventListener('resize', set)
     return () => {
+      ro.disconnect()
       window.removeEventListener('resize', set)
       // Unmounting with the lane still reserved would leave a dead gap at the
       // foot of every page.
@@ -134,7 +148,7 @@ export default function CookieConsent() {
     <>
       {/* Banner */}
       {showBanner && !showModal && (
-        <div className={styles.banner} role="dialog" aria-label="Cookie consent" data-cookie-banner>
+        <div ref={bannerRef} className={styles.banner} role="dialog" aria-label="Cookie consent" data-cookie-banner>
           <div className={styles.bannerInner}>
             <div className={styles.bannerText}>
               <p>

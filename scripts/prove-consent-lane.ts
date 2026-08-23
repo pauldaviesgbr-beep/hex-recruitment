@@ -59,39 +59,84 @@ const check = (name: string, got: () => unknown, want: unknown) => {
 // fix do nothing was a body rule inside @media (max-width: 768px).
 const bodyRules = globals.match(/(^|[\s,{}])body\s*\{[^}]*\}/g) || []
 
-// ── THE TWO NUMBERS MUST AGREE ─────────────────────────────────────────────
-// The component publishes a height; the stylesheet draws a box. If the box is
-// taller than what it published, the extra covers whatever is underneath — the
-// exact mechanism that hid the Apply button.
-
-const publishedDesktop = component.match(/>= 900 \? '(\d+)px'/)
-
-check('the component publishes a DESKTOP height', () => !!publishedDesktop, true)
-check('and a PHONE height', () => component.includes(": '88px'"), true)
+// ── THE TWO NUMBERS CANNOT DISAGREE, BECAUSE THERE IS ONE ──────────────────
+// The first version published a constant '88px' and the stylesheet drew a
+// height: 88px box, and a check asserted the two matched. They did. THE BOX
+// STILL SPILLED ITS CONTENT: at 390 the copy ran out of the top of the navy
+// onto the page behind it and both buttons were cut off below the fold, with
+// every assertion green. The screenshot found it in one look.
+//
+// So the component MEASURES its own rendered box and publishes that, and the
+// stylesheet sets a MIN-height it may grow past. There is now one number and
+// it is the rendered one, which is the only version of 'they agree' that
+// cannot be true while the screen is wrong.
 
 check(
-  'THE PHONE BOX IS THE HEIGHT THE COMPONENT PUBLISHED',
+  'the component publishes its MEASURED height, not a restated constant',
+  () => component.includes('getBoundingClientRect().height') && component.includes("setProperty('--consent-h'"),
+  true
+)
+
+check(
+  'NO HARD-CODED HEIGHT IS PUBLISHED ANY MORE',
+  // Every published value, with the deliberate '0px' collapse taken out first —
+  // that one is the lane going away, not a height anybody restated.
   () => {
-    const drawn = css.match(/\.banner\s*\{[^}]*height:\s*(\d+)px/)?.[1]
-    return drawn === '88' && component.includes("'88px'")
+    const published = (component.match(/setProperty\('--consent-h',[^)]+\)/g) || [])
+      .map(s => s.replace(/setProperty\('--consent-h',\s*/, '').replace(/\)$/, '').trim())
+    return published.filter(v => /^'\d+px'$/.test(v) && v !== "'0px'")
+  },
+  []
+)
+
+check(
+  'it watches the BOX, not the window — copy rewrapping fires no resize event',
+  () => component.includes('new ResizeObserver') && component.includes('ro.observe('),
+  true
+)
+
+check(
+  'and disconnects it, so an unmounted banner stops publishing',
+  () => {
+    const cleanup = component.split('return () => {')[1]?.split('}')[0] || ''
+    return cleanup.includes('ro.disconnect()')
   },
   true
 )
 
 check(
-  'THE DESKTOP BOX IS TOO',
+  'THE STYLESHEET SETS A FLOOR IT MAY GROW PAST, NOT A CEILING THAT CLIPS',
   () => {
+    const bannerRule = css.split('.banner {')[1]?.split('}')[0] || ''
     const media = css.split('@media (min-width: 900px)')[1] || ''
-    const drawn = media.match(/height:\s*(\d+)px/)?.[1]
-    return drawn === '72' && publishedDesktop?.[1] === '72'
+    // The floor is there AND no bare `height:` remains to clip the content —
+    // asking only for the min-height would pass with both present.
+    const bare = bannerRule.split(/\r?\n/).filter(l => /^\s*height:\s*\d+px/.test(l))
+    return { floor: bannerRule.includes('min-height: 88px'), bare, desktopFloor: media.includes('min-height: 72px') }
   },
-  true
+  { floor: true, bare: [], desktopFloor: true }
 )
 
 check(
   'and it is border-box, so padding cannot push it past its own height',
-  () => /\.banner\s*\{[^}]*box-sizing:\s*border-box/.test(css),
+  () => (css.split('.banner {')[1]?.split('}')[0] || '').includes('box-sizing: border-box'),
   true
+)
+
+// ── THE FIXED FURNITURE READS THE LANE TOO ─────────────────────────────────
+// A body padding cannot move a fixed element. The Ask Thrive launcher sits at
+// z-index 120 against the banner's 1001, so at 1440 elementFromPoint at the
+// launcher's own centre returned the BANNER — unclickable, not just overlapped.
+
+check(
+  'every fixed bottom offset on the chat widget reads --consent-h',
+  () => {
+    const chat = read('components/ChatBot.module.css')
+    // Any bottom offset that is still a bare pixel value is one the lane
+    // cannot move. Listing them names the offender rather than saying "false".
+    return (chat.split(/\r?\n/).filter(l => /^\s*bottom:\s*\d+px\s*;/.test(l))).map(l => l.trim())
+  },
+  []
 )
 
 // ── THE SHELL RESERVES IT, AND NOT WITH A MARGIN ───────────────────────────
