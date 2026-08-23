@@ -127,11 +127,16 @@ export default function RegisterEmployerFreePage() {
         <div className={loginStyles.formCard}>
           {/* Free banner */}
           <div className={styles.freeBanner}>
+            {/* These three were \ud83c\udf89 \ud83d\udd34 \ud83d\udfe1, written as surrogate-pair escapes so a
+                search for emoji could not see them. Dropped rather than turned
+                into icons: they are decoration inside a sentence, not
+                iconography labelling anything, and an SVG mid-sentence is the
+                same emoji in another format. The urgency is in the words. */}
             {spotsRemaining === null
-              ? `\ud83c\udf89 Join the first ${EMPLOYER_COHORT_CAP} employers on Thrive \u2014 ${foundingPhraseShort()}, no card needed.`
+              ? `Join the first ${EMPLOYER_COHORT_CAP} employers on Thrive \u2014 ${foundingPhraseShort()}, no card needed.`
               : spotsRemaining <= 10
-                ? `\ud83d\udd34 Only ${spotsRemaining} spot${spotsRemaining === 1 ? '' : 's'} left \u2014 claim yours now before they\u2019re gone.`
-                : `\ud83d\udfe1 ${spotsRemaining} of ${EMPLOYER_COHORT_CAP} free spots remaining \u2014 no card needed.`}
+                ? `Only ${spotsRemaining} spot${spotsRemaining === 1 ? '' : 's'} left \u2014 claim yours now before they\u2019re gone.`
+                : `${spotsRemaining} of ${EMPLOYER_COHORT_CAP} free spots remaining \u2014 no card needed.`}
           </div>
 
           {emailSent ? (

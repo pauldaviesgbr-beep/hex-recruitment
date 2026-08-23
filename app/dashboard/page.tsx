@@ -143,7 +143,7 @@ const PROFILE_FIELDS: ProfileField[] = [
 
 // Sector display labels
 import { getCategoryLabel } from '@/lib/categories'
-import { Ico } from '@/components/icons'
+import { Ico, type IconName } from '@/components/icons'
 const JOB_SECTOR_LABELS: Record<string, string> = new Proxy({} as Record<string, string>, {
   get: (_target, key: string) => getCategoryLabel(key),
 })
@@ -640,15 +640,23 @@ export default function DashboardPage() {
   // dashboard load.
 
   // ── Notification icon helper ────────────────────────────
-  function notifIcon(type: string): string {
+  // DEAD CODE \u2014 this function appears exactly once in the codebase, its own
+  // definition, and is called from nowhere. Left in place on Paul's word (23
+  // Aug 2026) rather than deleted in an emoji pass, and noted on the list.
+  //
+  // Its seven emoji were written as surrogate-pair escapes, which is why a text
+  // search for emoji could not see them. They are icon names now so that if
+  // this is ever wired up it returns something the icon table understands, and
+  // IconName makes a typo a compile error rather than a blank slot.
+  function notifIcon(type: string): IconName {
     switch (type) {
-      case 'new_application': case 'application_update': return '\uD83D\uDCCB'
-      case 'job_match': return '\uD83C\uDFAF'
-      case 'message_received': case 'employer_message': return '\uD83D\uDCAC'
-      case 'profile_view': case 'profile_viewed': return '\uD83D\uDC41'
-      case 'job_approved': return '\u2705'
-      case 'job_saved': return '\uD83D\uDD16'
-      default: return '\uD83D\uDD14'
+      case 'new_application': case 'application_update': return 'file-text'
+      case 'job_match': return 'sparkles'
+      case 'message_received': case 'employer_message': return 'message-square'
+      case 'profile_view': case 'profile_viewed': return 'eye'
+      case 'job_approved': return 'check'
+      case 'job_saved': return 'tag'
+      default: return 'bell'
     }
   }
 
@@ -828,7 +836,7 @@ export default function DashboardPage() {
                   </>
                 ) : (
                   <div className={styles.emptyState}>
-                    <div className={styles.emptyIcon}>&#128196;</div>
+                    <div className={styles.emptyIcon}><Ico name="file-text" size={24} /></div>
                     <p>No applications yet. Start browsing jobs!</p>
                     <Link href="/jobs" className={styles.cardLink}>Browse Jobs &rarr;</Link>
                   </div>
@@ -892,13 +900,13 @@ export default function DashboardPage() {
                   </div>
                 ) : !candidate?.jobSector && !candidate?.jobTitle && (!candidate?.skills || candidate.skills.length === 0) ? (
                   <div className={styles.emptyState}>
-                    <div className={styles.emptyIcon}>&#127919;</div>
+                    <div className={styles.emptyIcon}><Ico name="sparkles" size={24} /></div>
                     <p>Complete your profile to get personalised job recommendations.</p>
                     <Link href="/profile" className={styles.cardLink}>Complete Profile &rarr;</Link>
                   </div>
                 ) : (
                   <div className={styles.emptyState}>
-                    <div className={styles.emptyIcon}>&#128269;</div>
+                    <div className={styles.emptyIcon}><Ico name="search" size={24} /></div>
                     <p>No matching jobs right now. We&apos;ll notify you when new opportunities match your profile.</p>
                     <Link href="/jobs" className={styles.cardLink}>Browse All Jobs &rarr;</Link>
                   </div>
@@ -940,7 +948,7 @@ export default function DashboardPage() {
                 {activeBoost ? (
                   <>
                     <div className={styles.boostActive}>
-                      <div className={styles.boostActiveLabel}>&#9889; Profile Boosted</div>
+                      <div className={styles.boostActiveLabel}><Ico name="zap" size={16} /> Profile Boosted</div>
                       <span className={styles.boostDays}>{getDaysRemaining(activeBoost.expires_at)} days remaining</span>
                     </div>
                     <p style={{ fontSize: '0.8rem', color: 'var(--text-gray)', textAlign: 'center', margin: 0 }}>
@@ -953,7 +961,7 @@ export default function DashboardPage() {
                       Stand out to employers — appear first in search results with a Featured badge.
                     </p>
                     {PAID_SURFACES_ENABLED && (<button className={styles.boostBtn} onClick={() => setBoostModalOpen(true)}>
-                      &#9889; Boost Profile
+                      <Ico name="zap" size={16} /> Boost Profile
                     </button>)}
                   </>
                 )}

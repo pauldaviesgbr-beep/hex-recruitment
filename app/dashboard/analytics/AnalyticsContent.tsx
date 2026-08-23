@@ -21,6 +21,7 @@ import {
   ResponsiveContainer, PieChart, Pie, Cell, Legend,
 } from 'recharts'
 import styles from './page.module.css'
+import { Ico, type IconName } from '@/components/icons'
 
 /**
  * A job's pay as an annual figure, or null when the row cannot be read as one.
@@ -93,12 +94,15 @@ const SOURCE_DISPLAY_NAMES: Record<string, string> = {
 type DateRange = '7d' | '30d' | '90d' | '12m' | 'all' | 'custom'
 type AnalyticsTab = 'overview' | 'traffic' | 'applications' | 'jobs' | 'market'
 
-const TABS: { key: AnalyticsTab; label: string; icon: string }[] = [
-  { key: 'overview', label: 'Overview', icon: '\u{1F4CA}' },
-  { key: 'traffic', label: 'Traffic & Sources', icon: '\u{1F310}' },
-  { key: 'applications', label: 'Applications', icon: '\u{1F4CB}' },
-  { key: 'jobs', label: 'Jobs', icon: '\u{1F4BC}' },
-  { key: 'market', label: 'Market & Candidates', icon: '\u{1F465}' },
+// The icons were emoji written as \u{...} escapes, which is why a text search
+// for emoji found none of them. IconName rather than string, so a typo here is
+// a compile error instead of a blank tab.
+const TABS: { key: AnalyticsTab; label: string; icon: IconName }[] = [
+  { key: 'overview', label: 'Overview', icon: 'bar-chart-3' },
+  { key: 'traffic', label: 'Traffic & Sources', icon: 'globe' },
+  { key: 'applications', label: 'Applications', icon: 'file-text' },
+  { key: 'jobs', label: 'Jobs', icon: 'briefcase' },
+  { key: 'market', label: 'Market & Candidates', icon: 'users' },
 ]
 
 export default function AnalyticsContent() {
@@ -2860,7 +2864,7 @@ export default function AnalyticsContent() {
               className={`${styles.tab} ${activeTab === tab.key ? styles.tabActive : ''}`}
               onClick={() => setActiveTab(tab.key)}
             >
-              <span className={styles.tabIcon}>{tab.icon}</span>
+              <span className={styles.tabIcon}><Ico name={tab.icon} size={16} /></span>
               {tab.label}
             </button>
           ))}

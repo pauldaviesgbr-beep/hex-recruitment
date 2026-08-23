@@ -9,6 +9,7 @@ import { Boost } from '@/lib/boostTypes'
 // forwards every key to getCategoryLabel. Calling the function directly is the
 // same answer without carrying the indirection to a second file.
 import { getCategoryLabel } from '@/lib/categories'
+import { Ico, type IconName } from '@/components/icons'
 
 // THE THREE "HOW AM I DOING" PANELS, LIFTED OFF THE DASHBOARD.
 //
@@ -135,11 +136,11 @@ export default function CandidateInsights({
   }, [sectorJobs])
 
   const activityFeed = useMemo(() => {
-    const events: Array<{ id: string; type: string; icon: string; title: string; subtitle: string; timestamp: string }> = []
+    const events: Array<{ id: string; type: string; icon: IconName; title: string; subtitle: string; timestamp: string }> = []
 
     profileViewEvents.forEach(pv => {
       events.push({
-        id: `pv-${pv.id}`, type: 'profile_view', icon: '\uD83D\uDC41',
+        id: `pv-${pv.id}`, type: 'profile_view', icon: 'eye',
         title: pv.company_name ? `${pv.company_name} viewed your profile` : 'An employer viewed your profile',
         subtitle: pv.source ? `via ${pv.source}` : '',
         timestamp: pv.viewed_at,
@@ -148,7 +149,7 @@ export default function CandidateInsights({
 
     statusChangeEvents.forEach(app => {
       events.push({
-        id: `sc-${app.id}`, type: 'status_change', icon: '\uD83D\uDCCB',
+        id: `sc-${app.id}`, type: 'status_change', icon: 'file-text',
         title: `${app.company || 'Employer'} updated your application`,
         subtitle: `${app.job_title || 'Position'} \u2014 now ${STATUS_LABELS[app.status] || app.status}`,
         timestamp: app.updated_at,
@@ -161,7 +162,7 @@ export default function CandidateInsights({
       .slice(0, 3)
       .forEach(job => {
         events.push({
-          id: `jm-${job.id}`, type: 'job_match', icon: '\uD83C\uDFAF',
+          id: `jm-${job.id}`, type: 'job_match', icon: 'sparkles',
           title: `New match: ${job.title}`,
           subtitle: `${job.company} \u00B7 ${job.location}`,
           timestamp: new Date(job.postedDate || job.postedAt).toISOString(),
@@ -173,7 +174,7 @@ export default function CandidateInsights({
       const boostedViews = profileViewEvents.filter(pv => new Date(pv.viewed_at).getTime() >= boostStart)
       if (boostedViews.length > 0) {
         events.push({
-          id: 'boost-summary', type: 'boost_view', icon: '\u26A1',
+          id: 'boost-summary', type: 'boost_view', icon: 'zap',
           title: `Boost attracted ${boostedViews.length} profile view${boostedViews.length !== 1 ? 's' : ''}`,
           subtitle: `Since ${new Date(activeBoost.starts_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`,
           timestamp: activeBoost.starts_at,
@@ -221,7 +222,7 @@ export default function CandidateInsights({
               <div className={styles.cardBody}>
                 {!candidate?.jobSector ? (
                   <div className={styles.emptyState}>
-                    <div className={styles.emptyIcon}>&#128202;</div>
+                    <div className={styles.emptyIcon}><Ico name="bar-chart-3" size={24} /></div>
                     <p>Set your job sector to see career insights tailored to your industry.</p>
                     <Link href="/profile" className={styles.cardLink}>Complete Profile &rarr;</Link>
                   </div>
@@ -336,7 +337,7 @@ export default function CandidateInsights({
                     {/* Fallback if no data */}
                     {!salaryInsights && !demandTrend && topSkillsInDemand.length === 0 && !competitionLevel && (
                       <div className={styles.emptyState}>
-                        <div className={styles.emptyIcon}>&#128202;</div>
+                        <div className={styles.emptyIcon}><Ico name="bar-chart-3" size={24} /></div>
                         <p>Not enough job data in your sector yet. Check back soon!</p>
                       </div>
                     )}
@@ -357,7 +358,7 @@ export default function CandidateInsights({
                       <div key={event.id} className={styles.timelineItem}>
                         {idx < activityFeed.length - 1 && <div className={styles.timelineLine} />}
                         <div className={styles.timelineDot}>
-                          <span className={styles.timelineIcon}>{event.icon}</span>
+                          <span className={styles.timelineIcon}><Ico name={event.icon} size={16} /></span>
                         </div>
                         <div className={styles.timelineContent}>
                           <p className={styles.timelineTitle}>{event.title}</p>
@@ -369,7 +370,7 @@ export default function CandidateInsights({
                   </div>
                 ) : (
                   <div className={styles.emptyState}>
-                    <div className={styles.emptyIcon}>&#128340;</div>
+                    <div className={styles.emptyIcon}><Ico name="clock" size={24} /></div>
                     <p>No recent activity. Apply to jobs to see updates here!</p>
                     <Link href="/jobs" className={styles.cardLink}>Browse Jobs &rarr;</Link>
                   </div>

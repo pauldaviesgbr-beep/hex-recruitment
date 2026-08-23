@@ -227,29 +227,21 @@ for (const f of files) {
   })
 }
 
-// ── THE HOLD LIST ──────────────────────────────────────────────────────────
-// Paul approved a scope of SEVEN on 23 Aug 2026. The count was wrong: this
-// check could not see encoded glyphs, so the real number was thirty. The
-// DECISION did not change — the instrument did — but a count is the thing he
-// approves, so the twenty-one still standing wait for his word rather than
-// being swept on my own authority.
+// ── THE HOLD LIST, NOW EMPTY ───────────────────────────────────────────────
+// It briefly held twenty-eight. Paul approved a scope of SEVEN, this check
+// could not see encoded glyphs, and the real number turned out to be
+// thirty-seven — so the surplus was pinned here rather than swept on my own
+// authority, because the DECISION had not changed but the COUNT had, and a
+// count is the thing he approves. He gave the word the same day and they are
+// all done.
 //
-// EVERY SURFACE THAT REACHES AN INBOX IS ALREADY DONE, because that was his
-// stated priority: interview-rescheduled 🎥, the founding-approval 🎉 and the
-// waitlist ✅. What is held is all in-product.
-//
-// This is a HOLD, not an exemption. The check pins the exact set: anything new
-// anywhere fails, and a held file gaining another emoji fails. Clearing one
-// means deleting its line here, which is what makes the list shrink rather
-// than rot. Keyed on file and glyph, not line number, so ordinary edits to
-// these files do not break it.
-const HELD_23_AUG_2026 = [
-  'app/dashboard/analytics/AnalyticsContent.tsx  📊🌐📋💼👥',
-  'app/dashboard/page.tsx  📋🎯💬✅🔖🔔📄🎯🔍⚡⚡',
-  'app/employer/dashboard/page.tsx  💼💬💬',
-  'app/register/employer-free/page.tsx  🎉🔴🟡',
-  'components/CandidateInsights.tsx  📋🎯⚡📊📊🕔',
-]
+// The list stays as a structure rather than being deleted with its contents.
+// It is the right shape for the next time a count moves under an approved
+// scope: pin the surplus, name it in the report, and let it shrink to nothing
+// — which beats both alternatives, sweeping quietly or noting it and letting
+// it rot. Keyed on file and glyph, not line number, so ordinary edits to these
+// files cannot break it.
+const HELD: string[] = []
 
 const byFile: Record<string, string[]> = {}
 for (const o of offenders) {
@@ -260,9 +252,9 @@ for (const o of offenders) {
 const standing = Object.entries(byFile).map(([f, g]) => `${f}  ${g.join('')}`).sort()
 
 check(
-  'NO NEW EMOJI, AND THE HELD SET HAS NOT GROWN',
+  'NO COLOUR EMOJI ON ANY SURFACE A CANDIDATE, AN EMPLOYER OR AN INBOX SEES',
   () => standing,
-  HELD_23_AUG_2026.slice().sort()
+  HELD.slice().sort()
 )
 
 check(
