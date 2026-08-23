@@ -39,7 +39,7 @@ export function interviewRescheduledEmail(
       <tr>
         <td style="text-align:center;">
           <a href="${meetingLink}" target="_blank" style="display:inline-block;padding:12px 28px;background:#1a73e8;color:white;font-size:15px;font-weight:700;border-radius:8px;text-decoration:none;">
-            🎥 Join Video Call
+            Join Video Call
           </a>
         </td>
       </tr>

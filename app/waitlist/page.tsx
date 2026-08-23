@@ -158,7 +158,7 @@ function WaitlistContent() {
         ) : (
           <div className={styles.card}>
             <div className={styles.success}>
-              <h2 className={styles.successTitle}>You&apos;re on the list! 🎉</h2>
+              <h2 className={styles.successTitle}>You&apos;re on the list!</h2>
               <p className={styles.successText}>
                 We&apos;ll email you at <strong>{submittedEmail}</strong> when we go live.
               </p>

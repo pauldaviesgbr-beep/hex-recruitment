@@ -304,7 +304,7 @@ export default function NotificationsSettingsPage() {
           {/* Email Frequency */}
           <div className={styles.section}>
             <div className={styles.sectionHeader}>
-              <span className={styles.sectionIcon}>⏰</span>
+              <span className={styles.sectionIcon}><Ico name="clock" size={20} /></span>
               <h2 className={styles.sectionTitle}>Email Frequency</h2>
             </div>
             <p className={styles.sectionDescription}>Choose how often you want to receive email notifications</p>

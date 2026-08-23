@@ -14,7 +14,7 @@ function buildConfirmationEmail(name: string): string {
   const firstName = name?.trim().split(' ')[0] || 'there'
   const subject = "You're on the Thrive waitlist"
   return emailLayout(subject, `
-        <h1 style="margin:0 0 16px;font-size:22px;font-weight:700;color:#0f172a;">Hi ${firstName}, you're on the list &#9989;</h1>
+        <h1 style="margin:0 0 16px;font-size:22px;font-weight:700;color:#0f172a;">Hi ${firstName}, you're on the list</h1>
         <p style="margin:0 0 16px;font-size:15px;color:#475569;line-height:1.6;">
           Thanks for joining the Thrive waitlist. We're giving the first <strong style="color:#0f172a;">${EMPLOYER_COHORT_CAP}</strong> employers on Thrive ${foundingPhraseShort()} &mdash; and we'll email you the moment we go live.
         </p>

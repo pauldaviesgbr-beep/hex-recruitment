@@ -355,6 +355,25 @@ const ALL = [
   // published height and swapping the reserve to a margin. Exit 1, three named
   // failures, the other nine still reporting.
   { name: 'consentlane:prove', cmd: npm, args: ['run', 'consentlane:prove'] },
+
+  // NO COLOUR EMOJI ON ANY SURFACE A STRANGER SEES. components/icons.tsx has
+  // said this since 14 Aug 2026 and had nothing behind it; seven got in anyway
+  // — three clocks, two hourglasses, a party popper, and a video camera in an
+  // email that reaches real inboxes.
+  //
+  // It splits COLOUR emoji from TEXT glyphs on Unicode's own Emoji_Presentation
+  // property, because the monochrome ones (© ↔ ⬇ ⚠ ↗) are typography and are
+  // deliberately kept — Paul's decision of 14 Aug, recorded in icons.tsx.
+  //
+  // Its controls are inline literals and run FIRST: if the detector cannot find
+  // a glyph known to be there it exits reporting no count at all. This repo has
+  // had an emoji grep return nothing while a pencil sat in the file it had just
+  // read, and a control that began failing ON SUCCESS because it pointed inside
+  // the population being swept.
+  //
+  // Watched failing on purpose 23 Aug 2026 by putting one emoji back in the UI
+  // and one back in the email: exit 1, both named with file and line.
+  { name: 'noemoji:prove', cmd: npm, args: ['run', 'noemoji:prove'] },
 ]
 const CHECKS = FAST ? ALL.filter(c => !c.slow) : ALL
 
