@@ -109,6 +109,21 @@
 
 .oauth:hover { background: #F8FAFC; }
 
+/* THE BRAND GLYPH IS 20px AND THIS RULE IS NOT OPTIONAL.
+   The LinkedIn and Google SVGs carry NO width or height attributes — they are
+   sized entirely by a descendant rule on whatever class wraps them. The class
+   this replaced had `.googleBtn svg { width: 18px }`; mine did not, so both
+   glyphs rendered at ~280px square and the gate looked like a broken page.
+   Every assertion in the drive passed while it did: the heading, the strip,
+   the label, the absence of a login button. Only the screenshot showed it.
+   A class that replaces another inherits its DESCENDANT rules too, not just
+   its own. */
+.oauth svg {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
 .oauthGap { margin-top: 10px; }
 
 .divider {
