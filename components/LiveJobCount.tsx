@@ -8,7 +8,23 @@ import { supabase } from '@/lib/supabase'
 // homepage + feed use). Fail-soft: renders nothing on error or a zero/failed
 // count, so it never shows a broken or "0 roles" state. Respects
 // prefers-reduced-motion for the pulse.
-export default function LiveJobCount({ className, style }: { className?: string; style?: React.CSSProperties }) {
+/**
+ * `inline` renders JUST THE NUMBER, for use inside a sentence —
+ * "Apply to 251 live roles." The default block form ("N roles live now") is a
+ * standalone trust cue and cannot be nested in prose.
+ *
+ * IT IS THE SAME COMPONENT ON PURPOSE. The obvious alternative was to write
+ * the number into the fork's copy, and this product has a history of that: the
+ * board said 247 in three places for weeks while it carried more. A count that
+ * is wrong on the screen where somebody decides whether to join is worse than
+ * no count. One reader, two presentations.
+ *
+ * Fail-soft is inherited and it matters more inline: if the count cannot be
+ * read, the sentence must still parse. It renders nothing, so "Apply to live
+ * roles" reads a little oddly and says nothing false — which is the right way
+ * round.
+ */
+export default function LiveJobCount({ className, style, inline }: { className?: string; style?: React.CSSProperties; inline?: boolean }) {
   const [count, setCount] = useState<number | null>(null)
 
   useEffect(() => {
@@ -28,6 +44,8 @@ export default function LiveJobCount({ className, style }: { className?: string;
   }, [])
 
   if (count === null) return null
+
+  if (inline) return <strong className={className} style={style}>{count.toLocaleString('en-GB')}</strong>
 
   return (
     <div

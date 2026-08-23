@@ -130,6 +130,19 @@ export default function JobDetailPage() {
   const handleApply = () => {
     if (!job) return
     if (!currentUserRole) {
+      // TRACK THE TAP BEFORE THE REDIRECT, NOT AFTER.
+      //
+      // This return sat ABOVE the trackClickEvent call below, so a signed-out
+      // Apply was never recorded. Measured 22 Aug 2026: 64 apply_click events
+      // in thirty days and ZERO of them anonymous — not because strangers were
+      // not tapping Apply, but because the one population we most needed to
+      // count was invisible by construction. Asked "how many people tap Apply
+      // and never reach a signup form", the honest answer was that the number
+      // did not exist and could not be recovered.
+      //
+      // Fire-and-forget: it must never delay or block the navigation. If the
+      // beacon fails, the person still gets to the gate.
+      trackClickEvent(job.id, 'apply_click')
       // Send them through the login/sign-up gate, returning to THIS job with
       // ?apply=1 so the apply modal re-opens automatically once authenticated.
       window.location.href = `/login/employee?redirect=${encodeURIComponent(`/job/${job.id}?apply=1`)}`

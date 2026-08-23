@@ -406,33 +406,48 @@ export default function Header() {
   )
 
   // Navigation for users who are NOT logged in
+  //
+  // ONE SIGN UP AND ONE LOG IN, AND THE SIZE GAP IS THE DESIGN.
+  //
+  // This replaced "Hire People" and "Find a Job", two equal-weight links that
+  // between them made joining look like a menu rather than a door. Worse: on a
+  // job post — the page every LinkedIn link, every share and every Google
+  // result lands on — "Find a Job" was measured at 5,294 sq px and was THE ONLY
+  // JOIN AFFORDANCE ON THE ENTIRE PAGE. A stranger's only route in was a chip
+  // in the top bar that reads like a browse link.
+  //
+  // Sign up is a BUTTON, Log in is a LINK, and every instinct in review will be
+  // to balance them. Do not. A yellow button beside a text link is what tells
+  // somebody who has never been here which of the two is meant for them.
+  //
+  // THE DELETION AND THE REPLACEMENT SHIP IN ONE COMMIT — Paul's instruction,
+  // and the reason is that a window where a job post has no way to join at all
+  // is precisely the fault being fixed.
   const LoggedOutNav = () => {
-    const onLoginOrRegisterPage =
-      pathname === '/login/employer' ||
-      pathname === '/login/employee' ||
+    // On the sign-up screens themselves, Sign up is dropped: you are already on
+    // it. Log in stays everywhere, INCLUDING the apply gate — the gate is now a
+    // pure sign-up form with no password box, so a returning chef who taps
+    // Apply has nowhere else to go. Pushing Log in to the foot of that scroll
+    // would recreate the exact fault this week began with: the right door below
+    // the fold. (Paul, 23 Aug 2026, choosing the drawing over the prose.)
+    const onSignupPage =
+      pathname === '/signup' ||
       pathname === '/register/employer' ||
       pathname === '/register/employer-free' ||
       pathname === '/register/employee'
-
-    if (onLoginOrRegisterPage) return null
+    const onLoginPage =
+      pathname === '/login' ||
+      pathname === '/login/employer' ||
+      pathname === '/login/employee'
 
     return (
       <div className={styles.loginButtons}>
-        <span className="hideOnMobile" style={{ fontSize: '0.8rem', fontWeight: 600, color: 'rgba(255,255,255,0.65)', alignSelf: 'center', marginRight: '0.35rem', whiteSpace: 'nowrap' }}>Sign up →</span>
-        <Link href="/register/employer-free" className={styles.employerLoginBtn}>
-          <svg className={styles.loginIcon} width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
-            <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
-          </svg>
-          Hire People
-        </Link>
-        <Link href="/register/employee" className={styles.employeeLoginBtn}>
-          <svg className={styles.loginIcon} width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-            <circle cx="12" cy="7" r="4" />
-          </svg>
-          Find a Job
-        </Link>
+        {!onLoginPage && (
+          <Link href="/login" className={styles.headerLogIn}>Log in</Link>
+        )}
+        {!onSignupPage && (
+          <Link href="/signup" className={styles.headerSignUp}>Sign up</Link>
+        )}
       </div>
     )
   }
