@@ -110,7 +110,7 @@ export default function SignupPanel({ returnTo }: { returnTo?: string | null }) 
 
       <div className={styles.divider}><span>or with email</span></div>
 
-      <CandidateSignupForm />
+      <CandidateSignupForm submitLabel={isGate ? 'Create account and apply' : 'Create account'} />
 
       <p className={styles.foot}>
         Already with us?{' '}

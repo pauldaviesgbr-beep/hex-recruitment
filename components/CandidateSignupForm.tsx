@@ -21,7 +21,14 @@ import { Ico } from '@/components/icons'
 // user finishes by clicking the link in their email (which logs them in via the
 // unchanged /auth/confirm path). OAuth (Google/LinkedIn) is the promoted path and
 // bypasses this form entirely.
-export default function CandidateSignupForm() {
+/**
+ * `submitLabel` — "Create account" on the register screen, "Create account and
+ * apply" on the apply gate. The design's two prop sets differ in four places
+ * and this is the one that tells the person what actually happens next: they
+ * are not just making an account, they are applying for the role named in the
+ * strip above.
+ */
+export default function CandidateSignupForm({ submitLabel = 'Create account' }: { submitLabel?: string }) {
   const searchParams = useSearchParams()
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
@@ -250,7 +257,7 @@ export default function CandidateSignupForm() {
           would have quietly killed the one signal we have. */}
 
       <button type="submit" disabled={loading} className="submit">
-        {loading ? 'Creating your account…' : 'Create account'}
+        {loading ? 'Creating your account…' : submitLabel}
       </button>
 
       <p className="tiny">That's it — you can add your CV, skills and preferences once you're in.</p>

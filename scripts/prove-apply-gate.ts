@@ -141,6 +141,13 @@ check(
   true
 )
 
+
+// THE PRIMARY SAYS WHAT HAPPENS. The design differs in four places between the
+// two prop sets and this is the one that tells the person they are not merely
+// making an account — they are applying for the role named in the strip.
+check('the gate primary reads "Create account and apply"', () => read('components/SignupPanel.tsx').includes("'Create account and apply'"), true)
+check('and the form no longer hardcodes one label for both', () => read('components/CandidateSignupForm.tsx').includes('submitLabel'), true)
+
 console.log(`\n${ran - failed}/${ran} passed`)
 if (failed) {
   console.error(`${failed} FAILED`)
