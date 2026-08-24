@@ -144,7 +144,7 @@ export default function Home() {
           <h1 className={styles.heroTitle}>
             Hospitality jobs worth{' '}
             <br className={styles.heroTitleBreak} />
-            leaving your shift for.
+            building a career on.
           </h1>
 
           <form
