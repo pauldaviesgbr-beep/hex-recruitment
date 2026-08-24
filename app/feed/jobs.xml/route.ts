@@ -2,12 +2,29 @@ import { createClient } from '@supabase/supabase-js'
 import { buildJobsFeedXml, type FeedJobRow } from '@/lib/jobsFeed'
 
 // Aggregator jobs feed for Adzuna / Jooble / Jora / Talent.com. Reuses the same
-// status='active' jobs query the sitemap uses — so filled (reconciled) and
-// expired (60-day cron) roles drop out automatically. Cached ~1h; aggregators
-// re-pull on their own schedule, so a closed role leaves the feed promptly.
+// status='active' jobs query the sitemap uses, so a role leaves the feed exactly
+// when it leaves the board — by 'filled' (a genuine Thrive hire) or 'archived'
+// (every other reason a role closes). Cached ~1h; aggregators re-pull on their
+// own schedule, so a closed role leaves the feed promptly.
 //
-// NOT a Google for Jobs feed — that's the on-page JobPosting structured data,
-// a separate channel that happens to reuse the same job data.
+// THERE IS NO EXPIRY MECHANISM, and this comment used to say there was. It
+// claimed roles "drop out automatically" via a 60-day cron. NO ROW HAS EVER
+// CARRIED status 'expired' — not one, in the whole table. The cron exists, runs
+// daily, and covers 2 of 247 rows because recruiter postings are exempt.
+//
+// This is NOT a Google for Jobs feed — that's the on-page JobPosting structured
+// data, a separate channel that happens to reuse the same job data.
+//
+// IT IS ALSO A REAL ACQUISITION CHANNEL, which nobody was measuring until
+// 24 Aug 2026: 5 of 66 candidates arrived through it, all UTM-tagged — four
+// from Jooble and one from Adzuna. Worth remembering before anyone treats this
+// route as housekeeping.
+//
+// revalidate = 3600 is what makes the rolling horizon in lib/jobsFeed.ts work.
+// The date is generation-time + 90 days, so it is only ever correct if
+// generation actually happens: measured on production, this route serves
+// x-vercel-cache: PRERENDER, i.e. ISR is live and regenerates hourly. A route
+// frozen at deploy would turn the horizon into the same fault with a longer fuse.
 export const revalidate = 3600
 
 const FIELDS =

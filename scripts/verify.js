@@ -391,6 +391,25 @@ const ALL = [
   // the salary test to the not-null one that both bad rows pass, and orphaning
   // a class. Each named its own failure.
   { name: 'herosearch:prove', cmd: npm, args: ['run', 'herosearch:prove'] },
+
+  // THE FEED'S EXPIRY DATE ROLLS FORWARD RATHER THAN SITTING IN THE PAST.
+  //
+  // The fault this watches was invisible from our side: the date goes only to
+  // Adzuna, Jooble, Jora and Talent.com, and nothing reads it back. On
+  // 24 Aug 2026, 23 of 247 live adverts were being distributed already marked
+  // dead and 208 of 247 were within a month of it, while the board looked fine.
+  //
+  // THE LOAD-BEARING CHECK GENERATES TWICE WITH A FORCED GAP. One generation
+  // cannot tell a rolling horizon from a frozen constant — both look correct
+  // today. The gap is forced by passing feedExpiryHorizon its own `now`
+  // argument, which is a real parameter of the shipped function rather than a
+  // mocked clock.
+  //
+  // Watched failing on purpose 24 Aug 2026, twice: freezing the horizon at a
+  // constant took it to 12/15 — and NOT the past-date check, which is the whole
+  // argument for generating twice — and restoring posted_at + 60 took it to
+  // 10/15. Green on restore both times.
+  { name: 'feedexpiry:prove', cmd: npm, args: ['run', 'feedexpiry:prove'] },
 ]
 const CHECKS = FAST ? ALL.filter(c => !c.slow) : ALL
 

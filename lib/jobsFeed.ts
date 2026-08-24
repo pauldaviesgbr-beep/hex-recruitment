@@ -29,9 +29,34 @@ export interface FeedJobRow {
   source_url?: string | null
 }
 
-// Mirrors the job-expiry cron: an active job auto-expires 60 days after posting,
-// so that's our validThrough default when a role has no explicit expiry.
-const EXPIRY_DAYS = 60
+// THE EXPIRY DATE IS A ROLLING HORIZON, NOT A DEATH DATE.
+//
+// This used to be `posted_at + 60 days`, mirroring the job-expiry cron. Two
+// things were wrong with that:
+//
+//   1. THERE IS NO EXPIRY MECHANISM. Nothing on our side acts on a 60-day
+//      clock — no row has ever carried status 'expired'. So the date was
+//      invented, and we were sending it to four external distributors.
+//   2. IT WENT INTO THE PAST AND STAYED THERE. Measured 24 Aug 2026: 23 of the
+//      247 live adverts were already going out marked dead, the oldest since
+//      18 August, and 208 of 247 would have been within a month — 84% of the
+//      board, because 179 Goldenkeys rows went up together in July.
+//
+// Nothing on our side would ever have surfaced that. The adverts look healthy
+// on the board; the loss is entirely at the far end.
+//
+// WHY A HORIZON RATHER THAN REMOVING THE ELEMENT. Adzuna's spec has no expiry
+// field at all and Talent.com lists it as optional — but Jooble's and Jora's
+// specs could not be established from an authoritative source, and Jooble is a
+// LIVE channel: four tagged signups, one of them the day before this was
+// written. Removing an element that a working channel might require, to fix a
+// tidiness problem, is the wrong trade. A horizon keeps it populated and can
+// never point backwards.
+//
+// 90 days, not 60: comfortably longer than the hourly regeneration window, so
+// there is no arithmetic in which a served copy is old enough for the date to
+// have passed.
+const EXPIRY_HORIZON_DAYS = 90
 
 function cdata(v: unknown): string {
   // Only ]]> needs escaping inside CDATA; split it so the section stays closed.
@@ -127,14 +152,29 @@ function toRfc1123(d?: string | null): string {
   return (isNaN(dt.getTime()) ? new Date() : dt).toUTCString()
 }
 
-function expirationDate(expires?: string | null, posted?: string | null): string {
-  if (expires) { const e = new Date(expires); if (!isNaN(e.getTime())) return e.toISOString().slice(0, 10) }
-  const base = posted ? new Date(posted) : new Date()
-  const b = isNaN(base.getTime()) ? new Date() : base
-  return new Date(b.getTime() + EXPIRY_DAYS * 86400000).toISOString().slice(0, 10)
+/**
+ * The horizon for THIS generation of the feed. Computed ONCE per build and
+ * passed down to every item.
+ *
+ * COMPUTED ONCE ON PURPOSE, not per item. If each item called new Date() for
+ * itself, a build that straddled midnight UTC would emit two different dates
+ * and the feed would no longer be saying one thing. Passing it in makes
+ * "identical on every item" structural rather than something that happens to
+ * be true and is checked for afterwards.
+ *
+ * A row's OWN expires_at still wins if it ever has one — nothing writes that
+ * column today, but if something ever does, a real date beats a horizon.
+ */
+export function feedExpiryHorizon(now: Date = new Date()): string {
+  return new Date(now.getTime() + EXPIRY_HORIZON_DAYS * 86400000).toISOString().slice(0, 10)
 }
 
-export function jobToXml(job: FeedJobRow, siteUrl: string): string {
+function expirationDate(expires: string | null | undefined, horizon: string): string {
+  if (expires) { const e = new Date(expires); if (!isNaN(e.getTime())) return e.toISOString().slice(0, 10) }
+  return horizon
+}
+
+export function jobToXml(job: FeedJobRow, siteUrl: string, horizon: string): string {
   const city = job.full_location?.city || job.location || ''
   const state = job.area || ''
   const postcode = job.full_location?.postcode || ''
@@ -165,13 +205,15 @@ export function jobToXml(job: FeedJobRow, siteUrl: string): string {
   if (salary) parts.push(`<salary>${cdata(salary)}</salary>`)
   if (jobtype) parts.push(`<jobtype>${jobtype}</jobtype>`)
   if (job.category) parts.push(`<category>${cdata(job.category)}</category>`)
-  parts.push(`<expirationdate>${expirationDate(job.expires_at, job.posted_at)}</expirationdate>`)
+  parts.push(`<expirationdate>${expirationDate(job.expires_at, horizon)}</expirationdate>`)
 
   return `<job>\n    ${parts.join('\n    ')}\n  </job>`
 }
 
 export function buildJobsFeedXml(rows: FeedJobRow[], siteUrl: string): string {
-  const jobs = (rows || []).map(j => jobToXml(j, siteUrl)).join('\n  ')
+  // ONE horizon for the whole document. Every item gets this exact string.
+  const horizon = feedExpiryHorizon()
+  const jobs = (rows || []).map(j => jobToXml(j, siteUrl, horizon)).join('\n  ')
   return (
     `<?xml version="1.0" encoding="utf-8"?>\n` +
     `<source>\n` +
