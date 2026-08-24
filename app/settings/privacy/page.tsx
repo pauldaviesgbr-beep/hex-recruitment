@@ -61,10 +61,10 @@ export default function PrivacySettingsPage() {
   const [userType, setUserType] = useState<'employer' | 'employee' | null>(null)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [settings, setSettings] = useState<PrivacySettings>(defaultJobSeekerSettings)
-  // The account's own address, so the deletion mailto can identify the
-  // requester without them having to remember which address they signed up
-  // with. Empty is fine — the link still works, it just says less.
-  const [accountEmail, setAccountEmail] = useState('')
+  const [requesting, setRequesting] = useState(false)
+  // Null until asked. Asked on load, so the screen can say "we have your
+  // request" instead of offering the button to someone who already pressed it.
+  const [openRequest, setOpenRequest] = useState<{ requestedAt: string } | null>(null)
 
   useEffect(() => {
     const loadSettings = async () => {
@@ -100,7 +100,17 @@ export default function PrivacySettingsPage() {
       const role = session.user.user_metadata?.role
       const type = role === 'employer' ? 'employer' : 'employee'
       setUserType(type)
-      setAccountEmail(session.user.email || '')
+
+      // ASK WHETHER THEY ALREADY HAVE ONE OUTSTANDING. Best effort — if this
+      // fails the button is simply offered, and a second press is a no-op
+      // server-side because one open request per person is enforced by a
+      // unique index rather than by this fetch succeeding.
+      fetch('/api/account/deletion-request', {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      })
+        .then(r => r.json())
+        .then(b => { if (b?.open) setOpenRequest({ requestedAt: b.open.requestedAt }) })
+        .catch(() => {})
       const defaults = type === 'employer' ? defaultEmployerSettings : defaultJobSeekerSettings
 
       // Fetch settings from appropriate table
@@ -263,7 +273,46 @@ export default function PrivacySettingsPage() {
     }
   }
 
-  // THERE IS NO handleRequestDeletion ANY MORE, AND THAT IS THE FIX.
+  // THE REQUEST NOW REACHES A HUMAN AND LEAVES A ROW.
+  //
+  // The version of this that started the whole thread set a success message
+  // and returned. Driven on production 24 Aug 2026, clicking Confirm fired
+  // ZERO network requests while telling the person their request was submitted
+  // and a confirmation email would arrive within 48 hours. Nothing was
+  // recorded, nobody was emailed, nothing was deleted.
+  //
+  // THE TIMESCALE COMES FROM THE SERVER, NOT FROM THIS FILE, so the number on
+  // screen cannot drift away from the one the route actually promises. It is
+  // 30 days, which is what UK GDPR allows and what the Privacy Policy already
+  // publishes — never 48 hours again.
+  const handleRequestDeletion = async () => {
+    setRequesting(true)
+    setMessage(null)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) throw new Error('Please sign in again')
+      const res = await fetch('/api/account/deletion-request', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      })
+      const body = await res.json()
+      if (!res.ok) throw new Error(body?.error || 'Could not record your request')
+
+      setOpenRequest({ requestedAt: body.requestedAt })
+      setMessage({
+        type: 'success',
+        text: body.alreadyOpen
+          ? `You already have a deletion request with us. We will reply within ${body.responseDays} days.`
+          : `We have your request. We will reply within ${body.responseDays} days. Nothing has been deleted yet.`,
+      })
+    } catch (e: any) {
+      setMessage({ type: 'error', text: e.message || 'Could not record your request' })
+    } finally {
+      setRequesting(false)
+    }
+  }
+
+  // WHAT THE OLD CODE DID, kept as the reason this shape exists.
   //
   // It used to set a success message reading "Data deletion request submitted.
   // You will receive a confirmation email within 48 hours." and return. Its own
@@ -589,25 +638,35 @@ export default function PrivacySettingsPage() {
               <div className={styles.dangerInfo}>
                 <span className={styles.dangerName}>Delete my account and data</span>
                 <span className={styles.dangerDescription}>
-                  Email us and we&rsquo;ll delete your account and everything attached to it.
-                  We reply within 30 days. This cannot be undone.
+                  {openRequest
+                    ? 'We have your request and will reply within 30 days. Nothing has been deleted yet — we will confirm before anything is removed.'
+                    : 'Ask us to delete your account and everything attached to it. We reply within 30 days. This cannot be undone.'}
                 </span>
               </div>
-              {/* A LINK, NOT A BUTTON, ON PURPOSE. A button implies something
-                  happens in the product when it is pressed. Nothing does yet,
-                  and a control that looks like it acts is what caused this. */}
-              <a
-                className={styles.deleteRequestBtn}
-                href={
-                  'mailto:contact@thrivecareer.co.uk' +
-                  '?subject=' + encodeURIComponent('Data deletion request') +
-                  '&body=' + encodeURIComponent(
-                    'I would like my Thrive account and all data associated with it deleted.\n\n' +
-                    (accountEmail ? `Account email: ${accountEmail}\n` : ''))
-                }
-              >
-                Email contact@thrivecareer.co.uk
-              </a>
+              {/* IT IS A BUTTON AGAIN, AND NOW IT EARNS THAT. It was briefly a
+                  mailto link, on the principle that a button implies something
+                  happens when it is pressed and nothing did. Something does
+                  now: a row is written and a human is emailed.
+
+                  THE OUTSTANDING STATE IS THE HALF THAT MATTERS. Offering the
+                  button again to someone who already asked is how they end up
+                  unsure a second time, which is the original fault wearing a
+                  different coat. */}
+              {openRequest ? (
+                <span className={styles.deleteRequestPending}>
+                  Requested {new Date(openRequest.requestedAt).toLocaleDateString('en-GB',
+                    { day: 'numeric', month: 'long', year: 'numeric' })}
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  className={styles.deleteRequestBtn}
+                  onClick={handleRequestDeletion}
+                  disabled={requesting}
+                >
+                  {requesting ? 'Sending…' : 'Request deletion'}
+                </button>
+              )}
             </div>
           </div>
         </div>
