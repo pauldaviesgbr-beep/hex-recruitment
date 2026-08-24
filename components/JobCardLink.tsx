@@ -12,8 +12,13 @@ import { formatJobLocation } from '@/lib/jobCard'
 
 // Single-source image-led job card. The card visual lives in /jobs
 // (page.module.css `jobCard*` classes); this wraps that exact markup so the
-// home-page strip (FeaturedJobs) and the dashboard "Recommended" row share ONE
-// card instead of duplicating it. Links to the cold-safe /job/<id> page.
+// consuming surfaces share ONE card instead of duplicating it. Links to the
+// cold-safe /job/<id> page.
+//
+// FeaturedJobs used to be one of those surfaces and IS NO LONGER MOUNTED
+// (24 Aug 2026) — the home hero shows the newest roles itself and the two
+// together put the same three jobs on screen twice inside one scroll. The
+// component still exists and is now rendered nowhere.
 // `children` is an optional overlay slot (e.g. a dismiss button) rendered inside
 // the card — overlay controls must call preventDefault/stopPropagation so they
 // don't trigger the card's navigation.
@@ -38,8 +43,8 @@ export default function JobCardLink({
   className?: string
   children?: ReactNode
   // Optional tap target. Defaults to the candidate apply page /job/<id> (so the
-  // candidate dashboard + FeaturedJobs are unchanged); the employer dashboard
-  // passes /post-job?edit=<id> to manage its own post instead.
+  // candidate dashboard is unchanged); the employer dashboard passes
+  // /post-job?edit=<id> to manage its own post instead.
   href?: string
 }) {
   const banner = resolveJobBanner({
