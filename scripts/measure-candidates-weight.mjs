@@ -71,6 +71,7 @@ for (const vp of WIDTHS) {
   // Photos resolve through a signed-URL round trip AFTER hydration, so a short
   // wait would measure a page that has not finished fetching them — and would
   // flatter the "after" run precisely where honesty matters.
+  await page.waitForSelector('[class*="cardDirectory"]', { timeout: 60000 })
   await page.waitForTimeout(12000)
   armed = false
 

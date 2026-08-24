@@ -134,7 +134,12 @@ try {
   // ── THE PAGE PAUL NAMED ───────────────────────────────────────────────
   console.log('\n/candidates — THE DIRECTORY GRID')
   await page.goto(`${BASE}/candidates`, { waitUntil: 'domcontentloaded' })
-  await page.waitForTimeout(8000)
+  // WAIT FOR THE CARDS, NOT FOR A DURATION. A fixed sleep raced a cold
+  // preview lambda and photographed the word "Loading...", which reported
+  // ZERO cards and read as a broken page. A sleep long enough today is a race
+  // lost later, on a slower machine or a colder start.
+  await page.waitForSelector('[class*="cardDirectory"]', { timeout: 60000 })
+  await page.waitForTimeout(6000)
   await page.screenshot({ path: `${SHOTS}/photos-candidates-grid.png`, fullPage: false })
 
   const grid = await page.evaluate(() => {
