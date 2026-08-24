@@ -253,7 +253,7 @@ export default function PrivacySettingsPage() {
       setMessage({
         type: 'success',
         text: 'Downloaded your profile and account details. This does not include applications, ' +
-              'messages or CVs — email privacy@thrivecareer.co.uk for everything we hold.',
+              'messages or CVs — email contact@thrivecareer.co.uk for everything we hold.',
       })
     } catch (error: any) {
       console.error('Error exporting data:', error)
@@ -562,7 +562,7 @@ export default function PrivacySettingsPage() {
                     it accurately is not. */}
                 <span className={styles.dangerDescription}>
                   Download your profile and account details as a JSON file. For everything
-                  we hold &mdash; applications, messages, CVs &mdash; email privacy@thrivecareer.co.uk.
+                  we hold &mdash; applications, messages, CVs &mdash; email contact@thrivecareer.co.uk.
                 </span>
               </div>
               <button
@@ -599,14 +599,14 @@ export default function PrivacySettingsPage() {
               <a
                 className={styles.deleteRequestBtn}
                 href={
-                  'mailto:privacy@thrivecareer.co.uk' +
+                  'mailto:contact@thrivecareer.co.uk' +
                   '?subject=' + encodeURIComponent('Data deletion request') +
                   '&body=' + encodeURIComponent(
                     'I would like my Thrive account and all data associated with it deleted.\n\n' +
                     (accountEmail ? `Account email: ${accountEmail}\n` : ''))
                 }
               >
-                Email privacy@thrivecareer.co.uk
+                Email contact@thrivecareer.co.uk
               </a>
             </div>
           </div>

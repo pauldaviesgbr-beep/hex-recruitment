@@ -82,7 +82,7 @@ try {
   // every check above and still fail the person.
   const mailto = await page.evaluate(() => {
     const a = Array.from(document.querySelectorAll('a[href^="mailto:"]'))
-      .find(x => /privacy@/i.test(x.getAttribute('href') || ''))
+      .find(x => /contact@/i.test(x.getAttribute('href') || ''))
     return a ? { text: (a.textContent || '').trim(), href: a.getAttribute('href') } : null
   })
   pad('a real route to a human is present', mailto ? 'ok' : 'MISSING')
@@ -102,7 +102,7 @@ try {
   // family of fault as measuring a scroll that has not finished.
   await page.evaluate(() => {
     const a = Array.from(document.querySelectorAll('a[href^="mailto:"]'))
-      .find(x => /privacy@/i.test(x.getAttribute('href') || ''))
+      .find(x => /contact@/i.test(x.getAttribute('href') || ''))
     if (a) a.scrollIntoView({ behavior: 'instant', block: 'center' })
   })
   await page.screenshot({ path: `${SHOTS}/deletion-after-fix.png`, fullPage: false })

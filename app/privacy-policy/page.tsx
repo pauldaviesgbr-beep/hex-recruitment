@@ -430,8 +430,8 @@ export default function PrivacyPolicyPage() {
                 use the{' '}
                 <Link href="/settings/privacy" className={styles.link}>Download My Data</Link> feature
                 to export your data. For any other requests, email us at{' '}
-                <a href="mailto:privacy@thrivecareer.co.uk" className={styles.link}>
-                  privacy@thrivecareer.co.uk
+                <a href="mailto:contact@thrivecareer.co.uk" className={styles.link}>
+                  contact@thrivecareer.co.uk
                 </a>
                 . We will respond within <strong>30 days</strong>.
               </p>
@@ -503,8 +503,8 @@ export default function PrivacyPolicyPage() {
               If we become aware that we have inadvertently collected data from a child under 16, we
               will take steps to delete that data as quickly as possible. If you believe a child under
               16 has provided us with personal data, please contact us immediately at{' '}
-              <a href="mailto:privacy@thrivecareer.co.uk" className={styles.link}>
-                privacy@thrivecareer.co.uk
+              <a href="mailto:contact@thrivecareer.co.uk" className={styles.link}>
+                contact@thrivecareer.co.uk
               </a>
               .
             </p>
@@ -678,8 +678,8 @@ export default function PrivacyPolicyPage() {
               <p><strong>Thrive — Data Protection</strong></p>
               <p>
                 Email:{' '}
-                <a href="mailto:privacy@thrivecareer.co.uk" className={styles.link}>
-                  privacy@thrivecareer.co.uk
+                <a href="mailto:contact@thrivecareer.co.uk" className={styles.link}>
+                  contact@thrivecareer.co.uk
                 </a>
               </p>
             </div>
@@ -722,7 +722,7 @@ export default function PrivacyPolicyPage() {
             <Link href="/terms" className={styles.footerLink}>Terms of Service</Link>
             <Link href="/privacy-policy" className={styles.footerLinkActive}>Privacy Policy</Link>
             <button onClick={() => (window as any).__openCookiePreferences?.()} className={styles.footerLink} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, font: 'inherit' }}>Cookie Settings</button>
-            <a href="mailto:privacy@thrivecareer.co.uk" className={styles.footerLink}>Contact</a>
+            <a href="mailto:contact@thrivecareer.co.uk" className={styles.footerLink}>Contact</a>
           </div>
           <p className={styles.footerCopyright}>
             &copy; {new Date().getFullYear()} Thrive. All rights reserved.
