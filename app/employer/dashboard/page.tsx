@@ -11,6 +11,7 @@ import EmployerTour from '@/components/onboarding/EmployerTour'
 import { DEV_MODE, getMockUser, getMockUserType } from '@/lib/mockAuth'
 import { useMessages } from '@/lib/MessagesContext'
 import Header from '@/components/Header'
+import SignedImage from '@/components/SignedImage'
 import { supabaseJobToJob } from '@/lib/types'
 import { STAGE_COLORS, STAGE_LABELS, stageForStatus } from '@/lib/constants/pipelineStages'
 import AnswerLine from '@/components/AnswerLine'
@@ -298,7 +299,22 @@ function CandidateCardSlider({ apps, totalApplications, styles }: {
           {/* ── HEADER: Photo + Name + Facts ── */}
           <div style={{ display: 'flex', gap: '0.75rem', padding: '1.25rem 1rem 1rem', alignItems: 'flex-start' }}>
             <div style={{ width: 64, height: 64, borderRadius: '50%', background: bgColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem', fontWeight: 700, color: '#fff', overflow: 'hidden', flexShrink: 0 }}>
-              {app.candidate_photo ? <img src={app.candidate_photo} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : initials}
+              {/* THIS WAS A RAW <img src={app.candidate_photo}>, AND THE VALUE
+                  IS A RELATIVE STORAGE PATH — photos/<uid>/<file>.jpg. A
+                  relative src resolves against thrivecareer.co.uk, the
+                  'profiles' bucket is PRIVATE, so it 404'd and the card showed
+                  a broken-image icon instead of the initials sitting right
+                  there as the else branch.
+                  SignedImage is what every other surface uses; the fallback is
+                  the initials, and it covers BOTH failure modes — signing
+                  returning nothing, and the image itself erroring. A broken
+                  image is worse than initials on any policy. */}
+              <SignedImage
+                src={app.candidate_photo}
+                alt=""
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                fallback={<>{initials}</>}
+              />
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: '1rem', fontWeight: 700, color: '#1e293b' }}>{app.candidate_name || 'Candidate'}</div>
@@ -761,7 +777,14 @@ export default function EmployerDashboardPage() {
                   try {
                     const { data: profiles } = await supabase
                       .from('candidate_profiles')
-                      .select('user_id, full_name, profile_picture_url, city, availability, years_experience, job_title, job_sector, skills, bio, cv_url')
+                      // personal_bio WAS MISSING AND LINE ~796 READS IT.
+                      // `p.personal_bio || p.bio` could only ever take the
+                      // second branch, because the first was never selected —
+                      // so the legacy `bio` column won every time, and nothing
+                      // errored because PostgREST does not return the field and
+                      // JS reads undefined. personal_bio is the column the one
+                      // visible "About Me" box actually writes.
+                      .select('user_id, full_name, profile_picture_url, city, availability, years_experience, job_title, job_sector, skills, personal_bio, bio, cv_url')
                       .in('user_id', candidateIds)
 
                     if (profiles) {

@@ -21,6 +21,13 @@ export default function SignedImage({ src, alt, className, style, fallback }: Si
   const [failed, setFailed] = useState(false)
 
   useEffect(() => {
+    // RESET THE FAILURE WHEN THE SOURCE CHANGES. Without this, one broken
+    // image poisons every later src on the same mounted component: `failed`
+    // stayed true forever and the fallback showed for a photo that was
+    // perfectly fine. It matters wherever this component is REUSED rather than
+    // remounted — the employer applications carousel swaps candidates through
+    // one card, so a single bad photo would blank the rest of the pipeline.
+    setFailed(false)
     if (!src) { setResolvedSrc(''); return }
     // External URLs don't need signing
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
