@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Header from '@/components/Header'
 import ThriveMark from '@/components/ThriveMark'
-import FeaturedJobs from '@/components/FeaturedJobs'
 import { supabase } from '@/lib/supabase'
 import { supabaseJobToJob } from '@/lib/types'
 import type { Job } from '@/lib/mockJobs'
@@ -256,8 +255,15 @@ export default function Home() {
       </p>
 
 
-      {/* Live roles strip — candidate funnel + proof of real inventory */}
-      <FeaturedJobs />
+      {/* FEATUREDJOBS IS GONE FROM THIS PAGE — the hero does its job now, and
+          does it above the fold.
+          It sat immediately below the hero showing "Live roles hiring now" from
+          the same inventory the hero's cards come from, so Reception Manager,
+          Head Chef and Chef De Partie each appeared TWICE inside one scroll.
+          A board of 251 read as a board of four.
+          The component itself is left in place and is now mounted nowhere — on
+          the list with CandidateCardSlider and notifIcon, not deleted in a pass
+          that was not about deleting it. */}
 
       {/* See it in action — real product demos (pipeline + offer signing) */}
       <section className={styles.seeItSection}>
