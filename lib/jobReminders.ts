@@ -2,15 +2,24 @@
  * "IS THIS ADVERT STILL OPEN?" — REMINDERS FOR ADVERTS THAT HAVE BEEN RUNNING
  * A WHILE.
  *
- * WHY THIS EXISTS RATHER THAN EXPIRY. Employer-posted adverts expire at 60 days
- * via /api/cron/job-expiry, but that route filters `is_recruiter_posting = false`
- * — so agency listings never age out and never get the expiry email. That
- * exemption is correct for Goldenkeys, whose weekly scrape reconciles its own
- * listings and would simply rewrite anything we expired. It is NOT correct for
- * Host, whose 23 listings are retired by hand, and it is not correct for
- * Collins King, who posts through the form. Nothing reconciles those, so they
- * accumulate live adverts for roles that were filled weeks ago — which is the
- * complaint candidates have about every other job board.
+ * WHY THIS EXISTS RATHER THAN EXPIRY — AND THE PREMISE HAS CHANGED.
+ *
+ * This used to read "employer-posted adverts expire at 60 days via
+ * /api/cron/job-expiry". That was true of the code and false of the product.
+ * Measured 24 Aug 2026: NO ROW HAS EVER CARRIED status 'expired'. The cron is
+ * scheduled daily and reaches 2 of 247 live adverts, because it filters
+ * `is_recruiter_posting = false` and 249 of them are recruiter postings.
+ *
+ * Paul has since ruled that Thrive HAS NO EXPIRY MECHANISM at all: an advert
+ * leaves the board by 'filled' (a genuine Thrive hire) or 'archived'
+ * (everything else). Removing the cron and the dead post-form field is its own
+ * branch and has not landed yet, so the route still exists as this is written.
+ *
+ * NONE OF THAT WEAKENS THE CASE FOR REMINDERS — it strengthens it. Nothing
+ * ages a listing out, so adverts accumulate for roles that closed weeks ago,
+ * which is the complaint candidates have about every other job board. Goldenkeys
+ * is reconciled weekly by its own scrape; Host is reconciled by hand; Collins
+ * King, posting through the form, is reconciled by nobody.
  *
  * A reminder is the honest answer where expiry is not: we do not know the role
  * is filled, so we ask rather than assert. Closing stays the employer's
