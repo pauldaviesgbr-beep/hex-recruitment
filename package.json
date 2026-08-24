@@ -45,7 +45,8 @@
     "loginerrors:prove": "npx tsx scripts/prove-login-errors.ts",
     "unifiedlogin:prove": "npx tsx scripts/prove-unified-login.ts",
     "consentlane:prove": "npx tsx scripts/prove-consent-lane.ts",
-    "noemoji:prove": "npx tsx scripts/prove-no-emoji.ts"
+    "noemoji:prove": "npx tsx scripts/prove-no-emoji.ts",
+    "herosearch:prove": "npx tsx scripts/prove-hero-search.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.98.0",

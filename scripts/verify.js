@@ -374,6 +374,23 @@ const ALL = [
   // Watched failing on purpose 23 Aug 2026 by putting one emoji back in the UI
   // and one back in the email: exit 1, both named with file and line.
   { name: 'noemoji:prove', cmd: npm, args: ['run', 'noemoji:prove'] },
+
+  // THE HOME HERO IS THE JOB SEARCH, and every number on it comes from the
+  // rows. The design gave three figures that were true the day it was drawn:
+  // 251 roles, a salary on every one, and NEWEST TODAY. Typed in, the first
+  // goes stale silently, and the other two are FALSE TODAY — two imported
+  // rows store a literal 0 in both salary columns, and nothing was posted
+  // today. All three are computed.
+  //
+  // It also asserts every class the page uses has a rule behind it. Rebuilding
+  // the hero orphaned three that the closing section still used, and a CSS
+  // module hands back undefined for a class it lacks — no error, no type
+  // failure, just an unstyled row nobody sees until a screenshot.
+  //
+  // Watched failing on purpose 23 Aug 2026 by typing the count in, swapping
+  // the salary test to the not-null one that both bad rows pass, and orphaning
+  // a class. Each named its own failure.
+  { name: 'herosearch:prove', cmd: npm, args: ['run', 'herosearch:prove'] },
 ]
 const CHECKS = FAST ? ALL.filter(c => !c.slow) : ALL
 
