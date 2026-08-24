@@ -143,6 +143,9 @@ Standing rules for Claude Code on this project. These override default behaviour
 
 - Things that are right only because every live row is hospitality, and become wrong the day Thrive broadens: the **work-location default** ("In person"), the **sectors filter** (32 of 33 options match nothing), and the **site meta description** ("for restaurants, hotels and hospitality groups"). Hospitality is the starting vertical because that is where the contacts are, not what the product is. Recorded so nobody has to rediscover why they were left alone.
 - **VIEW COUNTS CHANGE MEANING ON 4 AUGUST 2026. Do not read the step change as growth.** Before that date `jobs.views` counted **signed-in users only** — a signed-out visitor was never counted on any path, so every click from a shared link, a LinkedIn post or a Google result counted zero. From that date anonymous views count too, via `/api/jobs/[id]/view`. Every historical figure is therefore not comparable with anything after it, and there will be a jump that is instrumentation, not marketing. Two other things moved at the same time: a single board click used to increment twice (two call sites, one of them inside the hook the other also called), so pre-August numbers are also inflated for the people they did count; and "unique viewers" collapsed every anonymous row into one, because they all share a null `viewer_id`.
+- **`job_views.source` IS AN INTERNAL SURFACE LABEL, NOT A TRAFFIC SOURCE.** All 578 rows read `direct` (414), `search` (160) or `recommendation` (4) — it records which part of OUR site the click came from. An arrival from Jooble or Google lands in `direct`. So there is no external attribution at the view layer and **no denominator**: we can say four candidates signed up from Jooble and never out of how many clicks. Signups are attributed (`signup_source` + `signup_source_basis`, filled from UTM tags); views are not, and the column named `source` is exactly the thing that makes it look as though they are.
+  - Same family as `area` vs `area_county` and the dead `expires_at` column: **a field whose name answers a different question from the one being asked.** Read what it holds on live rows before building on it. If external attribution is ever wanted, it belongs in a SECOND column — overloading this one is how the next person misreads it.
+
 - **A view is an OPEN, not a PERSON.** There is deliberately no cookie, identifier or fingerprint, so a reload counts again and the same person on two days counts twice. Signed-in and anonymous stay separable — `job_views.viewer_id` is the user or null — but `jobs.views` is the total of both.
 - **Ads expire at 60 days from `posted_at`, via `/api/cron/job-expiry` daily at 10:00 UTC, and the employer gets an email when they do.** This corrects an entry that read *"employer-posted ads never expire"* — false, and believed for six weeks. **The dead column was a red herring: the route is called job-expiry and does not read `expires_at`.** Everyone who went looking for expiry behaviour found a null column, concluded there was none, and stopped. `jobs.expires_at` genuinely is null on every row and nothing writes it; that was true and it proved nothing. **Check what the cron does, not the column named after it.**
   - **Recruiter postings are excluded** — an `is_recruiter_posting = false` filter added 4 Aug 2026. The Goldenkeys scrape reconciles its own listings weekly and is the authority on whether a vacancy is still live, so expiring them on our clock would overrule it — and wouldn't stick: the scrape rewrites `status = 'active'` while `posted_at` is only ever written on insert, so it would re-expire and re-email every week, forever. Left alone, 23 rows would have expired on 18 Aug 2026 and 179 more on 10 Sep, with ~241 emails to one recruiter about ads they never posted through the form.
@@ -297,6 +300,20 @@ wrong reason is worse than no check, because it ends the search.
   that predated my own is_house change. Every one read as a product
   fault and was the instrument. Stopping at red would have "fixed"
   working code.
+
+- A VALUE THAT IS SUPPOSED TO MOVE NEEDS TWO MEASUREMENTS, TAKEN
+  APART. One generation of the jobs feed cannot tell a rolling
+  horizon from a frozen constant — both emit one date that looks
+  correct today, and "no date is in the past" PASSES on the frozen
+  one. Demonstrated rather than argued: freezing the horizon left
+  12 of 15 checks green, and the three that went red were exactly
+  the three that generate twice. Force the gap through a real
+  parameter of the shipped function (`feedExpiryHorizon(now)`),
+  never a mocked clock, so the thing proven is the thing that runs.
+  - The general shape is the substring rule again, in time rather
+    than in text: **if both states produce the same output at the
+    instant you look, looking once cannot tell you which one you
+    are in.**
 
 - A POSITIVE CONTROL MUST LIVE OUTSIDE THE THING BEING CHANGED. The
   emoji detector's control pointed at a file the sweep then
