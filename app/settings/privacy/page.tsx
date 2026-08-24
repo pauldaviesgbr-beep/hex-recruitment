@@ -61,7 +61,10 @@ export default function PrivacySettingsPage() {
   const [userType, setUserType] = useState<'employer' | 'employee' | null>(null)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [settings, setSettings] = useState<PrivacySettings>(defaultJobSeekerSettings)
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  // The account's own address, so the deletion mailto can identify the
+  // requester without them having to remember which address they signed up
+  // with. Empty is fine — the link still works, it just says less.
+  const [accountEmail, setAccountEmail] = useState('')
 
   useEffect(() => {
     const loadSettings = async () => {
@@ -97,6 +100,7 @@ export default function PrivacySettingsPage() {
       const role = session.user.user_metadata?.role
       const type = role === 'employer' ? 'employer' : 'employee'
       setUserType(type)
+      setAccountEmail(session.user.email || '')
       const defaults = type === 'employer' ? defaultEmployerSettings : defaultJobSeekerSettings
 
       // Fetch settings from appropriate table
@@ -242,7 +246,15 @@ export default function PrivacySettingsPage() {
       document.body.removeChild(a)
       URL.revokeObjectURL(url)
 
-      setMessage({ type: 'success', text: 'Your data has been exported successfully!' })
+      // NAMES WHAT IT CONTAINS. "Your data has been exported successfully!"
+      // was true of the download and false about the data: a partial export
+      // presented as a complete one is the same fault as the deletion button,
+      // one notch quieter.
+      setMessage({
+        type: 'success',
+        text: 'Downloaded your profile and account details. This does not include applications, ' +
+              'messages or CVs — email privacy@thrivecareer.co.uk for everything we hold.',
+      })
     } catch (error: any) {
       console.error('Error exporting data:', error)
       setMessage({ type: 'error', text: error.message || 'Failed to export data' })
@@ -251,14 +263,28 @@ export default function PrivacySettingsPage() {
     }
   }
 
-  const handleRequestDeletion = async () => {
-    // In a real app, this would send a deletion request to admin or trigger account deletion
-    setMessage({
-      type: 'success',
-      text: 'Data deletion request submitted. You will receive a confirmation email within 48 hours.'
-    })
-    setShowDeleteConfirm(false)
-  }
+  // THERE IS NO handleRequestDeletion ANY MORE, AND THAT IS THE FIX.
+  //
+  // It used to set a success message reading "Data deletion request submitted.
+  // You will receive a confirmation email within 48 hours." and return. Its own
+  // comment said "In a real app, this would send a deletion request to admin or
+  // trigger account deletion". Driven on production 24 Aug 2026: clicking
+  // Confirm fired ZERO network requests. Nothing was recorded, nobody was
+  // emailed, nothing was deleted — and the person was told to expect a
+  // confirmation that would never arrive, so they had no reason to chase it.
+  //
+  // That is a false statement made to someone exercising a legal right, which
+  // is worse than having no control at all.
+  //
+  // REMOVING THE BUTTON AND LEAVING NOTHING WOULD BE THE SAME FAILURE with a
+  // quieter face — the person still could not exercise the right. So the
+  // control now routes to a human at the address the Privacy Policy already
+  // publishes for exactly this, with the timescale that page already commits
+  // to (30 days, which is what UK GDPR allows — NOT the 48 hours the old copy
+  // invented).
+  //
+  // INTERIM. When the request route lands (a recorded row + an email to a
+  // human + a status the candidate can see), this becomes a real button again.
 
   const Toggle = ({ checked, onChange, disabled = false }: { checked: boolean; onChange: () => void; disabled?: boolean }) => (
     <button
@@ -529,8 +555,14 @@ export default function PrivacySettingsPage() {
             <div className={styles.dangerItem}>
               <div className={styles.dangerInfo}>
                 <span className={styles.dangerName}>Download my data</span>
+                {/* IT SAID "all your profile data, settings, and activity".
+                    It exports the profile row and the account email. Not
+                    applications, messages, CVs, interviews, saved jobs, alerts
+                    or notifications. Widening it is separate work; describing
+                    it accurately is not. */}
                 <span className={styles.dangerDescription}>
-                  Export all your profile data, settings, and activity as a JSON file
+                  Download your profile and account details as a JSON file. For everything
+                  we hold &mdash; applications, messages, CVs &mdash; email privacy@thrivecareer.co.uk.
                 </span>
               </div>
               <button
@@ -555,37 +587,27 @@ export default function PrivacySettingsPage() {
 
             <div className={styles.dangerItem}>
               <div className={styles.dangerInfo}>
-                <span className={styles.dangerName}>Request data deletion</span>
+                <span className={styles.dangerName}>Delete my account and data</span>
                 <span className={styles.dangerDescription}>
-                  Submit a request to permanently delete all your data. This action cannot be undone.
+                  Email us and we&rsquo;ll delete your account and everything attached to it.
+                  We reply within 30 days. This cannot be undone.
                 </span>
               </div>
-              {!showDeleteConfirm ? (
-                <button
-                  type="button"
-                  className={styles.deleteRequestBtn}
-                  onClick={() => setShowDeleteConfirm(true)}
-                >
-                  Request Deletion
-                </button>
-              ) : (
-                <div className={styles.confirmButtons}>
-                  <button
-                    type="button"
-                    className={styles.confirmDeleteBtn}
-                    onClick={handleRequestDeletion}
-                  >
-                    Confirm Request
-                  </button>
-                  <button
-                    type="button"
-                    className={styles.cancelDeleteBtn}
-                    onClick={() => setShowDeleteConfirm(false)}
-                  >
-                    Cancel
-                  </button>
-                </div>
-              )}
+              {/* A LINK, NOT A BUTTON, ON PURPOSE. A button implies something
+                  happens in the product when it is pressed. Nothing does yet,
+                  and a control that looks like it acts is what caused this. */}
+              <a
+                className={styles.deleteRequestBtn}
+                href={
+                  'mailto:privacy@thrivecareer.co.uk' +
+                  '?subject=' + encodeURIComponent('Data deletion request') +
+                  '&body=' + encodeURIComponent(
+                    'I would like my Thrive account and all data associated with it deleted.\n\n' +
+                    (accountEmail ? `Account email: ${accountEmail}\n` : ''))
+                }
+              >
+                Email privacy@thrivecareer.co.uk
+              </a>
             </div>
           </div>
         </div>

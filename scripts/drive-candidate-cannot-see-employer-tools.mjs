@@ -34,9 +34,13 @@ const ctx = await browser.newContext({
 const page = await ctx.newPage()
 
 try {
-  await page.goto(`${BASE}/login/employee`, { waitUntil: 'domcontentloaded' })
-  await page.fill('input[name="email"]', EMAIL)
-  await page.fill('input[name="password"]', PASSWORD)
+  // /login/employee IS A REDIRECT to the unified /login, and the unified
+  // panel's inputs carry an id and NO name attribute — so input[name="email"]
+  // matched nothing and this script died at the first fill. It read as a
+  // broken harness, which is the failure mode that hides real faults.
+  await page.goto(`${BASE}/login`, { waitUntil: 'domcontentloaded' })
+  await page.fill('#login-email', EMAIL)
+  await page.fill('#login-password', PASSWORD)
   await page.locator('button[type="submit"]:not([disabled])').waitFor({ timeout: 30000 })
   await page.click('button[type="submit"]')
   // Must NOT match the login page it is already on.
