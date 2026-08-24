@@ -31,8 +31,18 @@ function availClass(availability: string | undefined): string {
  * Shared, privacy-aware candidate profile. Rendered identically inside the
  * /candidates slide-in modal and the /candidates/[id] page. Every personal
  * field is gated by the candidate's visibility_settings — a hidden field never
- * renders. Shows the employer-facing profile_picture_url (NOT the dashboard-only
- * dashboard_photo_url).
+ * renders.
+ *
+ * THIS USED TO SAY "shows the employer-facing profile_picture_url (NOT the
+ * dashboard-only dashboard_photo_url)". That was the intent and it cost us
+ * three of our four uploaded photos: only one candidate ever used that column.
+ * Since 24 Aug 2026 the mapper reads EITHER column — see
+ * supabaseProfileToCandidate — so an uploaded photo shows here whichever field
+ * it landed in. A photo a candidate uploaded to a recruitment profile is one
+ * they chose to put there.
+ *
+ * Still NOT the OAuth avatar from auth.users metadata. That arrived as a side
+ * effect of a sign-in button and was never a decision to publish a face.
  */
 export default function CandidateDetail({
   candidate: c,
