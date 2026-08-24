@@ -108,7 +108,15 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  flex: 1;
+  /* NO `flex: 1` HERE — IT BELONGS TO THE DESKTOP ROW ONLY.
+     `flex: 1` is `flex-basis: 0`, and in a COLUMN container flex-basis is the
+     HEIGHT. At 390 this container is column, so the fields stopped using the
+     52px below and collapsed to share whatever the button left over: 20px each.
+     The arithmetic was exact — 20 + 20 + 52 button + 20 gaps = the 112px
+     container. Measured on production, not reasoned about; the stylesheet reads
+     fine and the cards look merely "slim".
+     A 20px control is under the 44px minimum tap target, on the primary action
+     of the page a stranger lands on. */
   min-width: 0;          /* a flex child defaults to min-width:auto and will
                             refuse to shrink below its input's intrinsic size,
                             which is how a control row ends up wider than the
@@ -340,6 +348,9 @@
   }
 
   .heroField {
+    /* The row layout is where sharing the width is the point — here flex-basis
+       is the WIDTH, which is what `flex: 1` was always for. */
+    flex: 1;
     height: 44px;
     padding: 0 16px;
     border-radius: 0;
