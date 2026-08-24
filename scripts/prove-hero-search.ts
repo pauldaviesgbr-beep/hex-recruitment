@@ -55,7 +55,24 @@ const check = (name: string, got: () => unknown, want: unknown) => {
 
 // ── THE HERO SELLS THE SEARCH ──────────────────────────────────────────────
 
-check('the headline is the job-seeker one', () => page.includes('Hospitality jobs worth'), true)
+// BOTH HALVES, BECAUSE THE FIRST THREE WORDS SURVIVED A HEADLINE CHANGE.
+// This asserted only `page.includes('Hospitality jobs worth')`. The copy changed
+// on 24 Aug 2026 from "…worth leaving your shift for." to "…worth building a
+// career on." and this check STAYED GREEN THROUGHOUT — it could not tell the two
+// headlines apart, so it would equally not notice the old one coming back.
+//
+// The sentence is split by a <br> in the source, so there is no contiguous
+// string to match. Asserting both halves is what makes the check able to fail.
+check(
+  'the headline is the job-seeker one',
+  () => page.includes('Hospitality jobs worth') && page.includes('building a career on.'),
+  true
+)
+check(
+  'and the shift-poaching line it replaced is gone',
+  () => page.includes('leaving your shift for'),
+  false
+)
 // SCOPED TO THE H1, NOT THE PAGE. The first version of this asserted the
 // phrase was absent from the whole file and went red on a TRUE sentence: "From
 // job ad to signed offer without leaving the page" is the demo section's
