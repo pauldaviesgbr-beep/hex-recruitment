@@ -180,6 +180,18 @@
   background: #FFE500; color: #0F172A;
   font-family: var(--font-serif), Georgia, serif;
   font-weight: 700; font-size: 19px;
+  /* The photo is inset by the same radius, so a portrait cannot square off the
+     corners the initials chip already rounds. */
+  overflow: hidden;
+}
+/* object-fit: cover, because uploads are whatever shape people took them in —
+   one live photo is 1052x1536. Without it a portrait is squashed into the
+   square rather than cropped to it, and a squashed face is worse than
+   initials. */
+.dirAvatarImg {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  display: block;
 }
 /* min-width:0 is load-bearing: without it a long scraped title reflows the
    card instead of clipping. */

@@ -77,7 +77,29 @@ export default function CandidateCard(props: {
   // acceptance test — if it renders anywhere after this, the change hasn't
   // landed.
   //
-  // No watermark; no personal photo (privacy — employers see initials only).
+  // PHOTOS SHOW HERE, AND THIS COMMENT USED TO SAY THE OPPOSITE.
+  //
+  // It read "no personal photo (privacy — employers see initials only)". That
+  // was a real decision, and it is reversed for UPLOADED photos only. The
+  // distinction is consent, not privacy in the abstract:
+  //
+  //   · A photo in candidate_profiles was uploaded BY THE CANDIDATE, to a
+  //     recruitment profile, on purpose. Showing it to employers is the thing
+  //     they were doing when they added it.
+  //   · The OAuth avatar in auth.users metadata is NOT shown and must not be.
+  //     52 candidates have one and every single one arrived as a side effect
+  //     of pressing "Sign in with Google". Nobody chose to publish a face on a
+  //     candidate directory by doing that. It stays hidden until those people
+  //     are asked.
+  //
+  // So: photo if candidate_profiles carries one, initials otherwise, NEVER
+  // auth.users metadata. If you are here because the directory looks sparse —
+  // four photos and forty-six sets of initials is CORRECT. Only four
+  // candidates have ever uploaded one. The number moves by asking the other
+  // 52, not by reading their metadata.
+  //
+  // The employer-mode branch below still says "NEVER a personal photo" and is
+  // deliberately untouched; that is a separate surface and a separate call.
   if (mode === 'directory') {
     // DERIVED, NOT STORED, so a candidate who fills in a role later moves to
     // state A on their next render with nothing to migrate.
@@ -104,7 +126,23 @@ export default function CandidateCard(props: {
         )}
 
         <div className={styles.dirHeader}>
-          <span className={styles.dirAvatar} aria-hidden="true">{initials}</span>
+          {/* The photo when there is one, initials otherwise. aria-hidden on
+              the initials because they are decoration — the name is right
+              beside them. The photo carries the name as alt for the same
+              reason it is not decoration: it is the person. */}
+          {c.profilePictureUrl ? (
+            <span className={styles.dirAvatar}>
+              <SignedImage
+                src={c.profilePictureUrl}
+                alt={c.fullName}
+                className={styles.dirAvatarImg}
+                thumb={{ width: 46, height: 46 }}
+                fallback={<span aria-hidden="true">{initials}</span>}
+              />
+            </span>
+          ) : (
+            <span className={styles.dirAvatar} aria-hidden="true">{initials}</span>
+          )}
           <div className={styles.dirNameRole}>
             <span className={styles.dirName}>{c.fullName}</span>
             {isSparse
