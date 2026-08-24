@@ -206,7 +206,36 @@ export function supabaseProfileToCandidate(row: any): Candidate {
     id: row.user_id || row.id,
     userId: row.user_id || row.id,
     fullName: row.full_name || 'Unknown',
-    profilePictureUrl: row.profile_picture_url || null,
+    // A CANDIDATE'S PHOTO LIVES IN EITHER OF TWO COLUMNS, AND THIS READ ONE.
+    //
+    // Measured 24 Aug 2026: of the four candidates who have ever uploaded a
+    // photo, ONE used profile_picture_url and THREE used dashboard_photo_url.
+    // No row has both. So mapping only the first field made three quarters of
+    // our uploaded photos invisible on every employer surface — the detail
+    // page, the talent pool, messages, the applications pipeline.
+    //
+    // NOTHING IN THE TOOLCHAIN COULD SEE IT. Both columns are string|null, so
+    // the types are identical and the assignment was legal; the page rendered
+    // initials, which is a perfectly good fallback, so nothing errored and
+    // nothing logged. Same family as `area` vs `area_county`: the compiler
+    // knows the shape of a value and nothing about what it is FOR.
+    //
+    // lib/profileCompleteness.ts already read both. It was right and this was
+    // wrong, which is the tell — one file's idea of "has a photo" disagreed
+    // with another's and neither was checked against the other.
+    //
+    // PRECEDENCE: profile_picture_url wins. It is the explicitly
+    // employer-facing field — the one /profile writes and the one
+    // CandidateDetail was built around — where dashboard_photo_url is what the
+    // candidate's own dashboard uploads. No row carries both today; the rule
+    // is written now so it is not invented later by whoever hits the first one.
+    //
+    // OAUTH PHOTOS ARE DELIBERATELY NOT HERE. 52 candidates have a provider
+    // photo in auth.users metadata and none of it reaches an employer surface,
+    // because arriving via a sign-in button is not a decision to publish your
+    // face on a candidate directory. That stays true until those candidates
+    // are asked.
+    profilePictureUrl: row.profile_picture_url || row.dashboard_photo_url || null,
     jobTitle: row.job_title || '',
     jobSector: row.job_sector || undefined,
     headline: row.headline || undefined,

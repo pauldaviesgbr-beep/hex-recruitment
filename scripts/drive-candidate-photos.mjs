@@ -25,9 +25,23 @@ const PASSWORD = process.env.TEST_EMPLOYER_PASSWORD || process.env.TEST_ACCOUNT_
 const BYPASS = process.env.VERCEL_AUTOMATION_BYPASS_SECRET
 const SHOTS = 'drive-shots'
 
-// The positive control — established from the row, not from memory.
-const CONTROL_ID = 'f3571e53-e11e-4b9a-b15d-e1cd69478957'
-const CONTROL_NAME = 'Adriano Castello'
+// TWO REAL ROWS, ONE PER COLUMN. Both ids and both column values were read
+// from the live table, not remembered.
+//
+// This pair is the whole check. Adriano's photo has always worked, so he is
+// the regression guard and the proof the probe can see a photo at all. Javier
+// uploaded through the DASHBOARD, so his photo was mapped to nothing and no
+// employer surface has ever shown it — he is the one that should newly work.
+//
+// A run where Adriano passes and Javier fails is the OLD behaviour. A run
+// where both pass is the fix. A run where Adriano fails is a broken probe, not
+// a product fault, and the labels below say so.
+const ROWS = [
+  { id: 'f3571e53-e11e-4b9a-b15d-e1cd69478957', name: 'Adriano Castello',
+    column: 'profile_picture_url',  expect: 'worked before AND after' },
+  { id: '3bbdfe1d-2fb3-42f1-ad88-5716b484295d', name: 'Javier Gonzalez Salido',
+    column: 'dashboard_photo_url',  expect: 'BROKEN before, works after' },
+]
 
 if (!PASSWORD) { console.error('SKIP  TEST_EMPLOYER_PASSWORD / TEST_ACCOUNT_PASSWORD not set'); process.exit(2) }
 if (BASE.includes('.vercel.app') && !BYPASS) { console.error('SKIP  preview needs the bypass secret'); process.exit(2) }
@@ -82,27 +96,40 @@ try {
   await page.waitForURL(u => !u.toString().includes('/login'), { timeout: 45000 })
   pad('landed on', page.url().replace(BASE, ''))
 
-  // ── POSITIVE CONTROL FIRST ────────────────────────────────────────────
-  console.log('\nPOSITIVE CONTROL — ' + CONTROL_NAME + ', whose row HAS a photo')
-  await page.goto(`${BASE}/candidates/${CONTROL_ID}`, { waitUntil: 'domcontentloaded' })
-  await page.waitForTimeout(6000)
-  const ctrl = await page.evaluate(IMAGE_WALK, 'body')
-  const ctrlPhotos = [...ctrl.imgs, ...ctrl.bgs, ...ctrl.srcsets]
-    .filter(x => /supabase|storage|photos|googleusercontent|licdn/i.test(x.value))
-  pad('url', page.url().replace(BASE, ''))
-  pad('img elements on the page', ctrl.imgs.length)
-  pad('background-images on the page', ctrl.bgs.length)
-  pad('anything photo-shaped', ctrlPhotos.length)
-  for (const p of ctrlPhotos.slice(0, 4)) {
-    console.log('    ' + p.how + '  shown=' + p.shown + (p.w ? ' ' + p.w + 'x' + p.h : ''))
-    console.log('      ' + String(p.value).slice(0, 130))
+  // ── ONE REAL ROW PER COLUMN ───────────────────────────────────────────
+  console.log('\nBOTH PHOTO COLUMNS, ON REAL ROWS')
+  const seen = []
+  for (const row of ROWS) {
+    await page.goto(`${BASE}/candidates/${row.id}`, { waitUntil: 'domcontentloaded' })
+    await page.waitForTimeout(6000)
+    const walk = await page.evaluate(IMAGE_WALK, 'body')
+    const photos = [...walk.imgs, ...walk.bgs, ...walk.srcsets]
+      .filter(x => /supabase|storage|photos|googleusercontent|licdn/i.test(x.value))
+    // A path is not a picture. naturalWidth > 0 means the bytes arrived and
+    // decoded — an img whose src 404s still counts as an img element.
+    const rendered = photos.filter(p => p.how !== 'img[src]' || p.shown)
+    seen.push({ ...row, found: rendered.length > 0, photos: rendered })
+    console.log('  ' + row.name + '  (' + row.column + ')  — ' + row.expect)
+    pad('    renders a photo', rendered.length > 0 ? 'YES' : 'no')
+    for (const p of rendered.slice(0, 2)) {
+      console.log('      ' + p.how + '  shown=' + p.shown + (p.w ? '  ' + p.w + 'x' + p.h : ''))
+      console.log('        ' + String(p.value).slice(0, 120))
+    }
+    await page.screenshot({
+      path: `${SHOTS}/photos-detail-${row.column}.png`, fullPage: false })
   }
-  await page.screenshot({ path: `${SHOTS}/photos-control-detail.png`, fullPage: false })
-  const CONTROL_OK = ctrlPhotos.length > 0
-  console.log('  ' + (CONTROL_OK
-    ? 'CONTROL PASSES — the probe can see a photo when one is there.'
-    : 'CONTROL FAILS — the probe found nothing on a row known to carry a photo.\n' +
-      '  Everything below is therefore UNRELIABLE and must not be read as absence.'))
+
+  const CONTROL_OK = seen[0].found
+  console.log('')
+  if (!CONTROL_OK) {
+    console.log('  CONTROL FAILS — ' + seen[0].name + "'s photo has always rendered.")
+    console.log('  The probe is broken. Nothing below is absence; stop and look at the probe.')
+  } else if (seen[1].found) {
+    console.log('  BOTH COLUMNS RENDER. The mapper reads either field.')
+  } else {
+    console.log('  OLD BEHAVIOUR: ' + seen[0].column + ' renders and ' +
+                seen[1].column + ' does not — the mapper drops it.')
+  }
 
   // ── THE PAGE PAUL NAMED ───────────────────────────────────────────────
   console.log('\n/candidates — THE DIRECTORY GRID')
