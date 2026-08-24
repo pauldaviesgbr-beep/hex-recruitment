@@ -29,15 +29,12 @@ const ctx = await browser.newContext({
 const page = await ctx.newPage()
 const pad = (k, v) => console.log('  ' + String(k).padEnd(46) + v)
 
-// Everything that leaves the browser, so "no request fired" is a measurement.
-let recording = false
-const sent = []
-page.on('request', r => {
-  if (!recording) return
-  const t = r.resourceType()
-  if (t === 'image' || t === 'font' || t === 'stylesheet') return
-  sent.push(r.method() + '  ' + r.url().slice(0, 120))
-})
+// HOW THE ORIGINAL FAULT WAS PROVED, kept because it is the evidence.
+// Before the fix this clicked "Confirm Request" with a request listener armed
+// and counted what left the browser: ZERO, while the screen said the request
+// had been submitted. There is no button to click now — that is the fix — so
+// the script asserts the copy and the route instead. If a real request route
+// is built (step 2), the counting comes back and should read ONE.
 
 try {
   console.log('\nSIGN IN AS THE TEST CANDIDATE')
@@ -54,53 +51,67 @@ try {
   await page.waitForTimeout(6000)
   pad('url', page.url().replace(BASE, ''))
 
-  const askBtn = page.getByRole('button', { name: /request deletion/i })
-  const askCount = await askBtn.count()
-  pad('"Request Deletion" control present', askCount > 0)
-  if (!askCount) throw new Error('control not found — the instrument, not the product; stop and look')
+  // ── WHAT THE SCREEN SAYS NOW ──────────────────────────────────────────
+  //
+  // ASKED SO THE TWO STATES GIVE DIFFERENT ANSWERS. "Is there a deletion
+  // control" was true before the fix and after it, so it cannot tell them
+  // apart. These four can: the false claims are GONE and a real route is
+  // PRESENT, and each half fails on its own.
+  const page_text = await page.evaluate(() => document.body.innerText || '')
 
-  const promise = await page.evaluate(() => {
-    const el = Array.from(document.querySelectorAll('*'))
-      .find(e => /Submit a request to permanently delete/i.test(e.textContent || '')
-                 && e.children.length === 0)
-    return el ? el.textContent.trim() : null
+  // TWO ASSERTIONS WERE REMOVED FROM HERE AND THE REASON MATTERS.
+  // They checked for "48 hours" and "request submitted" — and both PASSED
+  // against the un-fixed production page, because those strings only enter the
+  // DOM after the button is clicked. A check that is true in both states
+  // cannot tell you which state you are in, and the passing direction is the
+  // dangerous one. What is asserted below is static text that genuinely
+  // differs before and after.
+  const bad = [
+    ['the old "Submit a request…" copy is gone',
+      !/Submit a request to permanently delete/i.test(page_text)],
+    ['the old "Request data deletion" heading is gone',
+      !/Request data deletion/i.test(page_text)],
+    ['export no longer claims "…settings, and activity"',
+      !/settings,?\s*and activity/i.test(page_text)],
+    ['the export description says what it omits',
+      /applications, messages, CVs/i.test(page_text)],
+  ]
+  for (const [label, ok] of bad) pad(label, ok ? 'ok' : 'STILL THERE')
+
+  // A ROUTE MUST REMAIN. Removing the lie and leaving nothing would pass
+  // every check above and still fail the person.
+  const mailto = await page.evaluate(() => {
+    const a = Array.from(document.querySelectorAll('a[href^="mailto:"]'))
+      .find(x => /privacy@/i.test(x.getAttribute('href') || ''))
+    return a ? { text: (a.textContent || '').trim(), href: a.getAttribute('href') } : null
   })
-  pad('what we promise the candidate', promise ? '"' + promise + '"' : '(not found)')
-
-  // Reveal the confirm step. No network, no write — it is a useState flip.
-  await askBtn.first().click()
-  await page.waitForTimeout(1500)
-  const confirmBtn = page.getByRole('button', { name: /confirm request/i })
-  pad('"Confirm Request" appears', (await confirmBtn.count()) > 0)
-  await page.screenshot({ path: `${SHOTS}/deletion-confirm-step.png` })
-
-  // THE MEASUREMENT. Record everything from here, then click Confirm.
-  console.log('\nCLICKING "CONFIRM REQUEST" AND COUNTING WHAT LEAVES THE BROWSER')
-  recording = true
-  await confirmBtn.first().click()
-  await page.waitForTimeout(6000)
-  recording = false
-
-  pad('network requests fired by the click', sent.length)
-  for (const s of sent.slice(0, 10)) console.log('    ' + s)
-
-  const banner = await page.evaluate(() => {
-    const el = Array.from(document.querySelectorAll('*'))
-      .find(e => /deletion request submitted/i.test(e.textContent || '') && e.children.length === 0)
-    return el ? el.textContent.trim() : null
-  })
-  pad('what the candidate is told', banner ? '"' + banner + '"' : '(no message found)')
-  await page.screenshot({ path: `${SHOTS}/deletion-after-confirm.png` })
-
-  console.log('')
-  if (sent.length === 0 && banner) {
-    console.log('  CONFIRMED ON SCREEN: the candidate is told the request was')
-    console.log('  submitted and that a confirmation email will follow, and NOTHING')
-    console.log('  LEFT THE BROWSER. No request recorded, no email, no deletion.')
-  } else if (sent.length) {
-    console.log('  Requests DID fire — read them above before concluding anything.')
+  pad('a real route to a human is present', mailto ? 'ok' : 'MISSING')
+  if (mailto) {
+    pad('  the control reads', '"' + mailto.text + '"')
+    pad('  it goes to', decodeURIComponent(mailto.href).slice(0, 80))
+    pad('  it names a timescale we publish', /30 days/i.test(page_text) ? 'ok (30 days)' : 'NO TIMESCALE')
   }
-  console.log('\nSHOTS  ' + SHOTS + '/deletion-confirm-step.png, ' + SHOTS + '/deletion-after-confirm.png')
+
+  const stillAButton = await page.getByRole('button', { name: /request deletion|confirm request/i }).count()
+  pad('the old lying button is gone', stillAButton === 0 ? 'ok' : 'STILL PRESENT')
+
+  // SCROLL TO THE THING BEFORE PHOTOGRAPHING IT. The first run shot the top of
+  // the page and proved nothing about the section that changed — assertions on
+  // innerText are not the same as seeing it render.
+  // 'instant', never 'smooth': a screenshot taken mid-animation is the same
+  // family of fault as measuring a scroll that has not finished.
+  await page.evaluate(() => {
+    const a = Array.from(document.querySelectorAll('a[href^="mailto:"]'))
+      .find(x => /privacy@/i.test(x.getAttribute('href') || ''))
+    if (a) a.scrollIntoView({ behavior: 'instant', block: 'center' })
+  })
+  await page.screenshot({ path: `${SHOTS}/deletion-after-fix.png`, fullPage: false })
+
+  const failures = bad.filter(([, ok]) => !ok).length + (mailto ? 0 : 1) + (stillAButton ? 1 : 0)
+  console.log('')
+  if (failures) { console.log('  ' + failures + ' FAILED — read them above.'); process.exitCode = 1 }
+  else console.log('  The screen makes no claim the product cannot keep, and still offers a route.')
+  console.log('\nSHOTS  ' + SHOTS + '/deletion-after-fix.png')
 } catch (e) {
   console.error('\nDRIVE FAILED: ' + e.message)
   process.exitCode = 1
