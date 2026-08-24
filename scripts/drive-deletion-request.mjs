@@ -107,7 +107,38 @@ try {
   })
   await page.screenshot({ path: `${SHOTS}/deletion-after-fix.png`, fullPage: false })
 
+  // ── THE PRIVACY POLICY CARRIES THE SAME ADDRESS, AND IT WAS THE OLDER
+  //    FAULT. privacy@ was printed there four times and never existed, so a
+  //    check that only looks at the settings screen would have passed while
+  //    the published route for every data right still went nowhere.
+  //
+  //    READ FROM THE RENDERED DOM, not the source. The address IS the fix, and
+  //    the address is the thing that was wrong last time.
+  console.log('\n/privacy-policy')
+  await page.goto(`${BASE}/privacy-policy`, { waitUntil: 'domcontentloaded' })
+  await page.waitForTimeout(4000)
+  const policy = await page.evaluate(() => {
+    const links = Array.from(document.querySelectorAll('a[href^="mailto:"]'))
+      .map(a => (a.getAttribute('href') || '').replace(/^mailto:/, '').split('?')[0])
+    return {
+      addresses: Array.from(new Set(links)),
+      deadInText: /privacy@thrivecareer/i.test(document.body.innerText || ''),
+      thirtyDays: /30 days/i.test(document.body.innerText || ''),
+    }
+  })
+  pad('mailto addresses on the policy page', JSON.stringify(policy.addresses))
+  const policyBad = [
+    ['no dead privacy@ link remains', !policy.addresses.some(a => /^privacy@/i.test(a))],
+    ['no dead privacy@ in the visible text', !policy.deadInText],
+    ['every mailto goes to a proven address',
+      policy.addresses.length > 0 &&
+      policy.addresses.every(a => /^(contact|paul)@thrivecareer\.co\.uk$/i.test(a))],
+    ['the 30-day commitment is still published', policy.thirtyDays],
+  ]
+  for (const [label, ok] of policyBad) pad(label, ok ? 'ok' : 'FAILED')
+
   const failures = bad.filter(([, ok]) => !ok).length + (mailto ? 0 : 1) + (stillAButton ? 1 : 0)
+    + policyBad.filter(([, ok]) => !ok).length
   console.log('')
   if (failures) { console.log('  ' + failures + ' FAILED — read them above.'); process.exitCode = 1 }
   else console.log('  The screen makes no claim the product cannot keep, and still offers a route.')
