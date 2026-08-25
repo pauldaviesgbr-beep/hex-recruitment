@@ -20,6 +20,7 @@
 import {
   ERASURE_PLAN, STORAGE_LAYOUTS, objectBelongsTo, blockers, BUCKET,
 } from '../lib/erasure'
+import { metadataDue, SIGNATURE_METADATA_RETENTION_DAYS } from '../lib/signatureRetention'
 
 const out: { name: string; got: any; want: any; ok: boolean }[] = []
 const rec = (name: string, get: () => any, want: any) => {
@@ -143,6 +144,24 @@ rec('(d) the body is blanked',
   () => rule('temp_post_comments')?.literalColumns?.[0]?.value, '[deleted]')
 rec('(d) AND the denormalised author_name and author_avatar go too',
   () => rule('temp_post_comments')?.nullColumns, ['user_id', 'author_name', 'author_avatar'])
+
+// ── SIGNATURE METADATA: TWELVE MONTHS ─────────────────────────────────────
+//
+// A RULE ABOUT THE PASSAGE OF TIME CANNOT BE PROVED BY LOOKING ONCE, so this
+// asks at two instants either side of the boundary. metadataDue takes its
+// "now" as a real parameter of the shipped function, not a mocked clock.
+
+const signed = '2026-01-01T12:00:00Z'
+rec('the retention period is twelve months',
+  () => SIGNATURE_METADATA_RETENTION_DAYS, 365)
+rec('the day BEFORE twelve months: not due',
+  () => metadataDue(signed, new Date('2026-12-30T12:00:00Z')), false)
+rec('the day AFTER twelve months: due — the two instants differ',
+  () => metadataDue(signed, new Date('2027-01-02T12:00:00Z')), true)
+rec('an unsigned offer is never due',
+  () => metadataDue(null), false)
+rec('an unparseable timestamp is never due, rather than due by accident',
+  () => metadataDue('not a date'), false)
 
 // ── REPORT ────────────────────────────────────────────────────────────────
 
