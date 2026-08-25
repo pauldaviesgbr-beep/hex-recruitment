@@ -10,17 +10,27 @@
 // early if it surfaces at all. Twelve months covers that window without holding
 // surveillance data on people for years against a hypothetical.
 //
-// ── AND A LIMIT THAT HAS TO BE SAID OUT LOUD ──────────────────────────────
+// ── THE LIMIT THIS FILE USED TO CARRY HAS BEEN REMOVED AT SOURCE ──────────
 //
-// CLEARING THESE COLUMNS DOES NOT REMOVE THE IP FROM THE SIGNED PDF.
-// lib/signPdf.ts prints `IP address` into the certificate block appended to the
-// offer letter, and that PDF is stored in the offer-letters bucket and KEPT as
-// the contract. So after this sweep runs, the address is gone from the database
-// and still present on the document.
+// This block used to say: clearing these columns does not remove the IP from
+// the signed PDF, because lib/signPdf.ts printed it into the certificate page
+// and that PDF is kept as the contract. The address would have been gone from
+// the database and still on the document, and any claim we published had to
+// match the weaker of the two.
 //
-// That is not a bug in this file — it is a limit on what any claim about
-// deleting it can honestly say. Anything published to candidates has to match
-// the weaker of the two, or the PDF has to stop carrying the address.
+// PAUL TOOK THE OTHER OPTION ON 25 AUG 2026: THE PDF STOPPED CARRYING IT.
+// The IP is no longer accepted by SignatureBlock at all, so passing one is a
+// compiler error rather than a silent no-op. Clearing these columns now really
+// does remove the address, and the privacy policy says so in as many words.
+// Zero offers existed at the time, so there was nothing to remediate.
+//
+// STILL TRUE, AND STILL WORTH KNOWING: the certificate page continues to print
+// the SIGNER'S USER AGENT as "Device". `signature_user_agent` is cleared here
+// at twelve months and the Device line on the retained PDF is not, so that one
+// column keeps exactly the asymmetry the IP used to have. It is a smaller
+// string and a weaker identifier, and it has not been decided either way —
+// flagged rather than fixed, because what a retained contract says is Paul's
+// call and not a tidy-up.
 
 /** Twelve months, in days. Named rather than inlined so the policy and the
  *  code cannot drift apart silently. */

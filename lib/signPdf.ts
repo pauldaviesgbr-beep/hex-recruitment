@@ -9,8 +9,25 @@ export interface SignatureBlock {
   imageBytes: Uint8Array | ArrayBuffer
   /** ISO timestamp of the signing event */
   signedAt: string
-  /** IP address captured at signing time (audit trail). Optional. */
-  ip?: string | null
+  // THE SIGNER'S IP IS DELIBERATELY NOT ACCEPTED HERE, AND MUST NOT COME BACK.
+  //
+  // The OFFER is the contract — names, terms, signatures, dates — and it is
+  // retained. The signer's IP is ANTI-FRAUD METADATA, NOT A CONTRACT TERM,
+  // and nobody reading a job offer needs to see it.
+  //
+  // It still exists: offers.signature_ip and .employer_signature_ip are
+  // written exactly as before. THE COLUMN IS THE POINT — a column can be
+  // deleted on the twelve-month retention rule, and a line printed into a
+  // retained PDF cannot. Printing it is what made the privacy policy's
+  // promise unkeepable, so the promise stayed and the print went.
+  //
+  // It is removed from this interface rather than merely left unprinted so
+  // that passing one is a COMPILER ERROR rather than a silent no-op.
+  // Restoring it would be a decision about what a retained document says,
+  // which is Paul's, not a tidy-up.
+  //
+  // Removed 25 Aug 2026, while zero offers existed, so nothing needed
+  // remediating. That will not be true a second time.
   /** User-agent captured at signing time (audit trail). Optional. */
   userAgent?: string | null
 }
@@ -111,7 +128,6 @@ export async function appendSignaturesToPdf(
 
     detail('Name', sig.name)
     detail('Signed at', signedAtPretty)
-    if (sig.ip) detail('IP address', sig.ip)
     if (sig.userAgent) {
       // Trim the UA string so it fits on one line
       const ua = sig.userAgent.length > 90 ? `${sig.userAgent.slice(0, 87)}...` : sig.userAgent
