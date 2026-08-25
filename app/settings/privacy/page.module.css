@@ -431,6 +431,27 @@
   border-color: #f87171;
 }
 
+.deleteRequestBtn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* WHAT SOMEONE SEES ONCE THEY HAVE ASKED. Deliberately NOT a button and not
+   red: there is nothing left for them to press, and offering a red control to
+   a person whose request we already hold is how they end up pressing it twice
+   and wondering, which is the fault this whole feature replaces. Quiet, and it
+   names the date so they can hold us to it. */
+.deleteRequestPending {
+  padding: 0.625rem 1rem;
+  background: #f8fafc;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
 .confirmButtons {
   display: flex;
   gap: 0.5rem;
