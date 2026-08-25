@@ -9,10 +9,12 @@ import { parseAttrCookie, attributionColumns, type Attribution } from '@/lib/att
 import { geoColumnsFromRequest } from '@/lib/geo'
 import { safeReturnPath } from '@/lib/safeRedirect'
 
-// Shared OAuth callback logic. Used by:
-// - /auth/callback (email flow — reads role from ?role= query param)
-// - /auth/callback/employer (Google OAuth — role is always 'employer')
-// - /auth/callback/employee (Google OAuth — role is always 'employee')
+// The email-link callback. THE ONLY CALLER IS /auth/confirm — checked, not
+// remembered: `grep -rl handleAuthCallback app/` returns that one file. The
+// two Google OAuth routes (/auth/callback/employer, /auth/callback/employee)
+// are SEPARATE implementations in their own files and do not come through
+// here; this header used to list them, which made a change to this file look
+// as though it touched three flows when it touches one.
 
 function getOrigin(req: NextRequest): string {
   const forwardedProto = req.headers.get('x-forwarded-proto') || 'https'
@@ -362,15 +364,46 @@ export async function handleAuthCallback(
   //
   // `type=signup` is the honest discriminator: that token is minted once, for
   // a first confirmation, and cannot be the artefact of a returning visit.
-  // Recovery (`type=recovery` → /reset-password) and the OAuth code flow
-  // (no otpType at all) both keep their existing behaviour exactly.
+  // The OAuth code flow (no otpType at all) keeps its existing behaviour
+  // exactly. RECOVERY DOES NOT — see the block below, which overrides `next`
+  // outright. This comment used to say recovery already went to
+  // /reset-password. It did not. That was the bug.
   const isFirstConfirmation = otpType === 'signup'
   let destination = '/dashboard'
   // safeReturnPath, not safeInternalPath: the confirmation template hands us
   // Supabase's `{{ .RedirectTo }}`, which is an absolute URL. `origin` comes
   // from the request, never from the query string.
   const safeNext = safeReturnPath(nextParam, origin)
-  if (!isFirstConfirmation && existingRole && safeNext) {
+
+  // ── A RECOVERY TOKEN ALWAYS LANDS ON /reset-password. `next` IS IGNORED,
+  //    AND THAT IS THE ENTIRE POINT — DO NOT "FIX" THIS BACK. ────────────────
+  //
+  // Somebody arriving on a recovery token has exactly one thing to do: set a
+  // password. GETTING A SESSION AND SETTING A PASSWORD ARE TWO STEPS, AND THE
+  // FIRST ONE LOOKS LIKE SUCCESS — you click, you are in, a dashboard loads,
+  // and nothing anywhere tells you the reset never finished. A real employer
+  // was bitten by this TWICE in one day: signed in at 08:58, never set a
+  // password, and was locked out again the moment the session lapsed.
+  //
+  // Overriding `next` here makes the whole CLASS of fault impossible rather
+  // than fixing one instance of it. After this it does not matter what the
+  // Supabase email template hardcodes as its redirect (which we still cannot
+  // read without a dashboard token), it does not matter what `next` carries,
+  // and it does not matter whether someone hand-builds a link — a recovery
+  // session lands where a password can actually be set.
+  //
+  // ONLY recovery. Signup confirmation, magic link and the OAuth code flow
+  // keep their `next` handling exactly as it was; a returning visitor being
+  // put back where they were is correct for all three.
+  //
+  // It is the FIRST branch of the chain below rather than an early return, so
+  // it uses the same single exit — the one that copies the session cookies off
+  // the exchange response. A recovery redirect that lost those cookies would
+  // land on /reset-password with no session and bounce to /login, which is a
+  // worse failure than the one being fixed and would look identical to it.
+  if (otpType === 'recovery') {
+    destination = '/reset-password'
+  } else if (!isFirstConfirmation && existingRole && safeNext) {
     destination = safeNext
   } else if (role === 'employee') {
     // A candidate reaching this route is confirming their email — a one-time,
