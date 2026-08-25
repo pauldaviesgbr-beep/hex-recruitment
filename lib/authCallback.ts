@@ -96,12 +96,56 @@ export async function handleAuthCallback(
       type: otpType,
     })
     if (otpError) {
-      console.error('[auth/callback] verifyOtp FAILED', otpError.message)
-      return NextResponse.redirect(
-        `${origin}/login?error=verification_failed&reason=${encodeURIComponent(otpError.message)}`
-      )
+      // ── A SECOND ARRIVAL ON A SPENT TOKEN IS NOT A FAILURE. IT IS THE SAME
+      //    PERSON, ONE REQUEST LATER, AND BOUNCING THEM IS THE BUG. ──────────
+      //
+      // THIS ROUTE GETS CALLED MORE THAN ONCE PER CLICK. Read from a real
+      // employer's auth log on 25 Aug 2026, at the moment he tapped a link:
+      //
+      //     14:18:28  /verify  200  LOGIN   <- token consumed, session created
+      //     14:18:30  /verify  403  "One-time token not found"
+      //     14:18:46  /verify  403
+      //     14:18:47  /verify  403
+      //
+      // The first call succeeds and mints the session. Every later call finds
+      // the token already spent — correctly, it IS spent — and this branch
+      // then threw the person out to /login. So one request created his
+      // session and another sent him to a login page, and WHICH RESPONSE THE
+      // BROWSER RENDERED WAS A RACE. He saw /login with a live session sitting
+      // unused in his cookie jar. Four weeks of "the reset link doesn't work".
+      //
+      // It survived every test we wrote because a scripted drive makes exactly
+      // ONE request. Nothing reproduces it but a real browser, and it is
+      // intermittent there, so it reads as a flaky product rather than a fault.
+      //
+      // So: a failed verify is only a failure IF THERE IS NOBODY SIGNED IN.
+      // If the cookies on this request already carry a valid session, the
+      // token did its job on an earlier call and we carry on to the
+      // destination. That makes the duplicate call harmless instead of
+      // destructive, which is the only property that matters here — we cannot
+      // stop the browser, the mail client or the scanner from asking twice.
+      //
+      // NOT A SECURITY HOLE, AND THIS IS THE PART TO CHECK BEFORE CHANGING IT:
+      // the session comes from getUser(), which VALIDATES the token against
+      // Supabase rather than trusting the cookie. A forged or expired cookie
+      // returns no user and falls through to the redirect exactly as before.
+      // Somebody with no session and a dead token still gets bounced.
+      const { data: { user: alreadySignedIn } } = await supabase.auth.getUser()
+      if (alreadySignedIn) {
+        console.log('[auth/callback] verifyOtp failed but a valid session is already present — continuing', {
+          userId: alreadySignedIn.id,
+          otpType,
+          reason: otpError.message,
+        })
+      } else {
+        console.error('[auth/callback] verifyOtp FAILED', otpError.message)
+        return NextResponse.redirect(
+          `${origin}/login?error=verification_failed&reason=${encodeURIComponent(otpError.message)}`
+        )
+      }
+    } else {
+      console.log('[auth/callback] step:verifyOtp OK')
     }
-    console.log('[auth/callback] step:verifyOtp OK')
   } else {
     // Legacy/PKCE flow: emails sent before the template change land here
     // via Supabase /auth/v1/verify → 303 → /auth/confirm?code=...
