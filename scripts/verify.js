@@ -410,6 +410,23 @@ const ALL = [
   // argument for generating twice — and restoring posted_at + 60 took it to
   // 10/15. Green on restore both times.
   { name: 'feedexpiry:prove', cmd: npm, args: ['run', 'feedexpiry:prove'] },
+
+  // THE ERASURE PLAN IS COMPLETE, CONSISTENT AND POSSIBLE.
+  //
+  // Erasure is a HAND-WRITTEN list, because there is not one foreign key from
+  // public to auth.users and nothing cascades. A hand-written list goes stale
+  // the day someone adds a table and does not think about deletion — and the
+  // failure is SILENT, because a table missing from the plan looks exactly
+  // like a table with no rows.
+  //
+  // The assertion that matters most is the storage matcher across all FIVE
+  // layouts, including the bare <uuid>/ one where the owner is the first path
+  // segment rather than the second. 23 of the 83 objects live there, and a
+  // matcher that assumes a prefix is how 51 files were orphaned.
+  //
+  // It also asserts each of the five decisions individually, so quietly
+  // reversing one is a failing check rather than a diff nobody reads.
+  { name: 'erasure:prove', cmd: npm, args: ['run', 'erasure:prove'] },
 ]
 const CHECKS = FAST ? ALL.filter(c => !c.slow) : ALL
 
