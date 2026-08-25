@@ -295,7 +295,9 @@ export default function ManageTempWorkPage() {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.7rem', borderLeft: `3px solid ${C.border}`, paddingLeft: '0.85rem' }}>
                     {rows.map(c => {
                       // Candidates have a profile page (route enforces the employer gate); employers don't.
-                      const profileHref = c.author_role === 'candidate' ? `/candidates/${c.user_id}` : null
+                      // An erased author has no user_id; without this the href is
+                      // /candidates/null.
+                      const profileHref = c.user_id && c.author_role === 'candidate' ? `/candidates/${c.user_id}` : null
                       const avatarBox: React.CSSProperties = { width: 34, height: 34, borderRadius: '50%', background: C.yellow, display: 'grid', placeItems: 'center', flexShrink: 0, overflow: 'hidden' }
                       const avatarInner = c.author_avatar
                         // eslint-disable-next-line @next/next/no-img-element

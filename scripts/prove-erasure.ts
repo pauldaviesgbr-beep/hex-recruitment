@@ -126,10 +126,23 @@ rec('device_tokens are deleted — otherwise push keeps reaching a deleted perso
 
 // ── BLOCKERS ARE DECLARED, NOT SILENTLY SKIPPED ───────────────────────────
 
-rec('the known blocker is declared as blocked, not quietly half-done',
-  () => blockers().map(b => b.table), ['temp_post_comments'])
-rec('and it explains what stops it and what the options are',
-  () => (blockers()[0]?.blocker || '').includes('NOT NULL'), true)
+// NOTHING IS BLOCKED ANY MORE. If a future decision cannot be carried out this
+// goes red, rather than the executor quietly doing the half that works — and
+// the route refuses entirely while any blocker stands, because erasing 30
+// tables of 31 and reporting success is the fault this feature exists to end.
+rec('NOTHING is blocked — every decision can be carried out',
+  () => blockers().map(b => b.table), [])
+
+// (d) NEEDED A SCHEMA CHANGE, and the part that makes it actually work is not
+// the nullable column — it is clearing the DENORMALISED name and avatar.
+// Nulling user_id alone would have left the erased person's name and
+// photograph sitting on a public comment.
+rec('(d) comments are anonymised, not deleted',
+  () => rule('temp_post_comments')?.action, 'anonymise')
+rec('(d) the body is blanked',
+  () => rule('temp_post_comments')?.literalColumns?.[0]?.value, '[deleted]')
+rec('(d) AND the denormalised author_name and author_avatar go too',
+  () => rule('temp_post_comments')?.nullColumns, ['user_id', 'author_name', 'author_avatar'])
 
 // ── REPORT ────────────────────────────────────────────────────────────────
 

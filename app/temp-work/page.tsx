@@ -825,7 +825,10 @@ export default function TempWorkPage() {
                       {thread.map(c => {
                         // Only candidates have a profile page; the route enforces the
                         // app's existing employer-only gate, so we just link to it.
-                        const profileHref = c.author_role === 'candidate' ? `/candidates/${c.user_id}` : null
+                        // AN ERASED AUTHOR HAS NO user_id, AND WITHOUT THIS GUARD THE LINK
+                        // BECOMES /candidates/null — a broken page rather than a comment
+                        // that quietly has nobody behind it.
+                        const profileHref = c.user_id && c.author_role === 'candidate' ? `/candidates/${c.user_id}` : null
                         const avatarInner = c.author_avatar
                           // eslint-disable-next-line @next/next/no-img-element
                           ? <img src={c.author_avatar} alt="" className={styles.avatarImg} />

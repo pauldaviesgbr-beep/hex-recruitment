@@ -95,14 +95,16 @@ export const ERASURE_PLAN: TableRule[] = [
          '"X applied to your role", and the application it points at is anonymised anyway.' },
 
   // ── PAUL'S DECISION (d): PUBLIC COMMENTS — the Reddit model ──────────────
-  { table: 'temp_post_comments', column: 'user_id', action: 'blocked',
+  { table: 'temp_post_comments', column: 'user_id', action: 'anonymise',
+    nullColumns: ['user_id', 'author_name', 'author_avatar'],
     literalColumns: [{ column: 'body', value: '[deleted]' }],
-    why: 'Decision (d): body removed, row kept, author anonymised — so replies do not answer something that ' +
-         'is no longer there.',
-    blocker: 'temp_post_comments.user_id is NOT NULL, so the author CANNOT be anonymised as decided. ' +
-             'Blanking the body while keeping user_id leaves a public comment still linked to the erased ' +
-             'person, which is pseudonymisation and does not satisfy the request. Two options, both Paul\'s: ' +
-             '(1) a migration making user_id nullable, or (2) a sentinel "deleted user" id. NOT CHOSEN HERE.' },
+    why: 'Decision (d), the Reddit model: body removed, row kept, author anonymised — so replies do not ' +
+         'answer something that is no longer there. user_id is NULL rather than a sentinel: a "deleted ' +
+         'user" would be a real row in a table of real people and would leak into counts and sends, and ' +
+         'NULL is simply true — there is no author. ' +
+         'author_name AND author_avatar ARE CLEARED TOO, and that is the part that makes this work: they ' +
+         'are DENORMALISED onto the comment row by a BEFORE INSERT trigger, so nulling user_id alone would ' +
+         'have left the erased person\'s name and photograph sitting on a public comment.' },
 
   // ── PAUL'S DECISION (e): OFFERS AND THE AUDIT LOG — KEEP ─────────────────
   //

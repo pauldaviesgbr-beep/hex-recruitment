@@ -68,7 +68,15 @@ async function main() {
     await seed('user_onboarding', { user_id: created })
     await seed('platform_feedback', { user_id: created, comment: 'test feedback', rating: 5 })
     await seed('apply_starts', { candidate_id: created, job_id: (await anyJobId()) })
-    await seed('email_log', { recipient: EMAIL, email_type: 'erasure_test', subject: 'test', success: true })
+    // A COMMENT, so decision (d) is exercised rather than assumed. The trigger
+  // denormalises author_name and author_avatar onto the row at insert, which
+  // is exactly what the erasure has to clear as well as the id.
+  const postId = await anyTempPostId()
+  if (postId) await seed('temp_post_comments', {
+    post_id: postId, user_id: created, body: 'erasure test comment',
+    author_name: 'Erasure Test', author_role: 'candidate',
+  })
+  await seed('email_log', { recipient: EMAIL, email_type: 'erasure_test', subject: 'test', success: true })
     pad('tables seeded', seeded.length + '  (' + seeded.join(', ') + ')')
 
     // ── SEED STORAGE IN TWO DIFFERENT LAYOUTS ─────────────────────────────
@@ -146,6 +154,11 @@ async function main() {
     }
   }
 
+}
+
+async function anyTempPostId() {
+  const { data } = await admin.from('temp_posts').select('id').limit(1).maybeSingle()
+  return data?.id
 }
 
 async function anyJobId() {
