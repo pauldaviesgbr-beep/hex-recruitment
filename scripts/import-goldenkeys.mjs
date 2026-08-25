@@ -1,7 +1,7 @@
 // Re-runnable Goldenkeys hospitality import.
 //   Scrape (Firecrawl) all /industry/hospitality/ listing pages + each
 //   /vacancies/<slug>/ detail page -> upsert under the Goldenkeys employer,
-//   idempotent on jobs.source_url -> reconcile roles that have gone (status=filled).
+//   idempotent on jobs.source_url -> reconcile roles that have gone (status=archived).
 //
 // Usage:
 //   node scripts/import-goldenkeys.mjs --enumerate   # scrape listings -> URL list (scratch json)
@@ -115,10 +115,10 @@ async function enumerate() {
   // Walk until a page yields nothing new, rather than stopping at a fixed count.
   //
   // WHY THIS MATTERS MORE THAN IT LOOKS: the enumerated set is what apply()
-  // treats as "live", and anything absent from it gets reconciled to `filled`.
+  // treats as "live", and anything absent from it gets reconciled to `archived`.
   // Listings are newest-first, so under a fixed ceiling the OLDEST still-live
   // roles are the ones that fall off the end — and we would have quietly marked
-  // them filled while they were still open. A ceiling here doesn't just miss new
+  // them archived while they were still open. A ceiling here doesn't just miss new
   // roles, it actively corrupts existing ones.
   let pagesWalked = 0
   for (let p = 1; p <= MAX_PAGES; p++) {
@@ -128,7 +128,7 @@ async function enumerate() {
     // A FAILED page is not an empty page. fcScrape returns null after its
     // retries, which the "no new URLs" check below would read as "we've reached
     // the end" — silently truncating the live set. apply() then treats every
-    // role beyond the failure as gone and reconciles it to `filled`. A transient
+    // role beyond the failure as gone and reconciles it to `archived`. A transient
     // network blip would mass-retire live vacancies, non-deterministically.
     // Abort instead: a run that stops with an error is recoverable, a run that
     // quietly wipes the board is not.
@@ -136,7 +136,7 @@ async function enumerate() {
       throw new Error(
         `Enumeration failed on page ${p} (${url}) after retries. Aborting rather than ` +
         `treating a fetch failure as the end of the catalogue — continuing would ` +
-        `mark every role beyond this page as filled.`
+        `mark every role beyond this page as archived.`
       )
     }
 
@@ -273,7 +273,7 @@ async function apply() {
   const recs = JSON.parse(fs.readFileSync(REC_FILE, 'utf8'))
   // The full LIVE set is every enumerated vacancy URL (223), NOT only the ones we
   // managed to detail-scrape — so a detail-scrape failure never marks a live role
-  // "filled". Un-scraped live roles are simply imported on the next run (idempotent).
+  // "archived". Un-scraped live roles are simply imported on the next run (idempotent).
   const enumList = JSON.parse(fs.readFileSync(ENUM_FILE, 'utf8'))
   const liveUrls = new Set(enumList.map(e => e.url))
   const supa = db()
@@ -285,7 +285,7 @@ async function apply() {
   // ── SANITY GUARD: does this crawl look plausible? ──
   //
   // The enumerated set IS the live set: anything absent from it gets reconciled
-  // to `filled`. So an under-collected crawl doesn't just miss new roles, it
+  // to `archived`. So an under-collected crawl doesn't just miss new roles, it
   // retires existing ones. The loud abort in enumerate() catches a page that
   // FAILS; this catches the cases it can't see — a layout change that yields
   // zero links, a redirect to a landing page, a silent partial crawl.
@@ -300,7 +300,7 @@ async function apply() {
     throw new Error(
       `ABORTING: enumeration found ${liveUrls.size} live roles against ${activeNow} currently active — ` +
       `a ${pct}% drop, past the ${DROP_TOLERANCE * 100}% tolerance. That is far more likely to be a broken ` +
-      `crawl than a genuine week's churn, and continuing would reconcile the difference to 'filled'. ` +
+      `crawl than a genuine week's churn, and continuing would reconcile the difference to 'archived'. ` +
       `Re-run manually; if the drop is real, raise DROP_TOLERANCE for that run.`
     )
   }
@@ -423,18 +423,35 @@ async function apply() {
     }
   }
 
-  // 3) RECONCILE: active GK jobs whose source_url is NOT in the LIVE listing -> filled.
-  let filled = 0
+  // 3) RECONCILE: active GK jobs whose source_url is NOT in the LIVE listing
+  //    -> ARCHIVED.
+  //
+  // THIS WROTE 'filled' AND THAT WAS A CLAIM WE COULD NOT MAKE. A listing
+  // vanishing from Goldenkeys' site means the role left THEIR board. It does
+  // not mean a person was hired, it certainly does not mean anyone was hired
+  // through Thrive, and we have no way of knowing which. By 24 Aug 2026 this
+  // line had asserted 33 placements that never happened.
+  //
+  // 'filled' MEANS A THRIVE HIRE and nothing else. The other four writers in
+  // the repo all honour that — the admin action, the employer marking a
+  // candidate hired, lib/confirmHire, and the test seed. This was the only one
+  // that did not, and it produced more 'filled' rows than all of them together.
+  //
+  // 'archived' is the honest word: off the board, reason unknown to us. Both
+  // statuses are already off the public board, so nothing a candidate sees
+  // changes — the difference is entirely in what we can truthfully say about
+  // ourselves.
+  let archived = 0
   for (const j of existing) {
     const stillLive = j.source_url && liveUrls.has(j.source_url)
     if (j.status === 'active' && !stillLive) {
-      console.log(`  reconcile filled: "${j.title}" (${j.source_url || 'no source_url'})`)
-      if (!DRY) { const { error } = await supa.from('jobs').update({ status: 'filled' }).eq('id', j.id); if (error) throw error }
-      filled++
+      console.log(`  reconcile archived: "${j.title}" (${j.source_url || 'no source_url'})`)
+      if (!DRY) { const { error } = await supa.from('jobs').update({ status: 'archived' }).eq('id', j.id); if (error) throw error }
+      archived++
     }
   }
-  console.log(`Reconcile: ${filled} set to filled`)
-  console.log(`\n${DRY ? '[DRY RUN] ' : ''}Done. scraped=${recs.length} inserted=${inserted} updated=${updated} backfilled=${matched} filled=${filled}`)
+  console.log(`Reconcile: ${archived} set to archived`)
+  console.log(`\n${DRY ? '[DRY RUN] ' : ''}Done. scraped=${recs.length} inserted=${inserted} updated=${updated} backfilled=${matched} archived=${archived}`)
 }
 
 // ── main ──
