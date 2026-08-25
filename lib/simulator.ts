@@ -221,7 +221,6 @@ export async function runSimulatorTick(): Promise<SimulatorCounts> {
                 name: candidateName,
                 imageBytes: sigBytes,
                 signedAt: new Date().toISOString(),
-                ip: null,
                 userAgent: 'Thrive Simulator',
               }])
               const newPath = `offer-letters/${offer.candidate_id}/signed-${offer.id}-${Date.now()}.pdf`

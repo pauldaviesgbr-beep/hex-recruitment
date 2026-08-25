@@ -13,6 +13,7 @@ const sections = [
   { id: 'job-seeker-visibility', label: 'Job Seeker Visibility' },
   { id: 'storage-security', label: 'Storage & Security' },
   { id: 'data-retention', label: 'Data Retention' },
+  { id: 'deleting-your-account', label: 'Deleting your account' },
   { id: 'your-rights', label: 'Your Rights (UK GDPR)' },
   { id: 'cookies', label: 'Cookies' },
   { id: 'children', label: "Children's Privacy" },
@@ -372,10 +373,65 @@ export default function PrivacyPolicyPage() {
             </p>
           </section>
 
-          {/* 7. Your Rights Under UK GDPR */}
-          <section id="your-rights" className={styles.section}>
+          {/* 7. Deleting your account — PAUL'S WORDING, VERBATIM.
+              Do not rewrite, do not "improve", do not add headings.
+              The claim about signed offers is only true because
+              lib/signPdf.ts stopped printing the signer's IP into the
+              retained PDF on 25 Aug 2026. If anyone puts it back, this
+              paragraph becomes false. See the note in that file. */}
+          <section id="deleting-your-account" className={styles.section}>
             <h2 className={styles.sectionTitle}>
               <span className={styles.sectionNumber}>7</span>
+              Deleting your account
+            </h2>
+
+            <p>
+              You can delete your account at any time from Settings &rarr; Privacy. We&apos;ll act on
+              it within 30 days.
+            </p>
+
+            <p>
+              Most of what we hold is removed completely: your profile, your CV, your photo,
+              your saved jobs, your job alerts, your notifications, and any files you&apos;ve
+              uploaded to us.
+            </p>
+
+            <p>
+              Three things work differently. We&apos;d rather explain them here than have you find
+              out afterwards.
+            </p>
+
+            <p>
+              Applications. If you&apos;ve applied for a job, the employer keeps a record that an
+              application was made &mdash; but we remove everything that identifies you: your name,
+              your email address, your photo, your CV, and anything you wrote in your
+              application. What&apos;s left is a record of their own hiring that can&apos;t be traced
+              back to you.
+            </p>
+
+            <p>
+              Messages. Anything you wrote in a conversation is replaced with &quot;[deleted]&quot;.
+              The other person&apos;s messages stay, because those are their words and not ours to
+              remove &mdash; which means they may still mention you by name.
+            </p>
+
+            <p>
+              Signed offers. If you&apos;ve signed a job offer through Thrive, we keep it. It&apos;s a
+              contract between you and the employer, and either of you may need it later. We
+              do delete the technical details recorded at the moment you signed, including
+              your IP address, after twelve months.
+            </p>
+
+            <p>
+              If you want to know exactly what we hold about you, email
+              contact@thrivecareer.co.uk and we&apos;ll tell you.
+            </p>
+          </section>
+
+          {/* 8. Your Rights Under UK GDPR */}
+          <section id="your-rights" className={styles.section}>
+            <h2 className={styles.sectionTitle}>
+              <span className={styles.sectionNumber}>8</span>
               Your Rights Under UK GDPR
             </h2>
             <p>
@@ -453,10 +509,10 @@ export default function PrivacyPolicyPage() {
             </div>
           </section>
 
-          {/* 8. Cookies */}
+          {/* 9. Cookies */}
           <section id="cookies" className={styles.section}>
             <h2 className={styles.sectionTitle}>
-              <span className={styles.sectionNumber}>8</span>
+              <span className={styles.sectionNumber}>9</span>
               Cookies
             </h2>
             <p>
@@ -489,10 +545,10 @@ export default function PrivacyPolicyPage() {
             </p>
           </section>
 
-          {/* 9. Children's Privacy */}
+          {/* 10. Children's Privacy */}
           <section id="children" className={styles.section}>
             <h2 className={styles.sectionTitle}>
-              <span className={styles.sectionNumber}>9</span>
+              <span className={styles.sectionNumber}>10</span>
               Children&apos;s Privacy
             </h2>
             <p>
@@ -510,10 +566,10 @@ export default function PrivacyPolicyPage() {
             </p>
           </section>
 
-          {/* 10. International Transfers */}
+          {/* 11. International Transfers */}
           <section id="international" className={styles.section}>
             <h2 className={styles.sectionTitle}>
-              <span className={styles.sectionNumber}>10</span>
+              <span className={styles.sectionNumber}>11</span>
               International Transfers
             </h2>
             <p>
@@ -538,10 +594,10 @@ export default function PrivacyPolicyPage() {
             </p>
           </section>
 
-          {/* 11. Google Calendar Integration */}
+          {/* 12. Google Calendar Integration */}
           <section id="google-calendar" className={styles.section}>
             <h2 className={styles.sectionTitle}>
-              <span className={styles.sectionNumber}>11</span>
+              <span className={styles.sectionNumber}>12</span>
               Google Calendar Integration
             </h2>
             <p>
@@ -642,10 +698,10 @@ export default function PrivacyPolicyPage() {
             </ul>
           </section>
 
-          {/* 12. Changes to This Policy */}
+          {/* 13. Changes to This Policy */}
           <section id="changes" className={styles.section}>
             <h2 className={styles.sectionTitle}>
-              <span className={styles.sectionNumber}>12</span>
+              <span className={styles.sectionNumber}>13</span>
               Changes to This Policy
             </h2>
             <p>
@@ -663,10 +719,10 @@ export default function PrivacyPolicyPage() {
             </p>
           </section>
 
-          {/* 13. Contact Us */}
+          {/* 14. Contact Us */}
           <section id="contact" className={styles.section}>
             <h2 className={styles.sectionTitle}>
-              <span className={styles.sectionNumber}>13</span>
+              <span className={styles.sectionNumber}>14</span>
               Contact Us
             </h2>
             <p>

@@ -191,7 +191,6 @@ export async function POST(
         name: offer.employer_signature_name || 'Employer',
         imageBytes: employerSignatureBytes,
         signedAt: offer.employer_signature_timestamp,
-        ip: offer.employer_signature_ip,
         userAgent: offer.employer_signature_user_agent,
       })
     }
@@ -200,7 +199,6 @@ export async function POST(
       name: signerName,
       imageBytes: dataUrlToBytes(signatureDataUrl),
       signedAt: nowIso,
-      ip,
       userAgent,
     })
     finalPdfBytes = await appendSignaturesToPdf(bodyStampedBytes, certBlocks)

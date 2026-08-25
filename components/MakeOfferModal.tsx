@@ -287,7 +287,6 @@ export default function MakeOfferModal({
             name: employerSignerName.trim(),
             imageBytes: dataUrlToBytes(employerSignatureDataUrl!),
             signedAt: nowIso,
-            ip: employerSignatureIp,
             userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : null,
           }])
           fileToUpload = new File([signedBytes as any], generatedFile.name, { type: 'application/pdf' })
