@@ -5,14 +5,6 @@
 // and would prove nothing — the two states have to give different answers or
 // the check cannot tell which one it is in.
 //
-// SO THIS RUNS TWICE, AGAINST TWO HOSTS:
-//   PRODUCTION is the positive control — the code WITHOUT the fix. It is
-//   expected to land on /dashboard. If it does not, the instrument is wrong
-//   about what the old behaviour was and nothing below can be trusted.
-//   PREVIEW carries the fix and must land on /reset-password from the same
-//   shaped link.
-// Same script, same link shape, opposite answers. That is the proof.
-//
 // LANDING IS ONLY HALF OF IT. Supabase's "secure password change" refuses
 // updateUser({password}) on an ORDINARY session — it wants the current
 // password, which is precisely what a locked-out person does not have. The
@@ -21,12 +13,27 @@
 // the load-bearing question. A fix that lands someone on a form which then
 // refuses them is not a fix. So this sets a password and signs in with it.
 //
-// ON THE TEST EMPLOYER ONLY. Never Adrian, never a real account. It changes
-// the fixture's password and puts it back, and the last check proves the
-// standing password works again — a restore that is not verified is a hope.
-// Both hosts share one database, so the account is the same account on each.
+// ── THE CONTROL, AND WHY IT HAS A SHELF LIFE ─────────────────────────────
+// While the fix sat on a branch, the positive control was PRODUCTION: the same
+// shaped link had to land on /dashboard there and /reset-password on preview.
+// Same script, opposite answers.
 //
-//   node scripts/drive-recovery-landing.mjs <previewBase> [prodBase]
+// THAT CONTROL DIED THE MOMENT THE FIX MERGED, because the unfixed deployment
+// it depended on no longer exists. This is the "a positive control must live
+// outside the thing being changed" rule with a twist — here the control WAS a
+// deployment, and shipping consumed it. So the control host is optional now,
+// and when it turns out to be fixed too the script says EXPIRED CONTROL rather
+// than FAIL. A stale control that reads as a product fault is how a working
+// check gets deleted by the next person.
+//
+// ON THE TEST EMPLOYER ONLY. Never a real account. It changes the fixture's
+// password and puts it back, and proves the restore against the auth API —
+// a restore that is not verified is a hope.
+//
+//   node scripts/drive-recovery-landing.mjs [targetBase] [controlBase]
+//
+//   targetBase   host under test. Default production. Must land on /reset-password.
+//   controlBase  optional unfixed host. Omit once the fix is everywhere.
 
 import { chromium } from 'playwright'
 import { createClient } from '@supabase/supabase-js'
@@ -49,15 +56,15 @@ function loadEnv() {
 }
 
 const env = loadEnv()
-const PREVIEW = process.argv[2]
-const PROD = process.argv[3] || 'https://thrivecareer.co.uk'
+const TARGET = process.argv[2] || 'https://thrivecareer.co.uk'
+const CONTROL = process.argv[3] || null
 const EMAIL = 'pauldavies.gbr+employer@gmail.com'
 const STANDING = env.TEST_EMPLOYER_PASSWORD || env.TEST_ACCOUNT_PASSWORD
 const BYPASS = env.VERCEL_AUTOMATION_BYPASS_SECRET
 const SUPA_URL = env.NEXT_PUBLIC_SUPABASE_URL
+const ANON = env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 const SERVICE = env.SUPABASE_SERVICE_ROLE_KEY
 
-if (!PREVIEW) { console.error('usage: node scripts/drive-recovery-landing.mjs <previewBase> [prodBase]'); process.exit(2) }
 if (!STANDING) { console.error('SKIP  TEST_EMPLOYER_PASSWORD not in .env.local'); process.exit(2) }
 if (!SERVICE) { console.error('SKIP  SUPABASE_SERVICE_ROLE_KEY not in .env.local'); process.exit(2) }
 
@@ -72,6 +79,7 @@ const check = (label, ok, detail) => {
 }
 
 const admin = createClient(SUPA_URL, SERVICE, { auth: { persistSession: false } })
+const anonClient = () => createClient(SUPA_URL, ANON, { auth: { persistSession: false } })
 
 /**
  * Mint a recovery link in the token_hash form the email template uses.
@@ -119,31 +127,15 @@ async function followRecovery(base, next) {
   // WHERE /auth/confirm SENT THEM, not where they came to rest. Those are
   // different questions and only the first is under test: an employer landing
   // on /dashboard is forwarded on to /employer/dashboard by the app itself,
-  // which is correct and has nothing to do with this route's decision. Asserting
-  // the resting path made the control read FAIL on behaviour that was exactly
-  // right. The route's own Location header cannot be confused that way.
+  // which is correct and has nothing to do with this route's decision.
+  // Asserting the resting path made the control read FAIL on behaviour that
+  // was exactly right. The route's own Location header cannot be confused
+  // that way.
   const decided = chain
     .map(h => h.split('→')[1]?.trim())
     .filter(loc => loc && !loc.startsWith('/auth/confirm'))
     .pop() || null
   return { ctx, page, chain, decided, url: page.url(), path: new URL(page.url()).pathname }
-}
-
-async function signIn(base, password) {
-  const ctx = await browser.newContext(ctxFor(base))
-  const page = await ctx.newPage()
-  await page.goto(`${base}/login`, { waitUntil: 'domcontentloaded' })
-  await page.fill('#login-email', EMAIL)
-  await page.fill('#login-password', password)
-  await page.locator('button[type="submit"]:not([disabled])').first().waitFor({ timeout: 30000 })
-  await page.click('button[type="submit"]')
-  let ok = false
-  try {
-    await page.waitForURL(u => !u.toString().includes('/login'), { timeout: 30000 })
-    ok = true
-  } catch { /* stayed on /login */ }
-  await ctx.close()
-  return ok
 }
 
 /**
@@ -155,43 +147,68 @@ async function signIn(base, password) {
  * as a product fault. That already cost one session.
  */
 async function submitNewPassword(page, value) {
-  if (!(await page.locator('#password').count())) return { rendered: false, text: '' }
+  if (!(await page.locator('#password').count())) return { rendered: false, text: '', put: null }
+  // WATCH THE CALL, NOT THE BUTTON. A restore once failed with every visible
+  // sign of success — the form rendered, the click landed, the page moved on —
+  // and the password simply had not changed. `rendered: true` was all the
+  // script knew, so a real failure was completely undiagnosable. The status of
+  // PUT /auth/v1/user is the answer and it costs one listener.
+  let put = null
+  const onResponse = r => { if (/\/auth\/v1\/user$/.test(r.url()) && r.request().method() === 'PUT') put = r.status() }
+  page.on('response', onResponse)
   await page.fill('#password', value)
   await page.fill('#confirmPassword', value)
   await page.getByRole('button', { name: /^reset password$/i }).first().click()
   await page.waitForTimeout(7000)
-  return { rendered: true, text: await page.evaluate(() => document.body.innerText || '') }
+  page.off('response', onResponse)
+  return { rendered: true, put, text: await page.evaluate(() => document.body.innerText || '') }
 }
 
-try {
-  // ── 1. POSITIVE CONTROL: the code WITHOUT the fix ─────────────────────
-  console.log('\n1. CONTROL — production (no fix). next=/dashboard should WIN there.')
-  const ctl = await followRecovery(PROD, '/dashboard')
-  console.log('   chain: ' + (ctl.chain.join('\n          ') || '(none captured)'))
-  check('production sends them to /dashboard — the old behaviour', ctl.decided === '/dashboard',
-    '/auth/confirm → ' + ctl.decided + '   (came to rest at ' + ctl.path + ')')
-  check('   … and therefore NOT to /reset-password', ctl.decided !== '/reset-password', String(ctl.decided))
-  await ctl.page.screenshot({ path: 'drive-shots/recovery-control-prod.png' })
-  await ctl.ctx.close()
+/** Asked of the auth API, never of /login — see the rate-limit note below. */
+async function passwordWorks(password) {
+  const { error } = await anonClient().auth.signInWithPassword({ email: EMAIL, password })
+  return { ok: !error, message: error?.message }
+}
 
-  if (ctl.decided === '/reset-password') {
-    console.log('\n  *** THE CONTROL ALREADY PASSES. The check cannot distinguish the two')
-    console.log('      states, so nothing below is evidence. Stop and find out why.')
+console.log('\nTARGET  ' + TARGET)
+console.log('CONTROL ' + (CONTROL || '(none — the unfixed deployment no longer exists)'))
+
+try {
+  // ── 1. THE CONTROL, IF THERE IS STILL ONE TO HAVE ─────────────────────
+  if (CONTROL) {
+    console.log('\n1. CONTROL — a host without the fix. next=/dashboard should WIN there.')
+    const ctl = await followRecovery(CONTROL, '/dashboard')
+    console.log('   chain: ' + (ctl.chain.join('\n          ') || '(none captured)'))
+    if (ctl.decided === '/reset-password') {
+      console.log('  ---- EXPIRED CONTROL, NOT A FAILURE ----')
+      console.log('       This host has the fix too, so it can no longer show the old')
+      console.log('       behaviour. The control was a DEPLOYMENT, and shipping consumed')
+      console.log('       it. Drop the control argument, or point it at a host built')
+      console.log('       before the fix. Do NOT "repair" the product over this.')
+    } else {
+      check('control sends them to /dashboard — the old behaviour', ctl.decided === '/dashboard',
+        '/auth/confirm → ' + ctl.decided + '   (came to rest at ' + ctl.path + ')')
+    }
+    await ctl.page.screenshot({ path: 'drive-shots/recovery-control.png' })
+    await ctl.ctx.close()
+  } else {
+    console.log('\n1. CONTROL — skipped. See the shelf-life note at the top of this file.')
   }
 
-  // ── 2. THE FIX: same link shape, preview ──────────────────────────────
-  console.log('\n2. PREVIEW — the fix. next=/dashboard should be IGNORED.')
-  const fix = await followRecovery(PREVIEW, '/dashboard')
+  // ── 2. THE TARGET: a hostile `next` must be ignored ───────────────────
+  console.log('\n2. TARGET — next=/dashboard must be IGNORED.')
+  const fix = await followRecovery(TARGET, '/dashboard')
   console.log('   chain: ' + (fix.chain.join('\n          ') || '(none captured)'))
-  const landed = check('preview sends them to /reset-password despite next=/dashboard',
+  const landed = check('sends them to /reset-password despite next=/dashboard',
     fix.decided === '/reset-password', '/auth/confirm → ' + fix.decided)
   check('   … and it is where they come to rest', fix.path === '/reset-password', fix.path)
   const text2 = await fix.page.evaluate(() => document.body.innerText || '')
   check('it is not stuck on the verifying spinner', !/verifying your reset link/i.test(text2))
   check('it did not bounce to /login — the session cookie survived', !fix.path.includes('/login'), fix.path)
+  check('no expired / already-used / invalid message', !/expired|already been used|needs a valid reset link/i.test(text2))
   const fields = await fix.page.locator('input[type="password"]').count()
   check('the password form is rendered', fields >= 2, fields + ' password field(s)')
-  await fix.page.screenshot({ path: 'drive-shots/recovery-lands-on-reset.png', fullPage: false })
+  await fix.page.screenshot({ path: 'drive-shots/recovery-lands-on-reset.png' })
 
   // ── 3. CAN THE RECOVERY SESSION ACTUALLY SET A PASSWORD? ──────────────
   // The half that matters. An ordinary session is refused here with
@@ -202,42 +219,42 @@ try {
   if (landed) set = await submitNewPassword(fix.page, TEMP)
   check('the form accepted the submit', set.rendered && !/current password|error|failed|could not/i.test(set.text),
     (set.text || '').split('\n').map(l => l.trim()).filter(Boolean)[0] || '(no text)')
+  check('PUT /auth/v1/user returned 200', set.put === 200, 'status ' + set.put)
   check('no current_password_required refusal', !/current password/i.test(set.text || ''))
   await fix.page.screenshot({ path: 'drive-shots/recovery-after-submit.png' })
   await fix.ctx.close()
 
   // ── 4. DID IT LAND IN THE DATABASE? ───────────────────────────────────
-  console.log('\n4. PROVE THE CHANGE IS REAL — clean context, new password')
-  const newWorks = check('the NEW password signs in', await signIn(PREVIEW, TEMP))
+  console.log('\n4. PROVE THE CHANGE IS REAL')
+  const newPw = await passwordWorks(TEMP)
+  const newWorks = check('the NEW password signs in', newPw.ok, newPw.message || '')
 
   // ── 5. PUT THE FIXTURE BACK ───────────────────────────────────────────
   console.log('\n5. RESTORE THE STANDING PASSWORD')
   if (newWorks) {
-    const back = await followRecovery(PREVIEW, '/dashboard')
-    check('restore: a second recovery link also lands on /reset-password', back.decided === '/reset-password', String(back.decided))
+    const back = await followRecovery(TARGET, '/dashboard')
+    check('restore: a second recovery link also lands on /reset-password',
+      back.decided === '/reset-password', String(back.decided))
     const r = await submitNewPassword(back.page, STANDING)
-    check('restore submitted', r.rendered)
+    check('restore: PUT /auth/v1/user returned 200', r.put === 200, 'status ' + r.put
+      + (r.put === 429 ? '  — rate limited; this drive is bursty by nature' : ''))
     await back.ctx.close()
   }
-  // ASKED OF THE AUTH API, NOT OF THE LOGIN PAGE. This drive fires several
-  // sign-ins and two password updates inside two minutes, and Supabase rate
-  // limits on exactly that. A throttled /login is indistinguishable from a
-  // wrong password on screen — and reporting "THE FIXTURE IS BROKEN" when it
-  // is not is the expensive direction of that mistake. signInWithPassword
-  // answers the actual question: is this the password.
-  const { error: standingErr } = await createClient(SUPA_URL, env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-    { auth: { persistSession: false } }).auth.signInWithPassword({ email: EMAIL, password: STANDING })
-  const restored = check('THE STANDING PASSWORD WORKS AGAIN', !standingErr,
-    standingErr ? standingErr.message : 'fixture restored')
 
+  // ASKED OF THE AUTH API, NOT OF THE LOGIN PAGE. This drive fires sign-ins
+  // and password updates inside a couple of minutes, and Supabase rate limits
+  // on exactly that. A throttled /login is indistinguishable from a wrong
+  // password on screen — and reporting "THE FIXTURE IS BROKEN" when it is not
+  // is the expensive direction of that mistake.
+  const st = await passwordWorks(STANDING)
+  const restored = check('THE STANDING PASSWORD WORKS AGAIN', st.ok, st.ok ? 'fixture restored' : st.message)
   // And the temp one must be dead, or the restore only appeared to happen.
-  const { error: tempErr } = await createClient(SUPA_URL, env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-    { auth: { persistSession: false } }).auth.signInWithPassword({ email: EMAIL, password: TEMP })
-  check('the temporary password no longer works', Boolean(tempErr), tempErr ? tempErr.message : 'STILL ACCEPTED')
+  const tmp = await passwordWorks(TEMP)
+  check('the temporary password no longer works', !tmp.ok, tmp.ok ? 'STILL ACCEPTED' : tmp.message)
 
   console.log('')
-  console.log(bad ? `  ${bad} FAILED` : '  the recovery link lands on /reset-password and a password can be set there')
-  console.log('  shots: drive-shots/recovery-control-prod.png, recovery-lands-on-reset.png, recovery-after-submit.png')
+  console.log(bad ? `  ${bad} FAILED` : '  a recovery link lands on /reset-password and a password can be set there')
+  console.log('  shots: drive-shots/recovery-lands-on-reset.png, recovery-after-submit.png')
   if (!restored) console.log('\n  *** THE TEST EMPLOYER PASSWORD IS NOT RESTORED. TEMP WAS: ' + TEMP)
   process.exitCode = bad ? 1 : 0
 } catch (e) {
