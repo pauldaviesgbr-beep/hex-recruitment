@@ -144,3 +144,63 @@
   color: #64748b;
   text-decoration: underline;
 }
+
+
+/* The alternative route out of a mismatch. Separated by a rule rather than a
+   heading: it is a second option, not a second section, and a heading would
+   make the page look like it is asking for two things. */
+.altRoute {
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid #e6e9ee;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+}
+
+.altBody {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.55;
+  color: #475569;
+}
+
+.altError {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: #b42318;
+}
+
+/* Wide letter-spacing and a monospace stack, because this is read off one
+   screen and typed into another and an O next to a 0 is where that goes
+   wrong. The alphabet excludes both, and the shape should say so. */
+.codeInput {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 18px;
+  letter-spacing: 3px;
+  text-align: center;
+  text-transform: uppercase;
+  color: #0f172a;
+  background: #fff;
+}
+
+.codeInput:focus {
+  outline: 2px solid #0f172a;
+  outline-offset: 1px;
+}
+
+.linkish {
+  background: none;
+  border: 0;
+  padding: 4px;
+  font-size: 13.5px;
+  color: #475569;
+  text-decoration: underline;
+  cursor: pointer;
+}

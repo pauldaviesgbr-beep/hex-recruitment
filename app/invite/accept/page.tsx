@@ -27,6 +27,8 @@ const ERROR_COPY: Record<string, string> = {
   email_mismatch: 'This invitation is for a different email address.',
   already_in_account: "You're already part of a team on Thrive. Leave that account before joining another.",
   server_error: 'Something went wrong accepting the invitation. Please try again.',
+  bad_code: "That code didn't match. Check the newest email — codes last about half an hour.",
+  send_failed: 'We could not send the code just now. Try again in a moment.',
 }
 
 // Module-level (stable identity) so it does NOT remount on every keystroke —
@@ -60,6 +62,51 @@ function AcceptInviteContent() {
   const [signupPassword, setSignupPassword] = useState('')
   const [signupBusy, setSignupBusy] = useState(false)
   const [signupErr, setSignupErr] = useState('')
+
+  // THE WAY THROUGH A MISMATCH. "Sign out and switch account" is the right
+  // answer when somebody used the wrong one of two accounts they already have.
+  // It leads NOWHERE when there is no account at the invited address — which
+  // is every Apple user, permanently, because the private relay address can
+  // never equal what was typed into the invite form.
+  //
+  // So: prove the mailbox instead of comparing strings. Stronger evidence for
+  // the same claim, not a weaker gate — see lib/inviteCode.ts.
+  const [codeSentTo, setCodeSentTo] = useState('')
+  const [code, setCode] = useState('')
+  const [codeBusy, setCodeBusy] = useState(false)
+  const [codeErr, setCodeErr] = useState('')
+
+  const callCodeRoute = async (payload: Record<string, unknown>) => {
+    const { data: { session } } = await supabase.auth.getSession()
+    const res = await fetch('/api/team/invite-code', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', authorization: `Bearer ${session?.access_token}` },
+      body: JSON.stringify({ token, ...payload }),
+    })
+    return (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string; sentTo?: string }
+  }
+
+  const sendCode = async () => {
+    setCodeBusy(true); setCodeErr('')
+    const j = await callCodeRoute({ action: 'send' })
+    setCodeBusy(false)
+    if (j.ok) setCodeSentTo(j.sentTo || 'your invited address')
+    else setCodeErr(ERROR_COPY[j.error || ''] || ERROR_COPY.server_error)
+  }
+
+  const submitCode = async () => {
+    setCodeBusy(true); setCodeErr('')
+    const j = await callCodeRoute({ code })
+    setCodeBusy(false)
+    if (j.ok) {
+      // The role was just changed server-side; refresh so the session carries
+      // it before the employer area is asked for.
+      await supabase.auth.refreshSession()
+      setPhase('done')
+    } else {
+      setCodeErr(ERROR_COPY[j.error || ''] || ERROR_COPY.server_error)
+    }
+  }
 
   const accept = useCallback(async () => {
     setPhase('accepting')
@@ -228,6 +275,53 @@ function AcceptInviteContent() {
           >
             Sign out and switch account
           </button>
+        </div>
+
+        {/* THE SECOND DOOR, and it is the one that matters for anybody who has
+            no account at the invited address at all. Offered second because
+            switching accounts is instant when it applies. */}
+        <div className={styles.altRoute}>
+          {!codeSentTo ? (
+            <>
+              <p className={styles.altBody}>
+                Don’t have an account on <span className={styles.email}>{invitedEmail}</span>?
+                We can send a code there instead, and you can carry on with the account
+                you’re signed in with now.
+              </p>
+              <button className={styles.secondary} onClick={sendCode} disabled={codeBusy}>
+                {codeBusy ? 'Sending…' : 'Email me a code instead'}
+              </button>
+            </>
+          ) : (
+            <>
+              <p className={styles.altBody}>
+                Code sent to <span className={styles.email}>{codeSentTo}</span>. It lasts about
+                half an hour.
+              </p>
+              <input
+                className={styles.codeInput}
+                value={code}
+                onChange={e => setCode(e.target.value)}
+                // Eight characters plus the dash a person may type or paste.
+                maxLength={9}
+                autoComplete="one-time-code"
+                inputMode="text"
+                placeholder="XXXX-XXXX"
+                aria-label="The code we emailed you"
+              />
+              <button
+                className={styles.primary}
+                onClick={submitCode}
+                disabled={codeBusy || code.replace(/[^A-Za-z0-9]/g, '').length !== 8}
+              >
+                {codeBusy ? 'Checking…' : 'Join the team'}
+              </button>
+              <button className={styles.linkish} onClick={sendCode} disabled={codeBusy}>
+                Send it again
+              </button>
+            </>
+          )}
+          {codeErr && <p className={styles.altError}>{codeErr}</p>}
         </div>
       </Shell>
     )

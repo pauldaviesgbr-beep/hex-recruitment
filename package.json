@@ -50,6 +50,7 @@
     "applesignin:prove": "npx tsx --conditions=react-server scripts/prove-apple-signin.ts",
     "applesecret:prove": "npx tsx --conditions=react-server scripts/prove-apple-client-secret.ts",
     "apple:secret": "npx tsx scripts/apple-client-secret.ts",
+    "invitecode:prove": "npx tsx --conditions=react-server scripts/prove-invite-code.ts",
     "herosearch:prove": "npx tsx scripts/prove-hero-search.ts",
     "feedexpiry:prove": "npx tsx scripts/prove-feed-expiry.ts",
     "erasure:prove": "npx tsx scripts/prove-erasure.ts"
