@@ -205,7 +205,10 @@ export function supabaseProfileToCandidate(row: any): Candidate {
   return {
     id: row.user_id || row.id,
     userId: row.user_id || row.id,
-    fullName: row.full_name || 'Unknown',
+    // WAS . A nameless candidate reached employers literally
+    // called Unknown — the fifth invented name, and the one a grep of the
+    // auth paths could never find because it is in the mapper.
+    fullName: row.full_name || null,
     // A CANDIDATE'S PHOTO LIVES IN EITHER OF TWO COLUMNS, AND THIS READ ONE.
     //
     // Measured 24 Aug 2026: of the four candidates who have ever uploaded a

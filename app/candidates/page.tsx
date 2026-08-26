@@ -356,7 +356,7 @@ function CandidatesContent() {
       if (searchQuery && skip !== 'search') {
         const query = searchQuery.toLowerCase()
         const matchesSearch =
-          candidate.fullName.toLowerCase().includes(query) ||
+          (candidate.fullName || '').toLowerCase().includes(query) ||
           candidate.jobTitle.toLowerCase().includes(query) ||
           candidate.skills.some(skill => skill.toLowerCase().includes(query)) ||
           candidate.bio.toLowerCase().includes(query)

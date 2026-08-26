@@ -753,7 +753,8 @@ function calcExperienceLevelMatch(
 
 export interface SuggestedCandidate {
   id: string
-  fullName: string
+  /** NULL when we were not told one. See lib/displayName.ts. */
+  fullName: string | null
   jobTitle: string
   location: string
   profilePictureUrl: string | null
@@ -772,7 +773,10 @@ export function scoreAndRankCandidates(
     const { score, reasons } = calculateMatchScore(job, candidate, [], [])
     return {
       id: candidate.id,
-      fullName: candidate.fullName || 'Candidate',
+      // WAS `|| 'Candidate'`. The sixth invented name, and invisible to the
+      // compiler because the fallback made the type check out. A nameless
+      // person appeared in recommendations as somebody called "Candidate".
+      fullName: candidate.fullName,
       jobTitle: candidate.jobTitle || '',
       location: candidate.location || '',
       profilePictureUrl: candidate.profilePictureUrl || null,
