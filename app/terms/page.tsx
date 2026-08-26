@@ -442,7 +442,7 @@ export default function TermsPage() {
             <Link href="/terms" className={styles.footerLinkActive}>Terms of Service</Link>
             <Link href="/privacy-policy" className={styles.footerLink}>Privacy Policy</Link>
             <button onClick={() => (window as any).__openCookiePreferences?.()} className={styles.footerLink} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, font: 'inherit' }}>Cookie Settings</button>
-            <a href="mailto:support@thrivecareer.co.uk" className={styles.footerLink}>Contact</a>
+            <Link href="/support" className={styles.footerLink}>Support</Link>
           </div>
           <p className={styles.footerCopyright}>
             &copy; {new Date().getFullYear()} Thrive. All rights reserved.

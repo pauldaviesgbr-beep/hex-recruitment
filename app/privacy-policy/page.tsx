@@ -777,6 +777,7 @@ export default function PrivacyPolicyPage() {
           <div className={styles.footerLinks}>
             <Link href="/terms" className={styles.footerLink}>Terms of Service</Link>
             <Link href="/privacy-policy" className={styles.footerLinkActive}>Privacy Policy</Link>
+            <Link href="/support" className={styles.footerLink}>Support</Link>
             <button onClick={() => (window as any).__openCookiePreferences?.()} className={styles.footerLink} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, font: 'inherit' }}>Cookie Settings</button>
             <a href="mailto:contact@thrivecareer.co.uk" className={styles.footerLink}>Contact</a>
           </div>

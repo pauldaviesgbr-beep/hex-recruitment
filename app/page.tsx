@@ -418,7 +418,7 @@ export default function Home() {
             <Link href="/privacy-policy" className={styles.footerLink}>Privacy Policy</Link>
             <button onClick={() => (window as any).__openCookiePreferences?.()} className={styles.footerLink} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, font: 'inherit' }}>Cookie Settings</button>
             <Link href="/jobs" className={styles.footerLink}>Browse Jobs</Link>
-            <a href="mailto:contact@thrivecareer.co.uk" className={styles.footerLink}>Contact Us</a>
+            <Link href="/support" className={styles.footerLink}>Support</Link>
           </div>
           <p className={styles.footerCopy}>&copy; 2026 Thrive. All rights reserved.</p>
         </div>

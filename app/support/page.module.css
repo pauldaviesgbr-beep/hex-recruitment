@@ -1,0 +1,182 @@
+/* Matches /terms and /privacy-policy so the three legal-ish pages read as a
+   set. Same hero, same 900px container, same footer treatment. */
+
+.hero {
+  background: var(--dark-gray);
+  color: var(--white);
+  padding: 3rem 0 2.5rem;
+  border-bottom: 3px solid var(--primary-yellow);
+}
+
+.heroContent {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+.backLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: rgba(255, 255, 255, 0.7);
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 500;
+  margin-bottom: 1.25rem;
+  transition: color 0.2s;
+}
+
+.backLink:hover {
+  color: var(--primary-yellow);
+}
+
+.heroTitle {
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: var(--primary-yellow);
+  margin: 0 0 0.5rem 0;
+  letter-spacing: -0.02em;
+}
+
+.heroSub {
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 1rem;
+  margin: 0;
+  max-width: 46ch;
+}
+
+.container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 4rem;
+}
+
+.card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 1.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.cardTitle {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 0.75rem 0;
+}
+
+.subTitle {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #0f172a;
+  margin: 1.5rem 0 0.4rem 0;
+}
+
+.subTitle:first-of-type {
+  margin-top: 0.5rem;
+}
+
+.body {
+  color: #374151;
+  line-height: 1.65;
+  margin: 0 0 0.75rem 0;
+}
+
+.body:last-child {
+  margin-bottom: 0;
+}
+
+.emailLink {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #0f172a;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  word-break: break-word;
+}
+
+.emailLink:hover {
+  color: var(--primary-yellow, #f5c518);
+}
+
+.inlineLink {
+  color: #0f172a;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.footer {
+  background: var(--dark-gray);
+  color: rgba(255, 255, 255, 0.75);
+  padding: 2.5rem 0;
+}
+
+.footerInner {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.footerBrand {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.footerLogo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: var(--white);
+}
+
+/* CONTROLS WRAP. Never overflow-x on a row of links — a link past the edge
+   with no affordance may as well not exist. */
+.footerLinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.25rem;
+}
+
+.footerLink,
+.footerLinkActive {
+  color: rgba(255, 255, 255, 0.75);
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.footerLink:hover {
+  color: var(--primary-yellow);
+}
+
+.footerLinkActive {
+  color: var(--primary-yellow);
+  font-weight: 600;
+}
+
+.footerCopyright {
+  margin: 0;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+@media (max-width: 640px) {
+  .heroTitle {
+    font-size: 1.9rem;
+  }
+
+  .card {
+    padding: 1.25rem;
+  }
+
+  .container {
+    padding: 1.5rem 1rem 3rem;
+  }
+}
