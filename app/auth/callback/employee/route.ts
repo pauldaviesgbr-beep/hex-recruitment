@@ -5,6 +5,7 @@ import { safeInternalPath } from '@/lib/safeRedirect'
 import { parseAttrCookie, attributionColumns } from '@/lib/attribution'
 import { geoColumnsFromRequest } from '@/lib/geo'
 import { applyDuplicateHold } from '@/lib/applyDuplicateHold'
+import { nameFromAuth, greetingName } from '@/lib/displayName'
 
 function getOrigin(req: NextRequest): string {
   const proto = req.headers.get('x-forwarded-proto') || 'https'
@@ -69,7 +70,11 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(`${origin}/login/employee?error=wrong-role&have=${existingRole}`)
   }
 
-  const displayName = user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'User'
+  // NO NAME IS BETTER THAN AN INVENTED ONE — see lib/displayName.ts.
+  // This used to end `|| user.email?.split('@')[0] || 'User'`, which turns an
+  // Apple private relay address into a random ten-character "name" and writes
+  // it to the profile employers browse.
+  const displayName = nameFromAuth(user)
 
   const admin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -139,7 +144,7 @@ export async function GET(request: NextRequest) {
   fetch(`${origin}/api/email/send`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ to: user.email, type: 'candidate_welcome', data: { candidateName: displayName } }),
+    body: JSON.stringify({ to: user.email, type: 'candidate_welcome', data: { candidateName: greetingName(displayName) } }),
   }).catch(() => {})
 
   // Brand-new candidate → the three-field welcome step, then straight into

@@ -109,7 +109,10 @@ export async function provisionFoundingEmployer({
   userId: string
   email: string | undefined
   companyName: string
-  contactName: string
+  // string | null: an OAuth provider may not give us a name, and an invented
+  // one is worse than none (see lib/displayName.ts). The column is nullable
+  // and the admin email renders a neutral placeholder rather than a token.
+  contactName: string | null
   metadataClass: EmailClass | undefined
   siteUrl: string
   // Signup source columns (already normalized). Empty object for organic/returning.
@@ -245,7 +248,7 @@ export async function provisionFoundingEmployer({
         </p>
         <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;margin:0 0 4px;font-size:14px;">
           <tr><td style="padding:7px 12px 7px 0;color:#94a3b8;white-space:nowrap;">Company</td><td style="padding:7px 0;color:#0f172a;font-weight:600;">${escapeHtml(companyName)}</td></tr>
-          <tr><td style="padding:7px 12px 7px 0;color:#94a3b8;white-space:nowrap;">Contact</td><td style="padding:7px 0;color:#334155;">${escapeHtml(contactName)}</td></tr>
+          <tr><td style="padding:7px 12px 7px 0;color:#94a3b8;white-space:nowrap;">Contact</td><td style="padding:7px 0;color:#334155;">${escapeHtml(contactName ?? "(not given)")}</td></tr>
           <tr><td style="padding:7px 12px 7px 0;color:#94a3b8;white-space:nowrap;">Email</td><td style="padding:7px 0;color:#334155;">${escapeHtml(email || '')}</td></tr>
           <tr><td style="padding:7px 12px 7px 0;color:#94a3b8;white-space:nowrap;">Classification</td><td style="padding:7px 0;color:#334155;">${classification}</td></tr>
           <tr><td style="padding:7px 12px 7px 0;color:#94a3b8;white-space:nowrap;vertical-align:top;">User ID</td><td style="padding:7px 0;color:#334155;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;word-break:break-all;">${userId}</td></tr>

@@ -88,9 +88,25 @@ export function parseNotice(raw: unknown): DiscoverabilityNotice {
  * hidden. A job title OR a CV is enough to be worth showing; neither means
  * there is nothing to show.
  */
-export function hasSomethingToShow(row: Pick<CandidateNoticeRow, 'job_title' | 'cv_url'>): boolean {
+export function hasSomethingToShow(row: Pick<CandidateNoticeRow, 'full_name' | 'job_title' | 'cv_url'>): boolean {
   const filled = (v: string | null) => typeof v === 'string' && v.trim().length > 0
-  return filled(row.job_title) || filled(row.cv_url)
+  // A NAME IS NOW REQUIRED, ALONGSIDE the job title or CV rather than
+  // instead of them.
+  //
+  // Until 26 Aug 2026 the name was not checked at all, which was fine while
+  // every signup path guaranteed one — the OAuth callbacks invented a name
+  // from the email local-part when the provider gave none, so the column was
+  // never empty. That invention has been removed (lib/displayName.ts): an
+  // Apple relay address would otherwise have written a random ten-character
+  // token as somebody's name. Now that full_name can legitimately be NULL,
+  // this gate has to say so, or the first nameless profile becomes
+  // discoverable and an employer browses a card with no name on it.
+  //
+  // MEASURED BEFORE ADDING IT: 51 discoverable candidates, 0 with an empty
+  // name, 0 hidden with an empty name. Not one existing row changes state.
+  // And structurally it could not hide anyone anyway — flipBlocker returns
+  // 'already-discoverable' first, so the flip only ever reveals.
+  return filled(row.full_name) && (filled(row.job_title) || filled(row.cv_url))
 }
 
 /** Who should receive the notice: hidden, worth showing, has an address, and

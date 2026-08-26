@@ -7,6 +7,7 @@ import type { EmailClass } from '@/lib/emailDomains'
 import { safeInternalPath } from '@/lib/safeRedirect'
 import { parseAttrCookie, attributionColumns } from '@/lib/attribution'
 import { geoColumnsFromRequest } from '@/lib/geo'
+import { nameFromAuth } from '@/lib/displayName'
 
 function getOrigin(req: NextRequest): string {
   const proto = req.headers.get('x-forwarded-proto') || 'https'
@@ -87,7 +88,11 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(`${origin}/login/employer?error=wrong-role&have=${existingRole}`)
   }
 
-  const displayName = user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'User'
+  // NO NAME IS BETTER THAN AN INVENTED ONE — see lib/displayName.ts.
+  // This used to end `|| user.email?.split('@')[0] || 'User'`, which turns an
+  // Apple private relay address into a random ten-character "name" and writes
+  // it to the profile employers browse.
+  const displayName = nameFromAuth(user)
   const companyName = companyNameFromEmail(user.email)
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || origin
 

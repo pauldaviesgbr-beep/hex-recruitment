@@ -8,6 +8,7 @@ import type { EmailClass } from '@/lib/emailDomains'
 import { parseAttrCookie, attributionColumns, type Attribution } from '@/lib/attribution'
 import { geoColumnsFromRequest } from '@/lib/geo'
 import { safeReturnPath } from '@/lib/safeRedirect'
+import { nameFromAuth, greetingName } from '@/lib/displayName'
 
 // The email-link callback. THE ONLY CALLER IS /auth/confirm — checked, not
 // remembered: `grep -rl handleAuthCallback app/` returns that one file. The
@@ -182,9 +183,11 @@ export async function handleAuthCallback(
     return NextResponse.redirect(`${origin}/login?auth_error=missing_role`)
   }
 
-  const displayName = (user.user_metadata?.full_name as string | undefined)
-    || (user.user_metadata?.name as string | undefined)
-    || (user.email?.split('@')[0] || 'User')
+  // NO NAME IS BETTER THAN AN INVENTED ONE — see lib/displayName.ts.
+  // This used to end `|| user.email?.split('@')[0] || 'User'`, which turns an
+  // Apple private relay address into a random ten-character "name" and writes
+  // it to the profile employers browse.
+  const displayName = nameFromAuth(user)
 
   // Service-role admin client lifted out of the !existingRole gate so
   // both the new-user setup block AND the always-on profile-row upsert
@@ -238,7 +241,7 @@ export async function handleAuthCallback(
       fetch(`${siteUrl}/api/email/send`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ to: user.email, type: 'candidate_welcome', data: { candidateName: displayName } }),
+        body: JSON.stringify({ to: user.email, type: 'candidate_welcome', data: { candidateName: greetingName(displayName) } }),
       }).catch(() => {})
     }
   }

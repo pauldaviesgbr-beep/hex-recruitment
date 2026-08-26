@@ -30,6 +30,7 @@ import CandidateCard from '@/components/CandidateCard'
 import type { Candidate } from '@/lib/mockCandidates'
 import styles from './page.module.css'
 import { Ico } from '@/components/icons'
+import { nameFromAuth, greetingName } from '@/lib/displayName'
 
 // ── Helpers ─────────────────────────────────────────────
 
@@ -1127,7 +1128,8 @@ export default function EmployerDashboardPage() {
     )
   }
 
-  const displayName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'there'
+  // See lib/displayName.ts — no name is better than a slice of an address.
+  const displayName = greetingName(nameFromAuth(user))
 
   return (
     <main className={styles.pageBackground}>

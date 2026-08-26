@@ -1,14 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
-// The three-field welcome step's save path: job title and job sector.
+// The welcome step's save path: full name, job title and job sector.
 //
 // Desired areas are NOT handled here — they go through
 // /api/profile/preferred-areas, which is already the single owned writer of
 // that column. One field, one owner; this route deliberately doesn't duplicate
 // it just to save the welcome screen a second request.
 //
-//   POST { jobTitle?, jobSector? } → writes job_title / job_sector
+//   POST { fullName?, jobTitle?, jobSector? } → writes full_name / job_title / job_sector
+//
+// FULL NAME ARRIVES HERE BECAUSE IT CAN NOW BE NULL. The OAuth callbacks used
+// to invent one from the email local-part; that invention is gone (see
+// lib/displayName.ts), so a Sign in with Apple user who shares no name has no
+// name until they give us one. This is where they give it.
 //
 // Every field is optional: the step is skippable by design, and a partial
 // answer is worth more than an abandoned form.
@@ -30,6 +35,14 @@ export async function POST(request: NextRequest) {
   if (!body) return NextResponse.json({ error: 'Invalid body' }, { status: 400 })
 
   const update: Record<string, string | null> = {}
+
+  if (body.fullName !== undefined) {
+    if (typeof body.fullName !== 'string') {
+      return NextResponse.json({ error: 'fullName must be a string' }, { status: 400 })
+    }
+    const v = body.fullName.trim().slice(0, MAX_LEN)
+    if (v) update.full_name = v   // never blank it back out from here
+  }
 
   if (body.jobTitle !== undefined) {
     if (typeof body.jobTitle !== 'string') {
@@ -55,11 +68,25 @@ export async function POST(request: NextRequest) {
     .from('candidate_profiles')
     .update(update)
     .eq('user_id', user.id)
-    .select('job_title, job_sector')
+    .select('full_name, job_title, job_sector')
     .maybeSingle()
 
   if (error) return NextResponse.json({ error: 'Failed to save' }, { status: 500 })
   if (!data) return NextResponse.json({ error: 'Candidate profile not found' }, { status: 404 })
 
-  return NextResponse.json({ jobTitle: data.job_title, jobSector: data.job_sector })
+  // TWO PIECES OF STATE THAT MUST AGREE, SET FROM ONE PATH. The profile row
+  // is what employers see and what the discoverability gate reads;
+  // user_metadata.full_name is what the dashboard greeting and the header
+  // read. Writing only one leaves a person named on one screen and 'there'
+  // on another, and the drift is invisible until somebody notices.
+  if (update.full_name) {
+    const { error: metaErr } = await admin.auth.admin.updateUserById(user.id, {
+      user_metadata: { ...user.user_metadata, full_name: update.full_name },
+    })
+    // Not fatal: the profile row is the one that matters, and failing the
+    // whole save because a greeting is stale would be the wrong trade.
+    if (metaErr) console.error('[quick-start] metadata name not updated:', metaErr.message)
+  }
+
+  return NextResponse.json({ fullName: data.full_name, jobTitle: data.job_title, jobSector: data.job_sector })
 }
