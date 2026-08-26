@@ -9,6 +9,7 @@ import { parseAttrCookie, attributionColumns, type Attribution } from '@/lib/att
 import { geoColumnsFromRequest } from '@/lib/geo'
 import { safeReturnPath } from '@/lib/safeRedirect'
 import { nameFromAuth, greetingName } from '@/lib/displayName'
+import { companyNameFromEmail } from '@/lib/emailDomains'
 
 // The email-link callback. THE ONLY CALLER IS /auth/confirm — checked, not
 // remembered: `grep -rl handleAuthCallback app/` returns that one file. The
@@ -24,15 +25,11 @@ function getOrigin(req: NextRequest): string {
   return new URL(req.url).origin
 }
 
-function companyNameFromEmail(email: string | undefined): string {
-  if (!email) return 'My Company'
-  const domain = email.split('@')[1] || ''
-  const stem = domain.split('.')[0] || ''
-  if (!stem || ['gmail', 'yahoo', 'outlook', 'hotmail', 'icloud', 'live', 'aol', 'protonmail'].includes(stem.toLowerCase())) {
-    return 'My Company'
-  }
-  return stem.charAt(0).toUpperCase() + stem.slice(1)
-}
+// companyNameFromEmail moved to lib/emailDomains.ts, where the domain list
+// it needs already lives. There were THREE copies of this function, each with
+// its own hardcoded stem list, and none of them knew about
+// privaterelay.appleid.com — so the first Apple employer would have had their
+// company created as "Privaterelay".
 
 export async function handleAuthCallback(
   req: NextRequest,

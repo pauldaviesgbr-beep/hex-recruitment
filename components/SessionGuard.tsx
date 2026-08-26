@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { nameFromAuth } from '@/lib/displayName'
+import { companyNameFromEmail } from '@/lib/emailDomains'
 
 function getCookie(name: string): string | null {
   const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'))
@@ -151,9 +152,9 @@ async function routeNewUser(user: any, intendedRole: 'employer' | 'employee') {
   await supabase.auth.updateUser({ data: { role: intendedRole, full_name: displayName } })
 
   if (intendedRole === 'employer') {
-    const domain = user.email?.split('@')[1]?.split('.')[0] || ''
-    const isGeneric = ['gmail', 'yahoo', 'outlook', 'hotmail', 'icloud', 'live', 'aol', 'protonmail'].includes(domain.toLowerCase())
-    const companyName = isGeneric ? 'My Company' : domain.charAt(0).toUpperCase() + domain.slice(1)
+    // The third copy, inline rather than a function. Same eight strings, same
+    // blind spot. It asks the shared list now.
+    const companyName = companyNameFromEmail(user.email)
 
     await fetch('/api/profile/create', {
       method: 'POST',

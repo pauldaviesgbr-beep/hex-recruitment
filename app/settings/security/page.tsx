@@ -9,6 +9,7 @@ import { supabase } from '@/lib/supabase'
 import { DEV_MODE, getMockUserType } from '@/lib/mockAuth'
 import styles from './page.module.css'
 import { Ico } from '@/components/icons'
+import { providerLabel } from '@/lib/authProviders'
 
 export default function SecuritySettingsPage() {
   const router = useRouter()
@@ -18,6 +19,7 @@ export default function SecuritySettingsPage() {
   // OAuth-only users (signed in via Google etc. with no email/password identity)
   // haven't set a password yet — show "Set Password" without the current-password field.
   const [hasPassword, setHasPassword] = useState(true)
+  const [provider, setProvider] = useState('your provider')
 
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: '',
@@ -55,6 +57,11 @@ export default function SecuritySettingsPage() {
       // password to "change" — they need to *set* one.
       const identities = session.user?.identities || []
       setHasPassword(identities.some(i => i.provider === 'email'))
+      // WHICH provider, not just whether there is one. The copy below said
+      // "You signed in with Google" to EVERY OAuth user — so a LinkedIn user
+      // has been told they signed in with Google for as long as LinkedIn has
+      // been offered. A live fault for real people, found while scoping Apple.
+      setProvider(providerLabel(session.user))
 
       setLoading(false)
     }
@@ -180,7 +187,7 @@ export default function SecuritySettingsPage() {
             <p className={styles.sectionDescription}>
               {hasPassword
                 ? 'Choose a strong password with at least 8 characters, including uppercase letters, numbers, and symbols.'
-                : 'You signed in with Google. Set a password here if you\'d also like to log in with your email and password.'}
+                : `You signed in with ${provider}. Set a password here if you'd also like to log in with your email and password.`}
             </p>
 
             {hasPassword && (
