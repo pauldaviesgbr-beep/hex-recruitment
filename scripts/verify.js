@@ -397,6 +397,25 @@ const ALL = [
   // one of them rather than dying on the first. Green again on restore.
   { name: 'dedupsilence:prove', cmd: npm, args: ['run', 'dedupsilence:prove'] },
 
+  // SIGN IN WITH APPLE — the button, and the gate in front of it.
+  //
+  // It cannot work until a Services ID and a signing key exist in Supabase,
+  // which are Paul's portal items. Until then signInWithOAuth returns
+  // "Unsupported provider" and the person is left on a dead button. A sign-in
+  // button that signs nobody in is worse than no button — it reads as our
+  // product being broken, on the screen where that costs most.
+  //
+  // So the load-bearing property is the DIRECTION of failure: everything
+  // except the exact string 'true' means off. Being wrongly off costs a
+  // missing option; being wrongly on costs a dead one in front of real people.
+  // It also asserts that exactly ONE file starts an Apple flow, so the gate
+  // cannot be bypassed by a second call site.
+  //
+  // Watched failing on purpose 26 Aug 2026 by swapping the exact-string test
+  // for a truthiness check — the realistic mistake: exit 1, seven named
+  // failures, one per plausible wrong value.
+  { name: 'applesignin:prove', cmd: npm, args: ['run', 'applesignin:prove'] },
+
   // THE HOME HERO IS THE JOB SEARCH, and every number on it comes from the
   // rows. The design gave three figures that were true the day it was drawn:
   // 251 roles, a salary on every one, and NEWEST TODAY. Typed in, the first

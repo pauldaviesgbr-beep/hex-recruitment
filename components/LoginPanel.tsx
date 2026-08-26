@@ -32,6 +32,7 @@ import { supabase } from '@/lib/supabase'
 import PasswordInput from '@/components/PasswordInput'
 import GoogleSignInButton from '@/components/GoogleSignInButton'
 import LinkedInSignInButton from '@/components/LinkedInSignInButton'
+import AppleSignInButton from '@/components/AppleSignInButton'
 import { safeInternalPath } from '@/lib/safeRedirect'
 import { loginErrorCopy } from '@/lib/loginErrors'
 import { getPendingConfirm, setPendingConfirm, clearPendingConfirm } from '@/lib/pendingConfirm'
@@ -174,6 +175,8 @@ export default function LoginPanel({
       )}
 
       <LinkedInSignInButton role="employee" className={styles.oauth} label="Continue with LinkedIn" next={safeReturn || undefined} />
+      {/* Hidden until the provider is configured — lib/appleSignIn.ts. */}
+      <AppleSignInButton role="employee" className={styles.oauth} label="Continue with Apple" next={safeReturn || undefined} />
       <div className={styles.oauthGap}>
         <GoogleSignInButton role="employee" className={styles.oauth} label="Continue with Google" next={safeReturn || undefined} />
       </div>

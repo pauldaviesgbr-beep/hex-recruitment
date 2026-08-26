@@ -37,6 +37,7 @@ import CandidateSignupForm from '@/components/CandidateSignupForm'
 import LiveJobCount from '@/components/LiveJobCount'
 import GoogleSignInButton from '@/components/GoogleSignInButton'
 import LinkedInSignInButton from '@/components/LinkedInSignInButton'
+import AppleSignInButton from '@/components/AppleSignInButton'
 import { Ico } from '@/components/icons'
 import { safeInternalPath } from '@/lib/safeRedirect'
 import { applyGateJobId } from '@/lib/applyGate'
@@ -104,6 +105,8 @@ export default function SignupPanel({ returnTo }: { returnTo?: string | null }) 
           person it would annoy most. */}
       <p className={styles.eyebrow}>Fastest &mdash; no new password to create</p>
       <LinkedInSignInButton role="employee" className={styles.oauth} label="Continue with LinkedIn" next={safeReturn || undefined} />
+      {/* Hidden until the provider is configured — lib/appleSignIn.ts. */}
+      <AppleSignInButton role="employee" className={styles.oauth} label="Continue with Apple" next={safeReturn || undefined} />
       <div className={styles.oauthGap}>
         <GoogleSignInButton role="employee" className={styles.oauth} label="Continue with Google" next={safeReturn || undefined} />
       </div>
