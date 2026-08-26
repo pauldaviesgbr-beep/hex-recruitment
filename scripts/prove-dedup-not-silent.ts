@@ -209,6 +209,28 @@ async function main() {
       new Set([unkeyableReason(null), unkeyableReason('Adnan'), unkeyableReason('Мария Иванова')]).size === 3)
   }
 
+  console.log('\nWHY /api/admin/duplicates MUST REFUSE A NULL KEY')
+  // The decide handler selects "the pair" as every row whose key EQUALS this
+  // row's key. null === null is true, so without a guard a decision on an
+  // unkeyable row would treat every OTHER unkeyable row as its pair — twelve
+  // today — and a "different people" verdict writes is_discoverable = true
+  // across the whole pair. Twelve unrelated real candidates made visible in
+  // one click, two of them deliberately hidden.
+  //
+  // Unreachable from the page, because an unkeyable row renders no buttons.
+  // Reachable from the ROUTE, which takes a userId. This asserts the hazard is
+  // real rather than the guard's source text being present — so it stays
+  // meaningful if the guard is ever rewritten.
+  {
+    const a = nameMatchKey('Adnan')
+    const b = nameMatchKey('Мария Иванова')
+    check('two unrelated unkeyable names both key to null', a === null && b === null)
+    check('SO AN UNGUARDED PAIR TEST WOULD MATCH THEM TO EACH OTHER', a === b,
+      'which is why the route refuses before selecting a pair')
+    check('…while two keyable strangers do not match',
+      nameMatchKey('Rodrigue Tegue') !== nameMatchKey('Adnan Karki'))
+  }
+
   console.log('\nTHE QUESTION THAT COULD NOT BE ASKED BEFORE')
   {
     const { client: c1, writes: w1 } = stub({ rows: [{ user_id: OTHER, full_name: 'Someone Else' }] })

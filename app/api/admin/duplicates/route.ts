@@ -161,6 +161,27 @@ export async function POST(req: NextRequest) {
 
   // The rows this decision is ABOUT: everybody sharing the match key.
   const key = nameMatchKey(row.full_name as string)
+
+  // A NULL KEY IS NOT A KEY, AND null === null IS TRUE.
+  //
+  // Without this, deciding on a row we cannot key would select every OTHER
+  // unkeyable row as "the pair" — twelve of them today — and a "different
+  // people" verdict writes is_discoverable = true across the whole pair. That
+  // would have made twelve unrelated real candidates visible in one click,
+  // including two who are deliberately hidden.
+  //
+  // NOT REACHABLE FROM THE PAGE, because an unkeyable row forms no group and
+  // so renders no buttons. It is reachable from the ROUTE, which takes a
+  // userId. "The UI cannot produce it" is not a gate; the gate is here.
+  //
+  // Found 26 Aug 2026 while listing what else inherits the matcher's blind
+  // spot — the answer was "only the dedup", and then this.
+  if (!key) {
+    return NextResponse.json({
+      error: 'this profile has no match key, so it cannot be part of a duplicate pair',
+    }, { status: 400 })
+  }
+
   const { data: all } = await supabase
     .from('candidate_profiles').select('user_id, full_name, duplicate_hold')
   const pair = (all || []).filter(r => nameMatchKey(r.full_name as string) === key)
