@@ -60,9 +60,28 @@ export const STORAGE_STATES = {
     thrive_pending_confirm: 'legacy.bare.string@example.com',
   }),
 
-  /** Cookie banner already answered — the state every returning visitor is in. */
+  /**
+   * Cookie banner already answered — the state every returning visitor is in.
+   *
+   * IT IS A COOKIE, NOT localStorage, AND IT HOLDS JSON. This entry used to be
+   * `hex_cookie_consent: 'all'` in localStorage, which is neither the right
+   * store nor the right shape: lib/cookies.ts reads document.cookie and
+   * JSON.parses it into {essential, functional, analytics}. So seeding this
+   * state left the banner up, and a drive that asked for "a returning visitor"
+   * measured a phone with 150px of cookie banner across the bottom.
+   *
+   * A HELPER WHOSE ENTIRE PURPOSE IS TO PUT YOU IN A KNOWN STATE, FAILING TO
+   * PUT YOU IN THAT STATE — and reporting the key it set, so it looked like it
+   * had worked. Found 26 Aug 2026 by taking a screenshot and seeing the banner
+   * still there, over the very notice the drive existed to photograph. Nothing
+   * else in scripts/ used this state yet.
+   */
   consentAccepted: () => ({
-    hex_cookie_consent: 'all',
+    cookies: {
+      hex_cookie_consent: encodeURIComponent(JSON.stringify({
+        essential: true, functional: true, analytics: true,
+      })),
+    },
   }),
 
   /** Dismissed the profile-matching banner earlier in the session. */
@@ -86,6 +105,7 @@ export const STORAGE_STATES = {
  */
 export async function withSeededStorage(page, ...names) {
   const pairs = {}
+  const cookies = {}
   for (const name of names) {
     const build = STORAGE_STATES[name]
     if (!build) {
@@ -93,14 +113,27 @@ export async function withSeededStorage(page, ...names) {
         `unknown storage state ${JSON.stringify(name)} — known: ${Object.keys(STORAGE_STATES).join(', ')}`
       )
     }
-    Object.assign(pairs, build())
+    // A state returns a flat map of localStorage pairs, and may put cookies
+    // under a `cookies` key. Some of the states a returning visitor is in are
+    // NOT in localStorage — the cookie banner is the obvious one — and a
+    // helper that can only reach one store will silently fail to establish
+    // the other, which is exactly what it did.
+    const built = build() || {}
+    const { cookies: c, ...rest } = built
+    Object.assign(pairs, rest)
+    Object.assign(cookies, c || {})
   }
-  await page.addInitScript(entries => {
+  await page.addInitScript(({ entries, cookieEntries }) => {
     try {
       for (const [k, v] of Object.entries(entries)) localStorage.setItem(k, v)
     } catch { /* storage disabled — the drive is still valid, just unseeded */ }
-  }, pairs)
-  return pairs
+    try {
+      for (const [k, v] of Object.entries(cookieEntries)) {
+        document.cookie = `${k}=${v}; path=/; max-age=31536000; SameSite=Lax`
+      }
+    } catch { /* cookies disabled — same */ }
+  }, { entries: pairs, cookieEntries: cookies })
+  return { ...pairs, ...Object.fromEntries(Object.keys(cookies).map(k => [k + ' (cookie)', 'set'])) }
 }
 
 /**
