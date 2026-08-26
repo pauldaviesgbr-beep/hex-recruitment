@@ -95,7 +95,7 @@ export async function POST(req: NextRequest) {
   const notified = rows.filter(r => parseNotice(r.discoverability_notice).notifiedAt)
   const excluded: Record<CorrectionExclusion, number> = {
     'not-notified': 0, 'opted-out': 0, 'already-corrected': 0,
-    'already-discoverable': 0, 'nothing-to-show': 0, 'no-email': 0,
+    'already-discoverable': 0, 'nothing-to-show': 0, 'no-name': 0, 'no-email': 0,
   }
   for (const r of notified) {
     const reason = correctionExclusion(r)

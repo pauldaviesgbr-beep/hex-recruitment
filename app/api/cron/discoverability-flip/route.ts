@@ -105,7 +105,7 @@ async function performFlip(live: boolean, trigger: 'manual' | 'scheduled') {
   const ready = rows.filter(r => canFlip(r, now))
   const blocked: Record<FlipBlocker, number> = {
     'not-notified': 0, 'opted-out': 0, 'window-open': 0,
-    'already-flipped': 0, 'already-discoverable': 0, 'nothing-to-show': 0,
+    'already-flipped': 0, 'already-discoverable': 0, 'nothing-to-show': 0, 'no-name': 0,
   }
   for (const r of rows) {
     const b = flipBlocker(r, now)

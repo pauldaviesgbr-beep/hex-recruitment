@@ -88,6 +88,20 @@ export function parseNotice(raw: unknown): DiscoverabilityNotice {
  * hidden. A job title OR a CV is enough to be worth showing; neither means
  * there is nothing to show.
  */
+/**
+ * Do we know what this person is called?
+ *
+ * Separate from hasSomethingToShow so the three gates can report WHY they
+ * blocked. A candidate with a job title AND a CV but no name used to report
+ * 'nothing-to-show', identically to somebody with an empty profile — and the
+ * remedy is completely different: one needs asking their name, the other
+ * needs to fill their profile in. That string is the only visibility anyone
+ * has into why the flip skipped somebody.
+ */
+export function hasName(row: Pick<CandidateNoticeRow, 'full_name'>): boolean {
+  return typeof row.full_name === 'string' && row.full_name.trim().length > 0
+}
+
 export function hasSomethingToShow(row: Pick<CandidateNoticeRow, 'full_name' | 'job_title' | 'cv_url'>): boolean {
   const filled = (v: string | null) => typeof v === 'string' && v.trim().length > 0
   // A NAME IS NOW REQUIRED, ALONGSIDE the job title or CV rather than
@@ -138,6 +152,7 @@ export type CorrectionExclusion =
   | 'already-corrected'
   | 'already-discoverable'
   | 'nothing-to-show'
+  | 'no-name'
   | 'no-email'
 
 /**
@@ -154,6 +169,7 @@ export function correctionExclusion(row: CandidateNoticeRow): CorrectionExclusio
   if (notice.optedOutAt) return 'opted-out'
   if (notice.correctedAt) return 'already-corrected'
   if (row.is_discoverable) return 'already-discoverable'
+  if (!hasName(row)) return 'no-name'
   if (!hasSomethingToShow(row)) return 'nothing-to-show'
   if (!row.email || !row.email.trim()) return 'no-email'
   return null
@@ -167,10 +183,11 @@ export function isEligibleForCorrection(row: CandidateNoticeRow): boolean {
  * Why a hidden candidate is being skipped. Reporting the reason matters more
  * than the count — "13 excluded" is only meaningful if you can say why.
  */
-export type ExclusionReason = 'already-discoverable' | 'nothing-to-show' | 'no-email' | 'already-notified' | 'opted-out'
+export type ExclusionReason = 'already-discoverable' | 'nothing-to-show' | 'no-name' | 'no-email' | 'already-notified' | 'opted-out'
 
 export function exclusionReason(row: CandidateNoticeRow): ExclusionReason | null {
   if (row.is_discoverable) return 'already-discoverable'
+  if (!hasName(row)) return 'no-name'
   if (!hasSomethingToShow(row)) return 'nothing-to-show'
   if (!row.email || !row.email.trim()) return 'no-email'
   const notice = parseNotice(row.discoverability_notice)
@@ -237,6 +254,7 @@ export type FlipBlocker =
   | 'already-flipped'
   | 'already-discoverable'
   | 'nothing-to-show'
+  | 'no-name'
 
 /**
  * The single gate the flip step must pass. Fail-closed: anything unexpected
@@ -248,6 +266,7 @@ export function flipBlocker(row: CandidateNoticeRow, now: Date = new Date()): Fl
   if (row.is_discoverable) return 'already-discoverable'
   // Re-checked at flip time, not just at notice time: a profile can be emptied
   // during the 14 days, and we promised not to show empty profiles.
+  if (!hasName(row)) return 'no-name'
   if (!hasSomethingToShow(row)) return 'nothing-to-show'
   const notice = parseNotice(row.discoverability_notice)
   if (!notice.notifiedAt || !notice.deadlineAt) return 'not-notified'
