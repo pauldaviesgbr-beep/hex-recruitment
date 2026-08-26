@@ -45,6 +45,23 @@ export const FREE_MAIL_DOMAINS: Set<string> = new Set([
   // other two were not. Adding only the obvious one would have left two
   // thirds of the hole open.
   'privaterelay.appleid.com', 'private.icloud.com',
+  // ── ALIAS AND RELAY SERVICES THAT ARE NOT APPLE ────────────────────────
+  //
+  // Same shape of problem, different vendor. Each mints a forwarding
+  // address that reveals nothing about who is behind it, which is exactly
+  // the signal this list exists to judge.
+  //
+  // On the list BEFORE an employer signs up through one, rather than after.
+  // The Apple relay was found the other way round, and only because Sign in
+  // with Apple forced somebody to look at the list at all.
+  //
+  // 'freemail' is not a rejection. It means the founding-cohort spot is only
+  // consumed once Paul has approved — the right amount of caution for an
+  // address that could belong to anyone.
+  'duck.com',                     // DuckDuckGo Email Protection
+  'mozmail.com',                  // Firefox Relay
+  'simplelogin.io', 'aleeas.com', // SimpleLogin (Proton)
+  'addy.io',                      // AnonAddy
   // AOL / Verizon
   'aol.com', 'aol.co.uk',
   // GMX / Mail.com / 1&1
