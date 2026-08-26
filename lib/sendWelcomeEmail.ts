@@ -71,6 +71,21 @@ export async function sendWelcomeEmail(args: WelcomeEmailArgs): Promise<WelcomeR
         // is simply absent and we fall back to the limited path — degraded,
         // not broken.
         ...(process.env.CRON_SECRET ? { 'x-internal-secret': process.env.CRON_SECRET } : {}),
+        // A PROTECTED PREVIEW 401s ITS OWN SERVER. Deployment Protection sits
+        // in front of every route, including when the deployment fetches
+        // itself — so on a preview this call came back
+        // {"error":{"message":"Protected deployment","code":"401"}} and the
+        // candidate was never greeted.
+        //
+        // Production is not SSO-walled, so this was invisible there and is
+        // NOT one of the three causes of the live fault. It matters because
+        // without it no email path can ever be proven on a preview: every
+        // drive would show a silent non-send and look like the product.
+        // Found only because this helper now logs the failure it used to
+        // swallow — the fix explaining its own failure on its first run.
+        ...(process.env.VERCEL_AUTOMATION_BYPASS_SECRET
+          ? { 'x-vercel-protection-bypass': process.env.VERCEL_AUTOMATION_BYPASS_SECRET }
+          : {}),
       },
       body: JSON.stringify(body),
     })
