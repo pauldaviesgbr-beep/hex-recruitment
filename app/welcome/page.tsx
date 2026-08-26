@@ -31,6 +31,13 @@ function WelcomeContent() {
   const searchParams = useSearchParams()
   const next = safeInternalPath(searchParams.get('next')) || '/jobs'
 
+  // NAME, AND ONLY WHEN WE DO NOT ALREADY HAVE ONE.
+  // The OAuth callbacks used to invent a name from the email local-part, so
+  // this could never be empty. That invention is gone (lib/displayName.ts):
+  // a Sign in with Apple user who shares no name arrives here with none, and
+  // this is where they give us one. Everybody else never sees the field.
+  const [fullName, setFullName] = useState('')
+  const [needsName, setNeedsName] = useState(false)
   const [jobTitle, setJobTitle] = useState('')
   const [jobSector, setJobSector] = useState('')
   const [areas, setAreas] = useState<string[]>([])
@@ -51,6 +58,17 @@ function WelcomeContent() {
       // leave them being told to confirm an email they have just confirmed —
       // for seven days, or until they happened to visit /login/employee.
       clearPendingConfirm()
+
+      // Ask the PROFILE ROW, not the session metadata. The profile is what
+      // employers see and what the discoverability gate reads, so it is the
+      // one that has to be filled; metadata can lag it.
+      const { data: profile } = await supabase
+        .from('candidate_profiles')
+        .select('full_name')
+        .eq('user_id', session.user.id)
+        .maybeSingle()
+      if (!cancelled && !(profile?.full_name || '').trim()) setNeedsName(true)
+
       setChecking(false)
     })()
     return () => { cancelled = true }
@@ -87,11 +105,17 @@ function WelcomeContent() {
       if (!t) { router.replace('/login/employee'); return }
       const auth = { 'Content-Type': 'application/json', Authorization: `Bearer ${t}` }
 
-      if (jobTitle.trim() || jobSector) {
+      if (fullName.trim() || jobTitle.trim() || jobSector) {
         const res = await fetch('/api/profile/quick-start', {
           method: 'POST',
           headers: auth,
-          body: JSON.stringify({ jobTitle: jobTitle.trim(), jobSector }),
+          body: JSON.stringify({
+            // Only sent when we asked for it, so this screen can never blank
+            // out a name somebody already has.
+            ...(needsName && fullName.trim() ? { fullName: fullName.trim() } : {}),
+            jobTitle: jobTitle.trim(),
+            jobSector,
+          }),
         })
         if (!res.ok) throw new Error('Could not save your details. Please try again.')
       }
@@ -134,6 +158,24 @@ function WelcomeContent() {
             and you can skip straight to browsing.
           </p>
         </div>
+
+        {needsName && (
+          <div className={styles.field}>
+            <label className={styles.label} htmlFor="fullName">What should we call you?</label>
+            <input
+              id="fullName"
+              type="text"
+              className={styles.input}
+              value={fullName}
+              onChange={e => setFullName(e.target.value)}
+              placeholder="Your name"
+              autoComplete="name"
+            />
+            <p className={styles.hint}>
+              Employers see this on your profile. We were not given a name when you signed in.
+            </p>
+          </div>
+        )}
 
         <div className={styles.field}>
           <label className={styles.label} htmlFor="jobTitle">What job are you looking for?</label>

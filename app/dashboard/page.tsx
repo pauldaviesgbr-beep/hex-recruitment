@@ -144,6 +144,7 @@ const PROFILE_FIELDS: ProfileField[] = [
 // Sector display labels
 import { getCategoryLabel } from '@/lib/categories'
 import { Ico, type IconName } from '@/components/icons'
+import { nameFromAuth, greetingName } from '@/lib/displayName'
 const JOB_SECTOR_LABELS: Record<string, string> = new Proxy({} as Record<string, string>, {
   get: (_target, key: string) => getCategoryLabel(key),
 })
@@ -694,7 +695,9 @@ export default function DashboardPage() {
     )
   }
 
-  const displayName = candidate?.fullName || user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'there'
+  // 'there' rather than a slice of their email address. A person reading
+  // "Welcome back, x7f9k2p3q1" is being shown a database field, not greeted.
+  const displayName = candidate?.fullName || greetingName(nameFromAuth(user))
 
   // Incomplete-field prompts for the dashboard card. Photo opens the inline
   // uploader; everything else deep-links to the right /profile section.

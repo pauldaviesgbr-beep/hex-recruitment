@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import { nameFromAuth } from '@/lib/displayName'
 
 function getCookie(name: string): string | null {
   const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'))
@@ -142,7 +143,9 @@ export default function SessionGuard() {
 async function routeNewUser(user: any, intendedRole: 'employer' | 'employee') {
   document.cookie = 'oauth_intended_role=; path=/; max-age=0'
 
-  const displayName = user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'User'
+  // Fourth copy of the same expression, now the fourth caller of the one
+  // definition. See lib/displayName.ts for why the email fallback went.
+  const displayName = nameFromAuth(user)
   console.log('[SessionGuard] New user — stamping role:', intendedRole)
 
   await supabase.auth.updateUser({ data: { role: intendedRole, full_name: displayName } })
