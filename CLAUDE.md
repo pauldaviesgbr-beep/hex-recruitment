@@ -9,6 +9,9 @@ Standing rules for Claude Code on this project. These override default behaviour
 - **Branch only. Nothing merges until Paul says go.** Work on a branch off `main`, push it, report. Merging, deploying and closing a branch are his call, every time — including when the work is obviously finished.
 - **Diagnose first, then STOP, for anything non-trivial.** Report findings and a proposed plan, and wait. Being blocked is cheaper than undoing.
 - **Reports come back as a Gmail draft, subject `claude code report`.** Not as chat alone — the draft is what he reads and forwards.
+- **READ THE CLOCK FOR EVERY REPORT HEADER. DO NOT WRITE THE TIME FROM A SENSE OF HOW LONG THINGS TOOK.** On 26 Aug 2026 four consecutive reports carried invented `~HH:MM` headers, the last one out by **more than two hours** — it said 11:00 UTC when the actual time was 08:45. It surfaced only because a log query came back empty and the reason was that the window had been asked for **in the future**.
+  - **This is not cosmetic on a ROLLING draft.** The draft is refreshed in place, so the timestamp in it is the ONLY staleness check a fresh session — or Paul, hours later — has for whether it describes now or this morning.
+  - Git shas and log timestamps were never affected; those come from tools. It is only the line a person types. `date -u` costs nothing.
 
 ## Saying what you actually did
 
@@ -50,6 +53,11 @@ Standing rules for Claude Code on this project. These override default behaviour
   - The failure looks like "no job found" rather than like an error, so every fallback behaves correctly and nothing logs.
   - It was caught by curling the page and reading `Job | Thrive` where the role should be. **Check a widened select against `information_schema.columns` before shipping it, and read the served output afterwards** — the check that exists because structured data fails quietly caught something that had nothing to do with structured data.
 
+- **A FALLBACK DOES NOT MERELY PAPER OVER AN ABSENCE — IT HIDES THE ABSENCE FROM THE ONE TOOL THAT WOULD HAVE FOUND IT.** `fullName: candidate.fullName || 'Candidate'` **type-checked perfectly, BECAUSE the fallback is what made it valid.** Six invented names were removed from this codebase on 26 Aug 2026 — `email.split('@')[0]`, `'User'`, `'Unknown'`, `'Candidate'` and two more — and every one of them was invisible to `tsc` for exactly that reason. The compiler cannot flag a null that never reaches it.
+  - **THE MOVE THAT FINDS THEM IS TO WIDEN THE TYPE FIRST AND LET THE COMPILER COMPLAIN.** Making `fullName` `string | null` named seven call sites in one run, including one that appeared TWICE where I had expected once, and the search's `.toLowerCase()` that would have thrown for an employer with no error anyone could see. Grepping the auth paths had already missed the mapper twice.
+  - **The two it still could not see were the two that had their own fallback.** So the order matters: remove the default, then read the errors. Removing it second finds nothing, because there is nothing left to find.
+  - The general shape, and it is the same one as `|| 'User'`: **a value that is never empty cannot be distinguished from a value that is real.** Absence is detectable and a plausible-looking string is not, which is why a fake name in a database is worse than no name at all.
+
 - **THE COMPILER CANNOT TELL A FIELD THAT DISPLAYS FROM A FIELD THAT KEYS. Both are `string`.** Filling `jobs.area` from the area resolver looked obviously right — same place, same resolution, one line. But `area_county` holds an **id** (`somerset`, `south-west`, `greater-london`) and `area` is **printed verbatim** beside the town on every card, every job page and every board. Writing one across into the other would have put "Bath, somerset" on 246 pages, and `tsc` has nothing to say about it: the types are identical and the assignment is legal. Same family as the widened select — the type system knows the shape of a value and nothing about what it is FOR.
   - **Read what the field already holds on live rows before writing to it**, not what its name suggests and not your own description of it from ten minutes earlier. One query settled it: existing Bath rows carry `area` "Somerset" against `area_county` "somerset", so the pairing was visible in the data before any code ran. `lib/areas.ts` had `countyName()` and `regionName()` sitting there for exactly this.
   - The general shape: **a value that is rendered and a value that is matched on are different kinds of thing even when they are the same type, and nothing in the toolchain will separate them for you.**
@@ -78,7 +86,9 @@ Standing rules for Claude Code on this project. These override default behaviour
 
 - **A one-off helper gets the same standard as a check: ASSERT THE CHANGE LANDED, don't announce it.** A throwaway script printed `import added` after a `String.replace` whose anchor never matched — replace returns the string unchanged rather than failing, so the import silently did not land and `tsc` caught it two minutes later. The whole reason verify has five checks is that a printed label proves nothing, and **a helper written in thirty seconds is exactly where that rule stops being applied.** If a script edits a file, it must re-read and confirm, or exit non-zero.
 
-- **Never pipe a check into `head` or `tail` to decide whether it passed.** The pipe's exit status is the pipe's, not the check's, and truncation is how a failure becomes silence.
+- **DO NOT PIPE A CHECK. IF YOU MUST, `set -o pipefail` FIRST.** A pipe returns the LAST command's status, so `EXIT=0` sits happily on top of a crash — `node drive.mjs | tail -30` reported success over a stack trace that killed the process.
+  - This replaces an entry that merely DESCRIBED that happening. The description had been in this file for weeks, was read the same night, and did not prevent it. **A rule you have to remember at the moment of typing is not a rule, it is a hope** — so this one is phrased as the instruction rather than the anecdote.
+  - The habit exists to shorten output. If a check's output is too long to read, **the summary is the thing to fix** — every drive here already ends with one line and an exit code.
 - Watched failing on purpose (a deliberate type error): exit 1, three of four named, the real compiler error shown. Then green again on restore.
 
 ## Migrations
