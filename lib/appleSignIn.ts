@@ -52,3 +52,34 @@ export const APPLE_PORTAL_PREREQUISITES = [
   'Sign in with Apple key (.p8) — downloadable exactly once',
   'All three entered in Supabase → Authentication → Providers → Apple',
 ] as const
+
+/**
+ * ALL OF THE ABOVE IS DONE as of 26 Aug 2026. What Supabase's Secret Key field
+ * wants is not the .p8 but a JWT SIGNED with it — see lib/appleClientSecret.ts
+ * and `npm run apple:secret`. The .p8 never expires; the JWT lasts six months.
+ *
+ *   Team ID      7RTA2FH8C7
+ *   Services ID  uk.co.thrivecareer.web     ← the WEB client id
+ *   Bundle ID    uk.co.thrivecareer.app     ← the NATIVE client id
+ *   Key ID       Z9HFBUW93X
+ *
+ * None of those is secret; they appear inside the JWT itself. The .p8 is the
+ * secret, and it lives outside this repository.
+ *
+ * WHEN THE NATIVE APP EXISTS, THE BUNDLE ID JOINS THE CLIENT IDS FIELD,
+ * comma-separated alongside the Services ID. Native Sign in with Apple
+ * presents the BUNDLE ID as its client id, not the Services ID — so a build
+ * that signs in perfectly on the web fails on the phone, with a token that is
+ * valid and simply for a client Supabase was not told about.
+ *
+ * The `sub` claim of the client secret must match the client id being used, so
+ * the native flow needs its OWN secret minted with clientId = the bundle id.
+ * scripts/apple-client-secret.ts mints the web one and says so at the top; do
+ * not "fix" it to use the bundle id, and do not assume one secret covers both.
+ */
+export const APPLE_IDENTIFIERS = {
+  teamId: '7RTA2FH8C7',
+  servicesId: 'uk.co.thrivecareer.web',
+  bundleId: 'uk.co.thrivecareer.app',
+  keyId: 'Z9HFBUW93X',
+} as const

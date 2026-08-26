@@ -69,3 +69,12 @@ THRIVE-REPORT*.txt
 # generated test render was committed by accident on 20 Aug 2026. Ignore the
 # whole directory rather than chase file extensions.
 drive-shots/
+
+# APPLE SIGNING KEYS. Belt and braces, deliberately.
+# scripts/apple-client-secret.mjs REFUSES to read a .p8 from inside this tree
+# at all, so one should never be here in the first place. This is the second
+# guard, because a key that reaches a public repo cannot be un-leaked — it
+# signs into our Apple client — and "git add -A" does not ask twice.
+*.p8
+AuthKey_*.p8
+
