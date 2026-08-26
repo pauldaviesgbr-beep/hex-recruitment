@@ -5,7 +5,8 @@ import { safeInternalPath } from '@/lib/safeRedirect'
 import { parseAttrCookie, attributionColumns } from '@/lib/attribution'
 import { geoColumnsFromRequest } from '@/lib/geo'
 import { applyDuplicateHold } from '@/lib/applyDuplicateHold'
-import { nameFromAuth, greetingName } from '@/lib/displayName'
+import { nameFromAuth } from '@/lib/displayName'
+import { sendWelcomeEmail } from '@/lib/sendWelcomeEmail'
 
 function getOrigin(req: NextRequest): string {
   const proto = req.headers.get('x-forwarded-proto') || 'https'
@@ -141,11 +142,21 @@ export async function GET(request: NextRequest) {
   // to gate on the same existingProfile the is_discoverable default gates on.
   if (!existingProfile) await applyDuplicateHold(admin, user.id, displayName)
 
-  fetch(`${origin}/api/email/send`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ to: user.email, type: 'candidate_welcome', data: { candidateName: greetingName(displayName) } }),
-  }).catch(() => {})
+  // AWAITED, IDENTIFIED AS INTERNAL, AND LOUD ON FAILURE. This was a
+  // fire-and-forget fetch with .catch(() => {}) — racing a serverless freeze
+  // and sharing a five-per-minute rate-limit bucket with every other
+  // server-sent email, so it was dropped more often than it landed.
+  //
+  // DELIBERATELY NOT GATED on !existingProfile, even though it runs on every
+  // OAuth sign-in: /api/email/send now refuses a second welcome for an
+  // address that already has one, so a returning candidate cannot be greeted
+  // twice. Idempotency at the one route, not three copies of a condition.
+  await sendWelcomeEmail({
+    origin,
+    role: 'employee',
+    email: user.email,
+    displayName,
+  })
 
   // Brand-new candidate → the three-field welcome step, then straight into
   // jobs. This is the whole point of the change: OAuth used to create an empty

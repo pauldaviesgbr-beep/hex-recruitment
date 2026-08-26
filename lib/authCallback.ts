@@ -10,6 +10,7 @@ import { geoColumnsFromRequest } from '@/lib/geo'
 import { safeReturnPath } from '@/lib/safeRedirect'
 import { nameFromAuth, greetingName } from '@/lib/displayName'
 import { companyNameFromEmail } from '@/lib/emailDomains'
+import { sendWelcomeEmail } from '@/lib/sendWelcomeEmail'
 
 // The email-link callback. THE ONLY CALLER IS /auth/confirm — checked, not
 // remembered: `grep -rl handleAuthCallback app/` returns that one file. The
@@ -225,23 +226,32 @@ export async function handleAuthCallback(
       console.log('[auth/callback] step:refreshSession OK')
     }
 
-    // Welcome email
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || origin
-    if (role === 'employer') {
-      const companyName = (user.user_metadata?.company_name as string | undefined) || companyNameFromEmail(user.email)
-      fetch(`${siteUrl}/api/email/send`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ to: user.email, type: 'welcome', data: { contactName: displayName, companyName } }),
-      }).catch(() => {})
-    } else {
-      fetch(`${siteUrl}/api/email/send`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ to: user.email, type: 'candidate_welcome', data: { candidateName: greetingName(displayName) } }),
-      }).catch(() => {})
-    }
+    // Welcome email — see sendWelcomeEmail below. Deliberately NOT sent from
+    // inside this !existingRole block any more; it is sent after it, because
+    // email signups stamp their role at signUp() time and so never enter
+    // here at all. That is why not one email/password candidate has ever
+    // been greeted.
   }
+
+  // THE WELCOME, OUTSIDE THE NEW-USER GATE.
+  //
+  // It used to sit inside `if (!existingRole)`, which reads like "first time"
+  // and is not: CandidateSignupForm passes { role: 'employee' } straight into
+  // signUp(), so an email/password candidate arrives at /auth/confirm with
+  // the role already stamped and the whole block is skipped. Measured: 0 of 4
+  // email signups greeted in the window where the log can see, against 9 of
+  // 15 OAuth ones.
+  //
+  // Running it on every callback is safe because /api/email/send now refuses
+  // a second candidate_welcome for the same address. Idempotency at the one
+  // route beats a correct gate in each of three callers.
+  await sendWelcomeEmail({
+    origin: process.env.NEXT_PUBLIC_SITE_URL || origin,
+    role,
+    email: user.email,
+    displayName,
+    companyName: (user.user_metadata?.company_name as string | undefined) || companyNameFromEmail(user.email),
+  })
 
   // Defensive profile-row upsert — runs on EVERY callback hit, not just
   // first-time signups. The bug this guards against:
