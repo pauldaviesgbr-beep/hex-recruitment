@@ -70,7 +70,34 @@ export async function GET(req: NextRequest) {
   const heldCount = rows.filter(r => holdState(parseHold(r.duplicate_hold)) === 'held').length
   const awaiting = items.filter(g => g.rows.some(r => r.state === 'held' || r.state === 'flagged')).length
 
-  return NextResponse.json({ groups: items, heldCount, groupsAwaitingReview: awaiting })
+  // THE SIGNUPS THE CHECK COULD NOT RUN ON. These form no group by
+  // construction — a row with no match key cannot share one with anybody — so
+  // before this they appeared on this page nowhere, and were indistinguishable
+  // from the far larger number of signups that WERE checked and found clean.
+  //
+  // NEWEST FIRST, because the question this answers is "has the dedup stopped
+  // working", and the answer to that is at the top of the list, not the bottom.
+  const notChecked = rows
+    .map(r => ({ r, hold: parseHold(r.duplicate_hold) }))
+    .filter(x => x.hold.notCheckedAt)
+    .sort((a, b) => Date.parse(b.hold.notCheckedAt!) - Date.parse(a.hold.notCheckedAt!))
+    .map(x => ({
+      userId: x.r.user_id,
+      name: x.r.full_name,
+      email: x.r.email,
+      joined: x.r.created_at,
+      at: x.hold.notCheckedAt,
+      reason: x.hold.notCheckedReason,
+    }))
+
+  return NextResponse.json({
+    groups: items, heldCount, groupsAwaitingReview: awaiting,
+    notChecked, notCheckedCount: notChecked.length,
+    // Split out rather than counted together: a one-word name is an accepted
+    // blind spot and an errored lookup is an incident. One number covering
+    // both would go up for a reason nobody needs to act on, and then stay up.
+    lookupFailures: notChecked.filter(n => n.reason === 'lookup-failed').length,
+  })
 }
 
 /**

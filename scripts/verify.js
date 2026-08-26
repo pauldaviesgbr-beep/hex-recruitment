@@ -375,6 +375,28 @@ const ALL = [
   // and one back in the email: exit 1, both named with file and line.
   { name: 'noemoji:prove', cmd: npm, args: ['run', 'noemoji:prove'] },
 
+  // THE DUPLICATE CHECK MUST NOT FAIL SILENTLY.
+  //
+  // Three paths returned null without a trace — no match key, a lookup error,
+  // and a thrown exception — so a dedup that had stopped working entirely
+  // looked EXACTLY like a dedup finding no duplicates: profile visible,
+  // unheld, nothing written anywhere. The only evidence was a console line in
+  // a serverless log this project cannot read back a day later.
+  //
+  // The load-bearing assertion is the one named "SO THE TWO ARE
+  // DISTINGUISHABLE FROM THE ROW ALONE" — checked-clean versus never-checked.
+  // That question had the SAME ANSWER in both states before this change, so
+  // asking it proved nothing; it now has two.
+  //
+  // A stub client rather than the database, so it runs here every time. It can
+  // also force the lookup to error, which is the case that matters most and
+  // the one a real database will not do on request.
+  //
+  // Watched failing on purpose 26 Aug 2026 by deleting the three recording
+  // calls: exit 1, FOURTEEN named failures, the process still reporting every
+  // one of them rather than dying on the first. Green again on restore.
+  { name: 'dedupsilence:prove', cmd: npm, args: ['run', 'dedupsilence:prove'] },
+
   // THE HOME HERO IS THE JOB SEARCH, and every number on it comes from the
   // rows. The design gave three figures that were true the day it was drawn:
   // 251 roles, a salary on every one, and NEWEST TODAY. Typed in, the first

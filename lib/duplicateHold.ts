@@ -54,10 +54,33 @@ export interface DuplicateHold {
   verdict: 'different' | 'same' | null
   /** The user_id this row looks like. */
   matchedUserId: string | null
+  /**
+   * ISO. Set when the duplicate check COULD NOT RUN for this signup.
+   *
+   * A dedup that quietly does nothing is worse than one that refuses, because
+   * nobody knows to look. Before this, three separate paths returned null in
+   * silence — no key, lookup error, thrown exception — and the only trace was
+   * a console line in a serverless log this project cannot read back.
+   */
+  notCheckedAt: string | null
+  /** Why it could not run. Null when it ran. */
+  notCheckedReason: NotCheckedReason | null
 }
+
+/**
+ * WHY THE CHECK COULD NOT RUN. Deliberately distinct values, because the
+ * remedies are different: a missing name is asked for at /welcome, a
+ * single-word name is a known and accepted blind spot, and a lookup failure
+ * is an incident.
+ */
+export type NotCheckedReason =
+  | 'no-name'          // nothing to key on at all
+  | 'name-too-short'   // one word, or initials — see nameMatchKey
+  | 'lookup-failed'    // the query errored or threw
 
 export const EMPTY_HOLD: DuplicateHold = {
   heldAt: null, releasedAt: null, reviewedAt: null, verdict: null, matchedUserId: null,
+  notCheckedAt: null, notCheckedReason: null,
 }
 
 export function parseHold(raw: unknown): DuplicateHold {
@@ -70,6 +93,13 @@ export function parseHold(raw: unknown): DuplicateHold {
     reviewedAt: iso(r.reviewedAt),
     verdict: r.verdict === 'different' || r.verdict === 'same' ? r.verdict : null,
     matchedUserId: typeof r.matchedUserId === 'string' ? r.matchedUserId : null,
+    notCheckedAt: iso(r.notCheckedAt),
+    // An unrecognised reason degrades to null rather than passing through.
+    // A value nothing can interpret is the same as no record, and pretending
+    // otherwise is how an admin page ends up displaying a raw string.
+    notCheckedReason:
+      r.notCheckedReason === 'no-name' || r.notCheckedReason === 'name-too-short' ||
+      r.notCheckedReason === 'lookup-failed' ? r.notCheckedReason : null,
   }
 }
 

@@ -17,6 +17,19 @@ import AdminPageHeader from '@/components/admin/AdminPageHeader'
 //   HELD     a new signup, hidden, with the expiry counting down
 //   FLAGGED  an existing profile, STILL VISIBLE, no expiry, just surfaced
 
+type NotChecked = {
+  userId: string; name: string | null; email: string | null
+  joined: string; at: string | null; reason: string | null
+}
+
+// WHAT THE REASON MEANS TO A PERSON. The stored values are for code; these are
+// for whoever opens this page wondering whether the dedup has stopped working.
+const REASON_TEXT: Record<string, string> = {
+  'no-name': 'No name on the profile — there was nothing to match on',
+  'name-too-short': 'A single-word name — matching on it would hide real people',
+  'lookup-failed': 'The check errored. This signup was never compared to anybody.',
+}
+
 type Row = {
   userId: string; name: string | null; email: string | null; jobTitle: string | null
   joined: string; isDiscoverable: boolean
@@ -28,6 +41,7 @@ const DAY = 86_400_000
 
 export default function DuplicatesPage() {
   const [groups, setGroups] = useState<{ key: string; rows: Row[] }[]>([])
+  const [notChecked, setNotChecked] = useState<NotChecked[]>([])
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -40,6 +54,7 @@ export default function DuplicatesPage() {
     if (!res.ok) { setError(`Could not load (${res.status})`); setLoading(false); return }
     const j = await res.json()
     setGroups(j.groups || [])
+    setNotChecked(j.notChecked || [])
     setLoading(false)
   }
   useEffect(() => { load() }, [])
@@ -59,6 +74,9 @@ export default function DuplicatesPage() {
 
   const daysLeft = (heldAt: string | null) =>
     heldAt ? Math.max(0, 7 - Math.floor((Date.now() - Date.parse(heldAt)) / DAY)) : null
+
+  const failures = notChecked.filter(n => n.reason === 'lookup-failed')
+  const unkeyable = notChecked.filter(n => n.reason !== 'lookup-failed')
 
   const open = groups.filter(g => g.rows.some(r => r.state === 'held' || r.state === 'flagged'))
   const resolved = groups.filter(g => !g.rows.some(r => r.state === 'held' || r.state === 'flagged'))
@@ -80,6 +98,56 @@ export default function DuplicatesPage() {
         staying hidden indefinitely. <strong>Flagged</strong> means an existing profile that is still visible
         and always has been; nothing is hidden retroactively.
       </p>
+
+      {/* THE CHECK CANNOT FAIL SILENTLY ANY MORE.
+          A dedup that quietly does nothing looks exactly like a dedup finding
+          no duplicates, and nobody knows to look. The failures are split in
+          two because the remedies are: an errored lookup is an incident and is
+          shown open, a name we cannot key on is expected and is folded away. */}
+      {failures.length > 0 && (
+        <div style={{ border: '1px solid #f0b7b7', background: '#fff5f5', borderRadius: 12, padding: 16, margin: '0 0 16px' }}>
+          <strong style={{ fontSize: 15, color: '#8a1c1c' }}>
+            {failures.length === 1
+              ? 'One signup was never checked for duplicates'
+              : failures.length + ' signups were never checked for duplicates'}
+          </strong>
+          <p style={{ fontSize: 13.5, color: '#7a3030', lineHeight: 1.55, margin: '6px 0 10px', maxWidth: '62ch' }}>
+            The lookup errored, so these people were compared to nobody. That is
+            not the same as being found clean. If this keeps appearing, the
+            duplicate check itself is broken.
+          </p>
+          {failures.map(n => (
+            <div key={n.userId} style={{ fontSize: 13.5, color: '#0f172a', padding: '4px 0' }}>
+              {n.name || '(no name)'} <span style={{ color: '#7a3030' }}>· {n.email}</span>
+              <span style={{ color: '#94a3b8' }}> · {n.at ? new Date(n.at).toLocaleString('en-GB') : ''}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {unkeyable.length > 0 && (
+        <details style={{ margin: '0 0 16px' }}>
+          <summary style={{ cursor: 'pointer', color: '#475569', fontSize: 14 }}>
+            {unkeyable.length} {unkeyable.length === 1 ? 'signup' : 'signups'} the duplicate check could not run on — expected, and listed so it is not invisible
+          </summary>
+          <div style={{ marginTop: 10, border: '1px solid #e2e8f0', borderRadius: 12, background: '#fff', padding: 14 }}>
+            <p style={{ fontSize: 13.5, color: '#475569', lineHeight: 1.55, margin: '0 0 10px', maxWidth: '62ch' }}>
+              These can duplicate freely and always could. It is the right trade —
+              matching on a single word would hide real people — but they have
+              never been counted anywhere until now.
+            </p>
+            {unkeyable.map(n => (
+              <div key={n.userId} style={{ fontSize: 13.5, color: '#0f172a', padding: '4px 0' }}>
+                {n.name || '(no name)'} <span style={{ color: '#64748b' }}>· {n.email}</span>
+                <div style={{ fontSize: 12.5, color: '#94a3b8' }}>
+                  {REASON_TEXT[n.reason || ''] || 'Reason not recorded'}
+                  {n.at ? ' · ' + new Date(n.at).toLocaleDateString('en-GB') : ''}
+                </div>
+              </div>
+            ))}
+          </div>
+        </details>
+      )}
 
       {error && <p style={{ color: '#b45309', fontSize: 14 }}>{error}</p>}
       {loading && <p style={{ color: '#64748b' }}>Loading…</p>}
