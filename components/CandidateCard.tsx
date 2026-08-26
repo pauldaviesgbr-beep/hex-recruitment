@@ -9,10 +9,12 @@ import { fallbackVariant } from '@/lib/jobBanner'
 import { joinedAgo } from '@/lib/joinedAgo'
 import styles from './CandidateCard.module.css'
 import { Ico } from '@/components/icons'
+import { initialsOf } from '@/lib/tempWork'
 
-function initialsOf(name: string) {
-  return name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
-}
+// THE PRIVATE COPY IS GONE. There were two initialsOf in this codebase —
+// lib/tempWork's, which handles an absent name, and this one, which did not.
+// Two implementations of one helper, one hardened and one not, is how a null
+// name would have crashed a card that the other copy renders fine.
 function availClass(availability: string | undefined) {
   if (!availability) return styles.availGrey
   const l = availability.toLowerCase()
@@ -134,7 +136,7 @@ export default function CandidateCard(props: {
             <span className={styles.dirAvatar}>
               <SignedImage
                 src={c.profilePictureUrl}
-                alt={c.fullName}
+                alt={c.fullName || ''}
                 className={styles.dirAvatarImg}
                 thumb={{ width: 46, height: 46 }}
                 fallback={<span aria-hidden="true">{initials}</span>}
@@ -301,7 +303,7 @@ export default function CandidateCard(props: {
                 {props.dashboardPhotoUrl ? (
                   <SignedImage
                     src={props.dashboardPhotoUrl}
-                    alt={c.fullName}
+                    alt={c.fullName || ''}
                     className={styles.dashChipImg}
                     // If the photo 404s, prompt rather than silently showing
                     // initials the candidate can't act on.

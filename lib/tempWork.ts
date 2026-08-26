@@ -248,6 +248,6 @@ export function timeAgo(iso: string): string {
   return `${days}d ago`
 }
 
-export function initialsOf(name: string): string {
+export function initialsOf(name: string | null | undefined): string {
   return (name || '?').split(' ').map(w => w[0]).filter(Boolean).join('').slice(0, 2).toUpperCase()
 }

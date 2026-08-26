@@ -14,6 +14,7 @@ import { VisibilitySettings } from '@/lib/profileVisibility'
 import { getCategoryLabel } from '@/lib/categories'
 import { isRelayAddress } from '@/lib/emailDomains'
 import styles from './CandidateDetail.module.css'
+import { initialsOf } from '@/lib/tempWork'
 
 function normalizeUrl(url: string | undefined): string {
   if (!url || url.trim() === '') return ''
@@ -57,7 +58,11 @@ export default function CandidateDetail({
   const router = useRouter()
   const [showContact, setShowContact] = useState(false)
 
-  const firstName = c.fullName.split(' ')[0]
+  // 'them' is a PRONOUN IN A SENTENCE, not a name. "Message them" and
+  // "message them through Thrive" both read correctly; "Message" alone reads
+  // broken. This is the same distinction as greetingName's 'there' — copy that
+  // works without a name, rather than a placeholder standing in for one.
+  const firstName = c.fullName?.split(' ')[0] || 'them'
   // A RELAY ADDRESS IS NOT SHOWN AS A MAILTO, AND THAT IS NOT COSMETIC.
   // Mailing one only works if the SENDER'S domain is registered with Apple,
   // and a hiring manager's Outlook never will be. So it is not a slightly
@@ -82,9 +87,9 @@ export default function CandidateDetail({
       <div className={styles.header}>
         <div className={styles.avatar}>
           {c.profilePictureUrl ? (
-            <SignedImage src={c.profilePictureUrl} alt={c.fullName} />
+            <SignedImage src={c.profilePictureUrl} alt={c.fullName || ''} />
           ) : (
-            <span className={styles.avatarInitials}>{c.fullName.split(' ').map(n => n[0]).join('').slice(0, 2)}</span>
+            <span className={styles.avatarInitials}>{initialsOf(c.fullName)}</span>
           )}
         </div>
         <div className={styles.headerInfo}>

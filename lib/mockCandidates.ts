@@ -25,7 +25,10 @@ export interface Language {
 export interface Candidate {
   id: string
   userId: string
-  fullName: string
+  /** NULL WHEN WE WERE NOT TOLD ONE. Never a placeholder — see
+   *  lib/displayName.ts. A fake name is worse than an absent one because
+   *  nothing downstream can tell the difference. */
+  fullName: string | null
   profilePictureUrl: string | null
   jobTitle: string
   jobSector?: string
