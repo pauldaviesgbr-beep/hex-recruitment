@@ -21,12 +21,31 @@ export const FREE_MAIL_DOMAINS: Set<string> = new Set([
   'yahoo.com', 'yahoo.co.uk', 'yahoo.fr', 'ymail.com', 'rocketmail.com',
   // Apple
   'icloud.com', 'me.com', 'mac.com',
+  // Apple's Sign in with Apple PRIVATE RELAY. Not free mail in the ordinary
+  // sense — it is a forwarding address Apple mints per app — but it belongs
+  // here for exactly the reason the list exists: it gives us NO SIGNAL that
+  // the signup is a real business.
+  //
+  // WITHOUT IT, classifyEmail returns 'business' and, under
+  // FREE_FOUNDING_MODE, an Apple signup walks into the founding cohort with
+  // no manual review at all. It is the same shape as every other fault this
+  // week: our side looks perfect, nothing errors, and the wrong thing happens
+  // quietly.
+  //
+  // Added 26 Aug 2026, BEFORE Sign in with Apple is built, so the first Apple
+  // employer cannot arrive through a door nobody has closed yet.
+  //
+  // STILL OPEN, AND IT IS NOT FIXED BY THIS LINE: companyNameFromEmail takes
+  // the domain stem and title-cases it, from its OWN hardcoded list in two
+  // files — so an Apple employer's company is still created as
+  // "Privaterelay". That belongs with the Sign in with Apple work.
+  'privaterelay.appleid.com',
   // AOL / Verizon
   'aol.com', 'aol.co.uk',
   // GMX / Mail.com / 1&1
   'gmx.com', 'gmx.co.uk', 'gmx.net', 'mail.com',
   // Proton
-  'proton.me', 'protonmail.com', 'pm.me',
+  'proton.me', 'protonmail.com', 'protonmail.ch', 'pm.me',
   // Other free providers
   'fastmail.com', 'fastmail.fm', 'zoho.com', 'tutanota.com', 'tutanota.de',
   'tuta.io', 'inbox.com', 'hushmail.com',
