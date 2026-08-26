@@ -21,6 +21,23 @@
  *
  * NEXT_PUBLIC_ because the buttons are client components. It says nothing
  * secret — only whether a provider is switched on.
+ *
+ * TWO CONSEQUENCES OF NEXT_PUBLIC_ THAT ARE EASY TO MISS, AND BOTH BIT US.
+ *
+ * IT IS INLINED AT BUILD TIME, NOT READ AT RUNTIME. Setting the variable in
+ * Vercel changes nothing until something is REBUILT — and a build that reuses
+ * a cache can reuse a module compiled when the variable was unset, which looks
+ * exactly like the flag not working. "Set on the project" and "present in the
+ * bundle" are different facts, and only the second one renders a button.
+ *
+ * SO MERGE AND GO-LIVE ARE NOW THE SAME EVENT. As of 26 Aug 2026 the flag is
+ * true in Vercel and the Apple provider is configured in Supabase, which means
+ * this code becomes REAL the moment it is deployed anywhere that renders it —
+ * production included. There is no half-on state to land in first; the gate
+ * fails closed on anything but the exact string, and it is now that string.
+ * Whoever merges the Apple button is switching Apple sign-in on for every
+ * visitor in the same action, and should say so out loud rather than discover
+ * it afterwards.
  */
 export function appleSignInEnabled(): boolean {
   return process.env.NEXT_PUBLIC_APPLE_SIGNIN_ENABLED === 'true'
