@@ -23,11 +23,20 @@ import { nameMatchKey, markHeld, EMPTY_HOLD, type NotCheckedReason } from '@/lib
  * is still created exactly as before — visible, unheld — because a signup that
  * fails because the duplicate check broke is far worse than a duplicate.
  *
- * BUT IT NOW LEAVES A RECORD ON THE ROW. Three paths used to return null
- * without a trace: no key, a lookup error, and a thrown exception. The only
- * evidence was a console line in a serverless log this project cannot read
- * back — so a dedup that had stopped working entirely would have looked
- * exactly like a dedup finding no duplicates.
+ * AN ERRORED LOOKUP NOW LEAVES A RECORD ON THE ROW. It used to return null
+ * without a trace, so a dedup that had stopped working entirely looked
+ * exactly like a dedup finding no duplicates — profile visible, unheld,
+ * nothing written anywhere. The only evidence was a console line in a
+ * serverless log this project cannot read back.
+ *
+ * THE NO-KEY PATH WRITES NOTHING, ON PURPOSE, AND THAT IS NOT THE OLD
+ * SILENCE. An error is an EVENT and is unreconstructable after the fact. A
+ * name with fewer than two words is a PROPERTY, still true and still readable
+ * on the row today — so /admin/duplicates derives that count live from the
+ * names, using this same nameMatchKey. Which means it is right on day one
+ * rather than empty, it costs no write to a real candidate's row, and it
+ * DROPS ON ITS OWN when somebody completes their name. A stored record would
+ * have sat there for ever describing a state that no longer existed.
  *
  * THIS MATTERS MORE FROM TODAY. The design rests on "email is useless, the
  * name is all we have" (see lib/duplicateHold.ts). Sign in with Apple removes
@@ -45,12 +54,10 @@ export async function applyDuplicateHold(
   // blind spot and the right trade: "Adnan" matching every other Adnan hides
   // real people, and a missed duplicate only looks untidy.
   //
-  // THE TRADE IS UNCHANGED. What changes is that we now say so on the row,
-  // rather than the signup being indistinguishable from one we checked.
-  if (!key) {
-    await recordNotChecked(admin, userId, fullName && fullName.trim() ? 'name-too-short' : 'no-name')
-    return null
-  }
+  // NO RECORD IS WRITTEN HERE and the silence is only apparent: the same
+  // nameMatchKey call, run over the rows, is what /admin/duplicates counts to
+  // show these people. The fact is derivable, so deriving it beats storing it.
+  if (!key) return null
 
   try {
     const { data, error } = await admin

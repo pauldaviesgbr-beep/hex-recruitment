@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import {
-  parseHold, markReviewed, holdState, findDuplicateGroups, nameMatchKey,
+  parseHold, markReviewed, holdState, findDuplicateGroups, nameMatchKey, unkeyableReason,
 } from '@/lib/duplicateHold'
 import { isAdmin } from '@/lib/admin-client'
 
@@ -70,33 +70,56 @@ export async function GET(req: NextRequest) {
   const heldCount = rows.filter(r => holdState(parseHold(r.duplicate_hold)) === 'held').length
   const awaiting = items.filter(g => g.rows.some(r => r.state === 'held' || r.state === 'flagged')).length
 
-  // THE SIGNUPS THE CHECK COULD NOT RUN ON. These form no group by
-  // construction — a row with no match key cannot share one with anybody — so
-  // before this they appeared on this page nowhere, and were indistinguishable
-  // from the far larger number of signups that WERE checked and found clean.
+  // THE SIGNUPS THE CHECK COULD NOT RUN ON. Neither list forms a group — a row
+  // with no match key cannot share one with anybody, and an errored lookup
+  // never got as far as comparing — so before this they appeared on this page
+  // nowhere at all, indistinguishable from the far larger number of signups
+  // that WERE checked and found clean.
   //
-  // NEWEST FIRST, because the question this answers is "has the dedup stopped
-  // working", and the answer to that is at the top of the list, not the bottom.
-  const notChecked = rows
+  // TWO LISTS, BUILT TWO DIFFERENT WAYS, AND THE DIFFERENCE IS THE DESIGN.
+
+  // (1) THE EVENTS. Read from the row, because a lookup error happened at a
+  // moment and nothing can reconstruct it afterwards. Newest first: the
+  // question this answers is "has the dedup stopped working", and the answer
+  // to that is at the top of the list, not the bottom.
+  const lookupFailures = rows
     .map(r => ({ r, hold: parseHold(r.duplicate_hold) }))
-    .filter(x => x.hold.notCheckedAt)
+    .filter(x => x.hold.notCheckedAt && x.hold.notCheckedReason === 'lookup-failed')
     .sort((a, b) => Date.parse(b.hold.notCheckedAt!) - Date.parse(a.hold.notCheckedAt!))
     .map(x => ({
-      userId: x.r.user_id,
-      name: x.r.full_name,
-      email: x.r.email,
-      joined: x.r.created_at,
-      at: x.hold.notCheckedAt,
-      reason: x.hold.notCheckedReason,
+      userId: x.r.user_id, name: x.r.full_name, email: x.r.email,
+      joined: x.r.created_at, at: x.hold.notCheckedAt,
+    }))
+
+  // (2) THE PROPERTY. Computed live from the names, never stored. Right on the
+  // first day rather than empty, no write to anybody's row, and it DROPS ON
+  // ITS OWN the moment somebody completes their name — which a stored record
+  // could not do, and would have gone on asserting a state that had ended.
+  //
+  // nameMatchKey is IMPORTED, not restated. It is already the authority on
+  // "can this name be matched at all", and a second word-splitting rule would
+  // drift from it the way the three stem lists did.
+  const unkeyable = rows
+    .filter(r => !nameMatchKey(r.full_name as string | null))
+    .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at))
+    .map(r => ({
+      userId: r.user_id, name: r.full_name, email: r.email, joined: r.created_at,
+      // Asked, not derived here. The reason belongs next to the rule that
+      // produced it; a second derivation in a route is a second copy waiting
+      // to drift. It also distinguishes a name we cannot key from a name that
+      // is not there, which the panel needs and a boolean could not say.
+      reason: unkeyableReason(r.full_name as string | null),
     }))
 
   return NextResponse.json({
     groups: items, heldCount, groupsAwaitingReview: awaiting,
-    notChecked, notCheckedCount: notChecked.length,
-    // Split out rather than counted together: a one-word name is an accepted
-    // blind spot and an errored lookup is an incident. One number covering
-    // both would go up for a reason nobody needs to act on, and then stay up.
-    lookupFailures: notChecked.filter(n => n.reason === 'lookup-failed').length,
+    // Kept apart rather than summed: an errored lookup is an incident, a
+    // one-word name is an accepted blind spot nobody needs to act on. One
+    // number covering both would rise for the harmless half, stay up, and be
+    // ignored — which is how an alarm becomes wallpaper.
+    lookupFailures, unkeyable,
+    lookupFailureCount: lookupFailures.length,
+    unkeyableCount: unkeyable.length,
   })
 }
 

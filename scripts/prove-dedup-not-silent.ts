@@ -5,11 +5,24 @@
 // so the day the check breaks, nothing changes on any screen and nobody knows
 // to look. That is the fault this proves is closed.
 //
-// THE DISCRIMINATING QUESTION, and it is the whole point of the file:
-// can you tell a signup that was CHECKED AND FOUND CLEAN from one the check
-// COULD NOT RUN ON, by looking at the row? Before this change the answer was
-// no — neither wrote anything — which is why "is the dedup working" had no
-// answer short of reading serverless logs this project cannot read back.
+// TWO KINDS OF "COULD NOT RUN", AND THEY ARE ANSWERED DIFFERENTLY. Getting
+// this distinction wrong is what a first attempt did, and it is the whole
+// shape of the file:
+//
+//   AN EVENT — the lookup errored, or threw. It HAPPENED, at a moment, and
+//   nothing can reconstruct it afterwards. It must be WRITTEN DOWN as it
+//   occurs, or it is gone.
+//
+//   A PROPERTY — the name has fewer than two words. Still true, still readable
+//   on the row, derivable at any time. Storing it would date a record today
+//   about something true since July, would go on asserting it after the person
+//   completed their name, and would need writes to real candidates' rows to
+//   establish a past nobody observed. It is COMPUTED LIVE instead.
+//
+// So the assertions differ by kind: the event must leave a record, and the
+// property must leave NO record while remaining derivable. "Nothing was
+// written" is a pass in one case and a failure in the other, which is exactly
+// why both are here.
 //
 // A STUB CLIENT, NOT THE DATABASE, FOR THREE REASONS:
 //   1. it can force the lookup to ERROR, which is the case that matters most
@@ -20,14 +33,14 @@
 //   3. no credentials, so this runs inside `npm run verify` every time,
 //      rather than being a thing someone remembers to run.
 //
-// The function under test is IMPORTED, never restated. A restated gate proves
-// only that you restated it consistently.
+// The functions under test are IMPORTED, never restated. A restated gate
+// proves only that you restated it consistently.
 //
-//   npx tsx scripts/prove-dedup-not-silent.ts
+//   npx tsx --conditions=react-server scripts/prove-dedup-not-silent.ts
 
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { applyDuplicateHold } from '../lib/applyDuplicateHold'
-import { parseHold } from '../lib/duplicateHold'
+import { parseHold, nameMatchKey, unkeyableReason } from '../lib/duplicateHold'
 
 const ME = '11111111-1111-1111-1111-111111111111'
 const OTHER = '22222222-2222-2222-2222-222222222222'
@@ -81,7 +94,7 @@ function stub(opts: {
 let bad = 0
 const check = (label: string, ok: boolean, detail?: string) => {
   if (!ok) bad++
-  console.log('  ' + (ok ? 'ok   ' : 'FAIL ') + label.padEnd(60) + (detail ?? ''))
+  console.log('  ' + (ok ? 'ok   ' : 'FAIL ') + label.padEnd(62) + (detail ?? ''))
   return ok
 }
 
@@ -95,8 +108,10 @@ const recordOn = (writes: Write[]) => {
 // that does not allow it, and npm run verify type-checks the scripts too.
 async function main() {
   console.log('\nTHE HARNESS CAN SEE A WRITE AT ALL')
-  // The positive control. Without it, every "no write was made" below could just
-  // be a stub that observes nothing — a check that passes because it is blind.
+  // The positive control. Without it, every "no write was made" below could
+  // just be a stub that observes nothing — a check that passes because it is
+  // blind. This repo has had an emoji grep return nothing while a pencil sat
+  // in the file it had just read.
   {
     const { client, writes } = stub({ rows: [{ user_id: OTHER, full_name: 'Rodrigue Tegue' }] })
     const held = await applyDuplicateHold(client, ME, 'Rodrigue Tegue')
@@ -107,94 +122,129 @@ async function main() {
   }
 
   console.log('\nA SIGNUP THAT WAS CHECKED AND FOUND CLEAN')
-  const cleanWrites = (() => {
+  {
     const { client, writes } = stub({ rows: [{ user_id: OTHER, full_name: 'Someone Else' }] })
-    return applyDuplicateHold(client, ME, 'Rodrigue Tegue').then(r => {
-      check('nobody is held', r === null)
-      check('and NOTHING is written to the row', writes.length === 0, writes.length + ' write(s)')
-      return writes
-    })
-  })()
-  await cleanWrites
+    const r = await applyDuplicateHold(client, ME, 'Rodrigue Tegue')
+    check('nobody is held', r === null)
+    check('and NOTHING is written to the row', writes.length === 0, writes.length + ' write(s)')
+  }
 
-  console.log('\nEVERY WAY THE CHECK CAN FAIL NOW LEAVES A RECORD')
-  const cases: [string, () => Promise<Write[]>, string][] = [
-    ['no name at all', async () => {
-      const { client, writes } = stub()
-      await applyDuplicateHold(client, ME, null)
-      return writes
-    }, 'no-name'],
-    ['an empty-string name', async () => {
-      const { client, writes } = stub()
-      await applyDuplicateHold(client, ME, '   ')
-      return writes
-    }, 'no-name'],
-    ['a single-word name', async () => {
-      const { client, writes } = stub()
-      await applyDuplicateHold(client, ME, 'Adnan')
-      return writes
-    }, 'name-too-short'],
+  console.log('\nTHE EVENT — AN ERRORED LOOKUP MUST LEAVE A RECORD')
+  // It happened at a moment and cannot be reconstructed. If it is not written
+  // down as it occurs it is gone, and "the dedup stopped working three weeks
+  // ago" becomes unanswerable.
+  const events: [string, () => Promise<Write[]>][] = [
     ['the lookup returns an error', async () => {
       const { client, writes } = stub({ selectError: true })
       await applyDuplicateHold(client, ME, 'Rodrigue Tegue')
       return writes
-    }, 'lookup-failed'],
+    }],
     ['the lookup throws', async () => {
       const { client, writes } = stub({ selectThrows: true })
       await applyDuplicateHold(client, ME, 'Rodrigue Tegue')
       return writes
-    }, 'lookup-failed'],
+    }],
   ]
-
-  const recorded: Record<string, ReturnType<typeof parseHold> | null> = {}
-  for (const [label, run, expected] of cases) {
-    const writes = await run()
-    const rec = recordOn(writes)
-    recorded[label] = rec
-    check(label, !!rec?.notCheckedAt && rec.notCheckedReason === expected,
+  for (const [label, run] of events) {
+    const rec = recordOn(await run())
+    check(label, !!rec?.notCheckedAt && rec.notCheckedReason === 'lookup-failed',
       rec?.notCheckedReason ? `reason "${rec.notCheckedReason}"` : 'NO RECORD WRITTEN')
-    check('  …and it is stamped with a time', !!rec?.notCheckedAt && !Number.isNaN(Date.parse(rec.notCheckedAt)))
-    check('  …and it holds nobody', !rec?.heldAt)
+    check('  …stamped with a time', !!rec?.notCheckedAt && !Number.isNaN(Date.parse(rec.notCheckedAt)))
+    check('  …and holding nobody', !rec?.heldAt)
   }
 
-  console.log('\nTHE THREE REASONS ARE DISTINCT, NOT ONE FLAG')
-  // They must be, because the remedies differ: a missing name is asked for, a
-  // one-word name is an accepted blind spot, and an errored lookup is an
-  // incident. Collapsing them to a boolean would put an alarm on the two that
-  // need no action, and then the alarm gets ignored.
+  console.log('\nTHE PROPERTY — A NAME WE CANNOT KEY ON MUST LEAVE NO RECORD')
+  // The opposite assertion, and deliberately so. A stored record here would be
+  // dated today about a state that has been true for weeks, would survive the
+  // person fixing their name, and would mean writing to real candidates' rows
+  // to establish a past nobody observed.
+  const properties: [string, string | null][] = [
+    ['no name at all', null],
+    ['an empty-string name', '   '],
+    ['a single-word name', 'Adnan'],
+    ['initials only', 'AK'],
+  ]
+  for (const [label, name] of properties) {
+    const { client, writes } = stub()
+    const r = await applyDuplicateHold(client, ME, name)
+    check(label + ' — nothing written', writes.length === 0, writes.length + ' write(s)')
+    check('  …the signup is let through', r === null)
+    // …and the silence is only apparent, because the panel can still see it.
+    check('  …but it is DERIVABLE from the name alone', nameMatchKey(name) === null,
+      'nameMatchKey → ' + String(nameMatchKey(name)))
+  }
+
+  console.log('\nTHE DERIVED COUNT CORRECTS ITSELF; A STORED ONE COULD NOT')
+  // The reason for computing rather than storing, asserted rather than
+  // asserted in a comment. Somebody completing their name leaves the list on
+  // their next page load, with nothing to clean up and nobody to remember.
   {
-    const seen = new Set(Object.values(recorded).map(r => r?.notCheckedReason))
-    check('three different reasons across five failures', seen.size === 3,
-      Array.from(seen).join(', '))
+    check('"Adnan" cannot be matched on', nameMatchKey('Adnan') === null)
+    check('"Adnan Karki" can', nameMatchKey('Adnan Karki') !== null, String(nameMatchKey('Adnan Karki')))
+    check('SO COMPLETING A NAME REMOVES THE ROW FROM THE LIST',
+      nameMatchKey('Adnan') === null && nameMatchKey('Adnan Karki') !== null,
+      'no stored record to go stale')
+  }
+
+  console.log('\nTHE PANEL CAN SAY WHY, AND THE THIRD REASON IS OURS NOT THEIRS')
+  // A first pass had the route derive this itself with one ternary: a name
+  // present meant "too short", absent meant "no name". That is WRONG for a
+  // real live row, and it put the test in a second place, which is how the
+  // three stem lists happened.
+  {
+    check('a keyable name has no reason', unkeyableReason('Rodrigue Tegue') === null)
+    check('an absent name', unkeyableReason(null) === 'no-name', String(unkeyableReason(null)))
+    check('a blank name', unkeyableReason('   ') === 'no-name', String(unkeyableReason('   ')))
+    check('one word', unkeyableReason('Adnan') === 'one-word', String(unkeyableReason('Adnan')))
+    check('two words, one a bare initial', unkeyableReason('Adnan K') === 'one-word',
+      String(unkeyableReason('Adnan K')))
+    // The live row this exists for: several words, a complete name, and our
+    // [^a-z] filter strips every character of it.
+    check('a multi-word NON-LATIN name is its own case',
+      unkeyableReason('Мария Иванова') === 'non-latin', String(unkeyableReason('Мария Иванова')))
+    check('…and is NOT reported as one-word',
+      unkeyableReason('Мария Иванова') !== 'one-word',
+      'that label would blame the candidate for our matcher')
+    check('the three reasons are genuinely distinct',
+      new Set([unkeyableReason(null), unkeyableReason('Adnan'), unkeyableReason('Мария Иванова')]).size === 3)
   }
 
   console.log('\nTHE QUESTION THAT COULD NOT BE ASKED BEFORE')
   {
     const { client: c1, writes: w1 } = stub({ rows: [{ user_id: OTHER, full_name: 'Someone Else' }] })
     await applyDuplicateHold(c1, ME, 'Rodrigue Tegue')          // checked, clean
-    const { client: c2, writes: w2 } = stub()
-    await applyDuplicateHold(c2, ME, null)                       // could not check
+    const { client: c2, writes: w2 } = stub({ selectError: true })
+    await applyDuplicateHold(c2, ME, 'Rodrigue Tegue')          // could not check
 
     const cleanRow = recordOn(w1)
-    const uncheckedRow = recordOn(w2)
-    // THIS IS THE CONTROL. Both of these produced no write at all before the
-    // change, so this comparison had the same answer in both states and could
-    // not have told anyone anything. It now has two different answers.
-    check('a checked-clean row carries no not-checked record', cleanRow?.notCheckedAt == null)
-    check('an unchecked row carries one', uncheckedRow?.notCheckedAt != null)
+    const erroredRow = recordOn(w2)
+    // THIS IS THE CONTROL. Both produced no write at all before the change, so
+    // this comparison had the same answer in both states and could not have
+    // told anyone anything. It now has two.
+    check('a checked-clean row carries no record', cleanRow?.notCheckedAt == null)
+    check('a row whose lookup errored carries one', erroredRow?.notCheckedAt != null)
     check('SO THE TWO ARE DISTINGUISHABLE FROM THE ROW ALONE',
-      (cleanRow?.notCheckedAt ?? null) !== (uncheckedRow?.notCheckedAt ?? null),
+      (cleanRow?.notCheckedAt ?? null) !== (erroredRow?.notCheckedAt ?? null),
       'this was false before the change — both were null')
+
+    // AND THE HONEST OTHER HALF: a one-word name is NOT distinguishable from a
+    // clean check by looking at the row, because neither writes. It is
+    // distinguished by the name, which is the entire argument for computing it.
+    const { client: c3, writes: w3 } = stub()
+    await applyDuplicateHold(c3, ME, 'Adnan')
+    check('a one-word name is NOT distinguishable from the row', w3.length === 0 && w1.length === 0)
+    check('…it is distinguished by the NAME instead',
+      nameMatchKey('Adnan') === null && nameMatchKey('Rodrigue Tegue') !== null)
   }
 
   console.log('\nAND IT STILL CANNOT BREAK A SIGNUP')
   {
-    // The recorder exists so an unchecked signup is visible. It must never be the
-    // reason somebody cannot sign up — so its own failure is swallowed, and this
-    // asserts that rather than trusting the comment that says so.
-    const { client, writes } = stub({ updateError: true })
+    // The recorder exists so an unchecked signup is visible. It must never be
+    // the reason somebody cannot sign up — so its own failure is swallowed,
+    // and this asserts that rather than trusting the comment that says so.
+    const { client, writes } = stub({ selectError: true, updateError: true })
     let threw: string | null = null
-    const r = await applyDuplicateHold(client, ME, null).catch((e: any) => { threw = e?.message; return undefined })
+    const r = await applyDuplicateHold(client, ME, 'Rodrigue Tegue').catch((e: any) => { threw = e?.message; return undefined })
     check('a failed record does not throw', threw === null, threw ?? 'clean')
     check('and the signup is let through', r === null)
     check('the attempt was still made', writes.length === 1, writes.length + ' write(s)')
@@ -208,9 +258,8 @@ async function main() {
   console.log('')
   console.log(bad
     ? `  ${bad} FAILED — the duplicate check can still fail silently`
-    : '  every failure path records itself, and none of them can break a signup')
+    : '  the event is recorded, the property is derivable, and neither can break a signup')
   process.exit(bad ? 1 : 0)
-
 }
 
 main()
