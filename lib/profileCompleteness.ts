@@ -1,3 +1,4 @@
+import { providerLabel } from '@/lib/authProviders'
 // Shared profile-completeness definition for the admin user views.
 // Used by both the user LIST (percentage + bar) and the user DETAIL panel
 // (per-signal checklist), so the score and the breakdown always agree.
@@ -145,17 +146,11 @@ export function signupSource(
   authUser: { app_metadata?: { provider?: string } | null; identities?: { provider?: string }[] | null } | null,
   profile?: Record<string, any> | null
 ): string {
-  const raw =
-    authUser?.app_metadata?.provider ||
-    authUser?.identities?.[0]?.provider ||
-    'email'
-  const map: Record<string, string> = {
-    google: 'Google',
-    linkedin_oidc: 'LinkedIn',
-    linkedin: 'LinkedIn',
-    email: 'Email',
-  }
-  const base = map[raw] || raw
+  // ONE MAP, in lib/authProviders.ts. This one had no 'apple' entry, so an
+  // Apple identity would have shown in the admin user list as lowercase
+  // 'apple' — the raw key, mid-sentence. The security page had a SECOND,
+  // hardcoded copy that said 'Google' to everyone.
+  const base = providerLabel(authUser)
   const utm = profile?.utm_source || profile?.signup_source
   return utm && String(utm).toLowerCase() !== base.toLowerCase()
     ? `${base} · ${utm}`

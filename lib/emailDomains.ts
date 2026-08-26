@@ -105,3 +105,33 @@ export function isRelayAddress(email: string | null | undefined): boolean {
   const domain = domainOf(email)
   return domain ? RELAY_DOMAINS.has(domain) : false
 }
+
+/**
+ * A company name derived from an email domain, or 'My Company' when the
+ * domain tells us nothing.
+ *
+ * ONE DEFINITION. There were THREE hardcoded stem lists doing this —
+ * lib/authCallback.ts, app/auth/callback/employer/route.ts and
+ * components/SessionGuard.tsx — each carrying the same eight strings
+ * ('gmail', 'yahoo', 'outlook', …) and each able to drift from the others.
+ *
+ * AND ALL THREE WERE ABOUT TO BE WRONG IN THE SAME NEW WAY. None of them knew
+ * about privaterelay.appleid.com, so the first employer to sign in with Apple
+ * would have had their company created as "Privaterelay" — a real company name
+ * on a real row, shown to candidates.
+ *
+ * So this asks FREE_MAIL_DOMAINS rather than keeping its own list. That set is
+ * already the authority on "this domain tells us nothing about a business",
+ * it already covers all three Apple relay domains and the five alias services,
+ * and anything added to it in future is covered here for free.
+ */
+export function companyNameFromEmail(email: string | null | undefined): string {
+  if (!email) return 'My Company'
+  const domain = domainOf(email)
+  if (!domain) return 'My Company'
+  // freemail OR disposable — either way the domain is not a business.
+  if (classifyEmail(email) !== 'business') return 'My Company'
+  const stem = domain.split('.')[0] || ''
+  if (!stem) return 'My Company'
+  return stem.charAt(0).toUpperCase() + stem.slice(1)
+}

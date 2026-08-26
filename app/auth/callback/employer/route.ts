@@ -8,6 +8,7 @@ import { safeInternalPath } from '@/lib/safeRedirect'
 import { parseAttrCookie, attributionColumns } from '@/lib/attribution'
 import { geoColumnsFromRequest } from '@/lib/geo'
 import { nameFromAuth } from '@/lib/displayName'
+import { companyNameFromEmail } from '@/lib/emailDomains'
 
 function getOrigin(req: NextRequest): string {
   const proto = req.headers.get('x-forwarded-proto') || 'https'
@@ -16,14 +17,9 @@ function getOrigin(req: NextRequest): string {
   return new URL(req.url).origin
 }
 
-function companyNameFromEmail(email: string | undefined): string {
-  if (!email) return 'My Company'
-  const stem = (email.split('@')[1] || '').split('.')[0] || ''
-  if (!stem || ['gmail', 'yahoo', 'outlook', 'hotmail', 'icloud', 'live', 'aol', 'protonmail'].includes(stem.toLowerCase())) {
-    return 'My Company'
-  }
-  return stem.charAt(0).toUpperCase() + stem.slice(1)
-}
+// See lib/emailDomains.ts. This was the second of three copies, and it had
+// ALREADY DRIFTED from the first — same eight strings, different stem
+// extraction. All three were about to be wrong the same new way.
 
 // Google OAuth callback for the employer flow. Under free-founding-mode
 // this now mirrors the email-confirmation callback in lib/authCallback.ts:
