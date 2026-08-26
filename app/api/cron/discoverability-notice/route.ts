@@ -131,7 +131,7 @@ export async function POST(req: NextRequest) {
 
   // Counts by reason — "13 excluded" only means something if you can say why.
   const excluded: Record<ExclusionReason, number> = {
-    'already-discoverable': 0, 'nothing-to-show': 0, 'no-email': 0, 'already-notified': 0, 'opted-out': 0,
+    'already-discoverable': 0, 'nothing-to-show': 0, 'no-name': 0, 'no-email': 0, 'already-notified': 0, 'opted-out': 0,
   }
   for (const r of hidden) {
     const reason = exclusionReason(r)
