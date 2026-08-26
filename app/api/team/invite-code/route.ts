@@ -25,19 +25,20 @@ import { inviteCode, formatInviteCode, verifyInviteCode, maskEmail } from '@/lib
  * the exact fault this codebase has been paying down all week — and the copy
  * would be the one nobody reads when the rule changes.
  *
- * WHAT THIS ROUTE DOES INSTEAD is narrow: having proved the mailbox, it points
- * `invited_email` at the accepting user and calls the RPC as that user, so the
- * RPC's own comparison passes for a reason we have established rather than
- * assumed. IT PUTS THE OLD VALUE BACK IF THE RPC REFUSES for any other reason
- * — otherwise a failed accept (already_in_account, say) would silently leave
- * the invite re-pointed at somebody who never joined, and they could then walk
- * in later with no code at all.
+ * WHAT THIS ROUTE DOES INSTEAD is narrow: having proved the mailbox, it writes
+ * the accepting address into `accepted_email` and calls the RPC as that user.
+ * The RPC's comparison now passes on invited_email OR accepted_email, so it
+ * still does the deciding — it simply has a second, stronger reason available.
  *
- * KNOWN TRADE, AND IT IS PAUL'S TO ACCEPT OR NOT: re-pointing the column
- * overwrites the record of who was originally invited. The alternative is one
- * migration adding `accepted_email` (or a code column), which keeps both
- * addresses. That is the better long-term shape and it is not built here —
- * see the report.
+ * accepted_email IS THE PERMISSION SLIP, AND IT IS CLEARED AGAIN IF THE RPC
+ * REFUSES for any other reason. Otherwise a failed accept (already_in_account,
+ * say) would leave the slip lying on the row and that person could walk in
+ * later with no code at all.
+ *
+ * IT NO LONGER TOUCHES invited_email. A first version re-pointed that column
+ * instead, which worked and destroyed the record of who was actually invited.
+ * Two questions — who did I invite, who joined — now have two columns. See
+ * migration 20260826115912.
  */
 
 const GENERIC = { ok: false, error: 'invalid' }
@@ -62,7 +63,7 @@ async function requireUser(req: NextRequest) {
 async function loadInvite(token: string) {
   const { data, error } = await supabaseAdmin
     .from('employer_members')
-    .select('id, employer_id, invited_email, status, invite_expires_at')
+    .select('id, employer_id, invited_email, accepted_email, status, invite_expires_at')
     .eq('invite_token', token)
     .maybeSingle()
   if (error || !data) return null
@@ -143,18 +144,20 @@ export async function POST(req: NextRequest) {
   if (!good) return NextResponse.json({ ok: false, error: 'bad_code' }, { status: 400 })
 
   const accepterEmail = (auth.user.email || '').toLowerCase()
+  // The RPC refuses an empty address too, but an empty permission slip must
+  // never be written in the first place: '' would sit in the column as a value
+  // rather than as an absence.
   if (!accepterEmail) return NextResponse.json({ ok: false, error: 'not_authenticated' }, { status: 401 })
 
-  const originalEmail = invite.invited_email!
-
-  // Point the invite at the person who proved they hold the invited mailbox,
-  // so the RPC's own comparison passes for an established reason.
-  const { error: repointErr } = await supabaseAdmin
+  // THE PERMISSION SLIP. Written only here, only after the code checked out,
+  // and only by the service role — a candidate cannot set it and the RPC
+  // treats a null column as no permission at all.
+  const { error: slipErr } = await supabaseAdmin
     .from('employer_members')
-    .update({ invited_email: accepterEmail })
+    .update({ accepted_email: accepterEmail })
     .eq('id', invite.id)
-    .eq('status', 'invited')          // cannot re-point an invite already used
-  if (repointErr) return NextResponse.json({ ok: false, error: 'server_error' }, { status: 500 })
+    .eq('status', 'invited')          // cannot write a slip onto a used invite
+  if (slipErr) return NextResponse.json({ ok: false, error: 'server_error' }, { status: 500 })
 
   const asUser = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -165,12 +168,14 @@ export async function POST(req: NextRequest) {
   const result = (data || {}) as { ok?: boolean; error?: string; employer_id?: string }
 
   if (error || !result.ok) {
-    // PUT IT BACK. Every other gate still belongs to the RPC, and a refusal
-    // from any of them must leave the invite exactly as it was — otherwise a
-    // rejected accept quietly hands this person a keyless way in later.
+    // TEAR THE SLIP UP. Every other gate still belongs to the RPC, and a
+    // refusal from any of them must leave the invite exactly as it was —
+    // otherwise a rejected accept quietly hands this person a keyless way in
+    // later. Back to null, which is what it was: only a verified code ever
+    // writes this column.
     await supabaseAdmin
       .from('employer_members')
-      .update({ invited_email: originalEmail })
+      .update({ accepted_email: null })
       .eq('id', invite.id)
       .eq('status', 'invited')
     return NextResponse.json({ ok: false, error: error ? 'server_error' : (result.error || 'invalid') })
@@ -182,6 +187,6 @@ export async function POST(req: NextRequest) {
     })
   } catch { /* non-fatal: membership is set; role re-syncs on next login */ }
 
-  console.log(`[team-invite] ${auth.user.id} accepted invite ${invite.id} via a code sent to ${originalEmail}`)
+  console.log(`[team-invite] ${auth.user.id} accepted invite ${invite.id} via a code sent to ${invite.invited_email}`)
   return NextResponse.json({ ok: true, employer_id: result.employer_id })
 }
