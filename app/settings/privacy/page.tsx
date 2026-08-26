@@ -65,6 +65,9 @@ export default function PrivacySettingsPage() {
   // Null until asked. Asked on load, so the screen can say "we have your
   // request" instead of offering the button to someone who already pressed it.
   const [openRequest, setOpenRequest] = useState<{ requestedAt: string } | null>(null)
+  const [confirming, setConfirming] = useState(false)
+  const [confirmText, setConfirmText] = useState('')
+  const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
     const loadSettings = async () => {
@@ -285,6 +288,66 @@ export default function PrivacySettingsPage() {
   // screen cannot drift away from the one the route actually promises. It is
   // 30 days, which is what UK GDPR allows and what the Privacy Policy already
   // publishes — never 48 hours again.
+  // ── THE DOOR, NOT THE DOORBELL ─────────────────────────────────────────
+  //
+  // /api/account/delete has existed, tested and merged, since 25 Aug 2026 and
+  // HAD NO CALLER. This screen posted to /api/account/deletion-request — which
+  // writes a row and emails a human — while the button said "Request deletion"
+  // and the copy said "we reply within 30 days".
+  //
+  // That is the specific pattern App Store Review Guideline 5.1.1(v) names as
+  // a rejection: deletion must be INITIATED AND COMPLETED in the app, and a
+  // request form that ends at a person doing it by hand is "contact support"
+  // wearing a button. Our own docs/erasure-scope.md said "assume rejection if
+  // submitted as-is".
+  //
+  // So this now calls the endpoint that actually erases, and the account is
+  // gone before the promise is made rather than after.
+  //
+  // NO DARK PATTERN, AND THAT IS A DELIBERATE CONSTRAINT RATHER THAN A STYLE
+  // CHOICE. The confirmation is a typed word because the action is
+  // irreversible and must not be an accidental tap — it is NOT there to add
+  // friction until somebody gives up. No guilt copy, no "are you sure you want
+  // to lose everything", no retention offer, no pre-ticked anything. Apple
+  // asks for a confirmation step; it does not ask us to talk people out of it,
+  // and a flow that tries to is itself a rejection risk.
+  const handleDeleteAccount = async () => {
+    setDeleting(true)
+    setMessage(null)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) throw new Error('Please sign in again')
+      const res = await fetch('/api/account/delete', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        // The route requires this exact word. Sending the constant rather than
+        // the box's contents would make the typed confirmation decorative.
+        body: JSON.stringify({ confirm: confirmText.trim() }),
+      })
+      const body = await res.json().catch(() => ({}))
+
+      // BOTH HALVES. A 200 that does not say deleted:true is not a deletion,
+      // and the route returns 500 with the account intact when any step fails
+      // — that path must not read as success.
+      if (!res.ok || body?.deleted !== true) {
+        throw new Error(body?.error || 'Could not delete your account')
+      }
+
+      // The account no longer exists, so the session in this browser points at
+      // nothing. Clear it before leaving, or the next page load spends a
+      // moment pretending they are still signed in.
+      try { await supabase.auth.signOut() } catch { /* the user is already gone */ }
+      window.location.href = '/?deleted=1'
+      return                                   // deliberately no setDeleting(false)
+    } catch (e: any) {
+      setMessage({ type: 'error', text: e.message || 'Could not delete your account' })
+      setDeleting(false)
+    }
+  }
+
   const handleRequestDeletion = async () => {
     setRequesting(true)
     setMessage(null)
@@ -636,11 +699,17 @@ export default function PrivacySettingsPage() {
 
             <div className={styles.dangerItem}>
               <div className={styles.dangerInfo}>
-                <span className={styles.dangerName}>Delete my account and data</span>
+                <span className={styles.dangerName}>Delete my account</span>
+                {/* WHAT IT SAYS MUST MATCH THE PRIVACY POLICY, WORD FOR WORD IN
+                    SUBSTANCE. Section 7 tells people three things are kept and
+                    why; a settings screen that says "everything is deleted"
+                    would make that page a lie the moment they read it. */}
                 <span className={styles.dangerDescription}>
-                  {openRequest
-                    ? 'We have your request and will reply within 30 days. Nothing has been deleted yet — we will confirm before anything is removed.'
-                    : 'Ask us to delete your account and everything attached to it. We reply within 30 days. This cannot be undone.'}
+                  Deletes your account and your data straight away. Your profile, CV, photo,
+                  saved jobs, alerts and notifications are removed. Applications you sent stay
+                  with the employer with your name and details stripped out, anything you wrote
+                  in a message becomes &quot;[deleted]&quot;, and a signed job offer is kept because it is
+                  a contract. This cannot be undone.
                 </span>
               </div>
               {/* IT IS A BUTTON AGAIN, AND NOW IT EARNS THAT. It was briefly a
@@ -652,19 +721,59 @@ export default function PrivacySettingsPage() {
                   button again to someone who already asked is how they end up
                   unsure a second time, which is the original fault wearing a
                   different coat. */}
-              {openRequest ? (
-                <span className={styles.deleteRequestPending}>
-                  Requested {new Date(openRequest.requestedAt).toLocaleDateString('en-GB',
-                    { day: 'numeric', month: 'long', year: 'numeric' })}
-                </span>
+              {confirming ? (
+                <div className={styles.confirmDelete}>
+                  {/* type="button" throughout, and nothing here is wrapped in a form element. This page carries
+                      a header, a chat widget, a feedback control and a cookie
+                      banner, all of which use type="submit" — a form here would
+                      put the most irreversible control in the product into that
+                      pile, where a stray Enter could reach it. */}
+                  <label htmlFor="deleteConfirm" className={styles.confirmLabel}>
+                    Type DELETE to confirm
+                  </label>
+                  <input
+                    id="deleteConfirm"
+                    type="text"
+                    autoComplete="off"
+                    className={styles.confirmInput}
+                    value={confirmText}
+                    onChange={e => setConfirmText(e.target.value)}
+                    disabled={deleting}
+                  />
+                  {/* THE BUTTONS GET THEIR OWN ROW, AND THE REASON IS A
+                      SCREENSHOT. .confirmButtons is flex-direction:
+                      column-reverse below 640px — correct for the two buttons
+                      it was written for, and it silently inverted this whole
+                      panel when the label and input were put inside it. On a
+                      phone it rendered Cancel, then Delete, then the box, then
+                      the instruction telling you what to type. Seventeen
+                      assertions passed on that. */}
+                  <div className={styles.confirmDelete}>
+                    <button
+                      type="button"
+                      className={styles.confirmDeleteBtn}
+                      onClick={handleDeleteAccount}
+                      disabled={deleting || confirmText.trim() !== 'DELETE'}
+                    >
+                      {deleting ? 'Deleting…' : 'Delete my account'}
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.cancelDeleteBtn}
+                      onClick={() => { setConfirming(false); setConfirmText('') }}
+                      disabled={deleting}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
               ) : (
                 <button
                   type="button"
                   className={styles.deleteRequestBtn}
-                  onClick={handleRequestDeletion}
-                  disabled={requesting}
+                  onClick={() => setConfirming(true)}
                 >
-                  {requesting ? 'Sending…' : 'Request deletion'}
+                  Delete my account
                 </button>
               )}
             </div>
