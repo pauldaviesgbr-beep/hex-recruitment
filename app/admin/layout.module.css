@@ -97,6 +97,21 @@
 }
 
 /* Sidebar footer */
+/* The duplicates count. Sits at the end of the row rather than beside the
+   label, so a two-digit number cannot push the label into wrapping. */
+.navBadge {
+  margin-left: auto;
+  min-width: 20px;
+  padding: 1px 6px;
+  border-radius: 99px;
+  background: #FFE500;
+  color: #0f172a;
+  font-size: 11.5px;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+}
+
 .sidebarFooter {
   padding: 1rem 1.25rem;
   border-top: 1px solid rgba(255, 255, 255, 0.08);

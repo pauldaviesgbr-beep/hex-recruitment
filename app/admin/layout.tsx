@@ -19,7 +19,7 @@ const NAV_ITEMS = [
   // rather than arriving as an email: an email about something that fires twice
   // a month is one you learn to ignore, and a hold nobody is told about is a
   // silently hidden candidate.
-  { href: '/admin/duplicates', label: 'Duplicates', icon: Users },
+  { href: '/admin/duplicates', label: 'Duplicates', icon: Users, badge: 'duplicates' },
   { href: '/admin/jobs', label: 'Jobs', icon: Briefcase },
   { href: '/admin/applications', label: 'Applications', icon: FileText },
   { href: '/admin/subscriptions', label: 'Subscriptions', icon: CreditCard },
@@ -50,7 +50,45 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [authorized, setAuthorized] = useState(false)
   const [accessToken, setAccessToken] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  // THE DUPLICATES COUNT WAS ALREADY BEING COMPUTED AND THROWN AWAY.
+  // /api/admin/duplicates has returned heldCount and groupsAwaitingReview
+  // since the page was built, under a comment describing them as "a count
+  // where Paul already looks" — and nothing read either of them. A number
+  // computed and dropped on the floor is the same as no number, except that
+  // it reads like the feature exists.
+  //
+  // IT COUNTS BOTH KINDS OF ATTENTION, AND THAT IS DELIBERATE. Groups
+  // awaiting a decision are the ordinary case. Lookup failures must be in
+  // here too: if the dedup breaks, awaiting goes to zero — nothing is found,
+  // so nothing waits — and a badge showing only that would sit at 0 through
+  // exactly the failure this whole change exists to surface.
+  //
+  // THE TWELVE UNKEYABLE ROWS ARE NOT IN IT. They need no action from
+  // anybody, ever. Putting them here would park a permanent 12 on the nav,
+  // which is how a badge stops being read at all.
+  const [attention, setAttention] = useState(0)
   const didCheck = useRef(false)
+
+  // Reuses the page's own endpoint rather than adding a count-only route.
+  // It selects every candidate_profiles row, which is 68 today — free. If that
+  // table reaches thousands this becomes the wrong call and wants a
+  // count-only endpoint; the number to watch is rows leaving the database,
+  // not how often this runs.
+  useEffect(() => {
+    if (!accessToken) return
+    let cancelled = false
+    fetch('/api/admin/duplicates', { headers: { authorization: `Bearer ${accessToken}` } })
+      .then(r => (r.ok ? r.json() : null))
+      .then(j => {
+        if (cancelled || !j) return
+        // A failed fetch leaves it at 0 rather than guessing. A badge is a
+        // claim that something needs attention; inventing one is worse than
+        // showing none, and the page itself is one click away either way.
+        setAttention((j.groupsAwaitingReview || 0) + (j.lookupFailureCount || 0))
+      })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [accessToken])
 
   const runCheck = () => {
     didCheck.current = false
@@ -193,6 +231,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                   <Icon size={18} />
                 </span>
                 <span>{item.label}</span>
+                {item.badge === 'duplicates' && attention > 0 && (
+                  <span className={styles.navBadge} aria-label={`${attention} needing attention`}>
+                    {attention}
+                  </span>
+                )}
               </Link>
             )
           })}

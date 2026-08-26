@@ -61,6 +61,21 @@ export default function CandidateCard(props: {
   onAddJobTitle?: () => void
   isDiscoverable?: boolean
   onToggleDiscoverable?: (next: boolean) => void
+  /**
+   * ISO date the duplicate hold releases itself, or null when not held.
+   *
+   * THE SWITCH HAD TO STOP WORKING WHILE THIS IS SET, and that is the part
+   * worth reading twice. A held candidate could flip themselves visible — the
+   * handler writes is_discoverable straight to the row — which would leave
+   * them ON THE BOARD while /admin/duplicates still listed them as held. That
+   * is the "Flagged · still visible" fault exactly: a page stating a fact it
+   * does not read. Better to have one answer than two.
+   *
+   * It is also the "which states can this object be in" habit applied: the
+   * switch was written for a profile whose visibility is the candidate's own
+   * choice, which is every profile except this one.
+   */
+  heldUntil?: string | null
 }) {
   const { candidate: c, mode } = props
   const v = fallbackVariant(c.id || c.fullName || 'thrive')
@@ -356,21 +371,39 @@ export default function CandidateCard(props: {
               word would understate what the switch actually does. Settled, not
               an oversight: do not "correct" it back without a new decision. */}
           <label
-            className={styles.dashToggleCompact}
-            title={props.isDiscoverable
+            className={`${styles.dashToggleCompact}${props.heldUntil ? ' ' + styles.dashToggleHeld : ''}`}
+            title={props.heldUntil
+              ? 'We are checking your profile against an existing one with the same name. Nothing is wrong and you do not need to do anything.'
+              : props.isDiscoverable
               ? 'Employers hiring on Thrive can find your profile in candidate search and approach you about roles. Turn this off to hide it from everyone.'
               : 'Your profile is hidden from every employer — nobody can find you in candidate search or contact you. Turn this on to be found.'}
           >
             <input
               type="checkbox"
               checked={!!props.isDiscoverable}
+              disabled={!!props.heldUntil}
               onChange={(e) => props.onToggleDiscoverable?.(e.target.checked)}
             />
             <span className={styles.dashToggleTrack}><span className={styles.dashToggleThumb} /></span>
             <span className={styles.dashToggleLabel}>
-              {props.isDiscoverable ? 'Employers can find you' : 'Profile hidden'}
+              {props.heldUntil
+                ? 'Being checked'
+                : props.isDiscoverable ? 'Employers can find you' : 'Profile hidden'}
             </span>
           </label>
+          {/* PROPOSED WORDING — Paul to settle before this merges.
+              What it has to do: be true, say nothing is wrong, ask nothing of
+              them, and give an end. What it must NOT do is imply they have
+              done something, or that anyone is judging them — the commonest
+              cause of a hold is two real people with the same name. */}
+          {props.heldUntil && (
+            <p className={styles.dashHeldNote}>
+              We’re checking your profile against another with the same name — a quick
+              once-over, nothing’s wrong. You’ll be visible to employers by{' '}
+              {new Date(props.heldUntil).toLocaleDateString('en-GB', { day: 'numeric', month: 'long' })}
+              , usually sooner. Nothing for you to do.
+            </p>
+          )}
         </div>
 
         {/* Middle: completion bar centrepiece, with the Add to-dos right below it */}
