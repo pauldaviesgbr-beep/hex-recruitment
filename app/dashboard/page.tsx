@@ -145,6 +145,7 @@ const PROFILE_FIELDS: ProfileField[] = [
 import { getCategoryLabel } from '@/lib/categories'
 import { Ico, type IconName } from '@/components/icons'
 import { nameFromAuth, greetingName } from '@/lib/displayName'
+import { parseHold, holdState, HOLD_WINDOW_DAYS } from '@/lib/duplicateHold'
 const JOB_SECTOR_LABELS: Record<string, string> = new Proxy({} as Record<string, string>, {
   get: (_target, key: string) => getCategoryLabel(key),
 })
@@ -196,6 +197,18 @@ export default function DashboardPage() {
   const [dashboardPhotoUrl, setDashboardPhotoUrl] = useState<string | null>(null)
   const [photoUploading, setPhotoUploading] = useState(false)
   const [isDiscoverable, setIsDiscoverable] = useState(false)
+  // WHEN THE PROFILE IS HELD, THE CANDIDATE IS TOLD.
+  //
+  // A hold hides a real person for up to seven days while a duplicate is
+  // decided, and until now nothing said so anywhere they could see. Their own
+  // dashboard showed the visibility switch OFF and labelled it "Profile
+  // hidden" — true, and it reads as something THEY did. It is something we
+  // did, for a reason, with an end date.
+  //
+  // Null unless genuinely held. holdState is imported rather than restated:
+  // reviewed and released holds are not this state, and re-deriving that test
+  // here is how two answers to one question start disagreeing.
+  const [heldUntil, setHeldUntil] = useState<string | null>(null)
   /** Field the nudge is currently asking about, so the completion card can
    *  stand down on that one row. Null when no nudge is showing. */
   const [nudgedKey, setNudgedKey] = useState<string | null>(null)
@@ -316,6 +329,12 @@ export default function DashboardPage() {
           setCandidate(supabaseProfileToCandidate(profileData))
           setDashboardPhotoUrl(profileData.dashboard_photo_url || null)
           setIsDiscoverable(!!profileData.is_discoverable)
+          const hold = parseHold(profileData.duplicate_hold)
+          setHeldUntil(
+            holdState(hold) === 'held' && hold.heldAt
+              ? new Date(Date.parse(hold.heldAt) + HOLD_WINDOW_DAYS * 86_400_000).toISOString()
+              : null,
+          )
         } else {
           // Try employees table as fallback
           const { data: empData } = await supabase
@@ -791,6 +810,7 @@ export default function DashboardPage() {
                 onAddJobTitle={needsJobTitle ? () => router.push(jobTitleField.link) : undefined}
                 isDiscoverable={isDiscoverable}
                 onToggleDiscoverable={handleToggleDiscoverable}
+                heldUntil={heldUntil}
               />
             ) : (
               <div className={`${styles.card} ${styles.aYellow}`}>

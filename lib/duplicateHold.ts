@@ -43,6 +43,37 @@ export function nameMatchKey(fullName: string | null | undefined): string | null
   return Array.from(new Set(words)).sort().join(' ')
 }
 
+/**
+ * WHY nameMatchKey RETURNED NULL. Null when it did not.
+ *
+ * THIS LIVES BESIDE THE RULE ON PURPOSE. The admin panel needs to explain the
+ * refusal to a person, and deriving that from the name a second time, in a
+ * route, is how two copies of one rule start drifting — the three stem lists
+ * all over again. Anything that wants the reason asks the thing that already
+ * knows.
+ *
+ * 'non-latin' IS NOT A TIDIER 'one-word', AND CONFLATING THEM WOULD HIDE A
+ * REAL FAULT OF OURS. A candidate whose name is several words in a non-Latin
+ * script has given us a perfectly good name; nameMatchKey strips it to nothing
+ * because it filters on [^a-z\s]. That is our matcher failing them, not their
+ * profile being unfinished, and it is permanent — the profile can never be
+ * completed into a state we will match on. One live row is in exactly that
+ * state today. Labelling it "a single-word name" on the admin page would have
+ * been confidently, specifically wrong.
+ */
+export type UnkeyableReason = 'no-name' | 'one-word' | 'non-latin'
+
+export function unkeyableReason(fullName: string | null | undefined): UnkeyableReason | null {
+  if (nameMatchKey(fullName)) return null
+  const raw = (fullName || '').trim()
+  if (!raw) return 'no-name'
+  // The same transform nameMatchKey applies, asked one step at a time so the
+  // step that emptied the name is the one reported.
+  const latin = raw.toLowerCase().replace(/\(.*?\)/g, ' ').replace(/[^a-z\s]/g, ' ').split(/\s+/).filter(Boolean)
+  if (latin.length === 0 && raw.split(/\s+/).length >= 1) return 'non-latin'
+  return 'one-word'
+}
+
 export interface DuplicateHold {
   /** ISO. Set when a NEW signup was held. Null on a flagged existing row. */
   heldAt: string | null
@@ -54,10 +85,45 @@ export interface DuplicateHold {
   verdict: 'different' | 'same' | null
   /** The user_id this row looks like. */
   matchedUserId: string | null
+  /**
+   * ISO. Set when the duplicate check COULD NOT RUN for this signup.
+   *
+   * A dedup that quietly does nothing is worse than one that refuses, because
+   * nobody knows to look. Three paths used to return null in silence and the
+   * only trace was a console line in a serverless log this project cannot
+   * read back.
+   *
+   * THIS RECORDS EVENTS ONLY, AND THAT IS THE WHOLE DESIGN. A lookup error
+   * HAPPENED, at a moment, and nothing can reconstruct it afterwards — so it
+   * has to be written down as it occurs. A name with fewer than two words is
+   * not an event: it is a PROPERTY of the row, true right now, derivable from
+   * the name at any time. Storing that would date a record today about
+   * something that was true in July, keep saying so after the person fixes
+   * their name, and require writing to real candidates' rows to establish a
+   * past nobody observed. The admin panel computes that half live instead.
+   */
+  notCheckedAt: string | null
+  /** Why it could not run. Null when it ran. */
+  notCheckedReason: NotCheckedReason | null
 }
+
+/**
+ * WHY THE CHECK COULD NOT RUN — the recordable kind.
+ *
+ * ONE MEMBER, DELIBERATELY. This union used to carry 'no-name' and
+ * 'name-too-short' too; both were removed once it was clear they are
+ * properties rather than events. A type that permits states the code never
+ * writes is a lie the compiler will happily enforce, and the next person to
+ * read it would build a panel for two cases that never arrive. The union
+ * stays a union so a second genuine event — a timeout distinct from an error,
+ * say — has somewhere to go.
+ */
+export type NotCheckedReason =
+  | 'lookup-failed'    // the query errored or threw
 
 export const EMPTY_HOLD: DuplicateHold = {
   heldAt: null, releasedAt: null, reviewedAt: null, verdict: null, matchedUserId: null,
+  notCheckedAt: null, notCheckedReason: null,
 }
 
 export function parseHold(raw: unknown): DuplicateHold {
@@ -70,6 +136,13 @@ export function parseHold(raw: unknown): DuplicateHold {
     reviewedAt: iso(r.reviewedAt),
     verdict: r.verdict === 'different' || r.verdict === 'same' ? r.verdict : null,
     matchedUserId: typeof r.matchedUserId === 'string' ? r.matchedUserId : null,
+    notCheckedAt: iso(r.notCheckedAt),
+    // An unrecognised reason degrades to null rather than passing through.
+    // A value nothing can interpret is the same as no record, and pretending
+    // otherwise is how an admin page ends up displaying a raw string. This
+    // also quietly absorbs the two retired reasons if any row ever carries
+    // one — none does, because they were never shipped.
+    notCheckedReason: r.notCheckedReason === 'lookup-failed' ? r.notCheckedReason : null,
   }
 }
 

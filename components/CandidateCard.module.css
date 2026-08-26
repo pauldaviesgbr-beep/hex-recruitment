@@ -253,3 +253,22 @@
   .dirActions > button { flex: 1; }
   .actionPrimary, .actionSecondary { padding: 12px 14px; border-radius: 10px; }
 }
+
+
+/* HELD: the switch is not theirs to move while we are deciding, so it must
+   not look like it is. Greyed and not-allowed, with the explanation directly
+   below rather than only in a title attribute — a tooltip does not exist on a
+   phone, which is where most candidates read this. */
+.dashToggleHeld {
+  opacity: .62;
+  cursor: not-allowed;
+}
+.dashToggleHeld input { cursor: not-allowed; }
+
+.dashHeldNote {
+  margin: 6px 0 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: #475569;
+  max-width: 46ch;
+}
