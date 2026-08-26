@@ -452,6 +452,33 @@
   white-space: nowrap;
 }
 
+.confirmDelete {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.confirmLabel {
+  font-size: 0.8125rem;
+  color: #6b7280;
+}
+
+.confirmInput {
+  width: 100%;
+  padding: 0.625rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 0.9375rem;
+  font-family: inherit;
+}
+
+.confirmInput:focus {
+  outline: 2px solid #dc2626;
+  outline-offset: 1px;
+  border-color: #dc2626;
+}
+
 .confirmButtons {
   display: flex;
   gap: 0.5rem;
@@ -533,9 +560,13 @@
     justify-content: center;
   }
 
+  /* PLAIN column, NOT column-reverse. The reverse was written when this
+     held two buttons and nothing else, and it inverted the confirmation
+     panel the moment a label and an input joined them — instruction last,
+     under a red button. Reading order is the whole point of a confirmation. */
   .confirmButtons {
     width: 100%;
-    flex-direction: column-reverse;
+    flex-direction: column;
   }
 
   .confirmDeleteBtn,

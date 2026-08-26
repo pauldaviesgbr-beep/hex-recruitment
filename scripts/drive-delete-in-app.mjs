@@ -122,6 +122,31 @@ try {
   await page.fill('#deleteConfirm', 'DELETE')
   await page.waitForTimeout(400)
   check('the right word enables it', !(await confirmBtn.isDisabled()))
+
+  // ── READING ORDER, MEASURED. ──────────────────────────────────────────
+  // Seventeen assertions passed on a panel that rendered Cancel, then a red
+  // Delete button, then the box, then the instruction telling you what to
+  // type. Every one of them was about presence or behaviour; none asked
+  // WHERE anything was. .confirmButtons was column-reverse below 640px,
+  // written for two buttons and silently inverting the whole panel once a
+  // label and an input joined them. Only the screenshot showed it.
+  const box = await page.evaluate(() => {
+    const y = sel => { const el = document.querySelector(sel); return el ? el.getBoundingClientRect().top : null }
+    const btn = [...document.querySelectorAll('button')].find(b => /^Delete my account$/i.test(b.textContent.trim()))
+    const cancel = [...document.querySelectorAll('button')].find(b => /^Cancel$/i.test(b.textContent.trim()))
+    return {
+      label: y('label[for="deleteConfirm"]'),
+      input: y('#deleteConfirm'),
+      del: btn ? btn.getBoundingClientRect().top : null,
+      cancel: cancel ? cancel.getBoundingClientRect().top : null,
+    }
+  })
+  check('the instruction sits ABOVE the box', box.label !== null && box.input !== null && box.label < box.input,
+    'label ' + Math.round(box.label) + ' / input ' + Math.round(box.input))
+  check('the box sits ABOVE the delete button', box.input < box.del,
+    'input ' + Math.round(box.input) + ' / delete ' + Math.round(box.del))
+  check('the delete button sits above Cancel', box.del < box.cancel,
+    'delete ' + Math.round(box.del) + ' / cancel ' + Math.round(box.cancel))
   await page.screenshot({ path: 'drive-shots/delete-confirm.png' })
   await confirmBtn.click()
   await page.waitForTimeout(12000)

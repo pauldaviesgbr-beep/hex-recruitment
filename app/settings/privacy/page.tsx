@@ -722,39 +722,50 @@ export default function PrivacySettingsPage() {
                   unsure a second time, which is the original fault wearing a
                   different coat. */}
               {confirming ? (
-                <div className={styles.confirmButtons}>
+                <div className={styles.confirmDelete}>
                   {/* type="button" throughout, and nothing here is wrapped in a form element. This page carries
                       a header, a chat widget, a feedback control and a cookie
                       banner, all of which use type="submit" — a form here would
                       put the most irreversible control in the product into that
                       pile, where a stray Enter could reach it. */}
-                  <label htmlFor="deleteConfirm" className={styles.dangerDescription}>
+                  <label htmlFor="deleteConfirm" className={styles.confirmLabel}>
                     Type DELETE to confirm
                   </label>
                   <input
                     id="deleteConfirm"
                     type="text"
                     autoComplete="off"
+                    className={styles.confirmInput}
                     value={confirmText}
                     onChange={e => setConfirmText(e.target.value)}
                     disabled={deleting}
                   />
-                  <button
-                    type="button"
-                    className={styles.confirmDeleteBtn}
-                    onClick={handleDeleteAccount}
-                    disabled={deleting || confirmText.trim() !== 'DELETE'}
-                  >
-                    {deleting ? 'Deleting…' : 'Delete my account'}
-                  </button>
-                  <button
-                    type="button"
-                    className={styles.cancelDeleteBtn}
-                    onClick={() => { setConfirming(false); setConfirmText('') }}
-                    disabled={deleting}
-                  >
-                    Cancel
-                  </button>
+                  {/* THE BUTTONS GET THEIR OWN ROW, AND THE REASON IS A
+                      SCREENSHOT. .confirmButtons is flex-direction:
+                      column-reverse below 640px — correct for the two buttons
+                      it was written for, and it silently inverted this whole
+                      panel when the label and input were put inside it. On a
+                      phone it rendered Cancel, then Delete, then the box, then
+                      the instruction telling you what to type. Seventeen
+                      assertions passed on that. */}
+                  <div className={styles.confirmDelete}>
+                    <button
+                      type="button"
+                      className={styles.confirmDeleteBtn}
+                      onClick={handleDeleteAccount}
+                      disabled={deleting || confirmText.trim() !== 'DELETE'}
+                    >
+                      {deleting ? 'Deleting…' : 'Delete my account'}
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.cancelDeleteBtn}
+                      onClick={() => { setConfirming(false); setConfirmText('') }}
+                      disabled={deleting}
+                    >
+                      Cancel
+                    </button>
+                  </div>
                 </div>
               ) : (
                 <button
