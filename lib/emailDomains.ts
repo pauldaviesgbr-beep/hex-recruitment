@@ -11,6 +11,34 @@ const DISPOSABLE_SET: Set<string> = new Set(
  * give us no signal that the signup is a real business — we treat them as
  * pending-approval. Conservative list (additive is safer than missing one).
  */
+/**
+ * RELAY AND ALIAS SERVICES — declared ONCE, used twice.
+ *
+ * These are not mail providers. Each mints a forwarding address that reveals
+ * nothing about who is behind it, and each is a member of FREE_MAIL_DOMAINS
+ * below (which is COMPOSED from this set rather than repeating it).
+ *
+ * The second use is display: an employer must not be shown a relay address as
+ * a clickable mailto. Mailing one only works if the SENDER's domain is
+ * registered with Apple, and a hiring manager's Outlook never will be — so it
+ * is not a slightly worse address, it is a dead link that fails silently on
+ * their side, where neither they nor we ever learn it failed.
+ *
+ * Note icloud.com is deliberately NOT here even though Apple can issue relay
+ * addresses on it: it is overwhelmingly an ordinary personal mailbox, and
+ * hiding every iCloud address from employers would break far more than it
+ * fixed. The trade is deliberate — see isRelayAddress.
+ */
+export const RELAY_DOMAINS: Set<string> = new Set([
+  'privaterelay.appleid.com',
+  'private.icloud.com',
+  'duck.com',
+  'mozmail.com',
+  'simplelogin.io',
+  'aleeas.com',
+  'addy.io',
+])
+
 export const FREE_MAIL_DOMAINS: Set<string> = new Set([
   // Google
   'gmail.com', 'googlemail.com',
@@ -21,47 +49,9 @@ export const FREE_MAIL_DOMAINS: Set<string> = new Set([
   'yahoo.com', 'yahoo.co.uk', 'yahoo.fr', 'ymail.com', 'rocketmail.com',
   // Apple
   'icloud.com', 'me.com', 'mac.com',
-  // Apple's Sign in with Apple PRIVATE RELAY. Not free mail in the ordinary
-  // sense — it is a forwarding address Apple mints per app — but it belongs
-  // here for exactly the reason the list exists: it gives us NO SIGNAL that
-  // the signup is a real business.
-  //
-  // WITHOUT IT, classifyEmail returns 'business' and, under
-  // FREE_FOUNDING_MODE, an Apple signup walks into the founding cohort with
-  // no manual review at all. It is the same shape as every other fault this
-  // week: our side looks perfect, nothing errors, and the wrong thing happens
-  // quietly.
-  //
-  // Added 26 Aug 2026, BEFORE Sign in with Apple is built, so the first Apple
-  // employer cannot arrive through a door nobody has closed yet.
-  //
-  // STILL OPEN, AND IT IS NOT FIXED BY THIS LINE: companyNameFromEmail takes
-  // the domain stem and title-cases it, from its OWN hardcoded list in two
-  // files — so an Apple employer's company is still created as
-  // "Privaterelay". That belongs with the Sign in with Apple work.
-  // THREE domains, not one. Apple's own documentation: private relay
-  // addresses 'end in @private.icloud.com, @privaterelay.appleid.com, or
-  // @icloud.com'. icloud.com was already here as ordinary free mail; the
-  // other two were not. Adding only the obvious one would have left two
-  // thirds of the hole open.
-  'privaterelay.appleid.com', 'private.icloud.com',
-  // ── ALIAS AND RELAY SERVICES THAT ARE NOT APPLE ────────────────────────
-  //
-  // Same shape of problem, different vendor. Each mints a forwarding
-  // address that reveals nothing about who is behind it, which is exactly
-  // the signal this list exists to judge.
-  //
-  // On the list BEFORE an employer signs up through one, rather than after.
-  // The Apple relay was found the other way round, and only because Sign in
-  // with Apple forced somebody to look at the list at all.
-  //
-  // 'freemail' is not a rejection. It means the founding-cohort spot is only
-  // consumed once Paul has approved — the right amount of caution for an
-  // address that could belong to anyone.
-  'duck.com',                     // DuckDuckGo Email Protection
-  'mozmail.com',                  // Firefox Relay
-  'simplelogin.io', 'aleeas.com', // SimpleLogin (Proton)
-  'addy.io',                      // AnonAddy
+  // Relay and alias services, declared above and spread in here so there is
+  // exactly one place they are listed.
+  ...Array.from(RELAY_DOMAINS),
   // AOL / Verizon
   'aol.com', 'aol.co.uk',
   // GMX / Mail.com / 1&1
@@ -101,4 +91,17 @@ export function classifyEmail(email: string): EmailClass {
   if (DISPOSABLE_SET.has(domain)) return 'disposable'
   if (FREE_MAIL_DOMAINS.has(domain)) return 'freemail'
   return 'business'
+}
+
+/**
+ * Is this a forwarding address from a relay or alias service?
+ *
+ * Used to decide whether to RENDER an address to an employer, never to
+ * decide whether to accept a signup — classifyEmail does that, and a relay
+ * address is a perfectly legitimate way to sign up.
+ */
+export function isRelayAddress(email: string | null | undefined): boolean {
+  if (!email) return false
+  const domain = domainOf(email)
+  return domain ? RELAY_DOMAINS.has(domain) : false
 }

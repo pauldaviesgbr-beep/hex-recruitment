@@ -12,6 +12,7 @@ import {
 import { Candidate } from '@/lib/mockCandidates'
 import { VisibilitySettings } from '@/lib/profileVisibility'
 import { getCategoryLabel } from '@/lib/categories'
+import { isRelayAddress } from '@/lib/emailDomains'
 import styles from './CandidateDetail.module.css'
 
 function normalizeUrl(url: string | undefined): string {
@@ -57,9 +58,21 @@ export default function CandidateDetail({
   const [showContact, setShowContact] = useState(false)
 
   const firstName = c.fullName.split(' ')[0]
-  const hasEmail = v.show_email && !!c.email
+  // A RELAY ADDRESS IS NOT SHOWN AS A MAILTO, AND THAT IS NOT COSMETIC.
+  // Mailing one only works if the SENDER'S domain is registered with Apple,
+  // and a hiring manager's Outlook never will be. So it is not a slightly
+  // worse address — it is a dead link that fails SILENTLY on their side,
+  // where neither they nor we ever find out. Same far-end shape as the
+  // privacy@ mailbox that never existed.
+  //
+  // Detected from RELAY_DOMAINS in lib/emailDomains.ts — the same declaration
+  // the signup classifier uses, not a second copy.
+  const emailIsRelay = isRelayAddress(c.email)
+  const hasEmail = v.show_email && !!c.email && !emailIsRelay
+  // show_email is UNCHANGED. This is about what is rendered, not the setting.
+  const showRelayNote = v.show_email && !!c.email && emailIsRelay
   const hasPhone = v.show_phone && !!c.phone
-  const hasContact = hasEmail || hasPhone
+  const hasContact = hasEmail || hasPhone || showRelayNote
   const hasSalary = v.show_desired_salary && (c.salaryMin || c.salaryMax || c.desiredSalary)
   const sector = c.jobSector ? getCategoryLabel(c.jobSector) : null
 
@@ -124,6 +137,14 @@ export default function CandidateDetail({
         <div className={styles.contactReveal}>
           {hasEmail && <div className={styles.contactItem}><span className={styles.contactLabel}>Email</span><a href={`mailto:${c.email}`} className={styles.contactValue}>{c.email}</a></div>}
           {hasPhone && <div className={styles.contactItem}><span className={styles.contactLabel}>Phone</span><a href={`tel:${c.phone}`} className={styles.contactValue}>{c.phone}</a></div>}
+          {showRelayNote && (
+            <div className={styles.contactItem}>
+              <span className={styles.contactLabel}>Email</span>
+              <span className={styles.contactValue}>
+                Private email &mdash; message {firstName} through Thrive and they&apos;ll get it.
+              </span>
+            </div>
+          )}
         </div>
       )}
 
