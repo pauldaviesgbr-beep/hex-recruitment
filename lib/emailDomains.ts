@@ -39,7 +39,12 @@ export const FREE_MAIL_DOMAINS: Set<string> = new Set([
   // the domain stem and title-cases it, from its OWN hardcoded list in two
   // files — so an Apple employer's company is still created as
   // "Privaterelay". That belongs with the Sign in with Apple work.
-  'privaterelay.appleid.com',
+  // THREE domains, not one. Apple's own documentation: private relay
+  // addresses 'end in @private.icloud.com, @privaterelay.appleid.com, or
+  // @icloud.com'. icloud.com was already here as ordinary free mail; the
+  // other two were not. Adding only the obvious one would have left two
+  // thirds of the hole open.
+  'privaterelay.appleid.com', 'private.icloud.com',
   // AOL / Verizon
   'aol.com', 'aol.co.uk',
   // GMX / Mail.com / 1&1
