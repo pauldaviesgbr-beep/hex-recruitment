@@ -944,10 +944,21 @@ export default function PipelinePage() {
           candidateId={offerCard.candidateId}
           candidateName={offerCard.candidateName}
           candidateEmail={offerCard.candidateEmail || undefined}
-          onSuccess={() => {
+          onSuccess={(emailOutcome) => {
             const name = offerCard.candidateName.split(' ')[0]
             setOfferCard(null)
-            setToast({ message: `Offer sent to ${name}. Moved to Offered.`, key: Date.now() })
+            // THE TOAST SAID "Offer sent" WHETHER OR NOT THE EMAIL WENT.
+            // The offer itself always lands — a notification and a full
+            // conversation message both go out — so "Offer sent" is true of
+            // the OFFER. It was silent about the one channel that reaches a
+            // candidate who is not looking at Thrive, which for a job offer
+            // is the channel that matters most.
+            setToast({
+              message: emailOutcome === 'sent'
+                ? `Offer sent to ${name}. Moved to Offered.`
+                : `Offer sent to ${name}, but we couldn't email them — they'll see it in Thrive.`,
+              key: Date.now(),
+            })
             loadData()
           }}
         />

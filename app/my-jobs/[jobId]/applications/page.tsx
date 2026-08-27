@@ -21,6 +21,7 @@ import { confirmHire } from '@/lib/confirmHire'
 import { headerThemeForStatus, stageForStatus, STAGE_LABELS, STAGE_COLORS, stageSoftTint, stageSoftBorder } from '@/lib/constants/pipelineStages'
 import styles from './page.module.css'
 import { Ico } from '@/components/icons'
+import { notifyByEmail } from '@/lib/notifyByEmail'
 
 interface Application {
   id: string
@@ -646,22 +647,33 @@ export default function JobApplicationsPage() {
     if (application) {
       notify('interview_cancelled', { applicationId })
 
-      // Send email to candidate
-      if (application.candidateEmail) {
-        fetch('/api/email/send', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            to: application.candidateEmail,
-            type: 'interview_cancelled',
-            data: {
-              companyName: application.company || '',
-              jobTitle: application.jobTitle,
-              candidateName: application.candidateName,
-              date: '',
-            },
-          }),
-        }).catch(() => {})
+      // EMAIL THE CANDIDATE — AWAITED, because this is the message whose
+      // absence has a person standing outside a building.
+      //
+      // Two channels reach somebody who is NOT logged in: this email, and the
+      // Google Calendar cancellation above. Both were fire-and-forget with
+      // every error discarded, so both could be dropped in the same silence.
+      // The in-app notification only helps a candidate who happens to look.
+      //
+      // THIS SCREEN CANNOT REPORT THE FAILURE. The page has no toast and no
+      // feedback of any kind — cancelling says nothing at all today, so it is
+      // not lying, but it cannot tell the truth either. Logged here; the
+      // missing feedback surface is reported rather than invented.
+      const cancelEmail = await notifyByEmail({
+        to: application.candidateEmail,
+        type: 'interview_cancelled',
+        data: {
+          companyName: application.company || '',
+          jobTitle: application.jobTitle,
+          candidateName: application.candidateName,
+          date: '',
+        },
+        from: 'cancel-interview',
+      })
+      if (cancelEmail !== 'sent') {
+        console.error('[interview-cancelled] the candidate may not know — no screen can say so', {
+          applicationId, interviewId, outcome: cancelEmail,
+        })
       }
     }
 
@@ -1310,7 +1322,18 @@ export default function JobApplicationsPage() {
           candidateId={offerApplication.candidateId}
           candidateName={offerApplication.candidateName}
           candidateEmail={offerApplication.candidateEmail}
-          onSuccess={() => {
+          onSuccess={(emailOutcome) => {
+            // THIS PAGE HAS NO TOAST — no feedback surface of any kind — so
+            // unlike /pipeline it cannot tell the employer the email failed.
+            // The outcome is logged rather than discarded, which is strictly
+            // better than before, and the gap is reported rather than papered
+            // over: adding a feedback surface to this page is a product
+            // decision, not a bug fix.
+            if (emailOutcome !== 'sent') {
+              console.error('[offer] email did not send, and this screen cannot say so', {
+                applicationId: offerApplication.id, outcome: emailOutcome,
+              })
+            }
             loadApplications()
           }}
         />
