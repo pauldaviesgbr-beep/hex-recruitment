@@ -177,11 +177,25 @@ async function routeNewUser(user: any, intendedRole: 'employer' | 'employee') {
       body: JSON.stringify({ userId: user.id, profile: { full_name: displayName, email: user.email || '' } }),
     }).catch(() => {})
 
-    fetch('/api/email/send', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ to: user.email, type: 'candidate_welcome', data: { candidateName: displayName } }),
-    }).catch(() => {})
+    // AWAITED BEFORE NAVIGATING, and that is the whole fix on this path.
+    // window.location.href tears the page down, which CANCELS any request
+    // still in flight — so firing this and navigating in the same tick made
+    // delivery a race the candidate usually lost. The await costs a few
+    // hundred milliseconds on a screen that is about to change anyway.
+    //
+    // Errors are no longer swallowed. Sending a second one is safe:
+    // /api/email/send refuses a repeat welcome for the same address.
+    try {
+      const res = await fetch('/api/email/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ to: user.email, type: 'candidate_welcome', data: { candidateName: displayName } }),
+      })
+      if (!res.ok) console.error('[welcome-email] send failed from SessionGuard', res.status)
+    } catch (e: any) {
+      // Never block the redirect on an email. Recorded, not swallowed.
+      console.error('[welcome-email] send threw in SessionGuard', e?.message)
+    }
 
     window.location.href = '/dashboard'
   }

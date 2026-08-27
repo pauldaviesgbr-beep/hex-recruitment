@@ -397,6 +397,47 @@ const ALL = [
   // one of them rather than dying on the first. Green again on restore.
   { name: 'dedupsilence:prove', cmd: npm, args: ['run', 'dedupsilence:prove'] },
 
+  // SIGN IN WITH APPLE — the button, and the gate in front of it.
+  //
+  // It cannot work until a Services ID and a signing key exist in Supabase,
+  // which are Paul's portal items. Until then signInWithOAuth returns
+  // "Unsupported provider" and the person is left on a dead button. A sign-in
+  // button that signs nobody in is worse than no button — it reads as our
+  // product being broken, on the screen where that costs most.
+  //
+  // So the load-bearing property is the DIRECTION of failure: everything
+  // except the exact string 'true' means off. Being wrongly off costs a
+  // missing option; being wrongly on costs a dead one in front of real people.
+  // It also asserts that exactly ONE file starts an Apple flow, so the gate
+  // cannot be bypassed by a second call site.
+  //
+  // Watched failing on purpose 26 Aug 2026 by swapping the exact-string test
+  // for a truthiness check — the realistic mistake: exit 1, seven named
+  // failures, one per plausible wrong value.
+  { name: 'applesignin:prove', cmd: npm, args: ['run', 'applesignin:prove'] },
+
+  // THE APPLE CLIENT SECRET IS SIGNED CORRECTLY.
+  //
+  // Apple's OAuth client secret is a signed JWT, not the .p8 — Supabase
+  // refuses the key with "Secret key should be a JWT" and is right to.
+  //
+  // A JWT WITH PERFECT CLAIMS AND A BAD SIGNATURE IS BYTE-FOR-BYTE PLAUSIBLE.
+  // Nothing about it looks wrong; it fails only at Apple, by which point it is
+  // pasted into Supabase, live, and every Apple sign-in is broken with nothing
+  // on our side to look at. So the signature check matters more than all the
+  // claim checks together, and it has a control: the same token must NOT
+  // verify against a different key.
+  //
+  // It signs with a throwaway EC key generated in-process, so it runs here on
+  // any machine with no key material anywhere near the repo — while still
+  // exercising the functions scripts/apple-client-secret.ts calls.
+  //
+  // Also covers the two traps: ES256 needs raw r||s, not Node's default DER
+  // (asserted as 64 bytes), and alg must be checked AGAINST ES256 rather than
+  // read from the token — an alg:none header with an empty signature passes
+  // every claim check there is.
+  { name: 'applesecret:prove', cmd: npm, args: ['run', 'applesecret:prove'] },
+
   // THE HOME HERO IS THE JOB SEARCH, and every number on it comes from the
   // rows. The design gave three figures that were true the day it was drawn:
   // 251 roles, a salary on every one, and NEWEST TODAY. Typed in, the first

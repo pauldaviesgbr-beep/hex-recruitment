@@ -45,10 +45,30 @@ export async function POST(req: Request) {
       // Calls without any auth header are allowed (client-side browser calls)
     }
 
-    // Rate limit: max 5 requests per minute per IP
-    const ip = req.headers.get('x-forwarded-for') || 'unknown'
-    if (!rateLimit(`email-send:${ip}`, 5, 60000)) {
-      return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
+    // RATE LIMIT — AND WHY OUR OWN SERVER IS EXEMPT.
+    //
+    // Five per minute per IP is right for a browser. It was catastrophic for
+    // the SERVER, because every server-originated send shares one bucket: a
+    // fetch from a serverless function to our own public URL arrives with the
+    // platform's egress IP, or with no x-forwarded-for at all — in which case
+    // the key is the literal string 'unknown' and it is ONE bucket for the
+    // whole product.
+    //
+    // So a candidate signing up while three application emails were going out
+    // got a 429, and the caller's .catch(() => {}) threw it away. Nobody was
+    // told, nothing was logged, and the person was simply never greeted. Nine
+    // of twenty candidates in the measurable window.
+    //
+    // Cron and internal calls already identify themselves with CRON_SECRET,
+    // which is server-only and never reaches a browser. Exempting them
+    // narrows the limiter to exactly what it was written to stop — an
+    // anonymous browser hammering the endpoint — and nothing else.
+    if (!isCronCall && !isInternalCall) {
+      const ip = req.headers.get('x-forwarded-for') || 'unknown'
+      if (!rateLimit(`email-send:${ip}`, 5, 60000)) {
+        console.warn('[email/send] RATE LIMITED', { ip, type: req.headers.get('x-email-type') || 'unknown' })
+        return NextResponse.json({ error: 'Too many requests' }, { status: 429 })
+      }
     }
 
     const body = await req.json()
@@ -189,6 +209,37 @@ export async function POST(req: Request) {
         break
       default:
         return NextResponse.json({ error: `Unknown email type: ${type}` }, { status: 400 })
+    }
+
+    // A WELCOME IS SENT ONCE PER PERSON, EVER — ENFORCED HERE RATHER THAN AT
+    // THE CALLERS.
+    //
+    // Three separate paths send this, and one of them fires on EVERY OAuth
+    // sign-in rather than only the first. Today that is harmless only because
+    // the send usually fails: the race and the rate limit were the sole thing
+    // stopping returning candidates being "welcomed" every time they logged
+    // in. Fixing those without this would have turned a silent failure into
+    // repeated mail to real people — a worse bug, shipped as a fix.
+    //
+    // ASKING email_log IS BETTER THAN A GATE IN EACH CALLER, because it is a
+    // fact about what was actually sent rather than an inference about which
+    // branch ran. It cannot drift the way three copies of a condition would.
+    if (type === 'candidate_welcome' && to) {
+      const supabaseLog = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      )
+      const { data: already } = await supabaseLog
+        .from('email_log')
+        .select('id')
+        .eq('email_type', 'candidate_welcome')
+        .eq('success', true)
+        .ilike('recipient', to)
+        .limit(1)
+      if (already && already.length > 0) {
+        console.log('[email/send] candidate_welcome already sent, skipping', { to })
+        return NextResponse.json({ success: true, skipped: 'already_welcomed' })
+      }
     }
 
     const result = await sendEmail(to, email.subject, email.html, undefined, undefined, { emailType: type })

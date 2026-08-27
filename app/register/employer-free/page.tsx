@@ -7,6 +7,7 @@ import Header from '@/components/Header'
 import PasswordInput from '@/components/PasswordInput'
 import GoogleSignInButton from '@/components/GoogleSignInButton'
 import LinkedInSignInButton from '@/components/LinkedInSignInButton'
+import AppleSignInButton from '@/components/AppleSignInButton'
 import { supabase } from '@/lib/supabase'
 import { isValidEmail, isDisposableEmail } from '@/lib/validateEmail'
 import { getStoredAttribution, HEARD_FROM_OPTIONS } from '@/lib/attribution'
@@ -160,6 +161,11 @@ export default function RegisterEmployerFreePage() {
           <GoogleSignInButton role="employer" className={loginStyles.googleBtn} label="Sign up with Google" />
           <div style={{ marginTop: '0.6rem' }}>
             <LinkedInSignInButton role="employer" className={loginStyles.googleBtn} label="Sign up with LinkedIn" />
+            {/* Renders nothing until the provider is configured — see
+                lib/appleSignIn.ts. Same class as its siblings: Apple's
+                guidelines require their button not be visually subordinate
+                to the other providers. */}
+            <AppleSignInButton role="employer" className={loginStyles.googleBtn} label="Sign up with Apple" />
           </div>
           <div className={loginStyles.divider}><span>or</span></div>
 

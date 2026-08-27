@@ -47,6 +47,9 @@
     "consentlane:prove": "npx tsx scripts/prove-consent-lane.ts",
     "noemoji:prove": "npx tsx scripts/prove-no-emoji.ts",
     "dedupsilence:prove": "npx tsx --conditions=react-server scripts/prove-dedup-not-silent.ts",
+    "applesignin:prove": "npx tsx --conditions=react-server scripts/prove-apple-signin.ts",
+    "applesecret:prove": "npx tsx --conditions=react-server scripts/prove-apple-client-secret.ts",
+    "apple:secret": "npx tsx scripts/apple-client-secret.ts",
     "herosearch:prove": "npx tsx scripts/prove-hero-search.ts",
     "feedexpiry:prove": "npx tsx scripts/prove-feed-expiry.ts",
     "erasure:prove": "npx tsx scripts/prove-erasure.ts"
