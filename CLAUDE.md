@@ -463,6 +463,39 @@ Standing rules for Claude Code on this project. These override default behaviour
 These are all real, from this project. A check that passes for the
 wrong reason is worse than no check, because it ends the search.
 
+- A SCRIPT THAT CAN WRITE MUST REFUSE TO GUESS WHERE. Pass the
+  target or skip. Never default, never infer. `prove-employer-delete-gate.ts`
+  fell back to `https://thrivecareer.co.uk` when given no argument, was
+  wired into `npm run verify`, and so ran UNATTENDED AGAINST PRODUCTION —
+  a build that did not yet carry the gate — and really deleted an
+  employer account. It cost nothing because that script's teardown was
+  written properly, which is luck about this script and not a property
+  of the pattern. A default target is a loaded gun pointing wherever the
+  default points, and the shot is fired by somebody who never typed a
+  URL. It now exits 2 with SKIP and says which deployment it needs.
+  - The related half, already applied: A CHECK THAT CANNOT RUN BY
+    DEFAULT DOES NOT BELONG IN `verify`. Wired in, it skipped on every
+    machine and every push, leaving verify permanently NOT VERIFIED —
+    and a red nobody expects to be green is a red nobody reads. Same
+    reasoning as `rlsprobe:prove`.
+
+- THE POSITIVE CONTROL MUST NOT COST MORE THAN THE THING IT PROVES.
+  The obvious way to watch the employer gate fail is to remove it and
+  redeploy — which means publishing a build where employers CAN erase
+  themselves, against a database shared with production and nine real
+  employer accounts. Small window, unbounded cost, wrong trade. The
+  control used instead moves what the check READS rather than removing
+  the check: a fixture whose `user_metadata.role` says employer but who
+  owns no `employer_profiles` row must be erased normally. Same
+  metadata, opposite outcome, decided by the row.
+  - And two real deployments disagreeing is a better control than a
+    broken one anyway — the accidental production run IS the red. Same
+    script, one deployment without the gate and one with, opposite
+    answers, neither of them manufactured.
+  - This does not license skipping the control. It says find one whose
+    blast radius is a fixture. If the only control you can think of is
+    "deploy it broken", the thing to change is the control.
+
 - VERIFY BY PROPERTY, NOT BY THE THING YOU REMOVED. To confirm a
   yellow box is gone, scan for yellow backgrounds — not for the class
   you just deleted. Searching for what you removed passes whether or
