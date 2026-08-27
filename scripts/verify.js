@@ -540,6 +540,19 @@ const ALL = [
   // It was watched failing for real: run against production, which did not
   // yet have the gate, the employer fixture was deleted and three assertions
   // went red. Same script, two deployments, opposite answers.
+  //
+  // navheight:prove IS NOT HERE EITHER, for the same reason: it measures
+  // RENDERED GEOMETRY in a real browser, so it needs a deployment and must
+  // not guess which one. It exits 2 with SKIP given no URL.
+  //
+  //   npm run navheight:prove -- https://<deployment>
+  //
+  // Watched failing on production before the fix: 5 named failures —
+  // --nav-height 3.19px short of the header it describes, /jobs hiding its
+  // own h1 behind it, and /temp-work's heading at y413 of an 844px screen.
+  // Green on the fixed build. It needs no account and no fixture: every
+  // route it visits is public, deliberately, because an auth-gated route
+  // measured signed out reports on the login page instead.
 ]
 const CHECKS = FAST ? ALL.filter(c => !c.slow) : ALL
 

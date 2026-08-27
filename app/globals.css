@@ -82,8 +82,19 @@
   --rs-stage-hired:       #16a34a;
   --rs-stage-declined:    #6b7280;
 
-  /* Nav height — used for body padding + sticky sub-header top */
-  --nav-height: 66px;
+  /* Nav height — used for body padding + sticky sub-header top.
+     MEASURED, NOT CHOSEN. The header renders 69.19px at every mobile width
+     from 320 to 767 (measured on production, 27 Aug 2026). This said 66px,
+     so every one of its fourteen consumers was 3.19px short: `main`'s mobile
+     padding, /job-alerts' clearance, and every `position: sticky; top:
+     var(--nav-height)` filter strip, each of which sat 3px underneath the
+     thing it was supposed to sit below.
+     A declared number and a rendered number are different numbers — the
+     stylesheet said 66 the whole time and nothing disagreed with it. So
+     `navheight:prove` now asserts the AGREEMENT (rendered height <= this
+     value) rather than either number on its own, and goes red if the header
+     ever grows past it. 70px leaves 0.81px of slack. */
+  --nav-height: 70px;
 
   /* Z-index scale */
   --z-base: 1;
