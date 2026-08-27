@@ -133,7 +133,13 @@ function JobAnalyticsContent() {
         // Impressions
         supabase
           .from('job_impressions')
-          .select('id, job_id, user_id, search_query, position, created_at')
+          // search_query IS DELIBERATELY NOT SELECTED. It was, and nothing on
+          // this page ever rendered it — but an unrendered column still
+          // travels: the row reaches the employer's browser, where devtools
+          // shows exactly what candidates typed to find their job. Selecting a
+          // column you do not use is not free when the consumer is a different
+          // person from the subject.
+          .select('id, job_id, user_id, position, created_at')
           .eq('job_id', jobId)
           .order('created_at', { ascending: false }),
         // Applications
