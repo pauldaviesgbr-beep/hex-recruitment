@@ -272,15 +272,26 @@ try {
   // dropped mid-run twice, and an exception out of the loop threw away two
   // good captures that had already succeeded. Each shot is isolated; a
   // promoted file stays promoted.
+  // THE ORDER IS PAUL'S, 27 Aug 2026, and it is the order they appear on the
+  // install sheet: board, home, temp work, job page. Only the first three show
+  // without scrolling. The home page is second because it is the strongest
+  // thing in the set; the job page is last because it sells nothing — no
+  // photograph, since the one direct-employer advert on the board has no
+  // banner and the pages that do belong to recruiters.
   const PLAN = [
     ['01', 'board', '/jobs',
       [['live roles', /chef|manager|receptionist|waiter|sous/i],
        ['a salary', /£\s?\d/]],
       'the whole proposition — real roles, real employers, a search that works'],
 
+    ['02', 'home', '/',
+      [['the proposition', /hospitality/i],
+       ['the live count', /roles live now/i]],
+      'the strongest thing in the set'],
+
     // THE ONLY DIRECT-EMPLOYER ADVERT LIVE ON THE BOARD. Every other live row
     // with a banner belongs to Goldenkeys or Host, both of them recruiters.
-    ['02', 'job', '/job/fdb6007b-3bb9-4620-b8d0-ba674149b0ef',
+    ['04', 'job', '/job/fdb6007b-3bb9-4620-b8d0-ba674149b0ef',
       [['the role', /head chef/i],
        ['the employer', /collins king/i],
        ['a salary', /£\s?\d/]],
@@ -315,7 +326,7 @@ try {
        ['a salary', /£\s?\d/]],
       'the same page with a real banner photo, but a recruiter’s brand — not shipped'],
 
-    ['04', 'cv-builder', '/cv-builder',
+    ['unused-cv-builder', 'cv-builder', '/cv-builder',
       [['the CV tool', /cv/i]],
       'a real product surface, signed out, nothing to consent to'],
 
@@ -328,7 +339,7 @@ try {
     // renders nothing — the word "alert" does not appear on the page at all.
     // Not a login wall either, just empty. Left recorded rather than removed,
     // so the next person does not spend the same ten minutes on it.
-    ['04alt', 'home', '/',
+    ['unused-home-alt', 'home-alt', '/',
       [['the proposition', /hospitality|jobs|roles/i]],
       'the marketing home page — the other signed-out surface worth considering'],
   ]
