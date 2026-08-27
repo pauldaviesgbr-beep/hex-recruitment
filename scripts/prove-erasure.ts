@@ -96,8 +96,13 @@ rec('(a) applications are ANONYMISED, not deleted',
   () => rule('job_applications')?.action, 'anonymise')
 rec('(a) and candidate_id is dropped — without this it is pseudonymisation',
   () => rule('job_applications')?.nullColumns?.includes('candidate_id'), true)
-rec("(a) the employer's own notes are NOT touched",
-  () => rule('job_applications')?.nullColumns?.includes('employer_notes'), false)
+// REVERSED 27 AUG 2026. This used to assert the opposite — that the
+// employer's notes were left alone, "because those are the employer's words".
+// The question is not who wrote it, it is who it IDENTIFIES: a note reading
+// "spoke to Sarah, strong on pastry" is personal data about Sarah whoever
+// typed it, and leaving it defeats the unlinkability the line above demands.
+rec("(a) the employer's notes are cleared too — they name the CANDIDATE",
+  () => rule('job_applications')?.nullColumns?.includes('employer_notes'), true)
 rec('(b) messages keep the row and blank the body',
   () => [rule('messages')?.action,
          rule('messages')?.literalColumns?.[0]?.value], ['anonymise', '[deleted]'])
