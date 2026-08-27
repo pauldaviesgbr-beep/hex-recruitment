@@ -53,7 +53,8 @@
     "invitecode:prove": "npx tsx --conditions=react-server scripts/prove-invite-code.ts",
     "herosearch:prove": "npx tsx scripts/prove-hero-search.ts",
     "feedexpiry:prove": "npx tsx scripts/prove-feed-expiry.ts",
-    "erasure:prove": "npx tsx scripts/prove-erasure.ts"
+    "erasure:prove": "npx tsx scripts/prove-erasure.ts",
+    "erasurelive:prove": "npx tsx --conditions=react-server scripts/prove-erasure-live.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.98.0",

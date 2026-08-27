@@ -76,11 +76,28 @@ export const ERASURE_PLAN: TableRule[] = [
   // person survives, this is PSEUDONYMISATION — still personal data, and it
   // does not satisfy an erasure request. Verified nullable before building.
   { table: 'job_applications', column: 'candidate_id', action: 'anonymise',
-    nullColumns: ['candidate_id', 'cv_url', 'cover_letter', 'screening_answers'],
+    nullColumns: ['candidate_id', 'cv_url', 'cover_letter', 'screening_answers', 'employer_notes'],
     why: "Decision (a). The employer keeps the application and its status history; the person becomes unlinkable. " +
          "cover_letter and screening_answers are cleared because they are the candidate's own free text and " +
          "routinely contain their name and contact details — leaving them would defeat the unlinkability the " +
-         "decision explicitly requires. employer_notes is NOT touched: those are the employer's words." },
+         "decision explicitly requires. " +
+         // employer_notes JOINED THIS LIST ON 27 AUG 2026, REVERSING AN EARLIER
+         // DECISION. It used to be exempt, on the reasoning that "those are the
+         // employer's words".
+         //
+         // THE QUESTION IS NOT WHO WROTE IT. IT IS WHO IT IDENTIFIES. A note
+         // reading "spoke to Sarah, strong on pastry, available from the 3rd"
+         // is personal data about Sarah whoever typed it, and leaving it
+         // defeats the very unlinkability the sentence above demands. That
+         // sentence was already written, one clause earlier, about exactly this
+         // risk — it simply was not carried across to the next field.
+         //
+         // Changed while it was free: 87 applications, ZERO notes, longest note
+         // 0 characters. Nobody had ever written one. Doing it later would have
+         // meant deciding what to do with real employer content, which is a
+         // different and worse conversation.
+         "employer_notes is cleared for the same reason: it is the employer's writing but the CANDIDATE'S " +
+         "personal data, and an erasure that leaves a note naming the person has not erased them." },
 
   // ── PAUL'S DECISION (b): MESSAGES — their words go, the other side stays ──
   { table: 'messages', column: 'sender_id', action: 'anonymise',

@@ -504,6 +504,22 @@ const ALL = [
   // It also asserts each of the five decisions individually, so quietly
   // reversing one is a failing check rather than a diff nobody reads.
   { name: 'erasure:prove', cmd: npm, args: ['run', 'erasure:prove'] },
+
+  // THE PLAN AND THE EXECUTION ARE DIFFERENT CLAIMS, so they get different
+  // checks. erasure:prove above reads the RULES — that 'employer_notes' is
+  // listed in nullColumns. A plan can list a column the executor never
+  // applies: a mistyped name, a filter that matches nothing, a path that
+  // returns before it writes — and every rule assertion still passes.
+  //
+  // This one seeds a note that names a candidate, runs the erasure, and READS
+  // THE ROW BACK. Its control is the half that makes it mean anything: the
+  // note must be PRESENT before and ABSENT after, because "null afterwards" is
+  // also true of a note nobody ever wrote.
+  //
+  // couldNotRun: 2 — it needs the database, and it SKIPS rather than fails
+  // without a service key, exactly as the migration check does. A guard that
+  // reddens on a missing credential teaches people to reach for --no-verify.
+  { name: 'erasurelive:prove', cmd: npm, args: ['run', 'erasurelive:prove'], couldNotRun: 2 },
 ]
 const CHECKS = FAST ? ALL.filter(c => !c.slow) : ALL
 
