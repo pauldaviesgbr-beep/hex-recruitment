@@ -7,7 +7,7 @@ export function candidateWelcomeEmail(candidateName: string): { subject: string;
   const html = emailLayout(subject, `
     <h1 style="margin:0 0 16px;font-size:22px;font-weight:700;color:#1e293b;">Welcome to Thrive, ${firstName}!</h1>
     <p style="margin:0 0 16px;font-size:15px;color:#475569;line-height:1.6;">
-      Your profile is live and employers can now find you. Here's how to get the most out of Thrive:
+      Your account's ready. Add a job title and the areas you'd work in, and we'll start matching you to roles. Here's how to get the most out of Thrive:
     </p>
     <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 24px;width:100%;">
       <tr>
