@@ -437,6 +437,20 @@ const ALL = [
   // read from the token — an alg:none header with an empty signature passes
   // every claim check there is.
   { name: 'applesecret:prove', cmd: npm, args: ['run', 'applesecret:prove'] },
+  // THE TEAM-INVITE CODE — a stronger proof of the same claim, not a weaker
+  // gate. accept_employer_invite compares the signed-in address to the invited
+  // one as strings; a code sent to the invited mailbox proves the thing that
+  // string was standing in for. A string can be typed by anybody.
+  //
+  // The load-bearing assertions are the binding ones: a code must open ONE
+  // invite, for ONE address, for about half an hour. A code that opened any
+  // invite would be weaker than what it replaced AND would pass every
+  // happy-path test identically.
+  //
+  // Watched failing on purpose 26 Aug 2026 by dropping the member id out of
+  // the HMAC payload: exit 1, three named failures, including the one that
+  // exists to stop the other two passing for the wrong reason.
+  { name: 'invitecode:prove', cmd: npm, args: ['run', 'invitecode:prove'] },
 
   // THE HOME HERO IS THE JOB SEARCH, and every number on it comes from the
   // rows. The design gave three figures that were true the day it was drawn:
