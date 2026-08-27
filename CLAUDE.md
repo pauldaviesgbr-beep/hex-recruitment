@@ -372,6 +372,25 @@ Standing rules for Claude Code on this project. These override default behaviour
   - **Neither cost anything, and the reason is the same both times: the instruction was to VERIFY BEFORE ACTING, and verifying took minutes.** Acting on either would have meant "fixing" something already fixed, and in the second case rewriting a public policy to describe a workflow that no longer existed.
   - **THE SOURCE WAS A ROLLING GMAIL DRAFT** — the same mechanism named in the entry below, where three contradictions lived until only two could be evidenced. A report is a photograph. **Before acting on a finding older than today, re-read the thing it describes**, and say in the report which state you observed rather than which report you read.
 
+## Deleting an account
+
+- **AN EMPLOYER CANNOT SELF-DELETE, AND THE GATE THAT STOPS THEM IS NOT THE ANSWER — IT IS A HOLD WHILE A PRODUCT DECISION IS MADE.** Added 27 Aug 2026 because the fault was live: `/settings/privacy` is shared by both roles, the delete panel was not gated, and `/api/account/delete` did not check role either. **Nine employer accounts could have lost their login while 319 adverts — 251 of them live on the public board — stayed behind owned by a user id that no longer existed.**
+  - **THE ERASURE PLAN IS CANDIDATE-SHAPED.** Every rule in `lib/erasure.ts` reasons about a candidate. `employer_profiles`, `jobs` and `subscriptions` are not in it, **and none of those three tables has a foreign key**, so nothing cascades and nothing would have warned anybody.
+  - **THE SIGNAL IS A ROW, NOT A CLAIM.** The gate asks whether the caller owns an `employer_profiles` row. It must never key on `user_metadata.role`, because **the user can rewrite that themselves** with `supabase.auth.updateUser({ data: { role: … } })`. Where the client's idea of its role and the database disagree, the database wins. A fixture whose metadata says employer but who owns no profile row is erased normally, which is exactly the discriminator the proof runs.
+  - **THE CHECK GOES BEFORE `eraseAccount`, NOT INSIDE IT.** A refusal arriving after the first table is a half-erased account that also returned a tidy error.
+  - **A TEAM MEMBER IS DELIBERATELY NOT CAUGHT** — they own no profile row, `employer_members` IS in the plan, and their leaving costs the employer nothing.
+
+- **THE REAL QUESTION, WHICH NOBODY HAS ANSWERED: WHEN AN EMPLOYER LEAVES, WHAT HAPPENS TO EVERYTHING THAT IS NOT THEIRS ALONE?** Do not read the gate as the job being done.
+  - **The adverts.** 319 of them, 251 live. Archived, or left ownerless? **An advert with no employer behind it is a promise to a candidate that nobody can keep.**
+  - **The applications underneath them.** Candidates applied to those jobs. That is candidate data the employer holds as controller — it does not vanish because the employer's login does.
+  - **The subscription and the founding-cohort entitlement.**
+  - **AND THE LEGAL SHAPE, so the gate is not mistaken for dodging an obligation:** the erasure right covers the ACCOUNT HOLDER'S personal data — their name, their email. The company's job adverts are business records, and the applications under them are candidate data held by the employer as controller. **Routing a business account to a human is a legitimate answer and it is what most B2B products do.** It is not a workaround.
+  - The screen sends them to **contact@thrivecareer.co.uk**, which is proven to receive real inbound mail. Do not print an address here that has not been tested — `privacy@` was on the policy four times and never existed.
+
+- **THE 24-MONTH ANALYTICS ROW IS A FAULT WITH A FUSE ON IT, AND THE FUSE IS THE USEFUL FACT.** The privacy policy says *"Usage and analytics data — 24 months — then anonymised or deleted"*. **Nothing prunes them.** There are seven crons — activation-emails, interview-reminders, job-expiry, reap-unconfirmed, job-digest, discoverability-flip, duplicate-release — and none touches `job_views` or `job_impressions`.
+  - **It is not false yet.** Measured 27 Aug 2026: the oldest view is 18 Jun 2026 and the oldest impression 19 Jun 2026, both about two months old. **It becomes false in JUNE 2028 and nothing will act.**
+  - Left alone deliberately. Recorded with its date because a promise with no mechanism is only findable if somebody wrote down when it starts lying — the same shape as the Apple client secret lapsing 22 Feb 2027.
+
 ## The three policy contradictions — found, settled, and written down at last
 
 - **ALL THREE LIVED ONLY IN A ROLLING GMAIL DRAFT FOR DAYS, AND THAT IS THE REAL FAULT.** On 27 Aug 2026 they were asked for by number and only **two** could be evidenced — the third had to be recovered from a report dated two days earlier. Nothing in the repo held them. **An item that lives only in a report is one refresh from gone**, and the rolling draft has already destroyed two documents (the aggregator SQL and the 51-object orphan list, both 24 Aug). The right response to "I can only evidence two" was not to invent a third; it was to notice that none of them were written down.

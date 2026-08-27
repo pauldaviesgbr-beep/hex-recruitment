@@ -39,11 +39,28 @@ if (existsSync(envPath)) {
 const URL_ = env.NEXT_PUBLIC_SUPABASE_URL
 const KEY = env.SUPABASE_SERVICE_ROLE_KEY
 const ANON = env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-const BASE = process.argv[2] || 'https://thrivecareer.co.uk'
+// NO DEFAULT BASE URL, AND THAT IS DELIBERATE.
+//
+// It used to fall back to https://thrivecareer.co.uk. Then `npm run verify`
+// ran it with no argument and the proof pointed itself at PRODUCTION — which
+// was the ungated build, so the fixture employer was really deleted, its
+// employer_profiles row really orphaned, and only the teardown cleaned up.
+//
+// A test that quietly chooses production when nobody told it where to go is a
+// test that will one day do that to something it cannot put back. It now
+// refuses to guess: pass a URL, or set DELETE_GATE_BASE_URL, or it SKIPS.
+const BASE = process.argv[2] || process.env.DELETE_GATE_BASE_URL || ''
 const BYPASS = env.VERCEL_AUTOMATION_BYPASS_SECRET
 
 if (!URL_ || !KEY || !ANON) {
   console.log('SKIP  no Supabase credentials — this proof needs the database and a live route.')
+  process.exit(2)
+}
+if (!BASE) {
+  console.log('SKIP  no base URL. This proof creates and deletes real accounts, so it will not')
+  console.log('      guess which deployment to point at. Pass one as an argument, or set')
+  console.log('      DELETE_GATE_BASE_URL. It must be a deployment CARRYING the gate — running')
+  console.log('      it against a build without one deletes the fixture employer for real.')
   process.exit(2)
 }
 
@@ -130,6 +147,45 @@ async function main() {
     const { count: advertCount } = await admin.from('jobs')
       .select('id', { count: 'exact', head: true }).eq('employer_id', OWNER)
     check('the test employer’s adverts are untouched', (advertCount ?? 0) > 0, String(advertCount) + ' adverts')
+
+    console.log('\nTHE DISCRIMINATOR — the gate keys on the ROW, not on the CLAIM')
+    // WHY THIS EXISTS INSTEAD OF DEPLOYING A BROKEN GATE. The obvious way to
+    // watch a guard fail is to remove it and re-run. This one is server-side,
+    // so that means deploying a build where employers CAN self-delete, against
+    // a database shared with production and nine real employer accounts. The
+    // window is small and the cost is unbounded, so it is the wrong trade.
+    //
+    // This asks the same question — can the check tell the two states apart? —
+    // by moving the thing the check reads instead of removing the check. A
+    // user whose METADATA says employer but who owns NO employer_profiles row
+    // must be erased. If the gate were keyed on user_metadata.role, which the
+    // user can rewrite via supabase.auth.updateUser, this would be refused.
+    const spoofEmail = `pauldavies.gbr+gatespoof${stamp}@gmail.com`
+    const { data: spoof, error: e4 } = await admin.auth.admin.createUser({
+      email: spoofEmail, password: PW, email_confirm: true,
+      user_metadata: { role: 'employer' },        // claims to be an employer
+    })
+    if (e4) throw new Error('spoof createUser: ' + e4.message)
+    const spoofId = spoof.user.id
+    await admin.from('candidate_profiles').insert({
+      user_id: spoofId, email: spoofEmail, full_name: `Zz Spooffixture${stamp}`, is_discoverable: false,
+    })
+    const { data: noProf } = await admin.from('employer_profiles')
+      .select('id').eq('user_id', spoofId).maybeSingle()
+    check('metadata says employer, but no employer_profiles row', !noProf, "role='employer'")
+
+    const spoofToken = await signIn(spoofEmail, PW)
+    const spoofRes = spoofToken ? await callDelete(spoofToken) : { status: 0, body: {} as any }
+    check('THE GATE LETS THEM THROUGH — it read the row, not the claim',
+      spoofRes.status === 200, 'HTTP ' + spoofRes.status)
+    const spoofGone = await admin.auth.admin.getUserById(spoofId).catch(() => ({ data: null } as any))
+    check('…and they were actually erased', !spoofGone?.data?.user)
+    if (spoofGone?.data?.user) {
+      await admin.from('candidate_profiles').delete().eq('user_id', spoofId).then(() => {}, () => {})
+      await admin.auth.admin.deleteUser(spoofId).catch(() => {})
+    }
+    check('SO THE CHECK DISTINGUISHES THE TWO STATES', spoofRes.status === 200,
+      'same metadata, opposite outcome, decided by the row')
 
     console.log('\nTHE CONTROL — a candidate must still be erased, or the gate proves nothing')
     const candToken = await signIn(candEmail, PW)

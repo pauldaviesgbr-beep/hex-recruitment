@@ -520,6 +520,26 @@ const ALL = [
   // without a service key, exactly as the migration check does. A guard that
   // reddens on a missing credential teaches people to reach for --no-verify.
   { name: 'erasurelive:prove', cmd: npm, args: ['run', 'erasurelive:prove'], couldNotRun: 2 },
+
+  // deletegate:prove IS DELIBERATELY NOT IN THIS LIST, the same way
+  // rlsprobe:prove is not.
+  //
+  // It proves an employer cannot self-delete, and it does that by CREATING
+  // AND DELETING REAL ACCOUNTS against a deployed route. Two things follow:
+  // it needs a base URL nobody can guess for it, and it needs that
+  // deployment to be one CARRYING the gate — pointed at a build without it,
+  // the fixture employer is really erased.
+  //
+  // Wired in here it SKIPPED on every machine and every push, because there
+  // is no URL to give it by default. That turns `verify` permanently
+  // NOT VERIFIED, and a check that is expected to be red is a check nobody
+  // reads — which is the argument this file exists to protect.
+  //
+  //   npm run deletegate:prove -- https://<the-deployment-carrying-the-gate>
+  //
+  // It was watched failing for real: run against production, which did not
+  // yet have the gate, the employer fixture was deleted and three assertions
+  // went red. Same script, two deployments, opposite answers.
 ]
 const CHECKS = FAST ? ALL.filter(c => !c.slow) : ALL
 
