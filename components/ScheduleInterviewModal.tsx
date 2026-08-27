@@ -6,6 +6,7 @@ import { notify } from '@/lib/notify'
 import { getCurrentEmployerOwnerId } from '@/lib/employer'
 import styles from './ScheduleInterviewModal.module.css'
 import { Ico } from '@/components/icons'
+import { notifyByEmail, type EmailOutcome } from '@/lib/notifyByEmail'
 
 const INTERVIEW_TYPES = [
   { value: 'in-person', label: 'In-Person' },
@@ -70,7 +71,8 @@ interface ScheduleInterviewModalProps {
   jobLocation?: string
   existingInterviewId?: string
   existingMeetingLink?: string
-  onSuccess: () => void
+  /** Whether the scheduling-link EMAIL landed, so the toast can be honest. */
+  onSuccess: (emailOutcome: EmailOutcome) => void
 }
 
 // Format "HH:MM" → "9:00am"
@@ -453,7 +455,10 @@ export default function ScheduleInterviewModal({
       ]
       await sendCandidateMessage(session.user.id, msgLines.join('\n'))
 
-      onSuccess()
+      // 'skipped': this path books through /api/calendar/book, which owns its
+      // own email. No self-schedule invite is sent here, so there is no
+      // outcome to report and the toast must not claim one.
+      onSuccess('skipped')
       onClose()
       // Reset local state
       setSelectedDate('')
@@ -554,20 +559,19 @@ export default function ScheduleInterviewModal({
       // "N days in [Stage]" badge and the "Oldest in stage" sort order.
       await supabase.from('job_applications').update({ status: 'interview', status_updated_at: new Date().toISOString(), stage_entered_at: new Date().toISOString() }).eq('id', applicationId)
 
-      // Send email with scheduling link
-      fetch('/api/email/send', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type: 'interview_self_schedule_invite',
-          data: {
-            candidateName,
-            companyName: company,
-            jobTitle,
-            scheduleLink,
-          },
-        }),
-      }).catch(() => {})
+      // THE SCHEDULING LINK — AWAITED, so the toast can tell the truth.
+      //
+      // /pipeline said "Moved to Interview. Schedule sent to <name>." whether
+      // or not this went. Unlike the offer, the scheduling LINK is the whole
+      // point: without it the candidate has nothing to click and no way to
+      // pick a slot. An in-app message follows below, but the email is what
+      // reaches somebody who is not watching Thrive.
+      const inviteEmail = await notifyByEmail({
+        to: candidateEmail,
+        type: 'interview_self_schedule_invite',
+        data: { candidateName, companyName: company, jobTitle, scheduleLink },
+        from: 'ScheduleInterviewModal',
+      })
 
       // Send in-app message
       await sendCandidateMessage(
@@ -575,7 +579,7 @@ export default function ScheduleInterviewModal({
         `Hi ${candidateName}, I'd like to invite you to interview for ${jobTitle || 'this role'}. Please pick a time that works for you: ${scheduleLink}`
       )
 
-      onSuccess()
+      onSuccess(inviteEmail)
     } catch (err: any) {
       setError(err.message || 'Something went wrong')
     } finally {
@@ -805,7 +809,11 @@ export default function ScheduleInterviewModal({
 
       await sendCandidateMessage(session.user.id, messageContent)
 
-      onSuccess()
+      // 'skipped', not a claim. This path's own emails — interview_scheduled
+      // and interview_rescheduled, both above — are still fire-and-forget.
+      // They are Group A too and are deliberately NOT fixed in this pass, so
+      // nothing is asserted about them either way.
+      onSuccess('skipped')
 
       if (slots[0].date && slots[0].time) {
         handleOpenCalendar()
