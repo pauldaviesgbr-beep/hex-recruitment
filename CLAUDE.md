@@ -332,6 +332,24 @@ Standing rules for Claude Code on this project. These override default behaviour
 
 ## The iOS app — things that will not be obvious in a year
 
+- **THE APP PRIVACY LABELS ARE A PUBLISHED DECLARATION, AND NOTHING ELSE IN THIS REPO RECORDS WHAT WAS TICKED.** Published 27 Aug 2026 against Apple ID **6805802815**. **Eleven data types, ALL linked to the user, NONE used for tracking:**
+
+      Name · Email Address · Phone Number · Physical Address
+      Emails or Text Messages · Photos or Videos · Other User Content
+      User ID · Device ID
+      Product Interaction · Search History
+
+  **Purposes:** App Functionality on all eleven. **Analytics** additionally on Product Interaction and Search History (our own first-party analytics — `job_views`, `job_click_events`, `job_impressions`, surfaced on the two analytics pages; first-party analytics is NOT tracking). **Developer's Advertising or Marketing** additionally on Email Address, because the roundup and digest are marketing sent directly to users.
+  **Answered NO:** Tracking, Financial Info, Location, Sensitive Info, Health, Contacts, Browsing History, Purchases, Diagnostics, Surroundings, Body.
+  - **SEARCH HISTORY WAS VERY NEARLY DECLARED FALSELY.** A first pass reported "no third-party analytics, so nothing to declare" without ever asking whether WE store searches. We do: `job_impressions.search_query`, 5,102 rows, 4,558 linked to a user, written by `hooks/useAnalyticsTracking.ts:110` from `app/jobs/page.tsx:523`. It was the single label that would have been false, and it came from being told to go and look rather than re-assert.
+  - **DIAGNOSTICS IS NO, AND IT WAS MEASURED THREE WAYS** rather than inferred from an absent package: no `@sentry/*` or equivalent in dependencies; the Web Analytics API returns `404 {"code":"not_found"}` for the project; and Speed Insights shows its Get Started page with "No events collected". An absent package is suggestive; those three together are an answer.
+
+- **THE LABELS DESCRIBE THE BINARY AND THE PRODUCT AS SUBMITTED, NOT THE ROADMAP — AND OVER-DECLARING IS NOT THE CAUTIOUS SIDE.** They render publicly on the store page where candidates read them, and they are editable at any time WITHOUT resubmitting a build. So declare what is true now and revise when it changes; there is never a reason to tick something "just in case". **A future version submitted with different behaviour and the same labels is a false declaration**, and nobody will remember what was ticked in August. These are the moments to recognise:
+  - **DIAGNOSTICS becomes YES (Performance Data)** the day `@vercel/speed-insights` is installed **OR** Speed Insights is enabled on the Vercel project. **Two separate switches and either one flips it** — the package without the setting, or the setting without the package, both collect.
+  - **TRACKING becomes YES, and an ATT prompt becomes mandatory**, the day any third-party analytics, advertising or attribution SDK ships. Given the LinkedIn and Google outreach, **the LinkedIn Insight Tag and the Meta pixel are the likely ones** — and a marketing tag is exactly the thing that gets added by someone who is not thinking about a privacy declaration.
+  - **PRODUCT PERSONALIZATION attaches to Physical Address** the day recommendations rank on location, **and to Other User Content** the day `cv_derived` actually feeds matching. It scores nothing today, which is the only reason it is not declared now.
+  - **FINANCIAL INFO becomes YES** the day anything is purchasable. Profile Boost is a real IAP when it comes; employer tiers stay on the web and must not become reachable in-app.
+
 - **APPLE'S PRIVATE RELAY REWRITES THE SENDER, NOT JUST THE RECIPIENT — WHICH IS WHY THE EMAIL-SOURCE REGISTRATION IS A DELIVERY DEPENDENCY AND NOT A CHECKBOX.** A welcome email that reached a Hide My Email candidate on 27 Aug 2026 arrived from:
 
       noreply_at_thrivecareer_co_uk_gy89tg2wpz_63025b5d@privaterelay.appleid.com
