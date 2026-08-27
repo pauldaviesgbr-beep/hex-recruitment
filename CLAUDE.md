@@ -403,6 +403,24 @@ Standing rules for Claude Code on this project. These override default behaviour
   - **Changed while it was free: 87 applications, ZERO notes, longest note 0 characters.** Nobody had ever written one. Later it would have meant deciding what to do with real employer content, which is a different and worse conversation. **Re-measure before assuming that is still true.**
   - **AND THE PROOF NOW RUNS THE ERASURE RATHER THAN READING THE PLAN.** `erasure:prove` asserts the rule shape; `erasurelive:prove` seeds a note that names a candidate, erases, and reads the row back. **A plan can list a column the executor never applies** — a mistyped name, a filter matching nothing, a path returning before it writes — and every rule assertion still passes. Watched failing on purpose: removing the column from the plan gives three named failures including `THE EMPLOYER NOTE IS GONE … STILL THERE`. It skips rather than fails without a service key, as the migration check does.
 
+## The fixed mobile header
+
+- **AT <=768px THE HEADER IS `position: fixed`, SO IT RESERVES NO SPACE — AND `--nav-height` UNDERSTATED IT BY 3.19px FOR EVERYONE.** `components/Header.module.css` flips `.header` from `sticky` to `fixed` on mobile. `globals.css` compensates with `main { padding-top: var(--nav-height) }`. The variable said **66px**; the header renders **69.19px at every width from 320 to 767**, measured. So all **fourteen** consumers were 3px short, including three `position: sticky; top: var(--nav-height)` filter strips sitting 3px underneath the header they were meant to sit below.
+  - Same family as `width: 112px` rendering at 145px: **a declared number and a rendered number are different numbers, and the stylesheet never disagrees with itself.** `navheight:prove` now asserts the AGREEMENT — rendered height <= declared — so the header growing goes red instead of a heading silently sliding under. It is 70px, leaving 0.81px of slack.
+
+- **`main.no-pad` IS THE OPT-OUT, AND OPTING OUT OF THE PADDING MEANS OPTING OUT OF THE CLEARANCE.** It exists so a dark sub-header band can sit flush, and it zeroes the mobile `padding-top`. Ten pages use it. Two of them then cleared nothing themselves: **`/jobs`** (own band padding 0.8rem) and **`/candidates`** (1.25rem), so `Find Your Next Role` and `Candidates` were rendered **completely behind the header**, and the board's first search input was clipped by 11px — which is why the page read as having failed to load. `/job-alerts` already carried the right fix and was still 2px short, purely from the bad constant.
+  - **If a page uses `no-pad`, its first band owns the clearance.** The idiom is `padding-top: calc(var(--nav-height) + <its own>)`, which `/reviews`, `/saved-jobs` and `/jobs/recommended` already used.
+
+- **A MEDIA QUERY ADDS NO SPECIFICITY, SO A SHORTHAND DECLARED LATER WINS — AND THE FIX SILENTLY DOES NOTHING.** The `/candidates` fix was first written into the `@media (max-width: 768px)` block at line 1177, while `.searchSection { padding: 1.25rem 0 1rem }` sits at line 1292. The shorthand resets `padding-top`, comes later, and wins. **The page measured exactly as broken as before and the diff looked correct.** The rule has to sit AFTER the declaration it overrides. Hit twice in one hour — the same thing happened to `.feedHead`'s `margin-bottom` on `/temp-work`.
+
+- **AN AUTH-GATED ROUTE MEASURED WHILE SIGNED OUT REPORTS ON THE LOGIN PAGE.** The first sweep called `/candidates` clear. It was measuring `/login`, which is clear. **Record where the drive LANDED, not where it was sent** — the check now fails a route that redirected rather than passing it, because a redirect proves nothing about the page you asked for. Same spine as the recovery-landing control.
+
+- **A `display: none` ELEMENT HAS `visibility: 'visible'` AND A 0,0,0,0 RECT.** So it looks exactly like an element painting at the top-left corner. That is how a "ghost Apply Now across every job page header" was reported **that does not exist**: the job page's sidebar is correctly `display: none` at <=768px, and the header's pixels are flat navy. Two instruments agreed — a probe that filtered on `visibility` and my own reading of a downscaled preview — and both were pointed at the wrong thing.
+  - **`Element.checkVisibility()` knows the difference** and is what the check uses. A bare `visibility`/`opacity` filter does not.
+  - The correction came from cropping the actual PNG and magnifying it. **Prefer a representation that cannot lie**: the pixels, not a description of them.
+
+- **THE BOARD IS 231 GOLDENKEYS / 19 HOST / 1 DIRECT EMPLOYER.** Three companies hold all 251 live adverts, and exactly one of them — Collins King & Associates — is not a recruiter. 250 of 251 carry a banner image and every one belongs to a recruiter; the single direct advert has none, so its job page paints a flat gradient. **"A real employer with a real banner" does not currently exist on the board.** Recorded 27 Aug 2026 because it is the sharpest statement of the acquisition problem anyone has produced, not because it is a task.
+
 ## Product boundary
 
 - **Thrive is a recruitment product, not HR/onboarding software.** Do not build visa/right-to-work compliance logic (visa types, hours-limited conditions, document acceptance, DBS levels, a rules engine, etc.) beyond a simple confirmation flag the employer ticks once they've verified through their own proper channel. Deeper compliance is integration territory (dedicated HR systems / a future integration), not something we model or store here — no candidate documents, no special-category data.
@@ -462,6 +480,24 @@ Standing rules for Claude Code on this project. These override default behaviour
 
 These are all real, from this project. A check that passes for the
 wrong reason is worse than no check, because it ends the search.
+
+- AN ASSERTION THAT PASSES ON A BROKEN PICTURE IS NOT A PASS.
+  LOOK AT THE SCREEN. On 27 Aug 2026 four App Store screenshots were
+  captured with every assertion green — content present, no fixtures,
+  no emoji, no cookie banner, the file exactly 1284x2778 read from the
+  PNG header — and TWO LIVE BUGS were visible in them. `/jobs` rendered
+  its own <h1> ENTIRELY BEHIND the fixed header, and `/temp-work` put
+  45% of a phone screen of filter chips above the sentence that says
+  what the page is. Both had presumably been true for weeks. Nobody
+  noticed because nobody had looked at the product on a phone.
+  - The assertions were not wrong. They were about the DOM, and every
+    element was present, correct and in it. Presence is not visibility,
+    and a check that asks the DOM cannot tell you what a person sees.
+  - This is the same division already in this file — state beats screen
+    for whether it is CORRECT, screen beats state for whether it is
+    FINISHED — but it had only ever been applied to our own drives. The
+    lesson is that it applies to the PRODUCT: open the page, at the size
+    a person holds, and look.
 
 - A SCRIPT THAT CAN WRITE MUST REFUSE TO GUESS WHERE. Pass the
   target or skip. Never default, never infer. `prove-employer-delete-gate.ts`

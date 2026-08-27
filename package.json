@@ -55,7 +55,9 @@
     "feedexpiry:prove": "npx tsx scripts/prove-feed-expiry.ts",
     "erasure:prove": "npx tsx scripts/prove-erasure.ts",
     "erasurelive:prove": "npx tsx --conditions=react-server scripts/prove-erasure-live.ts",
-    "deletegate:prove": "npx tsx --conditions=react-server scripts/prove-employer-delete-gate.ts"
+    "deletegate:prove": "npx tsx --conditions=react-server scripts/prove-employer-delete-gate.ts",
+    "navheight:prove": "node scripts/prove-mobile-header-clearance.mjs",
+    "appstore:capture": "node scripts/capture-app-store-shots.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.98.0",

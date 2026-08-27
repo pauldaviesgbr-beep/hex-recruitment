@@ -1290,6 +1290,22 @@
     which is where the app already uses it — a dark hero over a light grid was
     the theme flipping twice inside one screen. */
 .searchSection { background: #f8fafc; padding: 1.25rem 0 1rem; border-bottom: 1px solid #e2e8f0; }
+
+/* SAME FAULT AS /jobs, SAME CAUSE. `<main class="no-pad">` zeroes the mobile
+   padding that clears the fixed header, and this band's own 1.25rem is not
+   enough — the "Candidates" heading rendered entirely behind it.
+   TWO THINGS MADE IT HARD TO SEE, and both are worth the space:
+   · Signed out this route redirects to /login, so the first sweep measured
+     the login page and reported /candidates clear. It only appeared once the
+     sweep signed in.
+   · The fix was first written into the @media block higher up this file and
+     did nothing, because the shorthand `padding` above comes LATER in source
+     order and a media query adds no specificity. It has to sit after the rule
+     it is overriding, which is why it is here rather than with the other
+     mobile rules. */
+@media (max-width: 768px) {
+  .searchSection { padding-top: calc(var(--nav-height) + 1.25rem); }
+}
 .searchInner { max-width: 980px; margin: 0 auto; padding: 0 1.5rem; }
 .searchSectionTitle { font-family: var(--font-serif), var(--font-serif), Georgia, serif; font-size: 30px; font-weight: 700; letter-spacing: -0.025em; color: #0f172a; margin: 0 0 0.25rem; text-align: left; }
 .searchSectionSub { font-size: 14.5px; color: #475569; margin: 0 0 0.85rem; max-width: 640px; }

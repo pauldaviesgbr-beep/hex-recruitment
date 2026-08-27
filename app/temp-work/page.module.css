@@ -1,6 +1,24 @@
 .page { max-width: 1200px; margin: 0 auto; padding: 1.5rem 1.5rem 3rem; }
 .grid { display: grid; grid-template-columns: 230px minmax(0, 1fr) 280px; gap: 1.5rem; align-items: start; }
 
+/* EXPLICIT PLACEMENT, BECAUSE THE HEADING IS NOW A GRID CHILD.
+   It was moved out of .feed so that a phone — where this collapses to one
+   column and source order is the layout — sees the h1 before the filters.
+   Auto-placement would then put it in the filter column, so the three
+   desktop children are pinned to reproduce exactly what was there before:
+   heading above the cards in the middle column, rails full height either
+   side. Measured at 1280 and 1024 before and after; nothing moved. */
+/* The heading is its own grid ROW now, so the row gap provides the space that
+   .feedHead's own margin-bottom used to. Left as it was, the two stacked and
+   the first card sat 24px lower than before the move — measured, not guessed.
+   Row gap 1rem reproduces the old 16px exactly; the 1.5rem column gap between
+   the rails and the feed is untouched. */
+.grid      { row-gap: 1rem; }
+.feedHead  { grid-column: 2; grid-row: 1; }
+.leftRail  { grid-column: 1; grid-row: 1 / span 2; }
+.feed      { grid-column: 2; grid-row: 2; }
+.rightRail { grid-column: 3; grid-row: 1 / span 2; }
+
 /* ── Rails ── */
 .leftRail, .rightRail { position: sticky; top: 1.5rem; }
 .filterTitle { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #94a3b8; margin: 0 0 0.5rem; }
@@ -40,7 +58,10 @@
    aspect-ratio 16/11, so capping the width shrank the card and left dead space
    to the right of it. Width comes from the column, height from the ratio. */
 .feed { width: 100%; }
-.feedHead { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; }
+/* No margin-bottom: the heading is a grid ROW of its own now, so the grid's
+   1rem row gap provides exactly the separation this margin used to. Keeping
+   both stacked them and pushed the first card 16px down on desktop. */
+.feedHead { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
 .h1 { font-size: 1.5rem; font-weight: 800; color: #0f172a; letter-spacing: -0.4px; margin: 0 0 0.2rem; }
 .h1sub { font-size: 0.88rem; color: #64748b; margin: 0; }
 .feedPostBtn { display: none; }
@@ -190,7 +211,7 @@
      logo, then instructions, then the roles somewhere past the fold. A chef
      opening this wants the shifts. Underneath, the roles come first and the
      explanation is still there for anyone who scrolls looking for it. */
-  .rightRail { position: static; grid-column: 2; margin-top: 0.25rem; }
+  .rightRail { position: static; grid-column: 2; grid-row: 3; margin-top: 0.25rem; }
   .feedPostBtn { display: inline-block; flex-shrink: 0; padding: 0.5rem 0.9rem; background: #ffe500; color: #0f172a; font-weight: 700; font-size: 0.85rem; border-radius: 9px; text-decoration: none; }
 }
 @media (max-width: 760px) {
@@ -200,9 +221,12 @@
   .catCol { flex-direction: row; flex-wrap: wrap; }
   .catBtn { width: auto; border: 1px solid #e2e8f0; border-radius: 999px; }
   .roleChips { padding-left: 0; width: 100%; }
-  /* Single column here, so the panel is the third child and already falls below
-     the feed — it just needs releasing from column 2. */
-  .rightRail { grid-column: 1; }
+  /* ONE COLUMN, SO SOURCE ORDER IS THE LAYOUT — and every explicit placement
+     from the desktop rules has to be released or it will fight it. With them
+     pinned, the heading would still be dragged back to row 1 column 2 and the
+     filters would land above it again, which is the fault this change exists
+     to remove. Source order here is: heading, filters, feed, panel. */
+  .feedHead, .leftRail, .feed, .rightRail { grid-column: 1; grid-row: auto; }
 }
 
 /* A job-board card in the temp feed.

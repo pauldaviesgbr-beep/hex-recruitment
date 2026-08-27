@@ -560,6 +560,25 @@ export default function TempWorkPage() {
       <Header />
       <div className={styles.page}>
         <div className={styles.grid}>
+          {/* THE HEADING IS A CHILD OF THE GRID, NOT OF THE FEED, AND THAT IS
+              THE WHOLE FIX. The grid collapses to one column at 760, so source
+              order decides what a phone sees — and with the heading nested
+              inside .feed the filters came first: the h1 sat at y=413 of an
+              844px screen, so the top 45% was category chips before anything
+              had said what the page is. "Short-term roles and casual shifts"
+              is the sentence that explains the product and it was below the
+              fold.
+              Hoisting it puts it first on a phone by source order alone. The
+              desktop layout is unchanged and pinned explicitly below, because
+              auto-placement would otherwise drop it into the filter column. */}
+          <div className={styles.feedHead}>
+            <div>
+              <h1 className={styles.h1}>Temp Work</h1>
+              <p className={styles.h1sub}>Short-term roles and casual shifts. Apply to a role, or tell an employer you&rsquo;re available for a shift.</p>
+            </div>
+            {canPost && <Link href="/temp-work/post" className={styles.feedPostBtn}>+ Post</Link>}
+          </div>
+
           {/* Left rail — filters (inline, not a nested component, so inputs keep focus) */}
           <aside className={styles.leftRail}>
             <div className={styles.filterTitle}>Category</div>
@@ -602,16 +621,9 @@ export default function TempWorkPage() {
             {anyFilter && <button className={styles.clearBtn} onClick={() => { setGroup(''); setRole(''); setLoc(''); setMinRate(0) }}>Clear filters</button>}
           </aside>
 
-          {/* Centre feed */}
+          {/* Centre feed — the heading now sits above the grid's second column
+              rather than inside this element; see the comment on it above. */}
           <div className={styles.feed}>
-            <div className={styles.feedHead}>
-              <div>
-                <h1 className={styles.h1}>Temp Work</h1>
-                <p className={styles.h1sub}>Short-term roles and casual shifts. Apply to a role, or tell an employer you’re available for a shift.</p>
-              </div>
-              {canPost && <Link href="/temp-work/post" className={styles.feedPostBtn}>+ Post</Link>}
-            </div>
-
             {toast && <div className={styles.toast}>{toast}</div>}
             {usingExamples && <div className={styles.exNote}>No live shifts yet — here’s what posts look like. Real shifts replace these the moment one is posted.</div>}
             {previewShifts && !usingExamples && <div className={styles.previewNote}>
