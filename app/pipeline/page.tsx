@@ -918,11 +918,23 @@ export default function PipelinePage() {
           candidateId={scheduleCard.candidateId}
           candidateName={scheduleCard.candidateName}
           candidateEmail={scheduleCard.candidateEmail || undefined}
-          onSuccess={() => {
+          onSuccess={(emailOutcome) => {
             const cardId = scheduleCard.id
+            const first = scheduleCard.candidateName.split(' ')[0]
             setCards(prev => prev.map(c => c.id === cardId ? { ...c, status: 'interview', stageEnteredAt: new Date().toISOString(), hasLiveInterview: true } : c))
             setScheduleCard(null)
-            setToast({ message: `Moved to Interview. Schedule sent to ${scheduleCard.candidateName.split(' ')[0]}.`, key: Date.now() })
+            // THE SECOND SCREEN THAT ASSERTED DELIVERY. "Schedule sent to
+            // <name>" was printed whether or not the email went — and here
+            // the email carries the LINK the candidate needs to pick a slot,
+            // so its absence is not a missed nudge, it is a candidate who
+            // cannot book. An in-app message follows too, which is why the
+            // move to Interview is still reported as done.
+            setToast({
+              message: emailOutcome === 'sent'
+                ? `Moved to Interview. Schedule sent to ${first}.`
+                : `Moved to Interview, but we couldn't email ${first} the booking link — it's in their Thrive messages.`,
+              key: Date.now(),
+            })
             loadData()
           }}
         />

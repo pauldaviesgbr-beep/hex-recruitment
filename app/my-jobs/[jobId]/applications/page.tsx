@@ -32,7 +32,9 @@ interface Application {
   appliedAt: string
   status: 'pending' | 'reviewing' | 'interviewing' | 'interview' | 'hired' | 'rejected' | 'offered' | 'shortlisted'
   candidateId: string
-  candidateName: string
+  /** NULL when there is no name. Never a token — an invented name cannot be
+   *  told from a real one, which is the whole reason the six were removed. */
+  candidateName: string | null
   candidateEmail: string
   candidatePhone: string
   candidatePhoto: string | null
@@ -169,7 +171,13 @@ export default function JobApplicationsPage() {
             appliedAt: row.applied_at,
             status: row.status === 'pending' ? 'pending' : row.status,
             candidateId: row.candidate_id,
-            candidateName: profile?.full_name || row.candidate_name || 'Applicant',
+            // NULL, NEVER A TOKEN. This said 'Applicant', which an employer
+            // reading their list cannot tell from somebody actually called
+            // that. Six of these were removed on 26 Aug by widening
+            // Candidate.fullName; this one survived because it is not that
+            // type — the page declares its own Application interface with a
+            // differently-named field reading the same column.
+            candidateName: profile?.full_name || row.candidate_name || null,
             candidateEmail: profile?.email || '',
             candidatePhone: profile?.phone || '',
             candidatePhoto: profile?.profile_picture_url || null,
@@ -305,7 +313,10 @@ export default function JobApplicationsPage() {
           appliedAt: row.applied_at,
           status: row.status === 'pending' ? 'pending' : row.status,
           candidateId: row.candidate_id,
-          candidateName: profile?.full_name || row.candidate_name || 'Applicant',
+          // The SECOND mapper on this page, indented differently from the
+          // first — which is why a replace-all on the exact line missed it.
+          // Null, never a token.
+          candidateName: profile?.full_name || row.candidate_name || null,
           candidateEmail: profile?.email || '',
           candidatePhone: profile?.phone || '',
           candidatePhoto: profile?.profile_picture_url || null,
@@ -689,7 +700,10 @@ export default function JobApplicationsPage() {
     })
   }
 
-  const getInitials = (name: string) => {
+  const getInitials = (name: string | null) => {
+    // Empty rather than a token. Initials of nothing are nothing, and a
+    // placeholder glyph here would be one more invented identity.
+    if (!name) return ''
     return name
       .split(' ')
       .map(n => n[0])
@@ -829,7 +843,10 @@ export default function JobApplicationsPage() {
             {applications
               .filter(a => {
                 if (focusedApplicationId) return a.id === focusedApplicationId
-                if (searchQuery && !a.candidateName.toLowerCase().includes(searchQuery.toLowerCase())) return false
+                // (a.candidateName || '') — a nameless applicant used to throw
+                // here, which breaks the whole list with nothing on screen to
+                // say why. Same fault the six removed on 26 Aug had.
+                if (searchQuery && !(a.candidateName || '').toLowerCase().includes(searchQuery.toLowerCase())) return false
                 return true
               })
               .map(application => {
@@ -850,7 +867,7 @@ export default function JobApplicationsPage() {
                       {application.candidatePhoto ? (
                         <SignedImage
                           src={application.candidatePhoto}
-                          alt={application.candidateName}
+                          alt={application.candidateName || ''}
                           className={styles.photoImage}
                         />
                       ) : (
@@ -1297,7 +1314,7 @@ export default function JobApplicationsPage() {
           jobTitle={selectedApplication.jobTitle}
           company={selectedApplication.company}
           candidateId={selectedApplication.candidateId}
-          candidateName={selectedApplication.candidateName}
+          candidateName={selectedApplication.candidateName || ''}
           candidateEmail={selectedApplication.candidateEmail}
           jobLocation={job?.location}
           existingInterviewId={selectedApplication.interview?.id}
@@ -1320,7 +1337,7 @@ export default function JobApplicationsPage() {
           jobTitle={offerApplication.jobTitle}
           company={offerApplication.company}
           candidateId={offerApplication.candidateId}
-          candidateName={offerApplication.candidateName}
+          candidateName={offerApplication.candidateName || ''}
           candidateEmail={offerApplication.candidateEmail}
           onSuccess={(emailOutcome) => {
             // THIS PAGE HAS NO TOAST — no feedback surface of any kind — so
@@ -1352,7 +1369,7 @@ export default function JobApplicationsPage() {
           <WithdrawOrRescindModal
             isOpen
             scenario={scenario}
-            candidateName={withdrawApp.candidateName}
+            candidateName={withdrawApp.candidateName || ''}
             jobTitle={withdrawApp.jobTitle}
             submitting={withdrawSubmitting}
             errorMessage={withdrawError}
@@ -1375,7 +1392,7 @@ export default function JobApplicationsPage() {
           applicationId={declineApp.id}
           candidateId={declineApp.candidateId}
           candidateEmail={declineApp.candidateEmail || null}
-          candidateName={declineApp.candidateName}
+          candidateName={declineApp.candidateName || ''}
           jobTitle={declineApp.jobTitle}
           companyName={declineApp.company}
           employerId={employerId}

@@ -1,11 +1,12 @@
 import { supabase } from './supabase'
 import { notify } from './notify'
+import { greetingName } from '@/lib/displayName'
 
 export interface ConfirmHireParams {
   applicationId: string
   jobId: string
   candidateId: string
-  candidateName: string
+  candidateName: string | null
   candidateEmail: string | null
   jobTitle: string
   company: string
@@ -53,7 +54,7 @@ export async function confirmHire(p: ConfirmHireParams): Promise<void> {
 
   // Send message via the employer↔candidate conversation for this job
   const messageContent = [
-    `Hello ${p.candidateName},`,
+    `Hello ${greetingName(p.candidateName)},`,
     '',
     `Congratulations! Your hire for the ${p.jobTitle} position at ${p.company} has been officially confirmed.`,
     '',
