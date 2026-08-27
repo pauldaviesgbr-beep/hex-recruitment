@@ -340,8 +340,27 @@ export default function PrivacyPolicyPage() {
               </div>
               <div className={styles.retentionRow}>
                 <div className={styles.retentionType}>After account deletion</div>
+                {/* THE 30 DAYS DESCRIBED A SCHEDULE THAT DOES NOT EXIST, and
+                    "permanently deleted" did not describe what the code does.
+                    lib/erasure.ts deletes 19 tables outright and irreversibly
+                    ANONYMISES 9 more, and it runs when the button is pressed —
+                    /api/account/delete awaits eraseAccount in the request.
+
+                    Both mismatches were in our favour, which is why nobody
+                    noticed: we are faster than promised and we keep less than
+                    "permanently deleted" implies we keep. It was still the one
+                    row of this table that contradicted our own delete panel
+                    ("straight away") and our own terms ("at any time").
+
+                    If the erasure behaviour changes, this row changes with it. */}
                 <div className={styles.retentionPeriod}>
-                  <strong>30 days</strong> — data is permanently deleted, unless required for legal purposes
+                  <strong>Straight away, from your account settings.</strong> Most of your data is
+                  permanently deleted. Some records are irreversibly anonymised instead and kept
+                  without you attached to them: an application stays with the employer, but with
+                  your name, CV, cover letter and any notes about you removed; a signed job offer
+                  is kept because it is a contract; and page views and searches remain in our
+                  statistics with nothing linking them to you. Records we must keep by law are
+                  listed below.
                 </div>
               </div>
               <div className={styles.retentionRow}>
