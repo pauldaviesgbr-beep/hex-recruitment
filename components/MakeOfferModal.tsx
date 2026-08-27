@@ -8,6 +8,7 @@ import ReviewAndSign from './ReviewAndSign'
 import type { SignatureSlot } from '@/lib/buildOfferPdf'
 import styles from './MakeOfferModal.module.css'
 import { Ico } from '@/components/icons'
+import { notifyByEmail, type EmailOutcome } from '@/lib/notifyByEmail'
 
 interface MakeOfferModalProps {
   isOpen: boolean
@@ -19,7 +20,8 @@ interface MakeOfferModalProps {
   candidateId: string
   candidateName: string
   candidateEmail?: string
-  onSuccess: () => void
+  /** Receives whether the candidate EMAIL landed, so the toast can be honest. */
+  onSuccess: (emailOutcome: EmailOutcome) => void
 }
 
 export default function MakeOfferModal({
@@ -416,18 +418,20 @@ export default function MakeOfferModal({
 
       await notify('offer_made', { applicationId, extra: { startDate: formattedDate } })
 
-      // Send email to candidate
-      if (candidateEmail) {
-        fetch('/api/email/send', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            to: candidateEmail,
-            type: 'application_status',
-            data: { status: 'offered', companyName: company, jobTitle },
-          }),
-        }).catch(() => {})
-      }
+      // EMAIL THE CANDIDATE — AWAITED, so the toast can tell the truth.
+      //
+      // This was fire-and-forget with .catch(() => {}) while the pipeline
+      // toast said "Offer sent to <name>". The offer itself does land: a
+      // notification and a full conversation message both go out above and
+      // below this. But an offer is the one message a candidate may never
+      // log in to find, and the EMAIL is the only channel that reaches
+      // somebody who is not looking at Thrive.
+      const emailOutcome = await notifyByEmail({
+        to: candidateEmail,
+        type: 'application_status',
+        data: { status: 'offered', companyName: company, jobTitle },
+        from: 'MakeOfferModal',
+      })
 
       // Send message via conversation
       const contractLabel = contractTypes.find(c => c.value === contractType)?.label || contractType
@@ -504,7 +508,7 @@ export default function MakeOfferModal({
         }
       }
 
-      onSuccess()
+      onSuccess(emailOutcome)
       onClose()
     } catch (err) {
       console.error('Error making offer:', err)

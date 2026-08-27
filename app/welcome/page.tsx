@@ -216,14 +216,30 @@ function WelcomeContent() {
         </div>
 
         {/* Discoverability is on by default, so it gets said plainly, here, at
-            full size — not buried in settings for someone to discover later. */}
+            full size — not buried in settings for someone to discover later.
+
+            IT IS A CONSENT DISCLOSURE, NOT A STATUS LINE, and that is why it
+            is worded about the SETTING rather than about the person. "Your
+            profile is set to visible" is true whether or not this candidate is
+            currently held as a possible duplicate; the hold is temporary and
+            has its own notice on the dashboard, which is where it belongs.
+            Softening this into vagueness would break the one thing it was
+            built to do.
+
+            IT USED TO QUOTE THE DASHBOARD SWITCH'S LABEL — "it reads
+            'Employers can find you' while it is on" — and that sentence became
+            false without anybody writing a bug. The held-candidate work
+            shipped 26 Aug 2026 made that switch conditional: while held it is
+            disabled and reads "Being checked". Two correct changes met and
+            produced an instruction pointing at a control the reader cannot
+            find. The wording no longer quotes a label, so it cannot rot that
+            way again. */}
         <div className={styles.notice}>
-          <strong className={styles.noticeTitle}>Employers can find you</strong>
+          <strong className={styles.noticeTitle}>Your profile is set to visible</strong>
           <p className={styles.noticeBody}>
-            Your profile is visible to employers hiring on Thrive, so they can approach you
-            about roles. You can turn this off at any time with the{' '}
-            <strong>visibility switch</strong> at the top of your dashboard — it reads
-            &ldquo;Employers can find you&rdquo; while it is on.
+            Thrive shows candidate profiles to employers by default, so they can approach
+            you about roles. You can change that any time from the{' '}
+            <strong>visibility switch</strong> at the top of your dashboard.
           </p>
         </div>
 
