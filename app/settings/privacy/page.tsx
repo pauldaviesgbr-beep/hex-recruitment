@@ -697,6 +697,30 @@ export default function PrivacySettingsPage() {
               </button>
             </div>
 
+            {/* AN EMPLOYER GETS A DIFFERENT ANSWER, NOT A HIDDEN BUTTON.
+                The route refuses them server-side regardless — that is the
+                half that protects the data, because anyone with a session can
+                call it directly. This is the half that stops a real employer
+                pressing something that would refuse them.
+
+                contact@thrivecareer.co.uk is used because it is PROVEN to
+                receive real inbound mail. privacy@ was printed on the policy
+                four times and never existed; no catch-all, no bounce, every
+                message silently gone. Do not print an address here that has
+                not been tested. */}
+            {userType === 'employer' ? (
+              <div className={styles.dangerItem}>
+                <div className={styles.dangerInfo}>
+                  <span className={styles.dangerName}>Closing your account</span>
+                  <span className={styles.dangerDescription}>
+                    Employer accounts are closed by hand, because your job adverts and the
+                    applications candidates have sent to them have to be dealt with first.
+                    Email <a href="mailto:contact@thrivecareer.co.uk">contact@thrivecareer.co.uk</a>{' '}
+                    and we will take care of it.
+                  </span>
+                </div>
+              </div>
+            ) : (
             <div className={styles.dangerItem}>
               <div className={styles.dangerInfo}>
                 <span className={styles.dangerName}>Delete my account</span>
@@ -777,6 +801,7 @@ export default function PrivacySettingsPage() {
                 </button>
               )}
             </div>
+            )}
           </div>
         </div>
       </div>
