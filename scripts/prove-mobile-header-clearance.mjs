@@ -40,6 +40,9 @@
 // deployment, and it must not guess which one.
 
 import { chromium } from 'playwright'
+import { existsSync, readFileSync } from 'node:fs'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 const BASE = process.argv[2]
 if (!BASE) {
@@ -58,10 +61,36 @@ const check = (label, ok, detail) => {
   return ok
 }
 
+// A PREVIEW IS SSO-WALLED, AND THE WALL LOOKS LIKE OUR OWN /login.
+// Without the bypass header every route redirects to Vercel's sign-in and the
+// run reports eleven failures about pages it never reached. The redirect guard
+// below caught that correctly — it refused to measure rather than passing —
+// but the fix is to carry the header, never a share link, which is bound to
+// one URL and dies on the next deployment.
+const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
+let BYPASS = ''
+const envFile = path.join(REPO, '.env.local')
+if (existsSync(envFile)) {
+  for (const line of readFileSync(envFile, 'utf8').split(/\r?\n/)) {
+    const m = line.match(/^\s*VERCEL_AUTOMATION_BYPASS_SECRET\s*=\s*(.*?)\s*$/)
+    if (m) BYPASS = m[1].replace(/^["']|["']$/g, '')
+  }
+}
+const isVercelPreview = /\.vercel\.app/.test(BASE)
+if (isVercelPreview && !BYPASS) {
+  console.log('SKIP  this is a Vercel preview and VERCEL_AUTOMATION_BYPASS_SECRET is not set.')
+  console.log('      Every route would redirect to the SSO wall and the run would report')
+  console.log('      failures about pages it never reached.')
+  process.exit(2)
+}
+
 const browser = await chromium.launch()
 const ctx = await browser.newContext({
   viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true,
   userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1',
+  ...(isVercelPreview
+    ? { extraHTTPHeaders: { 'x-vercel-protection-bypass': BYPASS, 'x-vercel-set-bypass-cookie': 'true' } }
+    : {}),
 })
 const page = await ctx.newPage()
 

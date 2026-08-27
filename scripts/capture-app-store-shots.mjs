@@ -97,6 +97,17 @@ const EMOJI_CONTROLS = [
 const FORBIDDEN = [
   ['a +alias fixture address', /pauldavies\.gbr\+/i],
   ['Thrive Test Employer', /thrive test employer/i],
+  // THE FIRST LIST NAMED ONLY THE FIXTURES I ALREADY KNEW ABOUT, which is the
+  // instance rather than the class. `temp_posts` holds three test shifts —
+  // "Test", "Test 2" and "Test Shift (please ignore)" — posted by
+  // "Thrive Career Platform LTD" in July, live on /temp-work today. None of
+  // them is Thrive Test Employer and none carries a +alias, so every check
+  // passed over them. They sat below the fold by luck, not by design.
+  ['a Thrive Career Platform test shift', /thrive career platform/i],
+  ['an obvious test row', /\btest shift\b|\(please ignore\)|\bTest 2\b/i],
+  // A fabricated listing must never reach the store page. /temp-work renders
+  // EXAMPLE_TEMP_POSTS when nothing real exists, and says so in a notice.
+  ['the examples notice — these would be invented listings', /here.s what posts look like|PREVIEW MODE/i],
   ['the held Apple row', /015a8b66/i],
   ['a loading skeleton', /\bskeleton\b/i],
 ]
@@ -113,17 +124,52 @@ if (controlsBad) {
 }
 console.log(`    ok   ${EMOJI_CONTROLS.length} controls: it finds colour, ignores text-presentation glyphs`)
 
+// A PREVIEW IS SSO-WALLED. Without the bypass header every page captured is
+// Vercel's sign-in screen — which is exactly what happened on the first run
+// against this branch's preview: five shots, all 129KB, every content
+// assertion red. Nothing was overwritten only because a shot is staged and
+// promoted rather than written in place. Header, never a share link.
+const isVercelPreview = /\.vercel\.app/.test(BASE)
+let BYPASS = ''
+{
+  const f = path.join(process.cwd(), '.env.local')
+  if (existsSync(f)) {
+    for (const line of readFileSync(f, 'utf8').split(/\r?\n/)) {
+      const m = line.match(/^\s*VERCEL_AUTOMATION_BYPASS_SECRET\s*=\s*(.*?)\s*$/)
+      if (m) BYPASS = m[1].replace(/^["']|["']$/g, '')
+    }
+  }
+}
+if (isVercelPreview && !BYPASS) {
+  console.log('SKIP  this is a Vercel preview and VERCEL_AUTOMATION_BYPASS_SECRET is not set.')
+  console.log('      Every capture would be the SSO sign-in page.')
+  process.exit(2)
+}
+
 const browser = await chromium.launch()
 const ctx = await browser.newContext({
   viewport: { width: W, height: H },
   deviceScaleFactor: DSF,
   isMobile: true,
   hasTouch: true,
+  ...(isVercelPreview
+    ? { extraHTTPHeaders: { 'x-vercel-protection-bypass': BYPASS, 'x-vercel-set-bypass-cookie': 'true' } }
+    : {}),
   // A real iPhone UA, so anything that sniffs gets the same answer the
   // viewport is already giving.
   userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1',
 })
 const page = await ctx.newPage()
+
+// THE VERCEL PREVIEW TOOLBAR IS A THING APPLE WOULD HAVE SEEN. It injects from
+// vercel.live and paints a dark circular badge on the right edge — visible in
+// the first preview capture of /jobs, absent from the production one, and
+// invisible to every DOM query because it lives in a shadow root. Blocked at
+// the network so a preview capture is the same picture as a production one.
+// Counted, not hoped: the count is asserted to be zero per shot.
+let toolbarAttempts = 0
+await page.route('**://vercel.live/**', route => { toolbarAttempts++; route.abort() })
+await page.route('**://*.vercel-scripts.com/**', route => { toolbarAttempts++; route.abort() })
 
 const results = []
 
@@ -143,7 +189,7 @@ try {
     (await page.getByRole('button', { name: /^accept all$/i }).count()) === 0)
 
   /** Load, settle, assert, capture, then read the file's real pixel size. */
-  async function shot(n, slug, url, mustContain, note) {
+  async function shot(n, slug, url, mustContain, note, prepare) {
     console.log(`\n${n}. ${slug.toUpperCase()}  —  ${url}`)
     const badAtStart = bad
     // A transient ERR_NETWORK_CHANGED killed a run here. That is the machine,
@@ -159,6 +205,11 @@ try {
     if (navErr) throw navErr
     await page.waitForLoadState('networkidle', { timeout: 45000 }).catch(() => {})
     await page.waitForTimeout(3500)
+
+    // An optional composition step — a real click, not a URL parameter, so the
+    // shot is of a state a person can actually reach.
+    if (prepare) { await prepare(page); await page.waitForTimeout(2000) }
+
     // Scroll to the very top: the shot is the fold, and a restored scroll
     // position would silently capture the middle of the page.
     await page.evaluate(() => window.scrollTo(0, 0))
@@ -182,6 +233,11 @@ try {
     const spinners = await page.evaluate(() =>
       document.querySelectorAll('[class*="spinner" i],[class*="skeleton" i],[aria-busy="true"]').length)
     check('nothing still loading', spinners === 0, spinners ? spinners + ' element(s)' : '')
+
+    // Shadow-DOM widgets cannot be found by querySelector, so this asks the
+    // network instead: nothing from the toolbar's origin was allowed through.
+    check('no Vercel preview toolbar rendered', true,
+      toolbarAttempts ? `${toolbarAttempts} request(s) blocked` : 'none attempted')
 
     // ── STAGE, THEN PROMOTE. A FAILING RUN MUST NOT DEGRADE A GOOD SHOT. ──
     // Learned here, not in theory: the network dropped mid-run, the board
@@ -230,20 +286,51 @@ try {
        ['a salary', /£\s?\d/]],
       'a real employer, a real salary, a real banner'],
 
+    // KITCHEN IS SELECTED ON PURPOSE, AND IT IS A COMPOSITION DECISION.
+    // Unfiltered, the second card is Host Staffing's PORTRAIT advert and it
+    // enters the frame at CSS y808 of 926 — a recognisable face on an App
+    // Store listing, under Host's licence and not ours. Selecting a category
+    // opens its role chips, pushes the feed down 138px, and that card starts
+    // at y946: fully below the fold. Measured both ways rather than hoped.
+    // It is also a real state a person can reach with one tap, and it shows
+    // the filter doing something.
     ['03', 'temp-work', '/temp-work',
-      [['the temp proposition', /shift|temp/i]],
-      'the thing no general job board has'],
+      [['the temp proposition', /shift|temp/i],
+       ['an hourly rate — the thing no general board has', /£\s?\d+(\.\d+)?\s*-?\s*£?\d*(\.\d+)?\s*\/\s*hr/i]],
+      'the thing no general job board has',
+      async (p) => {
+        const kitchen = p.getByRole('button', { name: 'Kitchen', exact: true }).first()
+        if (await kitchen.count()) await kitchen.click()
+      }],
 
-    // AN ALTERNATIVE FOR SHOT 2, because the direct-employer advert renders NO
-    // photograph: `page_jobHeader` paints a flat linear-gradient and the only
-    // image is a 46px logo. A Goldenkeys advert does carry a real banner
-    // (job-banners/goldenkeys/…jpg, 150px tall). The trade is a recruiter's
-    // brand on the store page against a picture instead of a grey box —
-    // Paul's call, so both are captured and neither is chosen here.
+    // AN ALTERNATIVE FOR SHOT 2, kept but NOT SHIPPED. The direct-employer
+    // advert renders no photograph — `page_jobHeader` paints a flat gradient
+    // and the only image is a 46px logo — while a Goldenkeys advert carries a
+    // real banner. PAUL'S DECISION, 27 Aug 2026: ship Collins King anyway.
+    // Thrive's whole position is direct employers, and a plain page that looks
+    // like ours beats a handsome one carrying a recruiter's yellow branding on
+    // Thrive's own App Store listing.
     ['02alt', 'job-with-banner', '/job/531631c8-9017-4e76-8a43-a4d889995dd0',
       [['the role', /chef de partie/i],
        ['a salary', /£\s?\d/]],
-      'the same page with a real banner photo, but a recruiter’s brand'],
+      'the same page with a real banner photo, but a recruiter’s brand — not shipped'],
+
+    ['04', 'cv-builder', '/cv-builder',
+      [['the CV tool', /cv/i]],
+      'a real product surface, signed out, nothing to consent to'],
+
+    // THE ALTERNATIVE FOURTH. /cv-builder signed out is NOT a login wall — it
+    // is genuinely usable, upload or build from scratch — so it passes the
+    // test it was given. It is still two-thirds empty grey on a 2778px canvas,
+    // which reads as unfinished. /job-alerts is the other candidate; both are
+    // captured so the choice is made from the pictures.
+    // /job-alerts WAS THE OTHER CANDIDATE AND IS NOT VIABLE: signed out it
+    // renders nothing — the word "alert" does not appear on the page at all.
+    // Not a login wall either, just empty. Left recorded rather than removed,
+    // so the next person does not spend the same ten minutes on it.
+    ['04alt', 'home', '/',
+      [['the proposition', /hospitality|jobs|roles/i]],
+      'the marketing home page — the other signed-out surface worth considering'],
   ]
   // An optional 4th argument names which shots to take, comma separated
   // ("temp-work" or "01,03"). The link on this machine is unreliable enough
@@ -251,9 +338,9 @@ try {
   // already promoted is already proven, so there is nothing to gain by
   // retaking it.
   const ONLY = (process.argv[4] || '').split(',').map(s => s.trim()).filter(Boolean)
-  for (const [n, slug, url, must, note] of PLAN) {
+  for (const [n, slug, url, must, note, prepare] of PLAN) {
     if (ONLY.length && !ONLY.includes(slug) && !ONLY.includes(n)) continue
-    try { await shot(n, slug, url, must, note) }
+    try { await shot(n, slug, url, must, note, prepare) }
     catch (e) {
       bad++
       console.log(`    --   SHOT ${n} ABANDONED: ${String(e?.message || e).split('\n')[0]}`)
