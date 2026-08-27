@@ -71,6 +71,47 @@ export async function POST(req: NextRequest) {
   }
 
   const admin = createClient(url, service, { auth: { persistSession: false } })
+
+  // AN EMPLOYER MAY NOT SELF-DELETE, AND THE CHECK GOES HERE — BEFORE
+  // eraseAccount, not inside it, because a refusal after the first table is a
+  // half-erased account.
+  //
+  // THE ERASURE PLAN IS CANDIDATE-SHAPED. Every rule in it reasons about a
+  // candidate, and employer_profiles, jobs and subscriptions are not in it at
+  // all. None of those tables has a foreign key either, so nothing cascades.
+  // An employer running this would lose their login while their company
+  // profile and every advert stayed on the public board, owned by a user id
+  // that no longer exists. 9 employers, 319 adverts, 251 of them live.
+  //
+  // THE SIGNAL IS A ROW, NOT A CLAIM. user_metadata.role is writable by the
+  // user — supabase.auth.updateUser({ data: { role: 'employee' } }) — so the
+  // client's idea of who it is cannot gate this. Owning an employer_profiles
+  // row is a database fact they cannot forge. Where the two disagree, this
+  // wins.
+  //
+  // A TEAM MEMBER IS NOT CAUGHT BY THIS, deliberately: they hold no
+  // employer_profiles row of their own, employer_members IS in the erasure
+  // plan, and their leaving costs the employer nothing.
+  //
+  // THIS IS A GATE, NOT AN ANSWER. What should happen to an employer's
+  // adverts, and to the candidate applications underneath them, is a product
+  // decision nobody has made. See CLAUDE.md.
+  const { data: employerProfile } = await admin
+    .from('employer_profiles')
+    .select('id')
+    .eq('user_id', user.id)
+    .maybeSingle()
+
+  if (employerProfile) {
+    console.warn('[account/delete] refusing — caller owns an employer profile', user.id)
+    return NextResponse.json({
+      error: 'Employer accounts cannot be closed automatically, because job adverts and the ' +
+             'applications candidates have sent to them have to be dealt with first. Email ' +
+             'contact@thrivecareer.co.uk and we will close it for you.',
+      reason: 'employer_account',
+    }, { status: 409 })
+  }
+
   const receipt = await eraseAccount(admin, user.id, { email: user.email || null })
 
   // THE RECEIPT IS THE ANSWER TO "DID WE ACTUALLY ERASE THEM" SIX MONTHS ON.
