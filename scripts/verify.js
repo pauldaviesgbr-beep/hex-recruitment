@@ -533,6 +533,23 @@ const ALL = [
   // one named failure, exit 1, green again on restore.
   { name: 'iosshell:prove', cmd: npm, args: ['run', 'iosshell:prove'] },
 
+  // iosassets:prove EXISTS BECAUSE RUN #4 WAS REFUSED BY APPLE FOR AN ICON
+  // THAT HAD BEEN SITTING ON THE MACHINE ALL ALONG. .gitignore line 14 is
+  // '*.png' and had exceptions for public/ and app/ but never for ios/, so
+  // AppIcon-512@2x.png and three splash images were never committed.
+  //
+  // THE REASON NOTHING WENT RED IS THE PART WORTH KEEPING: actool treats an
+  // image that a Contents.json NAMES but cannot find as a WARNING. The
+  // archive succeeded, all ten of its assertions passed, a signed .ipa came
+  // out — and it contained no Assets.car at all. Two jobs and one dispatch
+  // later Apple said so, in five errors.
+  //
+  // So it does not ask whether the file is on this disk. It was. It asks
+  // whether it is IN GIT, because the runner gets the repository and
+  // nothing else. Watched failing on purpose by un-staging the icon —
+  // exactly run #4's state — one named failure, exit 1, green on restore.
+  { name: 'iosassets:prove', cmd: npm, args: ['run', 'iosassets:prove'] },
+
   // weboauth:prove IS THE CHECK THAT MATTERS MOST ON THE NATIVE WORK, and it
   // is here rather than outside verify because it needs nothing but the
   // filesystem and one imported function — no device, no deployment.
