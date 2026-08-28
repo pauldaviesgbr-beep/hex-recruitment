@@ -1,0 +1,156 @@
+# THE iOS BUILD PIPELINE — GITHUB ACTIONS ON HOSTED macOS.
+#
+# WHY ACTIONS AND NOT XCODE CLOUD. Decided 28 Aug 2026. Xcode Cloud needs a
+# Mac ONCE, in Xcode, to create the first workflow and grant GitHub access —
+# which reintroduces the exact dependency the choice exists to remove. And
+# first pipelines fail several times, so with Xcode Cloud the failures arrive
+# after the borrowed Mac has gone home. Actions removes the Mac permanently.
+#
+# MANUAL DISPATCH ONLY, DELIBERATELY. macOS minutes bill at a 10x multiplier,
+# so the ~2,000 included minutes are effectively ~200 macOS minutes a month.
+# A build on every push would eat that while we are still getting it to work.
+# When it is stable this can gain a trigger; it should not have one yet.
+#
+# TWO JOBS, AND THE SPLIT IS THE POINT. `compile` needs NO SECRETS AT ALL, so
+# the pipeline can be proven to work — checkout, npm ci, cap copy, xcodebuild
+# — before anyone touches an Apple account. `archive` is the signed build and
+# skips itself until the secrets exist. A green compile with a skipped archive
+# is a real result, not a half-measure: it says everything except signing
+# works.
+
+name: iOS build
+
+on:
+  workflow_dispatch:
+    inputs:
+      runner:
+        description: 'macOS runner image (pinned; macos-latest deliberately not used)'
+        required: false
+        default: 'macos-15'
+      xcode:
+        description: 'Xcode version to select, or "default" to take the image default'
+        required: false
+        default: 'default'
+
+# Nothing here writes to the repository or the deployment.
+permissions:
+  contents: read
+
+concurrency:
+  # A second dispatch cancels the first rather than burning macOS minutes twice.
+  group: ios-build
+  cancel-in-progress: true
+
+jobs:
+  compile:
+    name: Compile (unsigned — no secrets needed)
+    runs-on: ${{ inputs.runner || 'macos-15' }}
+    timeout-minutes: 40
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # MEASURE THE RUNNER, DO NOT ASSUME IT. The image label is pinned, but
+      # what that label actually carries changes over time. Printing it means a
+      # future failure can be compared against a run that worked, instead of
+      # being guessed at.
+      - name: What this machine actually is
+        run: |
+          sw_vers
+          echo "--- available Xcodes ---"
+          ls /Applications | grep -i '^Xcode' || true
+          echo "--- selected Xcode ---"
+          xcodebuild -version
+
+      - name: Select a specific Xcode
+        if: ${{ inputs.xcode != 'default' && inputs.xcode != '' }}
+        run: |
+          sudo xcode-select -s "/Applications/Xcode_${{ inputs.xcode }}.app"
+          xcodebuild -version
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          # Caching keyed on the lockfile. Every saved minute is billed at 10x.
+          cache: 'npm'
+
+      # THE SAME SCRIPT XCODE CLOUD WOULD RUN, CALLED RATHER THAN COPIED.
+      #
+      # ios/App/ci_scripts/ci_post_clone.sh is Xcode Cloud's convention and
+      # Actions will never run it on its own. Its assertions are the valuable
+      # part — that `cap copy` actually put capacitor.config.json and
+      # App/public on disk, and that the config names the right site — and two
+      # copies of those would agree today and drift later. It resolves paths
+      # from its own location, so it works from here as well as from Xcode
+      # Cloud's working directory.
+      #
+      # It runs `npm ci` itself, so there is no separate install step.
+      - name: npm ci + cap copy + assert the generated files exist
+        run: |
+          chmod +x ios/App/ci_scripts/ci_post_clone.sh
+          ios/App/ci_scripts/ci_post_clone.sh
+
+      # THE FIRST GOAL: ONE BUILD THAT COMPLETES. Unsigned, because signing is
+      # the part that needs Paul's account and this proves everything else in
+      # isolation. CODE_SIGNING_ALLOWED=NO is what makes that possible on a
+      # runner with no keychain.
+      - name: Build the app (unsigned)
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -project ios/App/App.xcodeproj \
+            -scheme App \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            build
+
+      - name: Prove something was actually produced
+        run: |
+          # xcodebuild exiting 0 is not the same as an app existing. This is
+          # the same rule as everything in scripts/: assert the artefact, do
+          # not read the tool's own summary.
+          APP=$(find build -name 'App.app' -maxdepth 6 | head -1)
+          test -n "$APP" || { echo "NO App.app WAS PRODUCED"; exit 1; }
+          echo "built: $APP"
+          # And the generated config must be INSIDE the bundle, not merely on
+          # disk — that is the failure this whole ci_post_clone dance exists to
+          # prevent, and only the bundle can confirm it.
+          test -f "$APP/capacitor.config.json" \
+            || { echo "capacitor.config.json IS NOT IN THE BUNDLE"; exit 1; }
+          test -f "$APP/public/index.html" \
+            || { echo "the offline page IS NOT IN THE BUNDLE"; exit 1; }
+          echo "the bundle carries its config and its web assets"
+
+  archive:
+    name: Signed archive (skips until the secrets exist)
+    needs: compile
+    runs-on: ${{ inputs.runner || 'macos-15' }}
+    timeout-minutes: 60
+    # SKIPS ITSELF RATHER THAN FAILING. Until Paul has added the three
+    # secrets this job has nothing to do, and a red job that is red on
+    # purpose is the kind of red people stop reading.
+    if: ${{ false }}   # ← flipped on once IOS_DIST_P12 and friends exist
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: npm ci + cap copy + assert
+        run: |
+          chmod +x ios/App/ci_scripts/ci_post_clone.sh
+          ios/App/ci_scripts/ci_post_clone.sh
+
+      # Placeholder for the signed path. Deliberately not written blind:
+      # it will be built against the real secrets, one failure at a time,
+      # rather than guessed at now and debugged later.
+      - name: Not yet implemented
+        run: |
+          echo "The signed archive is written once the secrets exist."
+          exit 1
