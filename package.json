@@ -57,10 +57,13 @@
     "erasurelive:prove": "npx tsx --conditions=react-server scripts/prove-erasure-live.ts",
     "deletegate:prove": "npx tsx --conditions=react-server scripts/prove-employer-delete-gate.ts",
     "navheight:prove": "node scripts/prove-mobile-header-clearance.mjs",
+    "iosshell:prove": "node scripts/prove-ios-shell.mjs",
     "appstore:capture": "node scripts/capture-app-store-shots.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.98.0",
+    "@capacitor/core": "8.5.0",
+    "@capacitor/ios": "8.5.0",
     "@hello-pangea/dnd": "^18.0.1",
     "@stripe/react-stripe-js": "^6.2.0",
     "@stripe/stripe-js": "^9.2.0",
@@ -98,6 +101,7 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "@capacitor/cli": "8.5.0",
     "@playwright/test": "^1.58.2",
     "@types/dompurify": "^3.0.5",
     "@types/file-saver": "^2.0.7",
