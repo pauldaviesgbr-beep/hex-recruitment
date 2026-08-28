@@ -126,14 +126,20 @@ jobs:
           echo "the bundle carries its config and its web assets"
 
   archive:
-    name: Signed archive (skips until the secrets exist)
+    name: Signed archive
     needs: compile
     runs-on: ${{ inputs.runner || 'macos-15' }}
     timeout-minutes: 60
-    # SKIPS ITSELF RATHER THAN FAILING. Until Paul has added the three
-    # secrets this job has nothing to do, and a red job that is red on
-    # purpose is the kind of red people stop reading.
-    if: ${{ false }}   # ← flipped on once IOS_DIST_P12 and friends exist
+
+    # NO LONGER `if: false`. It was skipped on purpose while the six secrets
+    # did not exist, because a job that is red for a reason nobody can fix is
+    # a red people learn to ignore. They exist now, so it runs.
+    #
+    # THREE OF THE SIX ARE NOT USED HERE. ASC_KEY_ID, ASC_ISSUER_ID and
+    # ASC_API_KEY are for UPLOADING to App Store Connect, which this
+    # deliberately does not do. Signing is manual provisioning with the
+    # certificate and the profile, so nothing here needs an API key. They are
+    # waiting for the upload step, which is a separate decision.
 
     steps:
       - uses: actions/checkout@v4
@@ -142,15 +148,207 @@ jobs:
           node-version: '22'
           cache: 'npm'
 
-      - name: npm ci + cap copy + assert
+      # THIS IS A DIFFERENT RUNNER FROM `compile`, WITH A CLEAN CLONE, so it
+      # must generate capacitor.config.json and App/public for itself.
+      # Skipping it here would sign a binary with no config and no web assets
+      # — a green pipeline producing a broken app, which is worse than a red
+      # one.
+      - name: npm ci + cap copy + assert the generated files exist
         run: |
           chmod +x ios/App/ci_scripts/ci_post_clone.sh
           ios/App/ci_scripts/ci_post_clone.sh
 
-      # Placeholder for the signed path. Deliberately not written blind:
-      # it will be built against the real secrets, one failure at a time,
-      # rather than guessed at now and debugged later.
-      - name: Not yet implemented
+      # ── SIGNING MATERIAL ─────────────────────────────────────────────────
+      # No secret is ever echoed. This is a PUBLIC repository and its build
+      # logs are world-readable, so a password reaching one would be worse
+      # than a failed build.
+      - name: Import the distribution certificate into a temporary keychain
+        env:
+          P12: ${{ secrets.IOS_DIST_P12 }}
+          P12_PASSWORD: ${{ secrets.IOS_DIST_P12_PASSWORD }}
         run: |
-          echo "The signed archive is written once the secrets exist."
-          exit 1
+          set -e
+          if [ -z "$P12" ]; then echo "SECRET MISSING OR EMPTY: IOS_DIST_P12"; exit 1; fi
+          if [ -z "$P12_PASSWORD" ]; then echo "SECRET MISSING OR EMPTY: IOS_DIST_P12_PASSWORD"; exit 1; fi
+
+          echo "$P12" | base64 --decode > /tmp/dist.p12
+          # base64 --decode is quiet about truncated input, so check the shape
+          # rather than trusting its exit code.
+          if [ ! -s /tmp/dist.p12 ]; then
+            echo "IOS_DIST_P12 DECODED TO AN EMPTY FILE - truncated, or not base64"
+            exit 1
+          fi
+          echo "decoded .p12: $(wc -c < /tmp/dist.p12) bytes"
+
+          security create-keychain -p runner build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p runner build.keychain
+          security set-keychain-settings -t 3600 -u build.keychain
+
+          if ! security import /tmp/dist.p12 -k build.keychain -P "$P12_PASSWORD" -T /usr/bin/codesign -T /usr/bin/security 2>/tmp/import.err; then
+            echo "THE .p12 WOULD NOT IMPORT."
+            echo "THE FAULT IS IN A SECRET, NOT THE WORKFLOW: IOS_DIST_P12 or IOS_DIST_P12_PASSWORD."
+            cat /tmp/import.err || true
+            exit 1
+          fi
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k runner build.keychain > /dev/null
+
+          # A KEYCHAIN THAT UNLOCKS BUT HOLDS NO IDENTITY IS THE CLASSIC SILENT
+          # FAILURE HERE. Without this the build dies much later with something
+          # misleading about code signing, a long way from the real cause.
+          COUNT=$(security find-identity -v -p codesigning build.keychain | grep -c "Apple Distribution" || true)
+          echo "Apple Distribution identities in the keychain: $COUNT"
+          if [ "$COUNT" -lt 1 ]; then
+            echo "THE .p12 IMPORTED BUT THE KEYCHAIN HOLDS NO Apple Distribution IDENTITY."
+            echo "Most likely the .p12 carries a certificate with no private key."
+            security find-identity -v -p codesigning build.keychain || true
+            exit 1
+          fi
+          rm -f /tmp/dist.p12
+
+      - name: Install the provisioning profile, and read what it claims
+        env:
+          PROFILE: ${{ secrets.IOS_PROVISIONING_PROFILE }}
+        run: |
+          set -e
+          if [ -z "$PROFILE" ]; then echo "SECRET MISSING OR EMPTY: IOS_PROVISIONING_PROFILE"; exit 1; fi
+          echo "$PROFILE" | base64 --decode > /tmp/profile.mobileprovision
+          if [ ! -s /tmp/profile.mobileprovision ]; then
+            echo "IOS_PROVISIONING_PROFILE DECODED TO AN EMPTY FILE - truncated, or not base64"
+            exit 1
+          fi
+
+          # The profile is CMS-signed; this unwraps it into a plain plist.
+          security cms -D -i /tmp/profile.mobileprovision > /tmp/profile.plist
+
+          UUID=$(/usr/libexec/PlistBuddy -c "Print :UUID" /tmp/profile.plist)
+          NAME=$(/usr/libexec/PlistBuddy -c "Print :Name" /tmp/profile.plist)
+          APPID=$(/usr/libexec/PlistBuddy -c "Print :Entitlements:application-identifier" /tmp/profile.plist)
+          TEAM=$(/usr/libexec/PlistBuddy -c "Print :TeamIdentifier:0" /tmp/profile.plist)
+          EXPIRY=$(/usr/libexec/PlistBuddy -c "Print :ExpirationDate" /tmp/profile.plist)
+
+          echo "profile name        : $NAME"
+          echo "profile UUID        : $UUID"
+          echo "application-id      : $APPID"
+          echo "team                : $TEAM"
+          echo "profile expires     : $EXPIRY"
+
+          # THE THREE MUST AGREE, AND THIS SAYS WHICH PAIR DOES NOT rather
+          # than failing later with a generic signing error. The bundle id is
+          # the same one lib/appleSignIn.ts records and iosshell:prove already
+          # watches in three places; this is the fourth party to that
+          # agreement, and it comes from Apple's own record.
+          WANT_BUNDLE=uk.co.thrivecareer.app
+          WANT_TEAM=7RTA2FH8C7
+          if [ "$APPID" != "$WANT_TEAM.$WANT_BUNDLE" ]; then
+            echo "MISMATCH - the profile is for $APPID, this app is $WANT_TEAM.$WANT_BUNDLE"
+            exit 1
+          fi
+          if [ "$TEAM" != "$WANT_TEAM" ]; then
+            echo "MISMATCH - profile team $TEAM, expected $WANT_TEAM"
+            exit 1
+          fi
+          echo "profile, team and bundle id all agree"
+
+          mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
+          cp /tmp/profile.mobileprovision "$HOME/Library/MobileDevice/Provisioning Profiles/$UUID.mobileprovision"
+          echo "PROFILE_UUID=$UUID" >> "$GITHUB_ENV"
+          echo "PROFILE_NAME=$NAME" >> "$GITHUB_ENV"
+
+      # ── ARCHIVE ──────────────────────────────────────────────────────────
+      - name: Archive
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -project ios/App/App.xcodeproj \
+            -scheme App \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$RUNNER_TEMP/App.xcarchive" \
+            CODE_SIGN_STYLE=Manual \
+            DEVELOPMENT_TEAM=7RTA2FH8C7 \
+            PROVISIONING_PROFILE_SPECIFIER="$PROFILE_NAME" \
+            CODE_SIGN_IDENTITY="Apple Distribution" \
+            archive
+
+      - name: Export the .ipa
+        run: |
+          set -o pipefail
+          # method: app-store-connect is the Xcode 15+ name. If this runner's
+          # Xcode rejects it the error names the accepted values, and the
+          # older spelling is app-store.
+          {
+            echo '<?xml version="1.0" encoding="UTF-8"?>'
+            echo '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">'
+            echo '<plist version="1.0">'
+            echo '<dict>'
+            echo '  <key>method</key><string>app-store-connect</string>'
+            echo '  <key>teamID</key><string>7RTA2FH8C7</string>'
+            echo '  <key>signingStyle</key><string>manual</string>'
+            echo '  <key>uploadSymbols</key><true/>'
+            echo '  <key>provisioningProfiles</key>'
+            echo '  <dict>'
+            echo "    <key>uk.co.thrivecareer.app</key><string>$PROFILE_NAME</string>"
+            echo '  </dict>'
+            echo '</dict>'
+            echo '</plist>'
+          } > "$RUNNER_TEMP/ExportOptions.plist"
+          cat "$RUNNER_TEMP/ExportOptions.plist"
+
+          xcodebuild -exportArchive \
+            -archivePath "$RUNNER_TEMP/App.xcarchive" \
+            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" \
+            -exportPath "$RUNNER_TEMP/export"
+
+      # ── ASSERT THE SIGNED PRODUCT, NOT xcodebuild's SUMMARY ─────────────
+      - name: Prove the signed artefact is what it should be
+        run: |
+          set -e
+          IPA=$(find "$RUNNER_TEMP/export" -name '*.ipa' | head -1)
+          test -n "$IPA" || { echo "NO .ipa WAS PRODUCED"; exit 1; }
+          echo "ipa: $IPA ($(wc -c < "$IPA") bytes)"
+
+          APP="$RUNNER_TEMP/App.xcarchive/Products/Applications/App.app"
+          test -d "$APP" || { echo "NO App.app IN THE ARCHIVE"; exit 1; }
+
+          # THE SAME ASSERTION AS THE UNSIGNED BUILD, ON THE SIGNED PRODUCT.
+          # A signed binary with no config and no web assets launches to
+          # nothing, and neither xcodebuild nor the store would say so.
+          test -f "$APP/capacitor.config.json" || { echo "capacitor.config.json IS NOT IN THE SIGNED BUNDLE"; exit 1; }
+          test -f "$APP/public/index.html" || { echo "THE OFFLINE PAGE IS NOT IN THE SIGNED BUNDLE"; exit 1; }
+          echo "the signed bundle carries its config and its web assets"
+
+          # IT SURVIVED INTO THE BINARY, not merely into the source file. That
+          # is what stops the export-compliance question on every upload.
+          ENC=$(/usr/libexec/PlistBuddy -c "Print :ITSAppUsesNonExemptEncryption" "$APP/Info.plist" 2>/dev/null || echo MISSING)
+          echo "ITSAppUsesNonExemptEncryption in the BUILT Info.plist: $ENC"
+          test "$ENC" = "false" || { echo "IT DID NOT SURVIVE INTO THE BINARY"; exit 1; }
+
+          # And the custom scheme, without which the OAuth sheet returns
+          # nowhere and the failure is the silent one.
+          SCHEME=$(/usr/libexec/PlistBuddy -c "Print :CFBundleURLTypes:0:CFBundleURLSchemes:0" "$APP/Info.plist" 2>/dev/null || echo MISSING)
+          echo "CFBundleURLSchemes[0] in the BUILT Info.plist: $SCHEME"
+          test "$SCHEME" = "uk.co.thrivecareer.app" || { echo "THE OAUTH RETURN SCHEME IS NOT IN THE BINARY"; exit 1; }
+
+          # And it really is signed, by us.
+          codesign -dv --verbose=2 "$APP" 2>&1 | grep -E "Authority|TeamIdentifier|Identifier" || true
+          codesign --verify --strict --verbose=2 "$APP" && echo "the signature verifies"
+
+      - name: Keep the .ipa
+        uses: actions/upload-artifact@v4
+        with:
+          name: Thrive-ipa
+          path: ${{ runner.temp }}/export/*.ipa
+          retention-days: 14
+          if-no-files-found: error
+
+      # NOT UPLOADED TO APP STORE CONNECT, NOT SENT TO TESTFLIGHT, NOT
+      # SUBMITTED. A signed .ipa existing is the goal of this step; what
+      # happens to it is Paul's decision and a separate conversation.
+
+      - name: Remove the keychain
+        if: always()
+        run: |
+          security delete-keychain build.keychain || true
+          rm -f /tmp/profile.mobileprovision /tmp/profile.plist /tmp/dist.p12 /tmp/import.err || true
