@@ -27,8 +27,17 @@
 
 set -e   # any failure here must stop the build rather than let it ship short
 
+# RESOLVED FROM THE SCRIPT'S OWN LOCATION, NOT FROM THE CALLER'S.
+#
+# It was `cd ../../..`, which is correct only when the working directory is
+# ios/App/ci_scripts — true for Xcode Cloud, which runs it from there, and
+# false for GitHub Actions, which runs from the repository root. That one line
+# was the difference between one source of truth and two copies of these
+# assertions drifting apart.
+#
+# Both callers now get the same script and the same checks.
 echo "--- ci_post_clone: repository root ---"
-cd ../../..
+cd "$(dirname "$0")/../../.."
 pwd
 
 echo "--- node and npm as Xcode Cloud provides them ---"
