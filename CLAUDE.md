@@ -372,6 +372,22 @@ Standing rules for Claude Code on this project. These override default behaviour
     - **CONSEQUENCE: ITERATION IS FREE, SO STOP TREATING MINUTES AS SCARCE.** `workflow_dispatch`-only stays, but it is now a convenience rather than a cost control — and if the repository ever goes private the same build costs about **$0.12** a time, which is the real price of that decision.
   - **`ci_post_clone.sh` IS XCODE CLOUD'S CONVENTION AND ACTIONS WILL NEVER RUN IT BY ITSELF** — the workflow CALLS it rather than copying its assertions, so there is one source of truth. It was changed to resolve paths from its own location (`dirname "$0"`) instead of assuming the caller's working directory, which is what makes one script serve both.
 
+- **THE FIRST SIGNED BUILD, 28 Aug 2026 — THE NUMBERS, SO THE NEXT ONE HAS SOMETHING TO DIFFER FROM.** Run #3: compile 95s, archive 71s, 2m 46s of job time, billed $0.
+
+      identity imported        1 Apple Distribution
+      profile name             Thrive App Store
+      profile UUID             51b59794-0d04-42ca-bfd0-c0a7f2bcbceb
+      application-identifier   7RTA2FH8C7.uk.co.thrivecareer.app
+      profile expires          28 Aug 2027 11:42:43 UTC
+      export method            app-store-connect — ACCEPTED by Xcode 16.4
+      artefact                 App.ipa, 677,471 bytes
+      signature                Apple Distribution: Thrive Career Platform LTD
+                               → Apple WWDR CA → Apple Root CA, DR satisfied
+
+  - **`method: app-store-connect` IS ACCEPTED — observed, not predicted.** It was the failure I expected and it did not happen. `app-store` remains the fallback if a future Xcode rejects it.
+  - **THE .p12 CHANGED SIZE, 3267 → 3109 BYTES, and that is corroboration rather than trivia:** the `-legacy` re-export really did produce a different file, so what fixed it was the FORMAT and not a retyped password.
+  - **ALL TEN ARCHIVE STEPS RAN — none skipped, and no assertion passed vacuously.** `App.app` was confirmed to exist before the two `test -f` checks inside it, so "the signed bundle carries its config and its web assets" is a statement about two files that were found rather than a step that did not fail.
+
 - **THREE THINGS NOW EXPIRE SILENTLY, NOT ONE. ONLY ONE OF THEM HAS AN ALARM.**
 
       APPLE_CLIENT_SECRET_EXPIRES   22 Feb 2027   ← watched by applesecret:prove
@@ -482,6 +498,15 @@ Standing rules for Claude Code on this project. These override default behaviour
   - **PUBLIC:** GitHub Actions is free for public repositories on standard runners. Whether macOS standard runners are included is **unsettled** — the billing page says free "for public repositories that use standard GitHub-hosted runners" and separately that "larger runners are always charged"; `macos-15` is standard, not larger, but it is not said in as many words. **The first build settles it from the billing page. Do not guess it again.**
   - **PRIVATE:** the codebase and this file stop being world-readable — and this file is now a detailed account of the product's weak points, its live data, its blind spots and its fixtures. Cost is a few pounds a month in macOS minutes.
   - **NOTHING WAS MOVED OUT OF THIS FILE AND NOTHING SHOULD BE** until that decision is made. Redacting it piecemeal would lose the thing that makes it useful.
+
+## The open list — named, dated, not touched
+
+- **THE ROLES ROUNDUP EMAIL HAS NEVER ONCE SENT ON ITS SCHEDULE.** Reported to me as "failed the last three runs". It is worse and it is a different fault: **FOUR scheduled runs, 4, 11, 18 and 25 August 2026, ALL FAILED — and the schedule has a 0% success rate for its entire existence.** The only two green runs, #1 and #5, were both `workflow_dispatch` on 28 July, the day it was built.
+  - **SO NOBODY BROKE IT. IT NEVER WORKED UNATTENDED.** That changes what the fix is: this is not a regression to bisect, it is something that only ever ran by hand. And CLAUDE.md's own note that "the first real send went to 14 candidates on 28 Jul" was a MANUAL run — the weekly email has not reached a candidate since.
+  - Found 28 Aug 2026 by reading the run list rather than the summary; **the three-versus-four difference came from counting what was on the screen instead of asking the API for the whole history.** Same shape as the emoji inventory that reported seven of thirty-seven.
+  - **DELIBERATELY NOT INVESTIGATED** — recorded so it is a decision rather than something nobody saw.
+  - **IT IS THE SAME FAMILY AS THE DISABLED SECRET SCANNER, AND WORSE.** A scheduled job that stops is silent exactly as a detector that is off is silent — but here the absence is of a THING (an email a candidate should have received), not of a report about a thing, and nobody is on a list to notice that a weekly email did not arrive.
+  - Whoever picks it up: the first question is not why it fails but **how many sends were lost**, and `email_log` answers it — with the caution that the table's own first row is 11 Aug, which is what turned "9 of 62" into "9 of 20".
 
 ## Product boundary
 
