@@ -435,6 +435,25 @@ Standing rules for Claude Code on this project. These override default behaviour
 
 - **THE BOARD IS 231 GOLDENKEYS / 19 HOST / 1 DIRECT EMPLOYER.** Three companies hold all 251 live adverts, and exactly one of them — Collins King & Associates — is not a recruiter. 250 of 251 carry a banner image and every one belongs to a recruiter; the single direct advert has none, so its job page paints a flat gradient. **"A real employer with a real banner" does not currently exist on the board.** Recorded 27 Aug 2026 because it is the sharpest statement of the acquisition problem anyone has produced, not because it is a task.
 
+## The repository is PUBLIC
+
+- **`hex-recruitment` IS A PUBLIC REPOSITORY, AND NOBODY HAD NOTICED.** Confirmed from the GitHub API 28 Aug 2026: `visibility: public`, `private: false`. It surfaced only because a workflow dispatch returned 403 and I went looking at the repository record. **Everything ever committed on any branch has been world-readable since 1 March 2026**, and public repositories are scraped continuously and automatically.
+
+- **ONE REAL CREDENTIAL WAS COMMITTED AND IS STILL IN THE HISTORY: THE FIRECRAWL API KEY.** It sat in `.claude/settings.local.json` — inside a `Bash(printf "…")` permission entry, which is why no `.env` rule ever caught it — across **14 commits from 1 March to 24 April 2026**. `70624d6` gitignored the file and removed it from the tree, **but the blob remains in history and the key is unchanged.** Deleting a file does not unpublish it.
+  - **BLAST RADIUS IS QUOTA AND MONEY, NOT DATA.** The key reaches `api.firecrawl.dev` for company-profile auto-fill (`app/api/company/scrape/route.ts`) and nothing else. It cannot touch Supabase, candidates, applications, CVs or email. **It is not the service-role key.**
+  - **THE REMEDY IS ROTATION, NOT REDACTION.** A key that has been public is compromised whatever happens to the repository afterwards.
+
+- **NOTHING WORSE WAS FOUND, AND THE NEGATIVE IS WORTH AS MUCH AS THE POSITIVE.** Scanned **every blob in the object database** — 1,670 commits across 215 refs, including blobs unreachable from any ref, which a `git log --all` scan would have missed. Searched for and NOT found: the **Supabase service-role key** or any `service_role` JWT, any long `eyJ` JWT at all, Resend `re_`, Stripe `sk_live`/`sk_test`/`rk_`/`whsec_`, Anthropic `sk-ant-`, LinkedIn client secret, any `BEGIN PRIVATE KEY` block, Postcoder, `CRON_SECRET` as a literal, the Vercel bypass secret, Supabase `sbp_`, GitHub `ghp_`, AWS `AKIA`. No `.env`, `.pem`, `.p12`, `.p8`, `.key`, `.mobileprovision` or service-account JSON was **ever** added on any ref.
+  - `.gitignore` has covered `.env` and `.env.local` **since its very first commit**, which is why the env files are clean. The gap was a file nobody thought of as secret-bearing.
+  - The `.env*.example` files hold bracketed placeholders only, verified version by version.
+
+- **THE OLD EMBER PASSWORD EXPOSURE IS STILL CLOSED.** `edb9660` recorded that a test password sat in six commits from 10 May 2026 and that the mitigation was that no account it opens exists. **Re-measured 28 Aug 2026: 0 `thrivetest`, 0 `+demo`, 0 `+e2e` accounts** — only the two standing fixtures, whose passwords come from the environment and were never committed. The three files it named all read from `process.env` today.
+
+- **WHETHER THE REPOSITORY STAYS PUBLIC IS AN OPEN DECISION — PAUL'S, NOT ANYONE ELSE'S, AND NOT TAKEN AS OF 28 Aug 2026.** The trade:
+  - **PUBLIC:** GitHub Actions is free for public repositories on standard runners. Whether macOS standard runners are included is **unsettled** — the billing page says free "for public repositories that use standard GitHub-hosted runners" and separately that "larger runners are always charged"; `macos-15` is standard, not larger, but it is not said in as many words. **The first build settles it from the billing page. Do not guess it again.**
+  - **PRIVATE:** the codebase and this file stop being world-readable — and this file is now a detailed account of the product's weak points, its live data, its blind spots and its fixtures. Cost is a few pounds a month in macOS minutes.
+  - **NOTHING WAS MOVED OUT OF THIS FILE AND NOTHING SHOULD BE** until that decision is made. Redacting it piecemeal would lose the thing that makes it useful.
+
 ## Product boundary
 
 - **Thrive is a recruitment product, not HR/onboarding software.** Do not build visa/right-to-work compliance logic (visa types, hours-limited conditions, document acceptance, DBS levels, a rules engine, etc.) beyond a simple confirmation flag the employer ticks once they've verified through their own proper channel. Deeper compliance is integration territory (dedicated HR systems / a future integration), not something we model or store here — no candidate documents, no special-category data.
