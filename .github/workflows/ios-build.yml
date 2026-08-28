@@ -35,9 +35,14 @@ on:
         required: false
         default: 'macos-15'
       xcode:
-        description: 'Xcode version to select, or "default" to take the image default'
+        # 'newest26' picks the highest Xcode 26 or later on the runner. Apple
+        # REFUSES any upload built with an older SDK - that is what killed
+        # run #4, which took the image default and got Xcode 16.4 / iOS 18.5.
+        # Name a version (e.g. 26.3) to pin one; 'image-default' opts out and
+        # exists only so the old behaviour stays reachable deliberately.
+        description: 'newest26 (default), a version like 26.3, or image-default'
         required: false
-        default: 'default'
+        default: 'newest26'
       upload:
         description: 'Upload the signed .ipa to TestFlight? Type yes to send it.'
         required: false
@@ -75,11 +80,51 @@ jobs:
           echo "--- selected Xcode ---"
           xcodebuild -version
 
-      - name: Select a specific Xcode
-        if: ${{ inputs.xcode != 'default' && inputs.xcode != '' }}
+      # THE SDK IS WHAT APPLE CHECKS, NOT THE XCODE NAME, so this asserts the
+      # SDK. Run #4 archived happily under Xcode 16.4 and Apple refused it for
+      # the iOS 18.5 SDK - and the archive job did not select an Xcode AT ALL,
+      # so the input above could not have saved it however it was set. Both
+      # jobs run this step now, which is the half that actually mattered.
+      - name: Select Xcode, and prove the SDK is one Apple will accept
         run: |
-          sudo xcode-select -s "/Applications/Xcode_${{ inputs.xcode }}.app"
+          set -e
+          WANT='${{ inputs.xcode }}'
+          if [ "$WANT" = "newest26" ] || [ -z "$WANT" ] || [ "$WANT" = "default" ]; then
+            PICK=$(ls -d /Applications/Xcode_*.app 2>/dev/null \
+                   | sed 's|.*/Xcode_||; s|\.app$||' \
+                   | awk -F. '$1 >= 26' | sort -V | tail -1)
+            if [ -z "$PICK" ]; then
+              echo "NO XCODE 26 OR LATER ON THIS RUNNER - Apple will refuse whatever this builds."
+              ls -d /Applications/Xcode_*.app || true
+              exit 1
+            fi
+            echo "picked the newest Xcode 26 or later: $PICK"
+          elif [ "$WANT" = "image-default" ]; then
+            PICK=""
+            echo "taking the image default DELIBERATELY - the SDK check below still runs"
+          else
+            PICK="$WANT"
+            echo "pinned by the dispatch input: $PICK"
+          fi
+
+          if [ -n "$PICK" ]; then
+            test -d "/Applications/Xcode_${PICK}.app" \
+              || { echo "Xcode_${PICK}.app IS NOT ON THIS RUNNER"; ls -d /Applications/Xcode_*.app; exit 1; }
+            sudo xcode-select -s "/Applications/Xcode_${PICK}.app"
+          fi
           xcodebuild -version
+
+          # The assertion. An Xcode name is a proxy; this is the number Apple
+          # reads off the binary, and it is the one that failed.
+          SDK=$(xcrun --sdk iphoneos --show-sdk-version)
+          echo "iOS SDK: $SDK"
+          case "$SDK" in
+            ''|*[!0-9.]*) echo "COULD NOT READ AN SDK VERSION: '$SDK'"; exit 1 ;;
+          esac
+          MAJOR=${SDK%%.*}
+          test "$MAJOR" -ge 26 \
+            || { echo "APPLE REFUSES AN UPLOAD BUILT WITH THE iOS $SDK SDK. It requires 26 or later. This is the error run #4 died on."; exit 1; }
+          echo "the iOS $SDK SDK satisfies Apple's minimum of 26"
 
       - uses: actions/setup-node@v4
         with:
@@ -160,7 +205,51 @@ jobs:
         with:
           node-version: '22'
           cache: 'npm'
+      # THE SDK IS WHAT APPLE CHECKS, NOT THE XCODE NAME, so this asserts the
+      # SDK. Run #4 archived happily under Xcode 16.4 and Apple refused it for
+      # the iOS 18.5 SDK - and the archive job did not select an Xcode AT ALL,
+      # so the input above could not have saved it however it was set. Both
+      # jobs run this step now, which is the half that actually mattered.
+      - name: Select Xcode, and prove the SDK is one Apple will accept
+        run: |
+          set -e
+          WANT='${{ inputs.xcode }}'
+          if [ "$WANT" = "newest26" ] || [ -z "$WANT" ] || [ "$WANT" = "default" ]; then
+            PICK=$(ls -d /Applications/Xcode_*.app 2>/dev/null \
+                   | sed 's|.*/Xcode_||; s|\.app$||' \
+                   | awk -F. '$1 >= 26' | sort -V | tail -1)
+            if [ -z "$PICK" ]; then
+              echo "NO XCODE 26 OR LATER ON THIS RUNNER - Apple will refuse whatever this builds."
+              ls -d /Applications/Xcode_*.app || true
+              exit 1
+            fi
+            echo "picked the newest Xcode 26 or later: $PICK"
+          elif [ "$WANT" = "image-default" ]; then
+            PICK=""
+            echo "taking the image default DELIBERATELY - the SDK check below still runs"
+          else
+            PICK="$WANT"
+            echo "pinned by the dispatch input: $PICK"
+          fi
 
+          if [ -n "$PICK" ]; then
+            test -d "/Applications/Xcode_${PICK}.app" \
+              || { echo "Xcode_${PICK}.app IS NOT ON THIS RUNNER"; ls -d /Applications/Xcode_*.app; exit 1; }
+            sudo xcode-select -s "/Applications/Xcode_${PICK}.app"
+          fi
+          xcodebuild -version
+
+          # The assertion. An Xcode name is a proxy; this is the number Apple
+          # reads off the binary, and it is the one that failed.
+          SDK=$(xcrun --sdk iphoneos --show-sdk-version)
+          echo "iOS SDK: $SDK"
+          case "$SDK" in
+            ''|*[!0-9.]*) echo "COULD NOT READ AN SDK VERSION: '$SDK'"; exit 1 ;;
+          esac
+          MAJOR=${SDK%%.*}
+          test "$MAJOR" -ge 26 \
+            || { echo "APPLE REFUSES AN UPLOAD BUILT WITH THE iOS $SDK SDK. It requires 26 or later. This is the error run #4 died on."; exit 1; }
+          echo "the iOS $SDK SDK satisfies Apple's minimum of 26"
       # THIS IS A DIFFERENT RUNNER FROM `compile`, WITH A CLEAN CLONE, so it
       # must generate capacitor.config.json and App/public for itself.
       # Skipping it here would sign a binary with no config and no web assets
@@ -377,6 +466,24 @@ jobs:
           SCHEME=$(/usr/libexec/PlistBuddy -c "Print :CFBundleURLTypes:0:CFBundleURLSchemes:0" "$APP/Info.plist" 2>/dev/null || echo MISSING)
           echo "CFBundleURLSchemes[0] in the BUILT Info.plist: $SCHEME"
           test "$SCHEME" = "uk.co.thrivecareer.app" || { echo "THE OAUTH RETURN SCHEME IS NOT IN THE BINARY"; exit 1; }
+          # THE ICON. APPLE CHECKED THIS AND I DID NOT, which is the whole
+          # lesson of run #4: every assertion above passed, the archive
+          # succeeded, and the .ipa contained no Assets.car at all because
+          # actool only WARNS about an image its Contents.json names but
+          # cannot find. Four of Apple's five errors were this.
+          #
+          # scripts/prove-ios-assets.mjs stops it before the push; these two
+          # stop it before the upload, and they read the BUILT product rather
+          # than the repository, so they also catch a catalogue that was
+          # present and still failed to compile.
+          test -f "$APP/Assets.car" \
+            || { echo "NO Assets.car IN THE BUNDLE - the asset catalogue did not compile, so the app has no icon and Apple will refuse the upload"; exit 1; }
+          echo "Assets.car is in the bundle ($(wc -c < "$APP/Assets.car") bytes)"
+
+          ICONNAME=$(/usr/libexec/PlistBuddy -c "Print :CFBundleIconName" "$APP/Info.plist" 2>/dev/null || echo MISSING)
+          echo "CFBundleIconName in the BUILT Info.plist: $ICONNAME"
+          test "$ICONNAME" = "AppIcon" \
+            || { echo "CFBundleIconName IS '$ICONNAME' - actool did not write it, which means no app icon reached the binary"; exit 1; }
 
           # And it really is signed, by us.
           codesign -dv --verbose=2 "$APP" 2>&1 | grep -E "Authority|TeamIdentifier|Identifier" || true
