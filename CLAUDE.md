@@ -372,6 +372,19 @@ Standing rules for Claude Code on this project. These override default behaviour
     - **CONSEQUENCE: ITERATION IS FREE, SO STOP TREATING MINUTES AS SCARCE.** `workflow_dispatch`-only stays, but it is now a convenience rather than a cost control — and if the repository ever goes private the same build costs about **$0.12** a time, which is the real price of that decision.
   - **`ci_post_clone.sh` IS XCODE CLOUD'S CONVENTION AND ACTIONS WILL NEVER RUN IT BY ITSELF** — the workflow CALLS it rather than copying its assertions, so there is one source of truth. It was changed to resolve paths from its own location (`dirname "$0"`) instead of assuming the caller's working directory, which is what makes one script serve both.
 
+- **THREE THINGS NOW EXPIRE SILENTLY, NOT ONE. ONLY ONE OF THEM HAS AN ALARM.**
+
+      APPLE_CLIENT_SECRET_EXPIRES   22 Feb 2027   ← watched by applesecret:prove
+      distribution certificate      28 Aug 2027   ← NOTHING WATCHES THIS
+      provisioning profile          28 Aug 2027   ← NOTHING WATCHES THIS
+
+  - **WHAT BREAKS IS DIFFERENT IN EACH CASE, WHICH IS WHY THEY ARE NOT INTERCHANGEABLE.** The Apple client secret lapsing stops every Apple SIGN-IN, for real users, silently. The certificate or profile lapsing stops the BUILD — nobody signs in worse, but no new version can ship, and the error arrives the next time someone runs the pipeline rather than at the moment it lapses.
+  - **THE BUILD ONES ARE THE MILDER PAIR AND THAT IS THE ARGUMENT FOR LEAVING THEM.** A build failure is loud, immediate and in front of the person who caused it. A sign-in failure is silent, on somebody else's phone. Deliberately not alarmed as of 28 Aug 2026 — recorded so the omission is a decision rather than an oversight.
+  - **THE PROFILE'S OWN EXPIRY IS PRINTED BY EVERY SIGNED BUILD.** The archive job reads `ExpirationDate` out of the profile and echoes it, so the date is in the log of the last build anyone ran rather than only here.
+
+- **THE MAC-FREE PATH IS PROVEN END TO END — APPLE ACCEPTED AN OPENSSL CSR.** Generated on Windows with `openssl req -new -newkey rsa:2048`, uploaded to the portal, and a distribution certificate was issued to Thrive Career Platform LTD. Then the `.p12` built from the same key, and a profile generated against it. **No Mac was involved at any point**, which was the whole basis of choosing GitHub Actions over Xcode Cloud, and it is now observed rather than reasoned.
+  - The profile carries App ID `7RTA2FH8C7.uk.co.thrivecareer.app` — **a FOURTH party agreeing with the three the bundle-id check already watches**, and the only one of the four that comes from Apple's own record rather than our repository.
+
 - **GOOGLE REFUSES OAUTH INSIDE AN EMBEDDED WEBVIEW, AND THAT IS THE LARGEST ITEM IN THE WRAP.** A full-page redirect to `accounts.google.com` from inside WKWebView comes back `disallowed_useragent`. It is deliberate, long-standing Google policy, not a bug and not something a header fixes. **Shipped as the shell stands, most candidates could not sign in** — Google is the provider they overwhelmingly use.
   - **Every OAuth hand-off has to LEAVE the webview** for `ASWebAuthenticationSession` — `@capacitor/browser`, or native Sign in with Apple. **PHASE 3**, and the biggest thing in it.
   - Found 28 Aug 2026 by reading the sign-in components before anything was built. It is the kind of fault that otherwise surfaces on a TestFlight build at the earliest, after the pipeline, the signing and the icons have all been done.
