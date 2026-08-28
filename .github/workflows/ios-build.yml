@@ -187,8 +187,45 @@ jobs:
 
           if ! security import /tmp/dist.p12 -k build.keychain -P "$P12_PASSWORD" -T /usr/bin/codesign -T /usr/bin/security 2>/tmp/import.err; then
             echo "THE .p12 WOULD NOT IMPORT."
-            echo "THE FAULT IS IN A SECRET, NOT THE WORKFLOW: IOS_DIST_P12 or IOS_DIST_P12_PASSWORD."
             cat /tmp/import.err || true
+
+            # ── THE ERROR TEXT NAMES THE WRONG CAUSE, SO DO NOT REPEAT IT ──
+            #
+            # macOS says "MAC verification failed during PKCS12 import
+            # (wrong password?)" for TWO different faults, and its own
+            # parenthetical guess is the less likely one:
+            #
+            #   1. the password really is wrong
+            #   2. THE .p12 CARRIES A SHA-256 MAC, WHICH macOS CANNOT VERIFY
+            #      AT ALL. OpenSSL 3 produces that BY DEFAULT — measured on
+            #      the machine these were generated on: `MAC: sha256`
+            #      without -legacy, `MAC: sha1` with it. The password is
+            #      irrelevant in this case; no password would work.
+            #
+            # The MAC algorithm is in the PLAINTEXT part of the file, so it
+            # can be read WITHOUT the password. That is what turns a
+            # misleading error into a correct one, and it is why this runs
+            # after the failure rather than before: a working import is
+            # never blocked by it.
+            MACALG=$(openssl pkcs12 -in /tmp/dist.p12 -info -nokeys -noout -passin pass: 2>&1 | sed -n 's/^MAC: *\([a-zA-Z0-9]*\).*/\1/p' | head -1)
+            echo "the .p12 declares MAC algorithm: ${MACALG:-unreadable}"
+
+            if [ "$MACALG" = "sha256" ] || [ "$MACALG" = "sha512" ]; then
+              echo ""
+              echo "THIS IS NOT THE PASSWORD. THE .p12 IS IN A FORMAT macOS CANNOT IMPORT."
+              echo "OpenSSL 3 defaults to a $MACALG MAC; macOS security requires sha1."
+              echo "RE-EXPORT IT WITH -legacy AND UPDATE IOS_DIST_P12:"
+              echo "    openssl pkcs12 -export -legacy -inkey ios_dist.key -in dist.pem -out dist.p12"
+              echo "The password may well be correct; changing it would not have helped."
+            elif [ "$MACALG" = "sha1" ]; then
+              echo ""
+              echo "The format is right (sha1 MAC), so THE FAULT IS THE PASSWORD:"
+              echo "IOS_DIST_P12_PASSWORD does not match what the .p12 was exported with."
+            else
+              echo ""
+              echo "The MAC algorithm could not be read, so both remain possible:"
+              echo "IOS_DIST_P12 (format or content) or IOS_DIST_P12_PASSWORD."
+            fi
             exit 1
           fi
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k runner build.keychain > /dev/null

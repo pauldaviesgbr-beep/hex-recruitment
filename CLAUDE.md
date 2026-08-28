@@ -372,6 +372,13 @@ Standing rules for Claude Code on this project. These override default behaviour
     - **CONSEQUENCE: ITERATION IS FREE, SO STOP TREATING MINUTES AS SCARCE.** `workflow_dispatch`-only stays, but it is now a convenience rather than a cost control — and if the repository ever goes private the same build costs about **$0.12** a time, which is the real price of that decision.
   - **`ci_post_clone.sh` IS XCODE CLOUD'S CONVENTION AND ACTIONS WILL NEVER RUN IT BY ITSELF** — the workflow CALLS it rather than copying its assertions, so there is one source of truth. It was changed to resolve paths from its own location (`dirname "$0"`) instead of assuming the caller's working directory, which is what makes one script serve both.
 
+- **"MAC verification failed during PKCS12 import (wrong password?)" USUALLY IS NOT THE PASSWORD — AND THE ERROR'S OWN PARENTHETICAL IS WHAT SENDS PEOPLE THE WRONG WAY.** The first signed build died there, 39 seconds in, on 28 Aug 2026. The tidy reading is that the password is wrong. It was not.
+  - **OpenSSL 3 EXPORTS A `.p12` WITH A SHA-256 MAC BY DEFAULT, AND macOS `security import` CAN ONLY VERIFY SHA-1.** Measured on this machine rather than recalled: `openssl pkcs12 -export` gives `MAC: sha256`; adding **`-legacy`** gives `MAC: sha1`. **No password would have worked on the sha256 file** — the value could have been retyped correctly a dozen times and failed identically every time.
+  - **THE FIX IS ONE FLAG:** `openssl pkcs12 -export -legacy -inkey ios_dist.key -in dist.pem -out dist.p12`, then re-enter `IOS_DIST_P12`.
+  - **THE MAC ALGORITHM IS READABLE WITHOUT THE PASSWORD**, because it sits in the plaintext part of the file: `openssl pkcs12 -in f.p12 -info -nokeys -noout -passin pass:` prints it even when the password is wrong. Proven on both forms with a deliberately wrong password. So the workflow now reads it AFTER a failed import and says which of the two faults it actually is, instead of repeating macOS's guess.
+  - **THIS IS THE "ONE OBSERVATION, TWO CANDIDATE CAUSES" SHAPE AGAIN**, and the same trap as the recovery-link 403 that looked like a PKCE cross-device problem and was a superseded token. **The failure already made sense, which is exactly why the second cause nearly went unexamined.** The discriminator was free and took one command.
+  - And the family it belongs to: **a tool's own suggestion about why it failed is not evidence.** Same as reading your own `echo` instead of an exit code.
+
 - **THREE THINGS NOW EXPIRE SILENTLY, NOT ONE. ONLY ONE OF THEM HAS AN ALARM.**
 
       APPLE_CLIENT_SECRET_EXPIRES   22 Feb 2027   ← watched by applesecret:prove
