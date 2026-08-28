@@ -1,0 +1,22 @@
+# A SHELL SCRIPT WITH CRLF LINE ENDINGS DIES ON macOS.
+#
+# The error is `bad interpreter: /bin/sh^M`, and it would appear for the first
+# time inside an Xcode Cloud build log, on a machine nobody here can open,
+# against a file that is correct in every other respect — right directory,
+# right name, executable bit set, contents exactly as intended.
+#
+# This repo is developed on Windows with core.autocrlf on, so the working copy
+# is CRLF and the blob happens to be LF. HAPPENS TO BE is the problem: it is a
+# property of one git setting on one machine rather than of the repository.
+# This makes it a fact about the repository instead.
+#
+# Same family as the CRLF entry in CLAUDE.md, where three "anchor not found"
+# failures in a row were blamed on indentation and quoting before anyone
+# printed the bytes.
+*.sh text eol=lf
+
+# Xcode project files are line-ending sensitive in the same way and are
+# generated on macOS. Keep them LF so a Windows checkout cannot rewrite them.
+*.pbxproj text eol=lf
+*.xcconfig text eol=lf
+*.swift text eol=lf
