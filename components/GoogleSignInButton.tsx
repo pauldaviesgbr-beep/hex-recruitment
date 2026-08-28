@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { safeInternalPath } from '@/lib/safeRedirect'
+import { isNativeApp, runNativeOAuth, NATIVE_CALLBACK_URL } from '@/lib/nativeOAuth'
 
 interface GoogleSignInButtonProps {
   role: 'employer' | 'employee'
@@ -43,6 +44,53 @@ export default function GoogleSignInButton({ role, className, label, next }: Goo
       // redirect to a different page if the callback URL isn't in the
       // allowlist).
       document.cookie = `oauth_intended_role=${role}; path=/; max-age=600; SameSite=Lax`
+
+      // ── THE NATIVE BRANCH. ON THE WEB THIS IS FALSE AND NOTHING BELOW IT
+      //    RUNS; the else-path is byte-identical to what shipped before.
+      //
+      //    Google refuses OAuth inside an embedded webview, so in the iOS
+      //    shell the authorisation page has to open in the system browser and
+      //    the resulting code has to be handed back. lib/nativeOAuth.ts
+      //    explains why that hand-back works — the PKCE verifier is a cookie
+      //    on our origin, so the webview can redeem the code itself.
+      //
+      //    isNativeApp() is a window property read, and the plugins are
+      //    imported dynamically inside it, so the web bundle never gains a
+      //    line of Capacitor. Asserted by prove-web-oauth-unchanged.
+      if (isNativeApp()) {
+        const { data, error } = await supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: {
+            // The custom scheme iOS routes back to the app. It must also be
+            // in Supabase's redirect allow-list or the provider refuses it.
+            redirectTo: NATIVE_CALLBACK_URL,
+            scopes: 'email profile',
+            // Do not navigate this webview to Google — Google would refuse it.
+            // Give us the URL and we will open it somewhere Google accepts.
+            skipBrowserRedirect: true,
+          },
+        })
+        if (error || !data?.url) {
+          setError(error?.message || 'Could not start Google sign-in.')
+          setLoading(false)
+          return
+        }
+
+        const outcome = await runNativeOAuth(data.url, (code) =>
+          `${siteUrl}/auth/callback/${role}?code=${encodeURIComponent(code)}` +
+          (safeNext ? `&next=${encodeURIComponent(safeNext)}` : ''),
+        )
+
+        // EVERY OUTCOME IS VISIBLE. The worst failure this design has is
+        // silence — the sheet closes and nothing happens — so there is no
+        // path here that leaves the button spinning or the screen unchanged.
+        if (outcome.kind === 'signed-in') return           // navigation under way
+        if (outcome.kind === 'cancelled') { setLoading(false); return }
+        setError(outcome.reason)
+        setLoading(false)
+        return
+      }
+
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {

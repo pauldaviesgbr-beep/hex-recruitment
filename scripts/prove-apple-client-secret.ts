@@ -22,6 +22,11 @@ import {
   DEFAULT_LIFETIME_SECONDS,
   APPLE_AUDIENCE,
 } from '../lib/appleClientSecret'
+import {
+  APPLE_CLIENT_SECRET_EXPIRES,
+  APPLE_SECRET_WARN_DAYS,
+  appleSecretDaysRemaining,
+} from '../lib/appleSignIn'
 
 const TEAM = '7RTA2FH8C7'
 const KID = 'Z9HFBUW93X'
@@ -170,6 +175,36 @@ function main() {
     check('it matches the generated public key', a === b)
     const c = createPublicKey(createPrivateKey(other.privateKey)).export({ type: 'spki', format: 'pem' }).toString()
     check('…and differs from a different key', a !== c, 'so the comparison above is a real one')
+  }
+
+  // ── THE ALARM ────────────────────────────────────────────────────────────
+  // THE SECRET IN SUPABASE LAPSES AND NOTHING ANNOUNCES IT. When it does,
+  // every Apple sign-in stops at once — and the failure is a provider error on
+  // somebody else's screen, not a red in anything we own. There is no cron and
+  // no email here on purpose: this file already runs inside `npm run verify`,
+  // which runs before every merge, so the reminder is loud for free.
+  //
+  // ⚠️ IT IS A REMINDER AGAINST A HARDCODED DATE, NOT A CHECK OF WHAT IS LIVE.
+  // Nothing we run can read the real token — Supabase returns a 64-character
+  // opaque value, not the JWT. If the secret is rotated and the constant in
+  // lib/appleSignIn.ts is not updated in the same commit, THIS GOES ON SAYING
+  // EVERYTHING IS FINE. That is the one way it can be wrong, and it is the
+  // reassuring way, which is why the warning is written twice — here and there.
+  console.log('\nTHE SECRET IN SUPABASE HAS A DATE ON IT')
+  {
+    const days = appleSecretDaysRemaining()
+    check('the recorded expiry parses', !Number.isNaN(Date.parse(APPLE_CLIENT_SECRET_EXPIRES)),
+      APPLE_CLIENT_SECRET_EXPIRES)
+    check(`more than ${APPLE_SECRET_WARN_DAYS} days before it lapses`,
+      days > APPLE_SECRET_WARN_DAYS,
+      days >= 0
+        ? `${days} days left — mint a new one with npm run apple:secret and UPDATE APPLE_CLIENT_SECRET_EXPIRES`
+        : `IT LAPSED ${Math.abs(days)} DAYS AGO — Apple sign-in is broken right now`)
+
+    // The window itself is asserted, so a future edit that sets it to 0 or a
+    // negative cannot quietly disable the alarm while leaving it green.
+    check('the warning window is a real one', APPLE_SECRET_WARN_DAYS >= 30,
+      `${APPLE_SECRET_WARN_DAYS} days`)
   }
 
   console.log('')

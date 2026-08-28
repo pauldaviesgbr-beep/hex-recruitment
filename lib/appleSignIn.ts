@@ -100,3 +100,48 @@ export const APPLE_IDENTIFIERS = {
   bundleId: 'uk.co.thrivecareer.app',
   keyId: 'Z9HFBUW93X',
 } as const
+
+/**
+ * WHEN THE CLIENT SECRET IN SUPABASE STOPS WORKING.
+ *
+ * ⚠️ THIS IS A REMINDER AGAINST A HARDCODED DATE. IT IS NOT A VERIFICATION OF
+ * WHAT IS ACTUALLY IN SUPABASE, AND IT CANNOT BE.
+ *
+ * The minted JWT lives ONLY in the Supabase dashboard. There is no APPLE_*
+ * variable in our environment, and the Management API does not hand the secret
+ * back: `GET /v1/projects/<ref>/config/auth` returns `external_apple_secret`
+ * as a 64-character opaque value with no dots — a handle or a hash, not the
+ * JWT. Checked 28 Aug 2026. So nothing we run can read the real `exp`, and
+ * this date is a record of what was minted rather than an observation of what
+ * is live.
+ *
+ * WHICH MEANS IT LIES IN THE REASSURING DIRECTION IF IT IS WRONG. Rotate the
+ * secret early without updating this line and the check goes on saying
+ * everything is fine. IF YOU ROTATE, CHANGE THIS DATE IN THE SAME COMMIT.
+ *
+ * The figure: minted 27 Aug 2026 at DEFAULT_LIFETIME_SECONDS (180 days), which
+ * lands on 23 Feb 2027. The 22nd is used deliberately — it is the date already
+ * recorded in CLAUDE.md, it is the EARLIER of the two candidates, and warning a
+ * day early is the safe direction for something whose failure mode is that
+ * every Apple sign-in stops working at once.
+ *
+ * Watched by `applesecret:prove`, which goes RED inside the warning window.
+ * That runs in `npm run verify`, so it is loud before every merge without a
+ * cron, an email, or anything touching the secret.
+ */
+export const APPLE_CLIENT_SECRET_EXPIRES = '2027-02-22T00:00:00Z'
+
+/** How long before expiry the check starts failing. Two months is enough to
+ *  mint a new secret, paste it, and prove it, without being so early that the
+ *  red becomes background noise people learn to merge past. */
+export const APPLE_SECRET_WARN_DAYS = 60
+
+/**
+ * Days until the recorded expiry — negative once it has passed.
+ * `now` is injected rather than read, so the check can be watched failing on
+ * purpose without anyone touching the system clock.
+ */
+export function appleSecretDaysRemaining(now: Date = new Date()): number {
+  const exp = new Date(APPLE_CLIENT_SECRET_EXPIRES).getTime()
+  return Math.floor((exp - now.getTime()) / 86_400_000)
+}
