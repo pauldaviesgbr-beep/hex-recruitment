@@ -533,6 +533,22 @@ const ALL = [
   // one named failure, exit 1, green again on restore.
   { name: 'iosshell:prove', cmd: npm, args: ['run', 'iosshell:prove'] },
 
+  // weboauth:prove IS THE CHECK THAT MATTERS MOST ON THE NATIVE WORK, and it
+  // is here rather than outside verify because it needs nothing but the
+  // filesystem and one imported function — no device, no deployment.
+  //
+  // The site is live and 27 candidate signups are real. The native OAuth
+  // branch sits in the middle of the Google sign-in path, so "it only runs on
+  // native" has to be a measurement rather than a claim: the REAL guard is
+  // imported and called under every shape a browser presents, no shipped file
+  // may statically import @capacitor (which would put the runtime in the web
+  // bundle whatever the guard returns), and the original web call must still
+  // be there without skipBrowserRedirect.
+  //
+  // Watched failing on purpose by adding a static import to the button: two
+  // named failures, exit 1, green on restore.
+  { name: 'weboauth:prove', cmd: npm, args: ['run', 'weboauth:prove'] },
+
   // deletegate:prove IS DELIBERATELY NOT IN THIS LIST, the same way
   // rlsprobe:prove is not.
   //

@@ -52,6 +52,24 @@
 	     HTTPS through the OS, Sign in with Apple, and Keychain, all exempt.
 	     RE-CHECK IF THE APP EVER GAINS offline storage, its own token signing,
 	     or a bundled build. The answer follows the binary, not the product. -->
+	<!-- THE CUSTOM SCHEME THE OAUTH SHEET RETURNS TO.
+	     Without this iOS has no idea uk.co.thrivecareer.app:// belongs to us,
+	     the redirect goes nowhere, and the symptom is the SILENT one: the
+	     browser sheet closes and nothing happens.
+	     It must ALSO be in Supabase → Authentication → URL Configuration →
+	     Redirect URLs. Both halves are required and each fails the same way
+	     alone, which is why they are named together here. -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>uk.co.thrivecareer.app</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>uk.co.thrivecareer.app</string>
+			</array>
+		</dict>
+	</array>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<!-- THE TWO USAGE STRINGS THE PRODUCT ACTUALLY EARNS, AND NO OTHERS.
