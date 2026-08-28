@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>CAPACITOR_DEBUG</key>
+	<string>$(CAPACITOR_DEBUG)</string>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>en</string>
+	<key>CFBundleDisplayName</key>
+        <string>Thrive</string>
+	<key>CFBundleExecutable</key>
+	<string>$(EXECUTABLE_NAME)</string>
+	<key>CFBundleIdentifier</key>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>$(PRODUCT_NAME)</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>$(MARKETING_VERSION)</string>
+	<key>CFBundleVersion</key>
+	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>LSRequiresIPhoneOS</key>
+	<true/>
+	<key>UIApplicationSceneManifest</key>
+	<dict>
+		<key>UIApplicationSupportsMultipleScenes</key>
+    <false/>
+    <key>UISceneConfigurations</key>
+    <dict>
+      <key>UIWindowSceneSessionRoleApplication</key>
+      <array>
+        <dict>
+            <key>UISceneConfigurationName</key>
+            <string>Default Configuration</string>
+            <key>UISceneDelegateClassName</key>
+            <string>$(PRODUCT_MODULE_NAME).SceneDelegate</string>
+            <key>UISceneStoryboardFile</key>
+            <string>Main</string>
+        </dict>
+      </array>
+    </dict>
+	</dict>
+	<!-- EXPORT COMPLIANCE, ANSWERED ONCE HERE RATHER THAN ON EVERY UPLOAD.
+	     Declared false because it is true of this binary, not because it is the
+	     convenient answer: checked 27 Aug 2026, not one client component ships
+	     cryptography. Every HMAC and key operation we perform is server-side on
+	     Vercel — lib/appleClientSecret, foundingApprovalToken, inviteCode,
+	     jobDigestToken, stayHiddenToken, webpush. What the binary carries is
+	     HTTPS through the OS, Sign in with Apple, and Keychain, all exempt.
+	     RE-CHECK IF THE APP EVER GAINS offline storage, its own token signing,
+	     or a bundled build. The answer follows the binary, not the product. -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+	<!-- THE TWO USAGE STRINGS THE PRODUCT ACTUALLY EARNS, AND NO OTHERS.
+	     Several file inputs carry accept="image/*" — the candidate profile
+	     photo (app/dashboard, JobSeekerProfileForm), the temp-post image
+	     picker, the job banner and the company logo. In a WKWebView iOS
+	     offers BOTH "Photo Library" and "Take Photo" for such an input, and
+	     refuses without the matching string, so both are needed.
+	     The CV and offer-letter inputs accept .pdf/.doc only; those use the
+	     document picker, which requires no usage string, so none is added.
+	     NOTHING ELSE GOES IN HERE. No location, no contacts, no microphone —
+	     the privacy labels published on 27 Aug declare NO Location and NO
+	     Contacts, and an unused permission string is both a reviewer question
+	     with no good answer and a contradiction of a published declaration. -->
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Thrive needs access to your photos so you can add a profile picture or an image to a shift you are posting.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Thrive needs access to your camera so you can take a profile picture or photograph an image for a shift you are posting.</string>
+	<key>UILaunchStoryboardName</key>
+	<string>LaunchScreen</string>
+	<key>UIMainStoryboardFile</key>
+	<string>Main</string>
+	<key>UIRequiredDeviceCapabilities</key>
+	<array>
+		<string>armv7</string>
+	</array>
+	<key>UISupportedInterfaceOrientations</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
+	<key>UISupportedInterfaceOrientations~ipad</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationPortraitUpsideDown</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
+	<key>UIViewControllerBasedStatusBarAppearance</key>
+	<true/>
+</dict>
+</plist>

@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Thrive</title>
+<style>
+  :root { color-scheme: dark; }
+  html, body {
+    margin: 0; height: 100%;
+    background: #0f172a; color: #f8fafc;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    -webkit-text-size-adjust: 100%;
+  }
+  main {
+    min-height: 100%; box-sizing: border-box;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 0.75rem; padding: 2rem 1.5rem;
+    padding-top: max(2rem, env(safe-area-inset-top));
+    padding-bottom: max(2rem, env(safe-area-inset-bottom));
+    text-align: center;
+  }
+  .mark {
+    width: 56px; height: 56px; border-radius: 14px;
+    background: #ffe500; color: #0f172a;
+    display: grid; place-items: center;
+    font-weight: 800; font-size: 28px; letter-spacing: -1px;
+    margin-bottom: 0.5rem;
+  }
+  h1 { font-size: 1.25rem; font-weight: 700; margin: 0; }
+  p  { font-size: 0.95rem; line-height: 1.5; color: #94a3b8; margin: 0; max-width: 22rem; }
+</style>
+</head>
+<body>
+<!--
+  THE OFFLINE FALLBACK, AND THE ONLY REASON THIS DIRECTORY EXISTS.
+
+  The shell loads https://thrivecareer.co.uk (see capacitor.config.ts), so
+  none of this renders while the phone has a connection. Capacitor still
+  requires a valid webDir, and pointing that at Next's `public/` would have
+  published this page as a route on the website — it is not a route, it is a
+  thing the app shows when the network is gone.
+
+  It deliberately makes NO claim it cannot keep: no role count, no "251 roles"
+  (that number is computed live and would be a frozen lie the day it moved),
+  no retry button that cannot know whether a retry would work, and no price.
+  It says what has happened and stops.
+-->
+<main>
+  <div class="mark">T</div>
+  <h1>No connection</h1>
+  <p>Thrive needs the internet to show live roles. Check your connection and open the app again.</p>
+</main>
+</body>
+</html>

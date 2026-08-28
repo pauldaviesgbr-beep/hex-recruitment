@@ -521,6 +521,18 @@ const ALL = [
   // reddens on a missing credential teaches people to reach for --no-verify.
   { name: 'erasurelive:prove', cmd: npm, args: ['run', 'erasurelive:prove'], couldNotRun: 2 },
 
+  // iosshell:prove IS IN THIS LIST, unlike the other two recent additions, and
+  // the reason is the rule rather than the topic: it is filesystem and text
+  // only — no Mac, no build, no deployment, no database — so it runs by
+  // default on every machine and can never be a red nobody expects.
+  //
+  // What it actually watches is the AGREEMENT between three files nothing
+  // links together: the bundle id Apple has registered (lib/appleSignIn.ts),
+  // the one Capacitor writes (capacitor.config.ts), and the one that ships
+  // (project.pbxproj). Watched failing on purpose with a mismatched appId:
+  // one named failure, exit 1, green again on restore.
+  { name: 'iosshell:prove', cmd: npm, args: ['run', 'iosshell:prove'] },
+
   // deletegate:prove IS DELIBERATELY NOT IN THIS LIST, the same way
   // rlsprobe:prove is not.
   //
