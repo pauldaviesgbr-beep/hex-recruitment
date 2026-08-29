@@ -83,3 +83,44 @@ export function loginErrorCopy(raw: string | null | undefined): LoginErrorCopy {
     message: 'Something went wrong signing you in. Try again in a moment.',
   }
 }
+
+/**
+ * WHAT A PERSON READS WHEN AN OAUTH CALLBACK SENDS THEM BACK.
+ *
+ * Separate from loginErrorCopy above because it classifies a DIFFERENT thing:
+ * that one reads a raw supabase-js message from a password sign-in, this one
+ * reads the `?error=` token our own callback routes put in the URL. Same
+ * doctrine, one file, so there is one place where a failure becomes words.
+ *
+ * FOUND 29 Aug 2026, AND IT HAD BEEN SILENT THE WHOLE TIME. The employee
+ * callback redirects to /login/employee?error=exchange-failed when the PKCE
+ * exchange is refused. That forwards to /login, which passes the value into
+ * LoginPanel as authError — where ONLY 'wrong-role' was handled. Every other
+ * value fell through and rendered NOTHING.
+ *
+ * So a candidate tapped Continue with Google, the exchange failed, and they
+ * landed back on the login page with no message at all. Indistinguishable
+ * from a dead button. It is why a real failure read all day as a page that
+ * misbehaved rather than a sign-in that was refused.
+ *
+ * ONE SENTENCE FOR EVERY CASE, AND THAT IS DELIBERATE. The obvious extra
+ * branch is `access_denied` -> "Sign-in was cancelled", and it is not worth
+ * it: access_denied is a provider's word for a denied authorisation, not
+ * proof the person chose to cancel. Telling somebody they cancelled when
+ * they did not is a confident wrong sentence, which is worse than a plain
+ * one. We do not know the cause here, so the copy does not claim one.
+ *
+ * AND THE RAW STRING NEVER REACHES A SCREEN. Both callbacks can pass a
+ * provider's own error through this parameter, and the employer route used to
+ * pass supabase-js's exchange message. Anything unrecognised lands on our
+ * sentence, never on somebody else's.
+ */
+export function callbackErrorCopy(value: string | null | undefined): string | null {
+  if (!value) return null
+
+  // Handled separately and rendered in an amber, informational tone —
+  // it is not a failure, it is the wrong door.
+  if (value === 'wrong-role' || value === 'wrong_account') return null
+
+  return 'Sign-in didn’t complete. Please try again.'
+}

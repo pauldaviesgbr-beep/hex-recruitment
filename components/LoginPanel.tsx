@@ -30,6 +30,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import PasswordInput from '@/components/PasswordInput'
+import { callbackErrorCopy } from '@/lib/loginErrors'
 import GoogleSignInButton from '@/components/GoogleSignInButton'
 import LinkedInSignInButton from '@/components/LinkedInSignInButton'
 import AppleSignInButton from '@/components/AppleSignInButton'
@@ -98,6 +99,12 @@ export default function LoginPanel({
         : null
       : null
 
+  // THE FAILURE THAT RENDERED NOTHING. Only wrong-role was handled here, so
+  // every other value the callbacks send — exchange-failed, no-code, and any
+  // provider error passed through — arrived and displayed nothing at all. A
+  // candidate saw a login page and no reason, which is indistinguishable
+  // from a dead button. One place decides the words: lib/loginErrors.ts.
+  const callbackNotice = callbackErrorCopy(authError)
   const handleResend = async () => {
     if (!pendingEmail) return
     setResend('sending')
@@ -158,6 +165,7 @@ export default function LoginPanel({
       )}
 
       {roleNotice && <p className={styles.notice}>{roleNotice}</p>}
+      {callbackNotice && <p className={styles.error}>{callbackNotice}</p>}
 
       {pendingEmail && (
         <div className={styles.pending}>
