@@ -5,6 +5,7 @@ import { FREE_FOUNDING_MODE } from '@/lib/constants/cohort'
 import { provisionFoundingEmployer } from '@/lib/foundingSignup'
 import type { EmailClass } from '@/lib/emailDomains'
 import { safeInternalPath } from '@/lib/safeRedirect'
+import { logCallbackCookieNames } from '@/lib/authCallbackDiagnostic'
 import { parseAttrCookie, attributionColumns } from '@/lib/attribution'
 import { geoColumnsFromRequest } from '@/lib/geo'
 import { nameFromAuth } from '@/lib/displayName'
@@ -29,6 +30,12 @@ function getOrigin(req: NextRequest): string {
 // Pre-pivot behaviour (force /register/employer/payment) is preserved
 // for when FREE_FOUNDING_MODE flips off.
 export async function GET(request: NextRequest) {
+  // TEMPORARY DIAGNOSTIC — REMOVE WITH lib/authCallbackDiagnostic.ts.
+  // First statement so it sees every request, including the error and
+  // no-code branches below that return before anything else runs. Names
+  // only; it cannot reach a cookie value.
+  logCallbackCookieNames(request, 'employer')
+
   const origin = getOrigin(request)
   const { searchParams } = new URL(request.url)
   const code = searchParams.get('code')
