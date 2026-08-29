@@ -441,6 +441,14 @@ jobs:
       # stops anything reaching Apple. Nothing is weakened by this order — the
       # binary simply survives its own post-mortem, which is what lets anyone
       # check a claim about the built product against the built product.
+      #
+      # AND THE COST OF THAT, NAMED ONCE SO NOBODY MISREADS IT LATER:
+      # A DOWNLOADABLE ARTEFACT IS NOT A PASSING ONE. Before this change, an
+      # .ipa in the run meant every assertion below it had passed, because a
+      # red destroyed it. That is no longer true — from now on a kept .ipa
+      # says only that the archive exported, and says NOTHING about whether
+      # the checks after it passed. Read the job result, never the presence
+      # of the artefact.
       - name: Keep the .ipa
         uses: actions/upload-artifact@v4
         with:
