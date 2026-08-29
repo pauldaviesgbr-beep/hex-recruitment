@@ -73,7 +73,14 @@ export async function GET(request: NextRequest) {
 
   if (exchangeError || !data.session?.user) {
     console.error('[employer-callback] exchange failed', exchangeError?.message)
-    return NextResponse.redirect(`${origin}/login/employer?error=${encodeURIComponent(exchangeError?.message || 'exchange-failed')}`)
+    // A FIXED TOKEN, NOT supabase-js's SENTENCE. This used to put
+    // exchangeError.message straight into the URL, where it would have been
+    // rendered verbatim the moment anything displayed this parameter — the
+    // exact fault lib/loginErrors.ts exists to prevent, in a route written
+    // before it. It also made the set of possible values infinite, so
+    // "handle every value the routes can produce" was unanswerable.
+    // The real message is still logged above, where it is useful and private.
+    return NextResponse.redirect(`${origin}/login/employer?error=exchange-failed`)
   }
 
   const user = data.session.user
