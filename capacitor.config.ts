@@ -57,7 +57,29 @@ const config: CapacitorConfig = {
     // Let the site's own overscroll behaviour apply rather than the webview's
     // rubber-banding fighting the sticky header we just fixed.
     scrollEnabled: true,
-    contentInset: 'always',
+    // 'never', AND THE PAGE IS NOW THE ONE THAT INSETS. Build 10.
+    //
+    // This said 'always' from the shell commit (135f0f5, files only, nothing
+    // built) with no comment and no device behind it. 'always' makes the
+    // WKWebView scroll view add its own top inset for the safe area.
+    //
+    // That was survivable while the page did NOT inset — the site had no
+    // viewport-fit=cover, so env(safe-area-inset-top) was zero and only the
+    // scroll view inset. It stopped being survivable the moment the page
+    // started declaring cover and padding the header itself: BOTH LAYERS THEN
+    // INSET, and they stack.
+    //
+    // OBSERVED ON BUILD 9 PLUS THE WEB HALF, on a handset — the only
+    // instrument that can see it. The header came out around 175-190 CSS px
+    // instead of the ~129 the arithmetic predicts, the hamburger was pushed
+    // onto its own row above the logo, the nav resized during scroll, pages
+    // with nothing to scroll scrolled slightly, and the side menu's items were
+    // displaced from where they were drawn.
+    //
+    // So exactly one layer may own the inset, and it is the page: the CSS can
+    // put it where it belongs (the header's padding, --nav-height, and the
+    // seventeen rules that read it) where a scroll-view inset cannot.
+    contentInset: 'never',
   },
 }
 
