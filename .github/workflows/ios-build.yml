@@ -485,6 +485,34 @@ jobs:
           test "$ICONNAME" = "AppIcon" \
             || { echo "CFBundleIconName IS '$ICONNAME' - actool did not write it, which means no app icon reached the binary"; exit 1; }
 
+
+          # ── THE PLUGIN IN THE ARTEFACT, NOT IN THE MANIFEST ───────────────
+          #
+          # prove-capacitor-plugins.mjs runs before the compiler and asserts an
+          # INPUT: that the generated Package.swift names every plugin. This
+          # asserts the OUTCOME: that the plugin's code is in the thing we ship.
+          #
+          # Build 7 is why both exist. Its archive log contained ZERO
+          # occurrences of CapacitorBrowser and the .ipa was accepted by Apple
+          # regardless, so nothing between the missing manifest entry and a
+          # candidate's phone had an opinion.
+          #
+          # Searched in the compiled binary and the frameworks only — NOT the
+          # whole bundle, which carries our own web assets and could match a
+          # string for entirely unrelated reasons.
+          echo "--- frameworks actually in the built bundle ---"
+          ls "$APP/Frameworks" 2>/dev/null || echo "(no Frameworks directory)"
+
+          PLUGIN_SEARCH="$APP/App"
+          [ -d "$APP/Frameworks" ] && PLUGIN_SEARCH="$PLUGIN_SEARCH $APP/Frameworks"
+          for SYM in CAPBrowserPlugin CapacitorBrowser CapacitorApp; do
+            if grep -rq "$SYM" $PLUGIN_SEARCH 2>/dev/null; then
+              echo "the built binary carries $SYM"
+            else
+              echo "$SYM IS NOT IN THE BUILT PRODUCT - the native plugin did not reach the binary, and the app will say \"not implemented on ios\" at runtime"
+              exit 1
+            fi
+          done
           # And it really is signed, by us.
           codesign -dv --verbose=2 "$APP" 2>&1 | grep -E "Authority|TeamIdentifier|Identifier" || true
           codesign --verify --strict --verbose=2 "$APP" && echo "the signature verifies"
