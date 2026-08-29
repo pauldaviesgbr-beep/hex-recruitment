@@ -32,8 +32,22 @@
    collapsed, and the strip + open panel scroll normally with the page. */
 .filterStrip:has(.filterPanel) { position: static; }
 .filterStripInner { max-width: 1400px; margin: 0 auto; padding: 0.5rem 1.5rem; display: flex; align-items: center; gap: 0.5rem; }
-.filterStripLeft { display: flex; align-items: center; gap: 0.5rem; flex: 1; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
-.filterStripLeft::-webkit-scrollbar { display: none; }
+/* CONTROLS WRAP. This scrolled sideways with the scrollbar deliberately
+   hidden — scrollbar-width:none plus a display:none webkit scrollbar — so
+   three of the six controls were off the right-hand edge at 390, reachable
+   only by guessing there was something to swipe to. Measured, right edges
+   against a 390 viewport: the experience select 405.8, the sectors button
+   495.6, the more-filters button 604.8. The last is 214.8px past the edge.
+
+   THE SISTER PAGE ALREADY DECIDED THIS. /candidates carries the identical
+   element and was fixed on 5 Aug 2026 to flex-wrap: wrap; min-width: 0 —
+   /jobs was missed in that sweep. This is that answer copied, not a new
+   one invented: same component shape, same contents, same page family.
+
+   A hidden scrollbar on a row of FILTERS is the case CLAUDE.md names
+   directly: a control off the edge with no affordance may as well not
+   exist. Content scrolls; controls wrap. */
+.filterStripLeft { display: flex; align-items: center; gap: 0.5rem; flex: 1; flex-wrap: wrap; min-width: 0; }
 .filterStripRight { display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0; }
 .jobCount { font-size: 0.82rem; color: #6b7280; font-weight: 500; white-space: nowrap; margin: 0; }
 .clearFiltersBtn { font-size: 0.78rem; color: #dc2626; background: none; border: none; cursor: pointer; font-weight: 600; white-space: nowrap; padding: 0; }
