@@ -26,7 +26,41 @@
  * nothing to check, and a check that skips on every machine is a red nobody
  * reads.
  */
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs';
+import { join } from 'node:path';
+
+/**
+ * THE RUNTIME IDENTIFIER, READ FROM EACH PLUGIN'S OWN SOURCE.
+ *
+ * Capacitor finds a plugin by the name in `public let identifier = "..."`,
+ * resolved through the Objective-C runtime. It is a STRING LITERAL, so it
+ * survives the symbol stripping a release archive does — which the SPM module
+ * name does not. Run 33242786326 proved exactly that: the built binary carried
+ * CAPBrowserPlugin and did NOT carry CapacitorBrowser, on a correct build.
+ *
+ * AND THE TWO PLUGINS DO NOT FOLLOW THE SAME NAMING PATTERN — Browser is
+ * @objc(CAPBrowserPlugin) and App is @objc(AppPlugin), with no CAP prefix. So
+ * this is read rather than derived, and `--print-identifiers` hands the list
+ * to the archive job so there is ONE source of truth and no second copy in
+ * the workflow YAML.
+ */
+function runtimeIdentifier(pkgDir) {
+  const sources = join(pkgDir, 'ios', 'Sources');
+  if (!existsSync(sources)) return null;
+  const files = [];
+  (function walk(d) {
+    for (const e of readdirSync(d)) {
+      const p = join(d, e);
+      if (statSync(p).isDirectory()) walk(p);
+      else if (e.endsWith('.swift')) files.push(p);
+    }
+  })(sources);
+  for (const f of files) {
+    const m = readFileSync(f, 'utf8').match(/public let identifier\s*=\s*"([^"]+)"/);
+    if (m) return m[1];
+  }
+  return null;
+}
 
 const MANIFEST = 'ios/App/CapApp-SPM/Package.swift';
 let failures = 0;
@@ -46,6 +80,21 @@ const deps = Object.keys(pkg.dependencies || {});
 // the @capacitor scope is.
 const NOT_PLUGINS = new Set(['@capacitor/core', '@capacitor/cli', '@capacitor/ios', '@capacitor/android']);
 const plugins = deps.filter((d) => d.startsWith('@capacitor/') && !NOT_PLUGINS.has(d));
+
+// The archive job asks for the identifiers rather than hardcoding them.
+if (process.argv.includes('--print-identifiers')) {
+  const out = [];
+  for (const p of plugins) {
+    const id = runtimeIdentifier('node_modules/' + p);
+    if (!id) {
+      console.error('COULD NOT READ A RUNTIME IDENTIFIER FROM ' + p + ' — refusing to guess one');
+      process.exit(1);
+    }
+    out.push(id);
+  }
+  console.log(out.join(' '));
+  process.exit(0);
+}
 
 console.log('native Capacitor plugins in package.json: ' + (plugins.length ? plugins.join(', ') : '(none)'));
 

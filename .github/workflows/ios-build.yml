@@ -428,6 +428,39 @@ jobs:
             -exportPath "$RUNNER_TEMP/export"
 
       # ── ASSERT THE SIGNED PRODUCT, NOT xcodebuild's SUMMARY ─────────────
+      # KEEPING THE ARTEFACT COMES BEFORE PROVING IT, AND THAT IS DELIBERATE.
+      #
+      # Steps run in order and a failed step skips the rest — observed on run
+      # 33242786326, where step 10 failed and step 11, this one, was SKIPPED.
+      # It carries no `if:`, so it had no way to survive. A full archive and a
+      # valid 771,295-byte .ipa were destroyed by an assertion that was itself
+      # wrong.
+      #
+      # KEEPING IS NOT SHIPPING. The upload to App Store Connect is a separate
+      # JOB that `needs: archive`, so a red here still fails the job and still
+      # stops anything reaching Apple. Nothing is weakened by this order — the
+      # binary simply survives its own post-mortem, which is what lets anyone
+      # check a claim about the built product against the built product.
+      #
+      # AND THE COST OF THAT, NAMED ONCE SO NOBODY MISREADS IT LATER:
+      # A DOWNLOADABLE ARTEFACT IS NOT A PASSING ONE. Before this change, an
+      # .ipa in the run meant every assertion below it had passed, because a
+      # red destroyed it. That is no longer true — from now on a kept .ipa
+      # says only that the archive exported, and says NOTHING about whether
+      # the checks after it passed. Read the job result, never the presence
+      # of the artefact.
+      - name: Keep the .ipa
+        uses: actions/upload-artifact@v4
+        with:
+          name: Thrive-ipa
+          path: ${{ runner.temp }}/export/*.ipa
+          retention-days: 14
+          if-no-files-found: error
+
+      # NOT UPLOADED TO APP STORE CONNECT, NOT SENT TO TESTFLIGHT, NOT
+      # SUBMITTED. A signed .ipa existing is the goal of this step; what
+      # happens to it is Paul's decision and a separate conversation.
+
       - name: Prove the signed artefact is what it should be
         run: |
           set -e
@@ -490,44 +523,56 @@ jobs:
           #
           # prove-capacitor-plugins.mjs runs before the compiler and asserts an
           # INPUT: that the generated Package.swift names every plugin. This
-          # asserts the OUTCOME: that the plugin's code is in the thing we ship.
+          # asserts the OUTCOME: that the plugin's code is in what we ship.
           #
-          # Build 7 is why both exist. Its archive log contained ZERO
-          # occurrences of CapacitorBrowser and the .ipa was accepted by Apple
-          # regardless, so nothing between the missing manifest entry and a
-          # candidate's phone had an opinion.
+          # WHAT RUN 33242786326 TAUGHT, so nobody re-derives it. That build was
+          # CORRECT and this step failed it. Two facts, both observed:
           #
-          # Searched in the compiled binary and the frameworks only — NOT the
-          # whole bundle, which carries our own web assets and could match a
-          # string for entirely unrelated reasons.
+          #   LOCAL SPM PLUGIN PACKAGES LINK STATICALLY INTO THE APP BINARY on
+          #   this pipeline. The Frameworks directory held Capacitor.framework
+          #   and Cordova.framework and nothing else — those come from
+          #   capacitor-swift-pm, which is dynamic. So ABSENCE FROM Frameworks
+          #   IS EXPECTED AND IS EVIDENCE OF NOTHING.
+          #
+          #   THE SPM MODULE NAME DOES NOT SURVIVE A RELEASE ARCHIVE. The binary
+          #   carried CAPBrowserPlugin and did NOT carry CapacitorBrowser. The
+          #   module name lives in mangled Swift symbols, which get stripped;
+          #   the identifier is a STRING LITERAL that Capacitor resolves through
+          #   the Objective-C runtime, so it has to be there for the plugin to
+          #   work at all.
+          #
+          # So the assertion is the runtime identifier ONLY, and the identifiers
+          # are read from each plugin's own source rather than written here —
+          # Browser is @objc(CAPBrowserPlugin) and App is @objc(AppPlugin), with
+          # no shared prefix, so a pattern would have been wrong.
           echo "--- frameworks actually in the built bundle ---"
+          echo "    (local SPM plugins link statically, so plugins are NOT expected here)"
           ls "$APP/Frameworks" 2>/dev/null || echo "(no Frameworks directory)"
+
+          IDENTIFIERS=$(node scripts/prove-capacitor-plugins.mjs --print-identifiers) \
+            || { echo "COULD NOT READ THE PLUGIN IDENTIFIERS FROM SOURCE"; exit 1; }
+          echo "--- runtime identifiers expected, read from the plugins' own sources ---"
+          echo "    $IDENTIFIERS"
 
           PLUGIN_SEARCH="$APP/App"
           [ -d "$APP/Frameworks" ] && PLUGIN_SEARCH="$PLUGIN_SEARCH $APP/Frameworks"
-          for SYM in CAPBrowserPlugin CapacitorBrowser CapacitorApp; do
-            if grep -rq "$SYM" $PLUGIN_SEARCH 2>/dev/null; then
-              echo "the built binary carries $SYM"
+          for ID in $IDENTIFIERS; do
+            if grep -rq "$ID" $PLUGIN_SEARCH 2>/dev/null; then
+              echo "the compiled binary carries the identifier $ID"
             else
-              echo "$SYM IS NOT IN THE BUILT PRODUCT - the native plugin did not reach the binary, and the app will say \"not implemented on ios\" at runtime"
+              # SAY ONLY WHAT WAS TESTED. The previous wording claimed the
+              # plugin had not reached the binary, printed one line under
+              # evidence that another one had. This states the search and its
+              # result, and leaves the conclusion to whoever reads it.
+              echo "NOT FOUND: the string $ID does not appear in $PLUGIN_SEARCH."
+              echo "Capacitor resolves plugins by that identifier through the Objective-C runtime, so a plugin whose identifier is genuinely absent cannot be found at runtime."
               exit 1
             fi
           done
+
           # And it really is signed, by us.
           codesign -dv --verbose=2 "$APP" 2>&1 | grep -E "Authority|TeamIdentifier|Identifier" || true
           codesign --verify --strict --verbose=2 "$APP" && echo "the signature verifies"
-
-      - name: Keep the .ipa
-        uses: actions/upload-artifact@v4
-        with:
-          name: Thrive-ipa
-          path: ${{ runner.temp }}/export/*.ipa
-          retention-days: 14
-          if-no-files-found: error
-
-      # NOT UPLOADED TO APP STORE CONNECT, NOT SENT TO TESTFLIGHT, NOT
-      # SUBMITTED. A signed .ipa existing is the goal of this step; what
-      # happens to it is Paul's decision and a separate conversation.
 
       - name: Remove the keychain
         if: always()
