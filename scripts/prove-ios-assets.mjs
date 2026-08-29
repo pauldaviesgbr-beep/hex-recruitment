@@ -96,6 +96,38 @@ if (existsSync(ICON)) {
   fail('there is no AppIcon-512@2x.png at all');
 }
 
+// APPLE NAMED THESE THREE BY NUMBER when it refused run #4, and run #5
+// proved that a catalogue which COMPILES is still not enough: the single
+// 1024 entry expanded to 120 and 152 and produced no 167 at all.
+// TARGETED_DEVICE_FAMILY is '1,2', so the iPad sizes are required.
+const REQUIRED_PX = [120, 152, 167];
+const declared = new Set();
+for (const cat of catalogues) {
+  if (!cat.includes('AppIcon.appiconset')) continue;
+  let j; try { j = JSON.parse(readFileSync(cat, 'utf8')); } catch { continue; }
+  for (const img of j.images || []) {
+    if (!img.filename || !img.size || !img.scale) continue;
+    const pts = parseFloat(String(img.size).split('x')[0]);
+    const scale = parseInt(img.scale, 10);
+    if (Number.isFinite(pts) && Number.isFinite(scale)) declared.add(Math.round(pts * scale));
+  }
+}
+for (const need of REQUIRED_PX) {
+  if (declared.has(need)) pass('the catalogue declares a ' + need + 'px slot, which Apple named');
+  else fail('NO ' + need + 'px SLOT IN THE CATALOGUE - Apple refuses the upload for this by name');
+}
+
+// And the key itself. actool did not write it on run #5 even with the
+// catalogue compiling, so we declare it ourselves and assert our own
+// declaration rather than hoping a tool will supply it.
+const PLIST = 'ios/App/App/Info.plist';
+if (existsSync(PLIST)) {
+  const p = readFileSync(PLIST, 'utf8');
+  const m = p.match(/<key>CFBundleIconName<[/]key>\s*<string>([^<]*)<[/]string>/);
+  if (!m) fail('Info.plist DOES NOT DECLARE CFBundleIconName - Apple refuses the upload for this by name');
+  else if (m[1].trim() !== 'AppIcon') fail("CFBundleIconName is '" + m[1] + "' but the icon set is named AppIcon");
+  else pass('Info.plist declares CFBundleIconName = AppIcon');
+} else { fail('there is no ' + PLIST); }
 console.log('');
 if (failures) {
   console.log(failures + ' FAILED — this is what Apple refuses the upload for.');
