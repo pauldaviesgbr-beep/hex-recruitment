@@ -256,7 +256,28 @@ button.item {
 .mobileToggle {
   display: none;
   position: fixed;
-  top: 0.7rem;
+  /* THE ONLY HEADER CONTROL WHOSE CONTAINING BLOCK IS THE VIEWPORT.
+     Logo, messages, bell and avatar all sit in the header's flex row and
+     move with its padding. This one is fixed, so it resolves against the
+     viewport — and since viewport-fit=cover the viewport starts at the top
+     of the SCREEN. On build 10 that put it level with the clock, above the
+     header entirely, and untappable because iOS takes touches in the
+     status bar. Nothing else in the header moved, which is what identified
+     it.
+
+     calc, NOT max(1rem, env(...)) — which is the idiom the two modals use.
+     Their job is only to clear the notch, so the larger of the two is
+     right for them. THIS CONTROL HAS TO LINE UP WITH THE HEADER'S CONTENT
+     ROW, and the header pads itself calc(0.75rem + env(...)). max() would
+     put the toggle AT the inset while its siblings sit 12px below it —
+     correct-looking on the web and 12px out of line in the app, which is
+     the harder kind of wrong to notice.
+
+     Zero wherever the inset is zero: every web visitor, and mobile Safari
+     in portrait, whose top inset is 0 because its own chrome occupies that
+     region. That is why Safari showed this control correctly from the same
+     stylesheet the app got it wrong from. */
+  top: calc(0.7rem + env(safe-area-inset-top, 0px));
   left: 0.75rem;
   z-index: 1001;
   width: 40px;
