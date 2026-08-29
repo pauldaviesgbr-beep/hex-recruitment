@@ -50,8 +50,23 @@ npm --version
 echo "--- npm ci (lockfile exactly, no resolution drift in CI) ---"
 npm ci
 
-echo "--- npx cap copy ios (generates capacitor.config.json and App/public) ---"
-npx cap copy ios
+# `sync`, NOT `copy`, AND THE VERB IS THE WHOLE BUG.
+#
+# `copy` writes web assets and config. `sync` is copy PLUS update, and it is
+# update that regenerates CapApp-SPM/Package.swift with the installed native
+# plugins. This script ran `copy` from the day it was written, when there were
+# no plugins and the two verbs were indistinguishable. By the time
+# @capacitor/browser and @capacitor/app arrived, nothing regenerated the
+# manifest — so build 7 shipped to TestFlight with a Browser plugin whose JS
+# half was present and whose native half had never been compiled. The app said
+# `"Browser" plugin is not implemented on ios` and Google sign-in could not
+# start.
+#
+# Package.swift is NO LONGER COMMITTED (see ios/.gitignore). This command is
+# now the only thing that produces it, on every build, which is why the
+# assertions below are not optional.
+echo "--- npx cap sync ios (config, web assets, AND the SPM plugin manifest) ---"
+npx cap sync ios
 
 echo "--- proving the two generated files now exist ---"
 # ASSERT, DO NOT ANNOUNCE. `cap copy` exiting 0 is not the same as the files
@@ -64,5 +79,16 @@ test -f ios/App/App/public/index.html     || { echo "MISSING: App/public/index.h
 # exists and is wrong.
 grep -q 'thrivecareer.co.uk' ios/App/App/capacitor.config.json \
   || { echo "capacitor.config.json does not name the site"; exit 1; }
+
+echo "--- proving the SPM manifest was generated and names every plugin ---"
+# THE FILE IS NOT IN THE REPOSITORY. A clone has no Package.swift at all, so
+# a sync that failed or was skipped is now a BUILD FAILURE rather than a
+# silently wrong binary. That is the point of the change.
+test -f ios/App/CapApp-SPM/Package.swift || { echo "MISSING: ios/App/CapApp-SPM/Package.swift - cap sync did not generate it"; exit 1; }
+
+# And the manifest must name every @capacitor plugin package.json depends on.
+# Exits non-zero and stops the run; a warning in a green build is the failure
+# shape that produced this bug in the first place.
+node scripts/prove-capacitor-plugins.mjs || exit 1
 
 echo "--- ci_post_clone: done, both generated files present and correct ---"

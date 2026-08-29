@@ -11,3 +11,23 @@ capacitor-cordova-ios-plugins
 # Generated Config files
 App/App/capacitor.config.json
 App/App/config.xml
+
+# THE SPM MANIFEST IS GENERATED TOO, AND FOR A SHARPER REASON THAN THE TWO
+# ABOVE. ci_post_clone.sh runs `npx cap sync ios` on every build, and sync
+# REWRITES CapApp-SPM/Package.swift whatever is committed. So a tracked copy
+# is overwritten before it is ever compiled: it can never be load-bearing,
+# and can only be stale, wrong, or a confusing diff.
+#
+# It was tracked until 29 Aug 2026, and it was WRONG — generated once by
+# `cap add ios` before any plugin existed, naming only Capacitor and Cordova.
+# @capacitor/browser and @capacitor/app were added later and nothing
+# regenerated it, so build 7 shipped with a Browser plugin that had no native
+# half. Untracking it removes the whole class rather than that one instance.
+#
+# AND DO NOT REGENERATE IT ON WINDOWS AND COMMIT THE RESULT. The CLI builds
+# these paths with path.relative and interpolates them raw
+# (@capacitor/cli/dist/util/spm.js:140), so on Windows it writes backslashes:
+# separators into that path. In Swift source those are escape sequences and
+# the file does not parse at all.
+# sequences and the file does not parse.
+App/CapApp-SPM/Package.swift
