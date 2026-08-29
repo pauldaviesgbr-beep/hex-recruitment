@@ -19,7 +19,19 @@ import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 
 const DIR = 'ios/App/App/Assets.xcassets/AppIcon.appiconset';
-const MASTER = join(DIR, 'AppIcon-512@2x.png');
+// THE MASTER IS THE BRAND ASSET, NOT A FILE INSIDE THE ICON SET.
+//
+// It used to be AppIcon-512@2x.png sitting in the appiconset — which was
+// CAPACITOR'S TEMPLATE PLACEHOLDER, a blue geometric mark on white, shipped
+// to TestFlight as build 7 and seen on a real home screen. Every size in
+// this set was faithfully generated from it, because the check asked whether
+// the file was 1024x1024 with no alpha and all of that was true of a
+// placeholder. Verifying a property is not verifying identity.
+//
+// public/logo/app-icon-1024.png is the Thrive mark, rendered from the vector
+// (9bf6064), square-cornered because iOS applies its own mask, and with no
+// alpha channel. One source of truth; the appiconset holds only derivatives.
+const MASTER = 'public/logo/app-icon-1024.png';
 
 if (!existsSync(MASTER)) {
   console.error('THE MASTER ICON IS MISSING: ' + MASTER);

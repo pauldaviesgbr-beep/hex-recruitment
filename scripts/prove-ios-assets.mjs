@@ -80,7 +80,11 @@ if (named === 0) fail('no Contents.json named a single image — nothing was che
 
 // Apple's own requirements for the marketing icon, read from the PNG header
 // rather than from what the filename claims.
-const ICON = join(ROOT, 'AppIcon.appiconset', 'AppIcon-512@2x.png');
+// The marketing icon Apple reads. It used to point at AppIcon-512@2x.png,
+// which was the Capacitor placeholder; the master is now the brand asset and
+// the appiconset holds only derivatives, so this checks the derivative Apple
+// actually receives.
+const ICON = join(ROOT, 'AppIcon.appiconset', 'AppIcon-1024.png');
 if (existsSync(ICON)) {
   const b = readFileSync(ICON);
   const sig = b.subarray(0, 8).toString('hex') === '89504e470d0a1a0a';
@@ -93,7 +97,7 @@ if (existsSync(ICON)) {
   if (colour === 4 || colour === 6) fail('the app icon has an ALPHA CHANNEL — Apple rejects it');
   else pass('the app icon has no alpha channel');
 } else {
-  fail('there is no AppIcon-512@2x.png at all');
+  fail('there is no AppIcon-1024.png at all');
 }
 
 // APPLE NAMED THESE THREE BY NUMBER when it refused run #4, and run #5
@@ -128,6 +132,60 @@ if (existsSync(PLIST)) {
   else if (m[1].trim() !== 'AppIcon') fail("CFBundleIconName is '" + m[1] + "' but the icon set is named AppIcon");
   else pass('Info.plist declares CFBundleIconName = AppIcon');
 } else { fail('there is no ' + PLIST); }
+// ── IS IT OUR ICON, OR JUST AN ICON? ───────────────────────────────────
+//
+// Build 7 shipped to TestFlight with CAPACITOR'S TEMPLATE PLACEHOLDER as the
+// app icon — a blue geometric mark on white — and it was seen on a real home
+// screen next to the PWA showing the correct yellow T. Every check above
+// passed on it: it was a real PNG, it was 1024x1024, it had no alpha, it was
+// tracked in git, every slot referenced it. ALL TRUE OF A PLACEHOLDER.
+//
+// App Store Connect accepted that build, so Apple's own validation does not
+// catch a WRONG icon, only a missing one. Nothing but identity catches this.
+//
+// So this asks two questions a placeholder cannot pass:
+//   1. is the shipped 1024 the same PICTURE as the brand asset (pixels, not
+//      bytes — the generator re-encodes, so the bytes legitimately differ)
+//   2. is the known placeholder absent by fingerprint, named explicitly so
+//      the failure says WHICH wrong icon it is
+const BRAND = 'public/logo/app-icon-1024.png';
+const SHIPPED = join(ROOT, 'AppIcon.appiconset', 'AppIcon-1024.png');
+// sha256 of Capacitor 8.5.0's template AppIcon-512@2x.png, recorded 29 Aug 2026
+const PLACEHOLDER_SHA = '29e4777e319de3ee5a52c3a8004ec19d0568414004257e36d7c94a077d71c93b';
+
+if (!existsSync(BRAND)) {
+  fail('the brand asset ' + BRAND + ' is missing — nothing to compare the icon against');
+} else if (!existsSync(SHIPPED)) {
+  fail('there is no AppIcon-1024.png in the icon set');
+} else {
+  const { createHash } = await import('node:crypto');
+  const sharp = (await import('sharp')).default;
+
+  // 2. the named placeholder must not be anywhere in the set
+  let placeholderFound = null;
+  for (const cat of catalogues) {
+    if (!cat.includes('AppIcon.appiconset')) continue;
+    let j; try { j = JSON.parse(readFileSync(cat,'utf8')); } catch { continue; }
+    for (const img of j.images || []) {
+      if (!img.filename) continue;
+      const p = join(dirname(cat), img.filename);
+      if (!existsSync(p)) continue;
+      if (createHash('sha256').update(readFileSync(p)).digest('hex') === PLACEHOLDER_SHA) placeholderFound = img.filename;
+    }
+  }
+  if (placeholderFound) fail('THE CAPACITOR TEMPLATE PLACEHOLDER IS STILL THE APP ICON (' + placeholderFound + ') — this is what shipped as build 7');
+  else pass('the Capacitor template placeholder is not in the icon set');
+
+  // 1. same picture as the brand asset
+  const a = await sharp(SHIPPED).removeAlpha().resize(256,256).raw().toBuffer();
+  const b = await sharp(BRAND).removeAlpha().resize(256,256).raw().toBuffer();
+  let differing = 0;
+  const n = Math.min(a.length, b.length);
+  for (let i = 0; i < n; i++) if (Math.abs(a[i] - b[i]) > 8) differing++;
+  const pct = (100 * differing) / n;
+  if (pct > 2) fail('THE APP ICON IS NOT THE THRIVE MARK — it differs from ' + BRAND + ' on ' + pct.toFixed(1) + '% of channels. A different picture is shipping.');
+  else pass('the app icon is the Thrive mark from ' + BRAND + ' (' + pct.toFixed(2) + '% channel difference)');
+}
 console.log('');
 if (failures) {
   console.log(failures + ' FAILED — this is what Apple refuses the upload for.');
