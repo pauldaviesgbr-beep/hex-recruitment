@@ -10,6 +10,13 @@
         <string>Thrive</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
+	<!-- Apple refused run #4 with "A value for the Info.plist key
+	     CFBundleIconName is missing". On run #5 the catalogue COMPILED and
+	     actool still did not write this key. Declaring it here does not
+	     depend on knowing why: Apple asks for icons in an asset catalogue
+	     AND this key, and AppIcon is the set that exists. -->
+	<key>CFBundleIconName</key>
+	<string>AppIcon</string>
 	<key>CFBundleIdentifier</key>
 	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
 	<key>CFBundleInfoDictionaryVersion</key>
