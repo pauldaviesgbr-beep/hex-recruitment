@@ -840,8 +840,38 @@
     grid-template-columns: 1fr;
   }
 
+  /* CONTROLS WRAP — the same rule as the board's filter row, and the same
+     fault. Four action buttons and a title in one nowrap flex overflowed 390
+     by 8px, so "Download Word" ended at 398.1 and was clipped. Because the
+     ROW could not wrap the squeeze went into the BUTTONS, and all four
+     labels broke onto two lines inside a fixed 44.8px height — which is why
+     it read as crushed rather than as overflowing.
+
+     nowrap on the labels is the load-bearing half. Without it the buttons
+     would just squeeze again at some narrower width and the wrapping row
+     would look like it had worked.
+
+     DECLARED HERE, IN THE <=900 BLOCK, DELIBERATELY. There is a .bannerInner
+     override in this block and another at <=768 EARLIER in the file. Both
+     match at 390 and a media query adds no specificity, so the later one
+     wins — putting these in the 768 block would have left the padding to be
+     silently overridden from here. One rule, in the block that already owns
+     this element. */
   .bannerInner {
     padding: 0 1rem;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    gap: 0.5rem;
+  }
+
+  .bannerActions {
+    flex-wrap: wrap;
+  }
+
+  .saveBtn,
+  .previewToggle,
+  .exportBtn {
+    white-space: nowrap; /* labels stay on one line; the ROW wraps instead */
   }
 
   .bannerTitle {
