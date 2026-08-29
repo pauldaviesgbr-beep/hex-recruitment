@@ -651,6 +651,17 @@
     padding: 0.75rem 0;
     position: fixed;
     width: 100%;
+    /* PAINT INTO THE STATUS-BAR REGION RATHER THAN UNDER IT.
+       With viewport-fit=cover the layout viewport covers the whole
+       screen, so a fixed header at top:0 sits BEHIND the clock and the
+       battery. This pads its content clear while its background still
+       reaches the top edge. Declared after the shorthand deliberately —
+       the shorthand resets padding-top, so order decides this.
+       env() is zero on the web, so this computes to the same 0.75rem
+       the shorthand already set and nothing moves for web visitors.
+       --nav-height carries the same term; the two must agree or every
+       page clears the wrong amount. */
+    padding-top: calc(0.75rem + env(safe-area-inset-top, 0px));
   }
 
   .headerContent {

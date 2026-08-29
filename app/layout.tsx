@@ -4,7 +4,7 @@ import ScrollToTop from '@/components/ScrollToTop'
 import FirstTouchCapture from '@/components/FirstTouchCapture'
 import SessionGuard from '@/components/SessionGuard'
 import { MessagesProvider } from '@/lib/MessagesContext'
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Inter, Dancing_Script, Fraunces } from 'next/font/google'
 import { Providers } from './providers'
 import { foundingPhraseShort } from '@/lib/trialUtils'
@@ -46,6 +46,27 @@ const fraunces = Fraunces({
 })
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://thrivecareer.co.uk'
+
+// viewport-fit=cover, AND THE OTHER TWO VALUES ARE NEXT.JS'S OWN DEFAULTS
+// REPEATED ON PURPOSE. Without this export Next emits
+// `width=device-width, initial-scale=1`; declaring the export replaces that
+// meta entirely, so omitting either would silently drop it from every page.
+//
+// WHY cover. The iOS app loads this site in a WKWebView. Without it the web
+// content is laid out INSIDE the safe area, env(safe-area-inset-top) is zero,
+// and the strip behind the status bar is painted by the webview background
+// rather than by the page — which looks right only because
+// capacitor.config.ts sets that background to #0f172a, the same navy as the
+// header. With cover the page owns the whole screen and the header pads
+// itself into that strip instead.
+//
+// IT CHANGES NOTHING FOR WEB VISITORS: env() is zero outside a cover-mode
+// WKWebView, so every consumer computes exactly what it does today.
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+}
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
