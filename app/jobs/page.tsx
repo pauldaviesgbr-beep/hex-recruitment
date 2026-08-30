@@ -134,6 +134,31 @@ function JobsPageContent() {
   const [quickWorkStyle, setQuickWorkStyle] = useState<string | null>(null)
   const [quickExperienceLevel, setQuickExperienceLevel] = useState<string>('')
 
+  // THE EXPERIENCE FILTER IS HIDDEN. FLIP THIS ONE VALUE TO BRING IT BACK.
+  //
+  // It guarantees an empty board on every one of its five options, and a
+  // candidate who uses it concludes Thrive has nothing. That is not a bug in
+  // the control: it reads job.tags for the five EXPERIENCE labels in
+  // lib/jobTags.ts, which is exactly the field the post-job tag picker
+  // writes. Measured 30 Aug 2026 against 251 live rows — 230 carry no tags
+  // at all, the 21 that do carry venue and discipline words (Kitchen, Fine
+  // dining, Michelin), and ZERO carry any of the five.
+  //
+  // AND IT WILL NOT FILL IN ON ITS OWN AS EMPLOYERS ARRIVE, WHICH IS WHY
+  // THIS IS HIDDEN RATHER THAN WAITED OUT. The post-job form asks about
+  // experience TWICE, in two vocabularies, writing two columns: the tag
+  // picker to jobs.tags, and a separate <select> to jobs.experience_required
+  // ("Entry level (0-1 years)", "3-5 years", …). The one advert on the board
+  // posted through our own form — "Head Chef Events", not imported — filled
+  // the select and set no tags. The only direct employer we have answered
+  // the question in the field this filter cannot read.
+  //
+  // Reconciling those vocabularies is a real piece of work and needs a
+  // decision about which one wins and what happens to 251 existing rows.
+  // Until then the control is hidden, not removed: the state, the predicate
+  // and the chip all stay, so nothing else has to change to restore it.
+  const SHOW_EXPERIENCE_FILTER = false
+
   // Fetch active job boosts for sorting (non-blocking — table may not exist yet)
   useEffect(() => {
     const fetchBoosts = async () => {
@@ -966,6 +991,7 @@ function JobsPageContent() {
                 {ws}
               </button>
             ))}
+            {SHOW_EXPERIENCE_FILTER && (
             <select
               value={quickExperienceLevel}
               onChange={e => setQuickExperienceLevel(e.target.value)}
@@ -978,6 +1004,7 @@ function JobsPageContent() {
               <option value="Senior level">Senior level</option>
               <option value="Management">Management</option>
             </select>
+            )}
             <button
               className={`${styles.filterPill} ${sectorsExpanded ? styles.filterPillActive : ''}`}
               onClick={() => setSectorsExpanded(!sectorsExpanded)}
