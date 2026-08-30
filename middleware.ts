@@ -98,7 +98,58 @@ export async function middleware(request: NextRequest) {
   // middleware refreshes, it does not authorise. Authorisation stays where it
   // already lives (app/employer/layout.tsx and the per-page checks), so this
   // change cannot introduce a new redirect of its own.
-  await supabase.auth.getUser()
+  // ── AN ERROR MESSAGE IS AN UNCONTROLLED CHANNEL ───────────────────────
+  //
+  // This await was naked until 30 Aug 2026, and on that morning it threw
+  //
+  //     TypeError: Cannot create property 'user' on string '{"access_token"…
+  //
+  // three times in one second. The message embeds THE VALUE THE LIBRARY WAS
+  // HOLDING, and the value it was holding was the session — the access
+  // token, the REFRESH TOKEN and the whole user object, written into the
+  // production logs in plain text for a real account.
+  //
+  // TWO HALVES, AND ONLY ONE OF THEM IS OURS TO FIX. That a dependency puts
+  // its input into an error message is not something we control or can
+  // audit across every package. WHAT PUBLISHES IT IS OURS: an unguarded
+  // await at a boundary where the value is a credential, rejecting into a
+  // log. Any call that handles a session must not be allowed to do that.
+  //
+  // WHY IT THREW AT ALL. The browser client moved to @supabase/ssr's
+  // createBrowserClient, which writes the auth cookie base64url-encoded
+  // (see lib/supabase.ts). A session created BEFORE that change still holds
+  // the older shape, so the server reads a raw JSON string where the
+  // library expects its own encoding. It is about WHEN the cookie was
+  // written, not how the person signed in.
+  //
+  // CATCHING ALONE WOULD HAVE BEEN WORSE THAN THE THROW. It stops the leak
+  // and leaves the browser holding an unreadable cookie forever — the same
+  // failure, silent, on every navigation from then on. So the cookie is
+  // cleared as well, which puts the person back to signed-out and lets the
+  // next sign-in write a cookie this client can actually read.
+  try {
+    await supabase.auth.getUser()
+  } catch {
+    // DELIBERATELY NOTHING FROM THE ERROR IS LOGGED. Not the message, not
+    // the stack — the message is the thing that carried the session. One
+    // fixed string, and the cookie name, which is safe and is what a
+    // person debugging this actually needs.
+    console.warn('[middleware] auth cookie unreadable; clearing it and continuing signed-out')
+
+    // Clear every chunk. @supabase/ssr splits a cookie over 4kB into
+    // `<name>.0`, `<name>.1`, … and a jar holding one chunk and not the
+    // other reads as no cookie at all, so removing only the base name can
+    // leave the browser in a state that is still broken.
+    const stale = request.cookies
+      .getAll()
+      .map((c) => c.name)
+      .filter((n) => /^sb-.*-auth-token(\.\d+)?$/.test(n))
+    for (const name of stale) {
+      request.cookies.set({ name, value: '' })
+      response = NextResponse.next({ request: { headers: request.headers } })
+      response.cookies.set({ name, value: '', path: '/', maxAge: 0 })
+    }
+  }
 
   return withCountry(response)
 }
