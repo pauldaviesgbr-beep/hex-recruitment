@@ -95,7 +95,7 @@ const categories = [{ id: 'all', label: 'All Jobs' }, ...sharedCategories]
 // getJobSector now lives in lib/jobSector.ts — the preference resolver needs it too.
 
 function JobsPageContent() {
-  const { jobs, loading } = useJobs()
+  const { jobs, loading, error: jobsError, refreshJobs } = useJobs()
   const { addConversation, refreshConversations } = useMessages()
   const { isSaved, toggleSave } = useSavedJobs()
   const { trackJobView, trackClickEvent, trackImpression } = useAnalyticsTracking()
@@ -1116,6 +1116,36 @@ function JobsPageContent() {
               </svg>
             </div>
             <h2 className={styles.emptyTitle}>Loading roles…</h2>
+          </div>
+        ) : jobsError && jobs.length === 0 ? (
+          /* THE FETCH FAILED, AND SAYING SO IS THE WHOLE POINT.
+
+             Before this branch existed the page fell through to "No jobs
+             match your search" — telling the candidate THEIR SEARCH was the
+             problem when the request had failed, above a Clear filters
+             button that would have done nothing, to somebody who in most
+             cases had not searched at all.
+
+             GUARDED ON jobs.length === 0 as well as on the error, so a
+             failed BACKGROUND refresh never replaces a board that is
+             already showing roles. We only claim a failure when we have
+             nothing to show.
+
+             The icon is deliberately not the magnifying glass the other two
+             states use. These three must not read alike. */
+          <div className={styles.emptyState}>
+            <div className={styles.emptyIcon}>
+              <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="9" />
+                <path d="M12 8v5" />
+                <path d="M12 16.5h.01" />
+              </svg>
+            </div>
+            <h2 className={styles.emptyTitle}>We couldn&apos;t load the roles</h2>
+            <p className={styles.emptyText}>Something went wrong at our end. Try again in a moment.</p>
+            <button className={styles.browseBtn} onClick={() => refreshJobs()}>
+              Try again
+            </button>
           </div>
         ) : filteredJobs.length > 0 ? (
           <div className={styles.jobsGrid} ref={listRef}>

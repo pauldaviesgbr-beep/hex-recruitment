@@ -8,6 +8,17 @@ import { supabaseJobToJob, jobToSupabaseInsert } from './types'
 interface JobsContextType {
   jobs: Job[]
   loading: boolean
+  /* A FAILED FETCH AND AN EMPTY BOARD WERE THE SAME VALUE, AND THAT IS WHY
+     THE BOARD BLAMED THE CANDIDATE. fetchJobs caught its error, logged it,
+     and called setJobs([]) — so every consumer saw an empty array and could
+     not tell "there are no jobs" from "we could not ask". /jobs then
+     rendered its third branch: "No jobs match your search", beneath a
+     search nobody had typed, above a Clear filters button that would do
+     nothing. Confidently and specifically wrong is worse than blank.
+
+     null means the last fetch succeeded. It is NOT the error message from
+     Postgrest — that is for the console, not for a candidate. */
+  error: boolean
   addJob: (job: any, employerId: string) => Promise<Job | null>
   updateJob: (jobId: string, updates: Partial<Job>) => Promise<void>
   getJobById: (jobId: string) => Job | undefined
@@ -19,9 +30,14 @@ const JobsContext = createContext<JobsContextType | undefined>(undefined)
 export function JobsProvider({ children }: { children: ReactNode }) {
   const [jobs, setJobs] = useState<Job[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
 
   const fetchJobs = useCallback(async () => {
     setLoading(true)
+    // CLEARED ON EVERY ATTEMPT, NOT ONLY ON SUCCESS. refreshJobs is this same
+    // function, so it is what the "Try again" button calls; leaving a stale
+    // true here would keep the failure on screen after a retry that worked.
+    setError(false)
     try {
       const { data, error } = await supabase
         .from('jobs')
@@ -32,12 +48,17 @@ export function JobsProvider({ children }: { children: ReactNode }) {
       if (error) {
         console.error('Error fetching jobs:', error.message)
         setJobs([])
+        setError(true)
       } else {
         setJobs((data || []).map(supabaseJobToJob))
       }
     } catch (err) {
+      // THIS IS THE BRANCH A DEAD NETWORK TAKES. The supabase-js client
+      // throws rather than returning an error when the request never
+      // completes, so a phone with no signal lands here and not above.
       console.error('Failed to fetch jobs:', err)
       setJobs([])
+      setError(true)
     }
     setLoading(false)
   }, [])
@@ -165,7 +186,7 @@ export function JobsProvider({ children }: { children: ReactNode }) {
   const refreshJobs = fetchJobs
 
   return (
-    <JobsContext.Provider value={{ jobs, loading, addJob, updateJob, getJobById, refreshJobs }}>
+    <JobsContext.Provider value={{ jobs, loading, error, addJob, updateJob, getJobById, refreshJobs }}>
       {children}
     </JobsContext.Provider>
   )
