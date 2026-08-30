@@ -23,7 +23,7 @@ export default function JobDetailPage() {
   const searchParams = useSearchParams()
   const jobId = params.id as string
   const fromParam = searchParams.get('from')
-  const { jobs, loading: jobsLoading } = useJobs()
+  const { jobs, loading: jobsLoading, error: jobsError, refreshJobs } = useJobs()
   const { isSaved: checkSaved, toggleSave } = useSavedJobs()
   const { trackJobView, trackClickEvent } = useAnalyticsTracking()
   const [job, setJob] = useState<Job | null>(null)
@@ -220,6 +220,39 @@ export default function JobDetailPage() {
         <div className={styles.loadingState}>
           <div className={styles.spinner} />
           <p>Loading job details...</p>
+        </div>
+      </main>
+    )
+  }
+
+  // THE FETCH FAILED — AND THIS IS THE SHARPEST CASE OF IT IN THE PRODUCT.
+  //
+  // This page has no fetch of its own. It resolves the advert with
+  // jobs.find() over the shared board array, so a failed board request
+  // leaves `job` undefined and the not-found branch below then states, about
+  // one specific advert, that it has been removed. It has not. It is live,
+  // and this is the page a job-alert email lands on: we send someone a role,
+  // they tap it, and we tell them it is gone.
+  //
+  // THIS BRANCH MUST STAY ABOVE THAT ONE. Below it the claim has already
+  // been made.
+  //
+  // It says "this role" rather than /jobs' "the roles" because one advert
+  // failed to load, not a list — and it names loading rather than finding,
+  // so it cannot be read as a verdict on whether the advert exists.
+  //
+  // The deeper fix is for this page to fetch its own job by id, which would
+  // also separate "removed" from "not in the active list" — two states that
+  // are currently indistinguishable. That is its own piece of work: it
+  // changes what the page DOES, where this changes only what it SAYS.
+  if (jobsError && jobs.length === 0) {
+    return (
+      <main className={styles.page}>
+        <Header />
+        <div className={styles.notFoundState}>
+          <h2>We couldn&apos;t load this role</h2>
+          <p>Something went wrong at our end. Try again in a moment.</p>
+          <button className={styles.backBtn} onClick={() => refreshJobs()}>Try again</button>
         </div>
       </main>
     )

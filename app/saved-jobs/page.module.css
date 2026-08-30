@@ -514,6 +514,9 @@
 }
 
 .browseBtn {
+  /* Also dresses the Try again <button> now; a button inherits neither the
+     page font nor a pointer cursor, and nothing normalises them globally. */
+  font-family: inherit;
   padding: 0.75rem 2rem;
   background: #FFE500;
   color: #1e293b;
