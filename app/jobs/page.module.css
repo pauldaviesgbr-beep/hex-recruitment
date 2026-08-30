@@ -31,7 +31,7 @@
    :has matches solely when expanded) — the compact pill bar stays sticky when
    collapsed, and the strip + open panel scroll normally with the page. */
 .filterStrip:has(.filterPanel) { position: static; }
-.filterStripInner { max-width: 1400px; margin: 0 auto; padding: 0.5rem 1.5rem; display: flex; align-items: center; gap: 0.5rem; }
+.filterStripInner { max-width: 1400px; margin: 0 auto; padding: 0.5rem 1.5rem; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
 /* CONTROLS WRAP. This scrolled sideways with the scrollbar deliberately
    hidden — scrollbar-width:none plus a display:none webkit scrollbar — so
    three of the six controls were off the right-hand edge at 390, reachable
@@ -388,7 +388,23 @@
   .jobsGrid { gap: 0.75rem; max-width: 100%; overflow: hidden; }
   .jobCard { max-width: 100%; overflow: hidden; padding: 0.875rem 1rem; }
   .filterStripInner { padding: 0.5rem 1rem; }
-  .filterStripRight { display: none; }
+  /* WAS display: none. THE COUNT WAS THE SMALL HALF OF THAT — the row also
+     holds "Clear filters", and hiding it left the ONLY reachable clear on a
+     phone inside the empty state, which by definition appears only once a
+     candidate has filtered themselves down to nothing. Filter to some
+     results you did not want and there was no way back except reloading
+     the page. Not "cannot see the count" — CANNOT UNDO.
+
+     THE SISTER PAGE ALREADY DECIDED THIS TOO, at this same 600px
+     breakpoint: app/candidates/page.module.css:1481, whose own comment
+     reads "WAS display:none — a control disappearing rather than wrapping.
+     They get their own row instead." /jobs was missed by that 5 Aug 2026
+     sweep TWICE — once here and once on the strip above.
+
+     The border colour is /jobs' own #e5e7eb rather than /candidates'
+     #eff2f6; everything else is that rule verbatim. */
+  .filterStripRight { width: 100%; justify-content: space-between; border-top: 1px solid #e5e7eb; padding-top: 0.5rem; margin-top: 0.15rem; }
+  .filterStripLeft { flex: 1 1 100%; }
   .prefsBanner { padding: 0.5rem 1rem; }
 
   .modalPanel { width: 100%; top: auto; bottom: 0; height: 92vh; border-radius: 16px 16px 0 0; animation: slideInUp 0.25s ease; }
