@@ -51,6 +51,23 @@ const config: CapacitorConfig = {
   },
 
   ios: {
+    // SO A LOG LINE CAN TELL THE APP FROM A BROWSER.
+    //
+    // Without this the WKWebView sends the ordinary iOS user agent and is
+    // indistinguishable from Safari. It cost an hour on 30 Aug 2026: an
+    // Apple sign-in was captured in the production logs and nobody could
+    // say which container it came from.
+    //
+    // The absence WAS inferable — Chrome on iOS carries CriOS, Safari
+    // carries Version/, and a bare WKWebView carries neither — but an
+    // inference from absence is not a positive mark, and it stops being
+    // reliable the day Apple changes the default user agent.
+    //
+    // Under ios rather than at the top level: this is an iOS-only shell and
+    // a top-level value would also claim to speak for a platform we do not
+    // ship. tsc refused it under `server`, which is where it was tried
+    // first — it is not a server property.
+    appendUserAgent: 'ThriveApp',
     // The site paints its own background; this stops a white flash on launch
     // before the first paint arrives.
     backgroundColor: '#0f172a',

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { safeInternalPath } from '@/lib/safeRedirect'
+import { isNativeApp, runNativeOAuth, NATIVE_CALLBACK_URL } from '@/lib/nativeOAuth'
 
 interface LinkedInSignInButtonProps {
   role: 'employer' | 'employee'
@@ -39,6 +40,58 @@ export default function LinkedInSignInButton({ role, className, label, next }: L
       // Mirror the Google flow so SessionGuard can recover the intended role on
       // whichever page the user lands on after OAuth.
       document.cookie = `oauth_intended_role=${role}; path=/; max-age=600; SameSite=Lax`
+
+      // ── THE NATIVE BRANCH. ON THE WEB THIS IS FALSE AND NOTHING BELOW IT
+      //    RUNS; the else-path below is byte-identical to what shipped before.
+      //
+      //    COPIED FROM GoogleSignInButton, NOT INVENTED. Google has been
+      //    tapped in the shell and works; this is the same call, the same
+      //    hand-back and the same outcome handling with a different provider.
+      //
+      //    WHY IT IS NEEDED HERE AT ALL: in the iOS shell the webview is a
+      //    WKWebView loading our live site, and an OAuth page opened inside
+      //    it is an embedded-browser sign-in. Google refuses those outright.
+      //    LinkedIn has no such published refusal, so this is NOT a fix for a
+      //    diagnosed provider refusal — it is making all three providers take
+      //    the one path that is known to work in the shell instead of leaving
+      //    two of them on a path nothing has ever verified there.
+      //
+      //    isNativeApp() is a window property read and the plugins are
+      //    imported dynamically inside runNativeOAuth, so the web bundle
+      //    never gains a line of Capacitor. Asserted by weboauth:prove.
+      if (isNativeApp()) {
+        const { data, error } = await supabase.auth.signInWithOAuth({
+          provider: 'linkedin_oidc',
+          options: {
+            // The custom scheme iOS routes back to the app. It must also be
+            // in Supabase's redirect allow-list or the provider refuses it.
+            redirectTo: NATIVE_CALLBACK_URL,
+            scopes: 'openid profile email',
+            // Do not navigate this webview to the provider. Give us the URL
+            // and we will open it where a system browser handles it.
+            skipBrowserRedirect: true,
+          },
+        })
+        if (error || !data?.url) {
+          setError(error?.message || 'Could not start LinkedIn sign-in.')
+          setLoading(false)
+          return
+        }
+
+        const outcome = await runNativeOAuth(data.url, (code) =>
+          `${siteUrl}/auth/callback/${role}?code=${encodeURIComponent(code)}` +
+          (safeNext ? `&next=${encodeURIComponent(safeNext)}` : ''),
+        )
+
+        // EVERY OUTCOME IS VISIBLE. The worst failure this design has is
+        // silence — the sheet closes and nothing happens — so no path here
+        // leaves the button spinning or the screen unchanged.
+        if (outcome.kind === 'signed-in') return           // navigation under way
+        if (outcome.kind === 'cancelled') { setLoading(false); return }
+        setError(outcome.reason)
+        setLoading(false)
+        return
+      }
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'linkedin_oidc',
         options: {
