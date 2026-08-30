@@ -709,6 +709,24 @@ wrong reason is worse than no check, because it ends the search.
   nothing. Production and preview returning different error strings
   is what proved the dispatcher routing.
 
+- A QUERY'S SHAPE IS NOT A FACT ABOUT THE WORLD, AND WIDENING IT IS
+  THE CHEAPEST INVESTIGATION THERE IS. Twice on 30 Aug 2026, in one
+  day: a user agent truncated to 70 characters in my own SELECT, which
+  became "the log cannot tell the app from Safari"; and a 60-row LIMIT
+  ordered newest-first, which became "Apple failed twice". Both times
+  the instrument answered exactly what it was asked and the answer was
+  read as a property of the product.
+  - THE SAME SENTENCE IS THE REMEDY, WHICH IS WHY IT IS ONE ENTRY AND
+    NOT TWO. Reading the full user agent proved the log CAN separate
+    Chrome from Safari from a bare WKWebView; lifting the row limit
+    found three GOOGLE sign-in failures nobody had ever seen, and
+    turned a two-day hunt for an Apple bug into a provider-agnostic
+    fault in our own OAuth callback. Both of that day's real findings
+    came from re-running a query with less of my own shape in it.
+  - So when a result supports a tidy conclusion, ASK WHAT THE QUERY
+    EXCLUDED before believing it: the LIMIT, the ORDER BY, the WHERE,
+    the substring, the time window. It costs one re-run.
+
 - A CHECK'S SELECTOR IS PART OF THE CHECK, AND IT IS THE PART THAT IS
   WRONG. When a drive comes back red, the first question is not "what
   did I break" but "is my instrument measuring what I named". Five in
