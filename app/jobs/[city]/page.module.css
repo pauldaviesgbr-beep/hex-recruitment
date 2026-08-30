@@ -372,6 +372,11 @@
 }
 
 .browseBtn {
+  /* This class has only ever dressed a <Link>. It now also dresses the
+     Try again <button>, and a button inherits neither the page font nor a
+     pointer cursor — nothing in globals.css normalises them. */
+  font-family: inherit;
+  cursor: pointer;
   display: inline-block;
   padding: 0.875rem 2.5rem;
   background: var(--primary-yellow);

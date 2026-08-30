@@ -17,7 +17,7 @@ export default function CityJobsPage() {
   const params = useParams()
   const citySlug = params.city as string
   const cityInfo = SEO_CITIES[citySlug]
-  const { jobs, loading } = useJobs()
+  const { jobs, loading, error, refreshJobs } = useJobs()
   const [selectedJob, setSelectedJob] = useState<Job | null>(null)
   const [isMobile, setIsMobile] = useState(false)
 
@@ -61,6 +61,40 @@ export default function CityJobsPage() {
         <div className={styles.loading}>
           <div className={styles.spinner} />
           <p>Loading jobs in {cityInfo.name}...</p>
+        </div>
+      </main>
+    )
+  }
+
+  // THE FETCH FAILED, AND THIS PAGE MUST NOT CLAIM THE TOWN OR THE SECTOR
+  // IS EMPTY. Falling through to the empty state below would print "No jobs
+  // in X right now. New jobs are added daily" — a confident statement about
+  // a whole place, on a page people arrive at from Google, when all that
+  // happened is that OUR request failed.
+  //
+  // GUARDED ON jobs.length === 0 as well, so a failed background refresh
+  // never replaces a page that is already showing roles.
+  //
+  // The words are the same as /jobs deliberately: the same thing failed and
+  // the reader is looking at the same kind of object, a list of roles. The
+  // icon is not the magnifying glass the empty state uses — a candidate who
+  // genuinely has no matches and one whose request failed must not read
+  // alike, and that has to hold at a glance, not only in the words.
+  if (error && jobs.length === 0) {
+    return (
+      <main>
+        <Header />
+        <div className={styles.emptyState}>
+          <div className={styles.emptyIcon}>
+            <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="9" />
+              <path d="M12 8v5" />
+              <path d="M12 16.5h.01" />
+            </svg>
+          </div>
+          <h2 className={styles.emptyTitle}>We couldn&apos;t load the roles</h2>
+          <p className={styles.emptyText}>Something went wrong at our end. Try again in a moment.</p>
+          <button className={styles.browseBtn} onClick={() => refreshJobs()}>Try again</button>
         </div>
       </main>
     )

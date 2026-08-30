@@ -19,7 +19,7 @@ import styles from './page.module.css'
 import { formatJobLocation } from '@/lib/jobCard'
 
 export default function SavedJobsPage() {
-  const { jobs, loading: jobsLoading } = useJobs()
+  const { jobs, loading: jobsLoading, error: jobsError, refreshJobs } = useJobs()
   const { savedIds, savedCount, loading: savedLoading, isSaved, toggleSave, markAllSeen } = useSavedJobs()
   const { trackJobView } = useAnalyticsTracking()
   const router = useRouter()
@@ -204,6 +204,41 @@ export default function SavedJobsPage() {
         <div className={styles.loadingState}>
           <div className={styles.spinner} />
           <p>Loading saved jobs...</p>
+        </div>
+      </main>
+    )
+  }
+
+  // THE FETCH FAILED, AND TELLING SOMEBODY THEIR OWN SAVED LIST IS EMPTY IS
+  // THE WORST VERSION OF THIS FAULT. The saved rows are the candidate's own,
+  // so the empty state below does not make a claim about OUR data — it makes
+  // one about THEM, telling somebody who saved jobs that they never did.
+  //
+  // Deliberately not quoting that copy here. A comment that repeats another
+  // state's wording rots the day the wording changes, and it is also how a
+  // search for "does the old text still appear exactly once" starts counting
+  // the comment that was just written.
+  //
+  // savedJobs are resolved out of the shared jobs array, so an empty board
+  // empties this page even when every save is intact in the database.
+  //
+  // "your saved jobs" rather than /jobs' "the roles": the object that failed
+  // to load is theirs, and the page names it that way throughout.
+  if (jobsError && jobs.length === 0) {
+    return (
+      <main className={`${styles.page} no-pad`}>
+        <Header />
+        <div className={styles.emptyState}>
+          <div className={styles.emptyIcon}>
+            <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="9" />
+              <path d="M12 8v5" />
+              <path d="M12 16.5h.01" />
+            </svg>
+          </div>
+          <h2 className={styles.emptyTitle}>We couldn&apos;t load your saved jobs</h2>
+          <p className={styles.emptyText}>Something went wrong at our end. Nothing has been lost — try again in a moment.</p>
+          <button className={styles.browseBtn} onClick={() => refreshJobs()}>Try again</button>
         </div>
       </main>
     )

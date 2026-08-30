@@ -23,7 +23,13 @@ import { Ico } from '@/components/icons'
 import { formatJobLocation } from '@/lib/jobCard'
 
 export default function RecommendedJobsPage() {
-  const { jobs, loading: jobsLoading } = useJobs()
+  const { jobs, loading: jobsLoading, error: jobsError, refreshJobs } = useJobs()
+
+  // NAMED, BECAUSE IT IS READ TWICE AND THE TWO READS MUST AGREE. This page
+  // renders by conditional block rather than by early return, so the failure
+  // block and the loaded block are separate expressions; if their conditions
+  // ever drift apart the page shows both or neither. One boolean, two uses.
+  const boardFailed = jobsError && jobs.length === 0
   const { isSaved, toggleSave } = useSavedJobs()
   const { trackJobView, trackClickEvent } = useAnalyticsTracking()
   const router = useRouter()
@@ -310,8 +316,33 @@ export default function RecommendedJobsPage() {
           </div>
         )}
 
+        {/* THE BOARD'S FETCH FAILED.
+
+            The empty state below is a statement about the CANDIDATE and about
+            our matching — that we looked and found nothing good enough for
+            them. On a failed request we did not look at all, and saying we
+            did is worse here than on any list page: it invites somebody to go
+            and edit a profile that was never the problem.
+
+            The heading names what failed to load rather than what we failed
+            to find, so it cannot be read as a verdict on them. */}
+        {isLoggedIn && !loading && !jobsLoading && boardFailed && (
+          <div className={styles.emptyState}>
+            <div className={styles.emptyIcon}>
+              <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="9" />
+                <path d="M12 8v5" />
+                <path d="M12 16.5h.01" />
+              </svg>
+            </div>
+            <h2 className={styles.emptyTitle}>We couldn&apos;t load your recommendations</h2>
+            <p className={styles.emptyText}>Something went wrong at our end. Try again in a moment.</p>
+            <button className={styles.browseBtn} onClick={() => refreshJobs()}>Try again</button>
+          </div>
+        )}
+
         {/* Logged in and loaded */}
-        {isLoggedIn && !loading && !jobsLoading && (
+        {isLoggedIn && !loading && !jobsLoading && !boardFailed && (
           <>
             {/* Incomplete profile banner */}
             {(!profileComplete || needsPreferences) && (

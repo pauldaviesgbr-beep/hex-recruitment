@@ -139,6 +139,10 @@
 }
 
 .browseBtn {
+  /* Also dresses the Try again <button> now. cursor is already set here; a
+     button additionally does not inherit the page font, and nothing in
+     globals.css normalises that. */
+  font-family: inherit;
   display: inline-block;
   padding: 0.875rem 2.5rem;
   background: var(--primary-yellow);
