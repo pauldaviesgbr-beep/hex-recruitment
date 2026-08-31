@@ -856,6 +856,57 @@ wrong reason is worse than no check, because it ends the search.
   you just deleted. Searching for what you removed passes whether or
   not something else still does it.
 
+- A CHECK THAT LOOKS FOR A WORD CANNOT FIND A CLAIM MADE BY A PICTURE.
+  31 Aug 2026: a grep for "Verified" found four surfaces asserting a
+  check we never made. It could not have found the fifth, because the
+  fifth had no word in it — a green ✓ beside "Level 2 Food Hygiene",
+  on a certification the candidate typed in themselves. The claim was
+  made entirely by a GLYPH AND A COLOUR.
+  - It was found by opening the after-screenshot and looking at it,
+    which is the division this file already draws: state beats screen
+    for whether it is CORRECT, screen beats state for whether it is
+    FINISHED. Every string assertion passed and was right.
+  - **AND THE FIX IS TO MOVE THE CHECK FROM THE INSTANCES TO THE
+    CLASS.** Counting "✓" characters would still miss a green dot, a
+    green SVG, or a tick drawn as a background image. The check now
+    walks EVERY element and fails on any short green glyph, wherever it
+    lives and whatever it is called — so the next one goes red instead
+    of waiting for somebody to look.
+  - **REMOVE THE PICTURE, NOT ONLY THE WORD.** Honest wording above a
+    green tick leaves the image saying what the text no longer does.
+    Both halves assert; both have to change.
+
+- WHAT WE GOT RIGHT IN ONE PLACE IS OFTEN WRONG EVERYWHERE ELSE, AND
+  THAT IS A SEARCHABLE PATTERN RATHER THAN BAD LUCK. Two instances
+  found on 31 Aug 2026, minutes apart:
+  - The **correct** right-to-work wording already existed at offer
+    stage on `/my-jobs` — "Thrive stores only that you've confirmed it
+    — no documents" — written once, correctly, and never applied to the
+    four surfaces that claimed the opposite.
+  - `SignedImage` **already** supports a `fallback` for a photo that
+    fails to load. **Two of fourteen call sites pass one.** The other
+    twelve render `null`, so a broken or still-signing photo shows
+    nothing at all rather than initials.
+  - So when you fix a thing, grep for the RIGHT version as well as the
+    wrong one. The good answer is usually already in the codebase, used
+    once, by whoever thought about it hardest — and it is cheaper to
+    copy than to re-derive. Same spine as the `/candidates` declaration
+    that was copied byte-for-byte onto `/jobs`.
+
+- ASYNC RESOLUTION MEANS A SCREENSHOT CAN LIBEL THE PRODUCT, AND IT DID.
+  31 Aug 2026 I reported that an avatar "renders as an empty yellow
+  square" from a full-page screenshot, and it was wrong: driven
+  properly the image is `naturalWidth=1024`, `complete=true`, storage
+  200. `SignedImage` signs the URL in a `useEffect`, so there is a real
+  window where the box is legitimately empty — and my drive had waited
+  on BODY TEXT LENGTH, which says nothing about an image.
+  - **The report went out before the check did**, and it caused work to
+    be reprioritised around a fault that does not exist.
+  - **Wait on the thing you are photographing.** `img.naturalWidth > 0`
+    is one predicate and it cannot be satisfied by an unsettled page.
+    Same family as "0 jobs" at 1.5s and "Loading roles…" at 6s, and the
+    third time this file has had to record it.
+
 - A CHECK THAT FAILS SAFE IS THE DANGEROUS KIND. An anon insert test
   returned "violates row-level security policy" and nearly got
   reported as secure — the refusal came from reading the row back,
