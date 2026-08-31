@@ -657,6 +657,27 @@ Standing rules for Claude Code on this project. These override default behaviour
   - **NOT INVESTIGATED FURTHER — Paul's explicit instruction on 31 Aug was not to start it.** This entry is evidence capture only, done because the evidence expires. **Read `auth.flow_state` for the count and the pattern; the log will not be there.**
   - **AND IT IS THE ARGUMENT FOR MAKING THE DIAGNOSTIC DURABLE.** Catching this was luck — a routine `select count(*)` five minutes after it happened. A row written at the moment of failure would be readable the next morning; a console line is readable only by somebody already watching. That is the change to make before the next one is lost.
 
+- **THE VERIFIER-EXPIRY HYPOTHESIS IS DEAD. TESTED 31 Aug 2026 AND RECORDED SO NOBODY TESTS IT TWICE.** The theory was that the `code_verifier` cookie is short-lived and expires while the user is still on the provider's screen, which would produce exactly the captured symptom without anything of ours being wrong. It fits the symptom and it is false.
+  - **THE COOKIE'S max-age IS 400 DAYS**, read from the library rather than assumed: `DEFAULT_COOKIE_OPTIONS.maxAge = 400 * 24 * 60 * 60` in `@supabase/ssr`, and `applyServerStorage` **force-sets** `maxAge: DEFAULT_COOKIE_OPTIONS.maxAge` on every write, overriding anything passed in `cookieOptions`. Ours passes `sameSite`, `secure` and `path` and no maxAge, so it cannot be shortened by us even accidentally.
+  - **AND NOTHING COMES CLOSE TO IT.** Time from flow start to the code being issued — the whole window the cookie must survive — across all rows:
+
+        provider        rows   min     median   p90     max      >5min
+        google            63   0.3s     0.9s    1.6s   89.8s       0
+        apple              7   6.7s     7.2s    9.6s   11.3s       0
+        linkedin_oidc      2  12.1s    22.0s   29.8s   31.8s       0
+        email/recovery     6  18.2s   ~100s   209.2s  217.4s       0
+        ALL               78   0.3s     1.0s   32.0s  217.4s       0
+
+    The longest is **217 seconds against a 34,560,000-second cookie**. Failures do not skew long — they skew **short**.
+  - **TWO THINGS THE DISTRIBUTION SETTLED THAT NOBODY ASKED IT TO.** First, **GOOGLE IS 63 OF 78, NOT APPLE** — "Apple fails more than Google" was a premise of the hypothesis and it is the wrong way round. Second, `provider_type` includes **`email` and `recovery`**, so this register was never purely OAuth; the recovery rows are the documented "second reset link kills the first" behaviour, and counting them as OAuth failures overstates the OAuth number.
+  - **GOOGLE'S SUB-SECOND MEDIAN IS ITS OWN QUESTION.** 0.9s from flow start to code issued is not a human completing a sign-in; it is an already-authenticated silent redirect. Those 63 look like a different population from the 9 human-paced Apple/LinkedIn ones, and treating all 78 as one fault is probably why it has resisted explanation.
+  - **WHAT THE REGISTER CANNOT TELL YOU, said plainly:** `auth.flow_state` has no column recording when our callback attempted the exchange, and a failed exchange updates nothing. `auth_code_issued_at` is the moment Supabase issued the code and redirected to us, so it is within about a second of the callback arriving — good enough to bound the window, and **not** a measurement of our own handling. Successful exchanges delete their row, so this is a population of failures with **no success baseline to compare against**; the distribution can say failures are not slow, and it cannot say slow attempts are more likely to fail.
+
+- **A BRANCH'S VALUE IS NOT ITS DIFF. READ WHAT IT SAYS BEFORE DELETING IT, NOT ONLY WHAT IT CHANGES.** `experiment/mobile-header-sticky` was two files of CSS and correctly obsolete — the header had been fixed a different way — so every reason to delete it was sound. Its commit **message** carried the reason `overflow-x: hidden` on `body` silently kills `position: sticky`, three measured states, and a harness that printed `STICKS` on a header at top -2000. None of that was in the patch, and `git branch -D` would have taken all of it.
+  - This is the same failure the "a commit can carry knowledge that is not in its diff" entry already describes, met from the other end: there the risk was rescuing a commit and leaving its lesson behind, here it was deleting a branch whose lesson was the only thing in it worth keeping.
+  - **The order that makes it safe:** read the messages → write anything worth keeping into a file → push → **confirm it is on `origin`** → only then delete. Never against a local copy. `git log --format='%H%n%s%n%n%b' <branch>` is the whole cost.
+  - **And note what `git diff main..<branch>` shows on an old branch — it is not what the branch adds.** On a branch cut months ago it renders everything main has gained since as deletions, which reads alarmingly and means nothing. `git show --stat <sha>` and `git diff main...<branch>` (three dots) are the questions you actually want.
+
 ## Product boundary
 
 - **Thrive is a recruitment product, not HR/onboarding software.** Do not build visa/right-to-work compliance logic (visa types, hours-limited conditions, document acceptance, DBS levels, a rules engine, etc.) beyond a simple confirmation flag the employer ticks once they've verified through their own proper channel. Deeper compliance is integration territory (dedicated HR systems / a future integration), not something we model or store here — no candidate documents, no special-category data.
