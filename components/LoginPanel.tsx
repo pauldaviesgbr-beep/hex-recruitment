@@ -182,10 +182,21 @@ export default function LoginPanel({
         </div>
       )}
 
-      <LinkedInSignInButton role="employee" className={styles.oauth} label="Continue with LinkedIn" next={safeReturn || undefined} />
-      {/* Hidden until the provider is configured — lib/appleSignIn.ts. */}
-      <AppleSignInButton role="employee" className={styles.oauth} label="Continue with Apple" next={safeReturn || undefined} />
-      <div className={styles.oauthGap}>
+      {/* ONE STACK, ONE GAP. These three used to be bare siblings with a
+          spacer div wrapped around GOOGLE ONLY (.oauthGap, margin-top 10px).
+          That worked while there were two buttons and the spacer sat between
+          them. Apple was later inserted ABOVE it and inherited nothing, so
+          the measured gaps were 0px between LinkedIn and Apple and 10px
+          between Apple and Google — which is what a person sees as "Apple is
+          too close to LinkedIn".
+
+          A margin on ONE CHILD is a spacer that only holds while nobody adds
+          a sibling. A gap on the PARENT cannot be wrong about a fourth
+          provider, which is the point of moving it. */}
+      <div className={styles.oauthStack}>
+        <LinkedInSignInButton role="employee" className={styles.oauth} label="Continue with LinkedIn" next={safeReturn || undefined} />
+        {/* Hidden until the provider is configured — lib/appleSignIn.ts. */}
+        <AppleSignInButton role="employee" className={styles.oauth} label="Continue with Apple" next={safeReturn || undefined} />
         <GoogleSignInButton role="employee" className={styles.oauth} label="Continue with Google" next={safeReturn || undefined} />
       </div>
 

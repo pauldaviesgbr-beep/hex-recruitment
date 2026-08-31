@@ -124,7 +124,13 @@
   flex-shrink: 0;
 }
 
-.oauthGap { margin-top: 10px; }
+/* WAS a margin-top spacer on a div wrapped around Google alone. The gap now
+   belongs to the stack, so a fourth provider cannot arrive without one. */
+.oauthStack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
 
 .divider {
   display: flex;
