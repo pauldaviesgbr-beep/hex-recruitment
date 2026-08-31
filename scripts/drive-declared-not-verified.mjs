@@ -14,6 +14,25 @@
 // is lucky and also worth knowing: an App Store reviewer signing in as him saw
 // the "Verified" badge on his own profile.
 //
+// THE POSITIVE CONTROL, AND A CORRECTION TO HOW A COMMIT MESSAGE DESCRIBED IT.
+// b83b691 says the widened check was watched failing "with the certifications
+// tick restored to #16a34a". IT WAS NOT. It was run against the PREVIOUS
+// DEPLOYMENT (920b13f), which already had the badges fixed and the cert tick
+// still green — a real deployment in the broken state rather than a
+// manufactured one, which this codebase prefers anyway. It reported:
+//
+//   green glyphs anywhere: 1
+//      green mark "✓"  rgb(22, 163, 74)
+//   AFTER: 1 FAILED
+//
+// The outcome was right and the method in the message was wrong. Recorded here
+// rather than by amending, so the record shows the correction.
+//
+// AND THE EXIT CODE IN THAT RUN READ 0 BECAUSE IT WAS PIPED TO tail. The script
+// exited 1; the pipe returned tail's status. The rule is already in CLAUDE.md
+// and it was broken while running a positive control. Read the status without
+// a pipe, or set -o pipefail first.
+//
 // THE CANDIDATE VIEW NEEDS FLAGS THE FIXTURE DOES NOT HAVE. Rather than write
 // to anyone, that half is driven only if --with-fixture-flags is passed, and
 // the caller is responsible for setting and restoring them; the script prints
