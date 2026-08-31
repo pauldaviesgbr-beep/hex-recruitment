@@ -633,6 +633,30 @@ Standing rules for Claude Code on this project. These override default behaviour
   - **IT IS THE SAME FAMILY AS THE DISABLED SECRET SCANNER, AND WORSE.** A scheduled job that stops is silent exactly as a detector that is off is silent — but here the absence is of a THING (an email a candidate should have received), not of a report about a thing, and nobody is on a list to notice that a weekly email did not arrive.
   - Whoever picks it up: the first question is not why it fails but **how many sends were lost**, and `email_log` answers it — with the caution that the table's own first row is 11 Aug, which is what turned "9 of 62" into "9 of 20".
 
+## The OAuth failure — one capture, and it cannot be re-obtained
+
+- **THE COOKIE DIAGNOSTIC FIRED AT LAST, AT 07:57:50 UTC ON 31 Aug 2026, AND THE ANSWER IS THAT THE `code_verifier` COOKIE WAS NOT THERE AT ALL.** Recorded here rather than in a rolling draft because **the Vercel window that held it is under an hour** — a 24-hour query run at 08:04 returned this single line and nothing else. It is gone now and no future query can bring it back.
+
+      route            employee          provider  apple      (from auth.flow_state)
+      cookieNames      hex_cookie_consent
+                       sb-<ref>-auth-token.0
+                       sb-<ref>-auth-token.1
+                       sb-<ref>-auth-token.2
+                       thrive_country
+                       thrive_tz
+      isChunked        true   (that is the SESSION, chunked into three)
+      cookieCount      6
+      secFetchSite     cross-site        secFetchMode  navigate
+      result           exchange failed — "PKCE code verifier not found in storage"
+
+  - **THE VERIFIER COOKIE IS ABSENT, NOT CHUNKED AND NOT TRUNCATED.** Six cookies arrived and none of them is `sb-<ref>-auth-token-code-verifier`. The diagnostic was built to separate exactly those two possibilities — "did it arrive" versus "was it split into `.0`/`.1`" — and it separated them: **the chunking is real but it is the session, and the verifier simply never reached the server.**
+  - **So the fault is upstream of the callback.** The callback is behaving correctly; it cannot exchange a code without a verifier. The open question moves to **why the cookie is not sent** — never written, written on a different origin or in a different browser context, or dropped on the way back. `secFetchSite: cross-site` with `secFetchMode: navigate` means a top-level cross-site navigation, on which a `SameSite=Lax` cookie *is* normally sent, so plain Lax exclusion does not explain it on its own.
+  - **The browser already held a session** — the three `auth-token` chunks — so this was somebody signed in who started an Apple flow, not a first-ever visitor.
+  - **NOT MINE.** Every sign-in this session was email+password through `/login/employee`, which creates no `flow_state` row and never touches `/auth/callback`.
+  - **`auth.flow_state` is the register and it is durable, unlike the log:** 76 rows with `auth_code_issued_at` set and never consumed, oldest **14 Apr 2026**, newest this one. Successes are deleted, so every surviving row is a failure.
+  - **NOT INVESTIGATED FURTHER — Paul's explicit instruction on 31 Aug was not to start it.** This entry is evidence capture only, done because the evidence expires. **Read `auth.flow_state` for the count and the pattern; the log will not be there.**
+  - **AND IT IS THE ARGUMENT FOR MAKING THE DIAGNOSTIC DURABLE.** Catching this was luck — a routine `select count(*)` five minutes after it happened. A row written at the moment of failure would be readable the next morning; a console line is readable only by somebody already watching. That is the change to make before the next one is lost.
+
 ## Product boundary
 
 - **Thrive is a recruitment product, not HR/onboarding software.** Do not build visa/right-to-work compliance logic (visa types, hours-limited conditions, document acceptance, DBS levels, a rules engine, etc.) beyond a simple confirmation flag the employer ticks once they've verified through their own proper channel. Deeper compliance is integration territory (dedicated HR systems / a future integration), not something we model or store here — no candidate documents, no special-category data.
