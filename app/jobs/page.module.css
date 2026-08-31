@@ -342,6 +342,9 @@
 .detailDescription ul, .detailDescription ol { margin: 0 0 0.75rem; padding-left: 1.25rem; }
 .detailDescription li { margin-bottom: 0.25rem; }
 .detailList { padding-left: 1.25rem; font-size: 0.85rem; color: #374151; line-height: 1.6; }
+/* Names who is asserting the eligibility line, quietly — a source note, not a
+   second requirement. Matches .eligibilityNote on the /job/[id] copy. */
+.detailEligibilityNote { margin: 0.25rem 0 0; font-size: 0.75rem; line-height: 1.5; color: #9ca3af; }
 .detailSkills { display: flex; flex-wrap: wrap; gap: 0.35rem; }
 .detailSkillTag { font-size: 0.78rem; padding: 0.3rem 0.75rem; background: var(--primary-yellow); color: #1a1a1a; border-radius: 999px; font-weight: 500; }
 .detailFooter { padding: 1rem 0; border-top: 1px solid #f1f5f9; font-size: 0.78rem; color: #9ca3af; display: flex; flex-wrap: wrap; gap: 0.75rem; }

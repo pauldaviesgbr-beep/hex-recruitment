@@ -120,8 +120,51 @@ try {
   note('"Right to work required" badges on screen: ' + board.badgeCount)
   await page.screenshot({ path: SHOTS + '/' + TAG + '-board.png' })
 
-  if (TAG === 'after' && board.badgeCount === 0) {
-    fails.push('no card badge rendered anywhere on the board')
+  // THE CARD BADGE WAS DROPPED DELIBERATELY — see lib/jobCard.ts. Asserting
+  // its ABSENCE rather than deleting the check, so a future re-add is a
+  // decision somebody makes rather than something that drifts back in.
+  if (TAG === 'after' && board.badgeCount > 0) {
+    fails.push('the card badge is back — it was measured and dropped; see lib/jobCard.ts')
+  }
+
+  // THE BOARD'S OWN COPY OF THE ADVERT, WHICH IS WHERE APPLYING ACTUALLY
+  // HAPPENS. /jobs?id= carries its own benefits, description, requirements and
+  // its own Apply Now button, so a candidate can read and apply without ever
+  // opening /job/[id]. A version of this change that only covered /job/[id]
+  // would have missed exactly the people the requirement is for.
+  for (const j of JOBS) {
+    await page.goto(BASE + '/jobs?id=' + j.id, { waitUntil: 'domcontentloaded' })
+    await page.waitForFunction(() => {
+      const t = document.body ? document.body.innerText || '' : ''
+      return /Apply Now|Applied|Checking/i.test(t)
+    }, undefined, { timeout: 45000 }).catch(() => {})
+
+    const seen = await page.evaluate(() => {
+      const t = document.body.innerText || ''
+      return {
+        hasApply: /Apply Now|Applied/i.test(t),
+        hasHeading: t.includes('Eligibility'),
+        hasSentence: t.includes('Right to work in the UK required'),
+        hasAttribution: t.includes('Stated by the employer on this advert'),
+      }
+    })
+    rows.push('')
+    rows.push('=== board detail /jobs?id= — ' + j.key.toUpperCase() + ' ===')
+    note('Apply control present:   ' + (seen.hasApply ? 'YES' : 'no'))
+    note('"Eligibility" heading:   ' + (seen.hasHeading ? 'YES' : 'no'))
+    note('the sentence:            ' + (seen.hasSentence ? 'YES' : 'no'))
+    note('"Stated by the employer":' + (seen.hasAttribution ? 'YES' : 'no'))
+    await page.screenshot({ path: SHOTS + '/' + TAG + '-boarddetail-' + j.key + '.png' })
+
+    if (TAG === 'after') {
+      if (!seen.hasApply) fails.push('board detail ' + j.key + ': no Apply control found — this run is not measuring the apply surface')
+      if (j.expect) {
+        if (!seen.hasSentence) fails.push('BOARD DETAIL WITH: the sentence is missing on the surface people actually apply from')
+        if (!seen.hasAttribution) fails.push('BOARD DETAIL WITH: the attribution line is missing')
+      } else {
+        if (seen.hasSentence) fails.push('BOARD DETAIL WITHOUT: the sentence was invented for an advert that never said it')
+      }
+    }
   }
 
   // THE PHONE. The badge adds a SECOND badge row to 231 of 251 cards — card
