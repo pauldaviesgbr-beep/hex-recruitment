@@ -363,6 +363,12 @@
   display: none;
 }
 
+/* Desktop closes on a click outside, so it needs no button. Mobile does —
+   see the comment on .sheetClose in the mobile block below. */
+.sheetClose {
+  display: none;
+}
+
 @keyframes dropdownFadeIn {
   from {
     opacity: 0;
@@ -747,7 +753,12 @@
        nothing at all about what paints. The control that decides this is on
        .header itself, at the bottom of this file. */
     z-index: var(--z-modal);
-    padding-top: 56px;
+    /* calc(), NOT max(). Worked through rather than copied: this band is not
+       "clear the notch" — it has to hold the notch AND the 56px the close
+       button sits in. max() gives 67px at a 59px inset, and the button
+       (65-105) would then land on the grey user block. Unchanged at 56px on
+       every browser, where the inset is 0. */
+    padding-top: calc(56px + env(safe-area-inset-top, 0px));
     overflow-y: auto;
     animation: none;
   }
@@ -797,6 +808,39 @@
      blast radius, not something to do on the screen a reviewer opens. */
   .headerSheetOpen {
     z-index: 1201;
+  }
+
+  /* THE ONLY WAY OUT OF THIS SHEET THAT DOES NOT NAVIGATE. Measured on
+     production: five taps across the sheet all left it open, because the
+     close-on-click-outside handler tests profileMenuRef.contains(target)
+     and the sheet is a CHILD of that ref. Until now the escape was an
+     accident — the sidebar hamburger painted on top and IS outside the ref,
+     so tapping it closed the sheet. Fixing that overlap removed the exit,
+     so the button ships with it.
+
+     Positioned against the inset for the same reason the toggle is: iOS
+     takes touches in the status bar, so a control sitting under it is not
+     merely ugly, it is untappable. */
+  .sheetClose {
+    display: flex;
+    position: absolute;
+    top: max(10px, calc(env(safe-area-inset-top, 0px) + 6px));
+    right: 12px;
+    width: 40px;
+    height: 40px;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--text-dark);
+    cursor: pointer;
+  }
+
+  .sheetClose svg {
+    width: 22px;
+    height: 22px;
   }
 
   .iconBadge {
