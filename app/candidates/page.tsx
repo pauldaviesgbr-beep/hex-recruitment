@@ -50,7 +50,15 @@ const candidateFilterSections = [
   // same language the profile form offers — otherwise an employer filters on
   // Contract and Freelance, which no candidate can pick any more.
   { key: 'workPreference' as const, title: 'Work Preference', options: [...WORK_TYPES] },
-  { key: 'skills' as const, title: 'Key Skills', options: ['Right to Work', 'NI Number', 'Food Hygiene', 'First Aid', 'DBS Checked', 'Driving Licence', 'Language Skills', 'Management Experience'] },
+  // "Key Skills" until 31 Aug 2026, and RIGHT TO WORK AND AN NI NUMBER ARE NOT
+  // SKILLS. Grouping them there implied an attribute we hold and check; every
+  // option in this list is in fact the candidate's own statement — the two
+  // special-cased below read booleans they tick, and the rest match free text
+  // they wrote. The title now says whose claim it is.
+  //
+  // A FULLER FIX WOULD SPLIT THEM into their own section, which is a new
+  // filter key and a matcher branch rather than a label. Recorded, not done.
+  { key: 'skills' as const, title: 'Skills & declarations', options: ['Right to Work', 'NI Number', 'Food Hygiene', 'First Aid', 'DBS Checked', 'Driving Licence', 'Language Skills', 'Management Experience'] },
 ]
 
 import { categories as sharedCategories, getCategoryLabel } from '@/lib/categories'

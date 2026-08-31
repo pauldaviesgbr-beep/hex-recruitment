@@ -614,30 +614,35 @@ export default function ProfilePage() {
               </div>
             )}
 
-            {/* Verification Badges */}
+            {/* WHAT YOU HAVE TOLD US — this said "Verified Documents" with a
+                green tick against each one, and nothing verifies any of them.
+                They are checkboxes the candidate ticks in their own profile
+                form. Saying "Verified" to the CANDIDATE matters as much as
+                saying it to the employer: it tells them a check has happened
+                that has not, so they do not expect to be asked again. */}
             {(profileData?.hasNiNumber || profileData?.hasRightToWork || profileData?.hasP45) && (
               <div className={styles.sideCard}>
-                <h3 className={styles.sideCardTitle}>Verified Documents</h3>
+                <h3 className={styles.sideCardTitle}>What you&rsquo;ve told us</h3>
                 <div className={styles.verifyList}>
                   {profileData.hasNiNumber && (
                     <div className={styles.verifyItem}>
-                      <span className={styles.verifyCheck}>✓</span>
-                      <span>NI Number</span>
+                      <span>NI number</span>
                     </div>
                   )}
                   {profileData.hasRightToWork && (
                     <div className={styles.verifyItem}>
-                      <span className={styles.verifyCheck}>✓</span>
-                      <span>Right to Work</span>
+                      <span>Right to work in the UK</span>
                     </div>
                   )}
                   {profileData.hasP45 && (
                     <div className={styles.verifyItem}>
-                      <span className={styles.verifyCheck}>✓</span>
-                      <span>P45 Available</span>
+                      <span>P45 available</span>
                     </div>
                   )}
                 </div>
+                <p className={styles.declaredNote}>
+                  Employers see these as your own statements. We haven&rsquo;t checked any documents, so an employer will still ask to see them.
+                </p>
               </div>
             )}
 
