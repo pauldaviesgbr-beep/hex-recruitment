@@ -91,6 +91,47 @@ record('same channel, different basis', () => [
   sourceBasis({ signup_ref: 'li' }) === sourceBasis({ referrer_host: 'linkedin.com' }),
 ], [true, false])
 
+// ── EVERY PLATFORM WE POST TO MUST NORMALISE TO ONE LABEL ─────────────────
+//
+// From 1 Sep 2026 the plan is one post a day on LinkedIn, Instagram, Facebook
+// and TikTok, tagged so we can tell which of them produces signups. That only
+// works if all THREE routes to a channel agree on its name: the ?ref tag, the
+// heard-from dropdown, and the referrer host. If they disagree, one platform
+// lands in the Source tab under two or three different labels and the whole
+// exercise measures nothing.
+//
+// TIKTOK FAILED ALL OF THIS UNTIL 31 Aug 2026. The referrer map knew
+// tiktok.com -> TikTok, and nothing else did: a tt- tag normalised to "Tt",
+// a tiktok- tag to "Tiktok", and the dropdown had no TikTok option at all so
+// a self-reporting candidate picked "Other". Three wrong answers and one right
+// one, for a platform we were about to post to daily.
+//
+// Each platform is its own record so a failure PRINTS THE THREE LABELS rather
+// than just going red.
+record('LinkedIn agrees across tag, dropdown and referrer', () => [
+  normalizeSource({ signup_ref: 'li-anything' }),
+  normalizeSource({ heard_from: 'LinkedIn' }),
+  normalizeSource({ referrer_host: 'linkedin.com' }),
+], ['LinkedIn', 'LinkedIn', 'LinkedIn'])
+
+record('Instagram agrees across tag, dropdown and referrer', () => [
+  normalizeSource({ signup_ref: 'ig-anything' }),
+  normalizeSource({ heard_from: 'Instagram' }),
+  normalizeSource({ referrer_host: 'instagram.com' }),
+], ['Instagram', 'Instagram', 'Instagram'])
+
+record('Facebook agrees across tag, dropdown and referrer', () => [
+  normalizeSource({ signup_ref: 'fb-anything' }),
+  normalizeSource({ heard_from: 'Facebook group' }),
+  normalizeSource({ referrer_host: 'facebook.com' }),
+], ['Facebook', 'Facebook', 'Facebook'])
+
+record('TikTok agrees across tag, dropdown and referrer', () => [
+  normalizeSource({ signup_ref: 'tt-anything' }),
+  normalizeSource({ heard_from: 'TikTok' }),
+  normalizeSource({ referrer_host: 'tiktok.com' }),
+], ['TikTok', 'TikTok', 'TikTok'])
+
 // ── PAIR 2: our own host is not a referral ────────────────────────────────
 record('external referrer kept',
   () => externalReferrerHost('https://lnkd.in/abc', 'thrivecareer.co.uk'), 'lnkd.in')
