@@ -123,6 +123,75 @@ try {
   if (TAG === 'after' && board.badgeCount === 0) {
     fails.push('no card badge rendered anywhere on the board')
   }
+
+  // THE PHONE. The badge adds a SECOND badge row to 231 of 251 cards — card
+  // height is unchanged at 1280 and the title block absorbs it, but a desktop
+  // screenshot says nothing about 390, which is where this product's layout
+  // faults have all been found. Asserts the class rather than eyeballing it:
+  // nothing may overflow the viewport, and no title may be clipped.
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto(BASE + '/jobs', { waitUntil: 'domcontentloaded' })
+  await page.waitForFunction(() => {
+    const t = document.body ? document.body.innerText || '' : ''
+    return /\d+\s+(jobs|roles)/i.test(t) && !t.includes('Loading roles')
+  }, undefined, { timeout: 45000 }).catch(() => {})
+
+  const phone = await page.evaluate(() => {
+    const overflowing = [...document.querySelectorAll('*')]
+      .filter(el => !el.children.length && el.getBoundingClientRect().right > window.innerWidth + 1)
+      .map(el => (el.textContent || '').trim().slice(0, 40))
+      .filter(Boolean)
+    // A DELIBERATE LINE-CLAMP LOOKS EXACTLY LIKE ACCIDENTAL CLIPPING — both
+    // are overflow:hidden with scrollHeight > clientHeight. The first version
+    // of this check could not tell them apart and reported the card's quote
+    // panel, which is clamped on purpose. Verified against production BEFORE
+    // this change: identical two elements, so it was never about the badge.
+    // A check that cannot distinguish the two states it cares about is a red
+    // nobody reads, so the clamped ones are excluded by name.
+    const clipped = [...document.querySelectorAll('*')]
+      .filter(el => {
+        const cs = getComputedStyle(el)
+        if (cs.webkitLineClamp && cs.webkitLineClamp !== 'none') return false
+        return /hidden|clip/.test(cs.overflowY) && el.scrollHeight > el.clientHeight + 2
+      })
+      .map(el => {
+        const cs = getComputedStyle(el)
+        return {
+          text: (el.textContent || '').trim().slice(0, 34),
+          cls: String(el.className || '').slice(0, 40),
+          overflowY: cs.overflowY,
+          clamp: cs.webkitLineClamp,
+          maxHeight: cs.maxHeight,
+          scroll: el.scrollHeight,
+          client: el.clientHeight,
+        }
+      })
+      .filter(x => x.text)
+    return { pageScrollsSideways: document.documentElement.scrollWidth > window.innerWidth + 1, overflowing, clipped }
+  })
+  rows.push('')
+  rows.push('=== the board at 390 ===')
+  note('page scrolls sideways:   ' + (phone.pageScrollsSideways ? 'YES' : 'no'))
+  note('elements past the edge:  ' + (phone.overflowing.length || 'none'))
+  for (const o of phone.overflowing.slice(0, 5)) note('   "' + o + '"')
+  note('vertically clipped:      ' + (phone.clipped.length || 'none'))
+  for (const c of phone.clipped.slice(0, 5)) note("   \"" + c.text + "\"  cls=" + c.cls + "  overflowY=" + c.overflowY + "  clamp=" + c.clamp + "  maxH=" + c.maxHeight + "  " + c.scroll + "/" + c.client)
+  await page.screenshot({ path: SHOTS + '/' + TAG + '-board-390.png' })
+
+  if (TAG === 'after') {
+    if (phone.pageScrollsSideways) fails.push('the board scrolls sideways at 390')
+    if (phone.overflowing.length) fails.push(phone.overflowing.length + ' elements run past the right edge at 390')
+    // KNOWN AND PRE-EXISTING, SO THE CHECK ASKS ABOUT NEW CLIPPING ONLY.
+    // BrandedJobFallback_body — the no-photograph panel's text — is crushed at
+    // 390 with overflowY hidden, NO line-clamp and NO max-height: 48px of
+    // content in a 4px box, and 60 in 29. Measured identically on PRODUCTION
+    // before this change, so it is not the badge. It is a real fault and it is
+    // reported separately rather than fixed here; excluding it by name keeps
+    // this assertion able to catch a NEW one instead of being a permanent red
+    // nobody reads.
+    const novel = phone.clipped.filter(c => !/BrandedJobFallback/.test(c.cls))
+    if (novel.length) fails.push(novel.length + ' NEWLY clipped elements at 390: ' + novel.map(c => '"' + c.text + '"').join(', '))
+  }
 } catch (e) {
   fails.push('threw: ' + e.message)
 } finally {
