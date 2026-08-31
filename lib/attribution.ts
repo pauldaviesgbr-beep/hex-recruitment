@@ -30,6 +30,7 @@ export const HEARD_FROM_OPTIONS = [
   'Facebook group',
   'WhatsApp / word of mouth',
   'Instagram',
+  'TikTok',
   'A recruiter / agency',
   'Google search',
   'Other',
@@ -41,6 +42,7 @@ const CHANNEL_ALIASES: Record<string, string> = {
   fb: 'Facebook', facebook: 'Facebook', meta: 'Facebook',
   wa: 'WhatsApp', whatsapp: 'WhatsApp',
   ig: 'Instagram', instagram: 'Instagram', insta: 'Instagram',
+  tt: 'TikTok', tiktok: 'TikTok',
   google: 'Google search', gsearch: 'Google search', g: 'Google search',
   email: 'Email', newsletter: 'Email',
 }
@@ -52,6 +54,7 @@ const HEARD_FROM_ALIASES: Record<string, string> = {
   'facebook group': 'Facebook',
   'whatsapp / word of mouth': 'WhatsApp',
   'instagram': 'Instagram',
+  'tiktok': 'TikTok',
   'a recruiter / agency': 'Recruiter/agency',
   'google search': 'Google search',
   'other': 'Other',
