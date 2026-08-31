@@ -606,8 +606,15 @@ export default function Header() {
     <>
       {showSidebar && <EmployerSidebar />}
       {showCandidateSidebar && <CandidateSidebar />}
+      {/* headerSheetOpen: on mobile the profile menu becomes a full-screen
+          sheet, but it is a CHILD of this header — which is position:fixed
+          with a z-index, so it is a stacking context and the sheet can never
+          out-paint anything outside it however high its own z-index goes.
+          The sidebar's hamburger is a sibling of this header at 1001, so it
+          sat on top of the sheet, over the avatar. The header's own context
+          is what has to move, and only while it is hosting the sheet. */}
       <header
-        className={`${styles.header} ${(showSidebar || showCandidateSidebar) ? styles.headerEmployer : ''}`}
+        className={`${styles.header} ${(showSidebar || showCandidateSidebar) ? styles.headerEmployer : ''} ${showProfileMenu ? styles.headerSheetOpen : ''}`}
         style={DEV_MODE ? { marginTop: '40px' } : undefined}
       >
         <div className={(showSidebar || showCandidateSidebar) ? styles.headerFull : 'container'}>

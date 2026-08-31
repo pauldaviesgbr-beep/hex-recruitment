@@ -739,30 +739,14 @@
     width: 100%;
     max-width: 100%;
     border-radius: 0;
-    /* A RAW NUMBER, DELIBERATELY, BECAUSE THE THING IT HAS TO BEAT IS ALSO A
-       RAW NUMBER. This file is on the token scale (--z-modal is 200); both
-       sidebars are on a separate literal scale -- toggle 1001, overlay 1099,
-       drawer 1100. 200 loses to all three, so the sidebar's fixed hamburger
-       painted ON TOP of this full-screen sheet, over the avatar. Measured on
-       production 31 Aug 2026: elementFromPoint at the toggle's centre
-       returned the toggle while the sheet covered the whole viewport.
-
-       IT WAS INVISIBLE IN EVERY BROWSER AND REAL ON EVERY PHONE. The toggle
-       is fixed to the VIEWPORT at calc(0.7rem + env(safe-area-inset-top)).
-       At inset 0 it sits at 11.2-51.2 and this sheet's avatar starts at 73.4,
-       so it clears by 22.2px and touches nothing. Every notched iPhone has an
-       inset of 44-59, which lands it squarely on the avatar. Mobile Safari in
-       portrait reports 0, which is why the web never showed it.
-
-       FIXED HERE RATHER THAN ON THE TOGGLE because this sheet is the modal
-       and a modal covers page-level controls -- and because one change here
-       covers BOTH sidebars, where lowering the toggle would need the same
-       edit in two files and would leave the drawer above modals anyway.
-
-       The real fault is two z-index scales in one product. Renumbering the
-       sidebar family onto the tokens is separate work: it moves the drawer
-       and its overlay too, and those sit above all 16 var(--z-modal) users. */
-    z-index: 1200;
+    /* STAYS ON THE TOKEN SCALE, AND RAISING IT WOULD ACHIEVE NOTHING. This
+       sheet is a child of .header, which is position:fixed with z-index 100
+       and therefore a STACKING CONTEXT -- so this number is only ever compared
+       with its siblings inside the header, never with the sidebar's toggle.
+       Measured: setting it to 1200 changed the computed value and changed
+       nothing at all about what paints. The control that decides this is on
+       .header itself, at the bottom of this file. */
+    z-index: var(--z-modal);
     padding-top: 56px;
     overflow-y: auto;
     animation: none;
@@ -784,9 +768,35 @@
     right: 0;
     bottom: 0;
     background: rgba(0, 0, 0, 0.4);
-    /* Kept one below the sheet, as it was — but on the sheet's new scale, or
-       it would sit under the sidebar controls it is there to cover. */
-    z-index: 1199;
+    z-index: calc(var(--z-modal) - 1);
+  }
+
+  /* THE ONE LINE THAT ACTUALLY DECIDES IT, AND A RAW NUMBER DELIBERATELY,
+     BECAUSE THE THING IT HAS TO BEAT IS ALSO A RAW NUMBER.
+
+     This file is on the token scale — --z-header 100, --z-modal 200. Both
+     sidebars are on a separate scale of literals: toggle 1001, overlay 1099,
+     drawer 1100. The header at 100 loses to all three, and because the header
+     is a stacking context every one of its descendants loses with it — which
+     is why raising the sheet itself to 1200 was measured changing nothing.
+
+     REAL ON EVERY PHONE AND INVISIBLE IN EVERY BROWSER. The toggle is fixed
+     to the VIEWPORT at calc(0.7rem + env(safe-area-inset-top)). At inset 0 it
+     sits 11.2-51.2 and the sheet's avatar starts at 73.4, clearing it by
+     22.2px. Every notched iPhone has an inset of 44-59 and lands on it.
+     Mobile Safari in portrait reports 0, so the web never showed it.
+
+     ONLY WHILE THE SHEET IS OPEN. The class comes off with it, so the header
+     is back at 100 for the drawer, which still covers and dims it as before.
+     1201 clears the drawer at 1100 as well: if both were ever open, the sheet
+     is the one the person just asked for.
+
+     The underlying fault is two z-index scales in one product. Renumbering the
+     sidebar family onto the tokens moves the drawer and its overlay too, and
+     those sit above all 16 var(--z-modal) users — separate work, with a real
+     blast radius, not something to do on the screen a reviewer opens. */
+  .headerSheetOpen {
+    z-index: 1201;
   }
 
   .iconBadge {
