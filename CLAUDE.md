@@ -657,16 +657,27 @@ Standing rules for Claude Code on this project. These override default behaviour
   - **NOT INVESTIGATED FURTHER — Paul's explicit instruction on 31 Aug was not to start it.** This entry is evidence capture only, done because the evidence expires. **Read `auth.flow_state` for the count and the pattern; the log will not be there.**
   - **AND IT IS THE ARGUMENT FOR MAKING THE DIAGNOSTIC DURABLE.** Catching this was luck — a routine `select count(*)` five minutes after it happened. A row written at the moment of failure would be readable the next morning; a console line is readable only by somebody already watching. That is the change to make before the next one is lost.
 
-- **FIVE CAPTURES ON 31 Aug 2026, AND THEY SPLIT PERFECTLY: THE FLOW FAILS EXACTLY WHEN THE PERSON WAS ALREADY SIGNED IN.** Two of the five SUCCEEDED, which is what makes this worth anything — a failure alone shows a symptom, a matched success shows a discriminator. All read from the log before it expired; **it is gone now.**
+- **THE MIDDLEWARE IS NOT IN THE PATH, AND THAT IS WHY THE CAPTURES MEAN WHAT THEY SAY.** The obvious objection to the diagnostic is that it runs inside the route handler, so it sees the request as the handler received it rather than as the browser sent it — and the standard `@supabase/ssr` middleware pattern mutates REQUEST cookies as well as response ones, so a cookie it did not set could be dropped before the handler ever looks. **It cannot happen here.** `middleware.ts`'s matcher excludes the route explicitly:
 
-      time      verifier cookie   session cookie        secFetchSite   result
-      07:57:50  ABSENT            present, 3 chunks     cross-site     FAILED
-      08:11:53  PRESENT           absent                same-origin    ok
-      08:12:57  ABSENT            present, 3 chunks     cross-site     FAILED
-      08:13:22  PRESENT           absent                cross-site     ok
-      08:13:48  ABSENT            present, 3 chunks     cross-site     FAILED
+      '/((?!_next/static|_next/image|favicon.ico|auth/callback|auth/confirm|reset-password|api/auth/set-session|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|txt|xml)$).*)'
 
-  - **THE VERIFIER AND THE SESSION ARE NEVER BOTH THERE, IN EITHER DIRECTION, ACROSS ALL FIVE.** The diagnostic runs as the first statement of the callback, before any exchange, so a successful sign-in legitimately has no session yet — the person was signed out, which is why they were signing in. The failures all carry a session already.
+  - `auth/callback` is in the negative lookahead, so **middleware never runs on `/auth/callback/employee` or `/auth/callback/employer`.** Nothing sits between the browser and the handler that touches cookies, so **the handler's view IS the browser's view** and an absent verifier there means the browser did not send one.
+  - **The exclusion is deliberate and must not be removed to run a probe.** Its own comment records why: refreshing mid-exchange risks consuming the single-use code or refresh token before the callback does, which is the `refresh_token_already_used` failure this codebase already hit, and `reset-password` was added to the same list after a real employer was locked out of a reset on 27 Jul. **A diagnostic is never worth re-opening that.**
+
+- **FOUR REAL EVENTS ON 31 Aug 2026, AND A NATURAL EXPERIMENT NOBODY DESIGNED: THE SAME PERSON, THE SAME PHONE, 26 SECONDS APART — SIGNED OUT SUCCEEDS, SIGNED IN FAILS.** Read from the log before it expired; **it is gone now.**
+
+      time      verifier cookie   session cookie      what actually happened
+      07:57:50  ABSENT            present, 3 chunks   FAILED
+      08:11:53  PRESENT           absent              no exchange — not a sign-in
+      08:12:57  ABSENT            present, 3 chunks   FAILED
+      08:13:22  PRESENT           absent              SUCCEEDED
+      08:13:48  ABSENT            present, 3 chunks   FAILED
+
+  - **08:13:22 SUCCEEDED AND 08:13:48 FAILED, TWENTY-SIX SECONDS LATER ON THE SAME DEVICE.** The success signed the person in — so by the time they tapped the next provider they were holding a session, and that attempt failed. It is the exact signed-out/signed-in comparison somebody was about to run by hand, produced by accident.
+  - **I FIRST REPORTED TWO SUCCESSES AND THERE WAS ONE. THE CORRECTION IS THE LESSON.** I inferred "success" from the ABSENCE of an `exchange failed` line in the log — a check that passes on more states than the one it names. The state settled it: `auth.users.last_sign_in_at` moved only once, at `08:13:22.466143`, so 08:11:53 was a callback hit that carried no code and exchanged nothing. **State beats screen for whether it is CORRECT**, and a log line's absence is a screen.
+  - **`auth.sessions` DISAGREED WITH `last_sign_in_at` AND `last_sign_in_at` IS THE ONE TO TRUST HERE.** No session row exists after 07:51 — presumably the 08:13:22 session was later signed out and its row deleted — so a check written against `auth.sessions` alone would have called the one real success a failure too. Ask two tables when the answer matters.
+  - **THE VERIFIER AND THE SESSION ARE NEVER BOTH PRESENT, IN EITHER DIRECTION, ACROSS ALL FIVE REQUESTS.** The diagnostic runs before any exchange, so a sign-in legitimately has no session yet. Every failure already had one.
+  - **AND `oauth_intended_role` TRAVELS WITH THE VERIFIER, WHICH IS THE STRUCTURAL POINT.** The sign-in buttons write it in the same click handler that starts the flow (`path=/; max-age=600; SameSite=Lax`). On two of the three failures **both it and the verifier are missing together** — so this looks less like one cookie being deleted and more like a request arriving from a jar that never saw the flow start.
   - **SO THE CANDIDATE IS: STARTING AN OAUTH FLOW WHILE ALREADY HOLDING A SESSION LOSES THE VERIFIER.** That is a correlation across five events with a clean split, not a proven mechanism, and it must not be written down as more than that. It does fit the shape of the whole register: intermittent, provider-agnostic, and commonest for someone who already has an account.
   - **`secFetchSite` IS NOT THE DISCRIMINATOR** — one success was `same-origin` and one was `cross-site`, and every failure was `cross-site`. Nor is `hex_session_started` / `oauth_intended_role`: the 08:13:48 failure carried both and still failed.
   - **ONE MECHANISM WAS PROPOSED, CHECKED IN THE LIBRARY, AND IS FALSE — recorded so nobody re-derives it.** The tempting story is that `@supabase/ssr`'s chunk cleanup deletes the verifier as a stale chunk, because `sb-<ref>-auth-token-code-verifier` starts with `sb-<ref>-auth-token`. It does not: `isChunkLike` tests `CHUNK_LIKE_REGEX = /^(.*)[.](0|[1-9][0-9]*)$/` and requires the captured base to **equal** the key exactly. The verifier is not chunk-like against the auth-token key and is never removed by that path. **A prefix theory that reads perfectly and is not what the regex does.**
