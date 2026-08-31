@@ -70,12 +70,20 @@
 .timelineDesc { font-size: 0.82rem; color: #475569; line-height: 1.5; margin: 0.35rem 0 0; }
 
 .badgeRow { display: flex; flex-wrap: wrap; gap: 0.4rem; }
-.verifyBadge { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.78rem; font-weight: 600; color: #166534; background: #dcfce7; padding: 0.25rem 0.65rem; border-radius: 999px; }
+/* NEUTRAL, DELIBERATELY. This was success-green (#166534 on #dcfce7) beside a
+   green tick, under the heading "Verified". The colour was doing as much of
+   the asserting as the word — a green pill reads as a check that passed. It is
+   slate now because the only thing being reported is that the candidate ticked
+   a box. */
+.verifyBadge { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.78rem; font-weight: 600; color: #334155; background: #f1f5f9; border: 1px solid #e2e8f0; padding: 0.25rem 0.65rem; border-radius: 999px; }
 .verifyCheck { font-weight: 800; }
+.declaredNote { margin: 0.6rem 0 0; font-size: 0.78rem; line-height: 1.5; color: #64748b; }
 
 .certList { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.35rem; }
 .certItem { display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; color: #334155; }
-.certCheck { color: #16a34a; font-weight: 800; }
+/* Slate, not #16a34a green — see the note in CandidateDetail.tsx. Green plus a
+   tick is a claim that a document was checked. */
+.certCheck { color: #94a3b8; font-weight: 800; }
 
 .prefGrid { display: flex; flex-direction: column; gap: 0.5rem; }
 .prefRow { display: flex; justify-content: space-between; gap: 1rem; font-size: 0.85rem; }

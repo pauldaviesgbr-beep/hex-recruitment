@@ -92,9 +92,13 @@ const VISIBILITY_TOGGLES: ToggleItem[] = [
     icon: 'calendar',
   },
   {
+    // The KEY stays show_verification_badges — it is a database column and
+    // renaming it is a migration for no behavioural gain. The words the
+    // candidate reads are what mattered: this said "Verification Badges" and
+    // "other verified documents", about checkboxes they tick themselves.
     key: 'show_verification_badges',
-    label: 'Verification Badges',
-    description: 'Show NI Number, Right to Work, and other verified documents',
+    label: 'What you’ve told us',
+    description: 'Show employers that you have an NI number, the right to work in the UK, and other documents. They are shown as your own statements, not as checks we have made.',
     icon: 'check',
   },
   {

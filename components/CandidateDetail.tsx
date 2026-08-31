@@ -153,16 +153,37 @@ export default function CandidateDetail({
         </div>
       )}
 
-      {/* ── Verified documents ───────────────────────── */}
+      {/* ── Declared by the candidate ─────────────────
+          THIS SAID "Verified", WITH AN AWARD ICON AND FOUR GREEN TICKS, AND
+          NOTHING VERIFIED ANY OF IT. All four read booleans the candidate sets
+          by ticking a box in their own profile form. Thrive has never seen a
+          document.
+
+          IT IS THE ONE PLACE IN THE PRODUCT WHERE THE WORDING WALKED A USER
+          TOWARDS A LEGAL RISK RATHER THAN A MISSING FEATURE. An employer who
+          relies on a right-to-work assurance and hires someone without it
+          faces a UK civil penalty of up to £60,000 per worker — and this is
+          the employer-facing screen, on /candidates and /candidates/[id],
+          which is exactly where a recruiter complaining about applicants
+          without the right to work would go looking for that signal.
+
+          THE TICK IS GONE, NOT JUST THE WORD. A green ✓ is the claim; leaving
+          it under a truthful heading would still read as a check we had made.
+          The badges are neutral now and the sentence says who is asserting it.
+          Same family as "Flagged · still visible" — a label stating a fact it
+          never reads. */}
       {v.show_verification_badges && (c.hasRightToWork || c.hasNiNumber || c.hasBankAccount || c.hasP45) && (
         <div className={styles.section}>
-          <div className={styles.sectionHead}><Award size={18} className={styles.sectionIcon} /><h2 className={styles.sectionTitle}>Verified</h2></div>
+          <div className={styles.sectionHead}><Award size={18} className={styles.sectionIcon} /><h2 className={styles.sectionTitle}>Declared by the candidate</h2></div>
           <div className={styles.badgeRow}>
-            {c.hasRightToWork && <span className={styles.verifyBadge}><span className={styles.verifyCheck}>✓</span>Right to Work</span>}
-            {c.hasNiNumber && <span className={styles.verifyBadge}><span className={styles.verifyCheck}>✓</span>NI Number</span>}
-            {c.hasBankAccount && <span className={styles.verifyBadge}><span className={styles.verifyCheck}>✓</span>UK Bank Account</span>}
-            {c.hasP45 && <span className={styles.verifyBadge}><span className={styles.verifyCheck}>✓</span>P45</span>}
+            {c.hasRightToWork && <span className={styles.verifyBadge}>Right to work in the UK</span>}
+            {c.hasNiNumber && <span className={styles.verifyBadge}>NI number</span>}
+            {c.hasBankAccount && <span className={styles.verifyBadge}>UK bank account</span>}
+            {c.hasP45 && <span className={styles.verifyBadge}>P45</span>}
           </div>
+          <p className={styles.declaredNote}>
+            These are the candidate&rsquo;s own statements. Thrive has not seen or checked any documents. You still need to carry out your own right-to-work check before employing anyone.
+          </p>
         </div>
       )}
 
@@ -248,7 +269,15 @@ export default function CandidateDetail({
       {c.certifications && c.certifications.length > 0 && (
         <div className={styles.section}>
           <div className={styles.sectionHead}><Award size={18} className={styles.sectionIcon} /><h2 className={styles.sectionTitle}>Certifications</h2></div>
-          <ul className={styles.certList}>{c.certifications.map((cert, i) => <li key={i} className={styles.certItem}><span className={styles.certCheck}>✓</span>{cert}</li>)}</ul>
+          {/* A NEUTRAL MARKER, NOT A GREEN TICK. This list is typed by the
+              candidate, and a green ✓ beside "Level 2 Food Hygiene" says we
+              checked the certificate. We have not seen one.
+
+              FOUND BY LOOKING AT THE SCREENSHOT, NOT BY THE GREP. Searching for
+              "Verified" found four surfaces and could never have found this
+              one — the claim here is made entirely by a glyph and a colour,
+              with no word to match on. */}
+          <ul className={styles.certList}>{c.certifications.map((cert, i) => <li key={i} className={styles.certItem}><span className={styles.certCheck}>•</span>{cert}</li>)}</ul>
         </div>
       )}
 
