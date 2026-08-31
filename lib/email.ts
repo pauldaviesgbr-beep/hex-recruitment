@@ -130,15 +130,17 @@ export interface SendEmailOptions {
 /**
  * Where a reply goes when a caller does not name one.
  *
- * IT USED TO BE hello@thrivecareer.co.uk, AND THAT MAILBOX IS DEAD. Paul tested
- * it on 11 Aug 2026: nothing arrived, and no bounce came back either. The
- * address accepts mail and silently drops it, which is the worst of the three
- * possible behaviours — a hard bounce would at least have told the sender.
+ * IT USED TO BE hello@thrivecareer.co.uk. THIS COMMENT SAID THAT MAILBOX WAS
+ * DEAD AND THAT WAS WRONG — corrected 31 Aug 2026. hello@ is one of three
+ * aliases, with contact@ and support@, and all three land in the paul@ inbox.
  *
- * Every email Thrive has ever sent except two carried that Reply-To. Anyone who
- * replied to an interview reminder, an offer, an application update or a job
- * expiry notice has been writing to nobody, and got no failure notice to
- * suggest otherwise.
+ * The 11 Aug 2026 test looked negative because NONE OF THE ALIASES FORWARDS TO
+ * GMAIL, so searching Gmail for mail sent to one of them returns nothing
+ * whether it works or not. A found inbound proves delivery; an empty search
+ * proves only that Gmail never saw it. The check was run in the one direction
+ * it cannot answer.
+ *
+ * THE CHANGE ITSELF STAYS, on its own merits and not on the dead-mailbox story:
  *
  * support@ is the address /terms, /privacy-policy and the chatbot already give
  * out, so it is the one that has to work.

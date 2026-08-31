@@ -58,14 +58,19 @@ export default function UnderReviewClient({
             We usually review applications within a few hours during UK business hours. You&apos;ll get an email the moment your account is approved.
           </p>
           {/*
-            BOTH ESCAPE ROUTES ON THIS PAGE WERE DEAD UNTIL 12 AUG 2026, which
-            is why the address changed here as well as in lib/email.ts. This is
-            the page an employer lands on when they CANNOT USE THE PRODUCT, so
-            it is the one place a contact address has to work — and it offered
-            two: "reply to your confirmation email", whose Reply-To was
-            hello@thrivecareer.co.uk, and a mailto to the same dead address.
-            hello@ accepts mail and silently drops it, with no bounce, so a
-            blocked employer got no answer and no indication why.
+            THIS COMMENT SAID BOTH ESCAPE ROUTES HERE WERE DEAD UNTIL 12 AUG
+            2026. THAT WAS WRONG AND IS CORRECTED 31 AUG 2026: hello@ is one of
+            three aliases, with contact@ and support@, and all three land in the
+            paul@ inbox. It looked dead because none of the aliases forwards to
+            Gmail, so a Gmail search for mail sent to it returns nothing whether
+            it works or not — the test was run in the one direction it cannot
+            answer, and nobody was writing to nobody.
+
+            THE ADDRESS STILL BELONGS ON THIS PAGE, for a better reason. This is
+            where an employer lands when they CANNOT USE THE PRODUCT, so it is
+            the one place a contact address has to work — and support@ is the
+            address /terms, /privacy-policy and the chatbot already publish,
+            which makes it the one that has to be right anyway.
           */}
           <p style={{ color: '#94a3b8', fontSize: '0.85rem', marginTop: '2rem' }}>
             In a hurry? Reply to your confirmation email or contact <a href="mailto:support@thrivecareer.co.uk" style={{ color: '#16a34a' }}>support@thrivecareer.co.uk</a> with your company name and we&apos;ll prioritise.
