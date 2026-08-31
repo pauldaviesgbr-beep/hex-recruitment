@@ -269,7 +269,15 @@ export default function CandidateDetail({
       {c.certifications && c.certifications.length > 0 && (
         <div className={styles.section}>
           <div className={styles.sectionHead}><Award size={18} className={styles.sectionIcon} /><h2 className={styles.sectionTitle}>Certifications</h2></div>
-          <ul className={styles.certList}>{c.certifications.map((cert, i) => <li key={i} className={styles.certItem}><span className={styles.certCheck}>✓</span>{cert}</li>)}</ul>
+          {/* A NEUTRAL MARKER, NOT A GREEN TICK. This list is typed by the
+              candidate, and a green ✓ beside "Level 2 Food Hygiene" says we
+              checked the certificate. We have not seen one.
+
+              FOUND BY LOOKING AT THE SCREENSHOT, NOT BY THE GREP. Searching for
+              "Verified" found four surfaces and could never have found this
+              one — the claim here is made entirely by a glyph and a colour,
+              with no word to match on. */}
+          <ul className={styles.certList}>{c.certifications.map((cert, i) => <li key={i} className={styles.certItem}><span className={styles.certCheck}>•</span>{cert}</li>)}</ul>
         </div>
       )}
 

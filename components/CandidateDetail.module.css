@@ -81,7 +81,9 @@
 
 .certList { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.35rem; }
 .certItem { display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; color: #334155; }
-.certCheck { color: #16a34a; font-weight: 800; }
+/* Slate, not #16a34a green — see the note in CandidateDetail.tsx. Green plus a
+   tick is a claim that a document was checked. */
+.certCheck { color: #94a3b8; font-weight: 800; }
 
 .prefGrid { display: flex; flex-direction: column; gap: 0.5rem; }
 .prefRow { display: flex; justify-content: space-between; gap: 1rem; font-size: 0.85rem; }
