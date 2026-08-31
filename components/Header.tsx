@@ -296,6 +296,28 @@ export default function Header() {
           onTouchEnd={(e) => { e.preventDefault(); setShowProfileMenu(false); }}
         />
         <div className={styles.profileDropdown} onClick={e => e.stopPropagation()}>
+          {/* THE ONLY WAY OUT THAT DOES NOT GO SOMEWHERE. Mobile only, and it
+              is not a tidy-up: measured on production, five taps across this
+              sheet all left it open. The close-on-click-outside handler tests
+              profileMenuRef.contains(target), and this sheet is a CHILD of
+              that ref, so no tap on it has ever counted as outside — and at
+              full screen there is nothing else to tap.
+
+              What made that survivable was a BUG. The sidebar hamburger
+              painted on top of this sheet and is outside the ref, so tapping
+              it fired the outside-handler. Fixing the overlap removed the
+              only exit, which is why this button ships in the same commit. */}
+          <button
+            type="button"
+            className={styles.sheetClose}
+            onClick={() => setShowProfileMenu(false)}
+            aria-label="Close menu"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
           <div className={styles.dropdownHeader}>
             <div className={`${styles.dropdownAvatar} ${isEmployer ? styles.avatarSquare : ''}`}>
               {getProfilePhoto() ? (
@@ -606,8 +628,15 @@ export default function Header() {
     <>
       {showSidebar && <EmployerSidebar />}
       {showCandidateSidebar && <CandidateSidebar />}
+      {/* headerSheetOpen: on mobile the profile menu becomes a full-screen
+          sheet, but it is a CHILD of this header — which is position:fixed
+          with a z-index, so it is a stacking context and the sheet can never
+          out-paint anything outside it however high its own z-index goes.
+          The sidebar's hamburger is a sibling of this header at 1001, so it
+          sat on top of the sheet, over the avatar. The header's own context
+          is what has to move, and only while it is hosting the sheet. */}
       <header
-        className={`${styles.header} ${(showSidebar || showCandidateSidebar) ? styles.headerEmployer : ''}`}
+        className={`${styles.header} ${(showSidebar || showCandidateSidebar) ? styles.headerEmployer : ''} ${showProfileMenu ? styles.headerSheetOpen : ''}`}
         style={DEV_MODE ? { marginTop: '40px' } : undefined}
       >
         <div className={(showSidebar || showCandidateSidebar) ? styles.headerFull : 'container'}>

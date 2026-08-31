@@ -104,10 +104,18 @@ export default function SignupPanel({ returnTo }: { returnTo?: string | null }) 
           that device, LinkedIn asks for one, which was false for exactly the
           person it would annoy most. */}
       <p className={styles.eyebrow}>Fastest &mdash; no new password to create</p>
-      <LinkedInSignInButton role="employee" className={styles.oauth} label="Continue with LinkedIn" next={safeReturn || undefined} />
-      {/* Hidden until the provider is configured — lib/appleSignIn.ts. */}
-      <AppleSignInButton role="employee" className={styles.oauth} label="Continue with Apple" next={safeReturn || undefined} />
-      <div className={styles.oauthGap}>
+      {/* ONE STACK, ONE GAP — the same fix as LoginPanel, because this is
+          the same three buttons in the same order with the same fault. The
+          spacer used to be a margin on a div around GOOGLE ALONE; Apple was
+          inserted above it and inherited nothing, so LinkedIn and Apple sat
+          flush at 0px while Apple and Google had 10px.
+
+          Fixing one of two identical components leaves the survivor looking
+          deliberate, which is why both moved together. */}
+      <div className={styles.oauthStack}>
+        <LinkedInSignInButton role="employee" className={styles.oauth} label="Continue with LinkedIn" next={safeReturn || undefined} />
+        {/* Hidden until the provider is configured — lib/appleSignIn.ts. */}
+        <AppleSignInButton role="employee" className={styles.oauth} label="Continue with Apple" next={safeReturn || undefined} />
         <GoogleSignInButton role="employee" className={styles.oauth} label="Continue with Google" next={safeReturn || undefined} />
       </div>
 
