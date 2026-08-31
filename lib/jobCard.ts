@@ -277,6 +277,17 @@ export function cardModelFromJob(job: Job): FeedCardModel {
       ...employmentBadges.map(label => ({ label })),
       ...(job.workLocationType ? [{ label: job.workLocationType }] : []),
       ...(job.urgent ? [{ label: 'Urgent' }] : []),
+      // THE EMPLOYER'S STATED REQUIREMENT, ON THE CARD SO IT IS SEEN BEFORE THE
+      // CLICK. Shortened from the stored sentence because a badge is scanned,
+      // not read — the full "Right to work in the UK required" is on the advert
+      // itself under Eligibility.
+      //
+      // WORTH KNOWING BEFORE JUDGING IT: 231 of 251 live adverts carry this, so
+      // it lands on 92% of cards and therefore distinguishes almost nothing on
+      // the board. It earns its place as a deterrent before the click, not as a
+      // filter between cards. If it reads as noise once it is live, this is the
+      // half to drop — the advert keeps saying it either way.
+      ...((job.workAuthorization || []).length > 0 ? [{ label: 'Right to work required' }] : []),
       ...(easyApply ? [{ label: 'Easy apply', accent: true }] : []),
     ],
 

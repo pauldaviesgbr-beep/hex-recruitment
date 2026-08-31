@@ -414,6 +414,15 @@
   margin: 0;
 }
 
+/* Says who is asserting the eligibility line. Quiet on purpose — it is a
+   source note, not a second requirement. */
+.eligibilityNote {
+  margin: 0.25rem 0 0;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: #94a3b8;
+}
+
 .requirementsList li {
   position: relative;
   padding-left: 1.5rem;

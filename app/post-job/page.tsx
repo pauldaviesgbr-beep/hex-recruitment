@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { markJustPosted } from '@/lib/justPosted'
 import { trimDeep } from '@/lib/trimDeep'
 import { composeDescription } from '@/lib/composeDescription'
+import { RIGHT_TO_WORK_VALUE } from '@/lib/rightToWork'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
 import Header from '@/components/Header'
@@ -134,6 +135,12 @@ function PostJobContent() {
     employmentType: '' as '' | 'Full-time' | 'Part-time' | 'Flexible',
     contractType: '' as '' | 'Permanent' | 'Temporary' | 'Fixed-term',
     workLocationType: 'In person' as 'In person' | 'Remote' | 'Hybrid',
+    // FALSE, AND FALSE IS NOT A DEFAULT — IT IS THE ABSENCE OF A CLAIM. An
+    // unticked box writes an empty array, which renders nothing at all on the
+    // advert. Defaulting it to true would put a requirement on an employer's
+    // job that they never stated, which is the employmentType-defaults-to-
+    // Full-time fault exactly.
+    requiresRightToWork: false,
     salaryMin: '',
     salaryMax: '',
     // NOT DEFAULTED EITHER, and this one is the most dangerous of the three.
@@ -417,7 +424,9 @@ function PostJobContent() {
     brandColour: employerProfile?.brand_colour ?? null,
     responsibilities: [], requirements: [], benefits: [], skillsRequired: [],
     experienceRequired: formData.experienceRequired || '',
-    workAuthorization: [],
+    // The preview shows exactly what the advert will say. Unticked means the
+    // preview says nothing about right to work, because the advert will not.
+    workAuthorization: RIGHT_TO_WORK_VALUE(formData.requiresRightToWork),
     workLocationType: formData.workLocationType,
     tags: Array.from(formData.tags),
     urgent: formData.tags.has('Urgent hire') || formData.tags.has('Immediate start'),
@@ -572,6 +581,8 @@ function PostJobContent() {
           // row means the employer must pick one, not inherit 'Permanent'.
           contractType: (foundContract || '') as '' | 'Permanent' | 'Temporary' | 'Fixed-term',
           workLocationType: (jobToEdit.workLocationType || 'In person') as 'In person' | 'Remote' | 'Hybrid',
+          // Editing an advert must not silently drop what it already said.
+          requiresRightToWork: (jobToEdit.workAuthorization || []).length > 0,
           salaryMin: jobToEdit.salaryMin?.toString() || '',
           salaryMax: jobToEdit.salaryMax?.toString() || '',
           salaryPeriod: jobToEdit.salaryPeriod || 'hour',
@@ -1301,10 +1312,11 @@ function PostJobContent() {
         responsibilities: [],
         skillsRequired: [],
         // A right-to-work requirement is the employer's statement to make, and
-        // this form never asks. Five rows carry this sentence because the form
-        // wrote it for them. It is rendered nowhere, which is the only reason
-        // it never reached a candidate — an unasked claim sitting in the data.
-        workAuthorization: [],
+        // until now this form never asked — so it wrote an empty array rather
+        // than put an unasked claim in the data. THE FORM ASKS NOW, so the
+        // empty array is what an UNTICKED box means rather than what silence
+        // means. Absent still stays absent.
+        workAuthorization: RIGHT_TO_WORK_VALUE(formData.requiresRightToWork),
         workLocationType: formData.workLocationType,
         postedDate: new Date().toISOString().split('T')[0],
         expiresDate: formData.expiresAt || undefined,
@@ -2627,6 +2639,32 @@ function PostJobContent() {
                 <option value="Remote">Remote</option>
                 <option value="Hybrid">Hybrid</option>
               </select>
+            </div>
+
+            {/* THE EMPLOYER STATES IT, OR NOBODY DOES. This form has never
+                asked, so every advert posted through it goes out silent on
+                right to work — while 231 imported adverts have carried the
+                sentence all along and rendered it nowhere.
+
+                UNTICKED WRITES AN EMPTY ARRAY and the advert says nothing. The
+                box is never pre-ticked: only the employer knows whether the
+                role can take someone who needs sponsorship. */}
+            <div className={styles.formGroup}>
+              <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.6rem', cursor: 'pointer', padding: '0.75rem 1rem', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8 }}>
+                <input
+                  type="checkbox"
+                  checked={formData.requiresRightToWork}
+                  onChange={e => setFormData(prev => ({ ...prev, requiresRightToWork: e.target.checked }))}
+                  style={{ marginTop: '0.15rem' }}
+                />
+                <span style={{ fontSize: '0.9rem', lineHeight: 1.5 }}>
+                  <strong>Applicants must already have the right to work in the UK</strong>
+                  <br />
+                  <span style={{ color: '#64748b', fontSize: '0.82rem' }}>
+                    Shown on your advert so candidates see it before they apply. Thrive does not check anyone&rsquo;s documents &mdash; you still carry out your own right-to-work check.
+                  </span>
+                </span>
+              </label>
             </div>
 
             <div className={styles.formRow}>
