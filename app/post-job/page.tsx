@@ -1316,6 +1316,14 @@ function PostJobContent() {
         // than put an unasked claim in the data. THE FORM ASKS NOW, so the
         // empty array is what an UNTICKED box means rather than what silence
         // means. Absent still stays absent.
+        //
+        // AND A CORRECTION TO WHAT THIS COMMENT USED TO SAY: it claimed "five
+        // rows carry this sentence because the form wrote it for them". No such
+        // rows exist. Measured 31 Aug 2026 — work_authorization holds exactly
+        // ONE distinct value across all 260 rows that have it, and it is the
+        // imported Goldenkeys sentence. A comment asserting a fact about data
+        // goes stale silently, because nothing type-checks prose against a
+        // table.
         workAuthorization: RIGHT_TO_WORK_VALUE(formData.requiresRightToWork),
         workLocationType: formData.workLocationType,
         postedDate: new Date().toISOString().split('T')[0],

@@ -227,9 +227,9 @@ try {
     // KNOWN AND PRE-EXISTING, SO THE CHECK ASKS ABOUT NEW CLIPPING ONLY.
     // BrandedJobFallback_body — the no-photograph panel's text — is crushed at
     // 390 with overflowY hidden, NO line-clamp and NO max-height: 48px of
-    // content in a 4px box, and 60 in 29. Measured identically on PRODUCTION
+    // content in a 4px box, and 60 in 29. Measured identically on PRODUCTION on 31 Aug 2026,
     // before this change, so it is not the badge. It is a real fault and it is
-    // reported separately rather than fixed here; excluding it by name keeps
+    // reported separately rather than fixed here. THIS EXCLUSION IS DATED AND IS NOT PERMANENT — if that panel is ever fixed, delete the exclusion. Excluding it by name keeps
     // this assertion able to catch a NEW one instead of being a permanent red
     // nobody reads.
     const novel = phone.clipped.filter(c => !/BrandedJobFallback/.test(c.cls))
