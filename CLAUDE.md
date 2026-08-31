@@ -668,16 +668,43 @@ Standing rules for Claude Code on this project. These override default behaviour
 
       time      verifier cookie   session cookie      what actually happened
       07:57:50  ABSENT            present, 3 chunks   FAILED
-      08:11:53  PRESENT           absent              no exchange — not a sign-in
+      08:11:53  PRESENT           absent              SUCCEEDED (google)
       08:12:57  ABSENT            present, 3 chunks   FAILED
-      08:13:22  PRESENT           absent              SUCCEEDED
+      08:13:22  PRESENT           absent              SUCCEEDED (apple)
       08:13:48  ABSENT            present, 3 chunks   FAILED
 
   - **08:13:22 SUCCEEDED AND 08:13:48 FAILED, TWENTY-SIX SECONDS LATER ON THE SAME DEVICE.** The success signed the person in — so by the time they tapped the next provider they were holding a session, and that attempt failed. It is the exact signed-out/signed-in comparison somebody was about to run by hand, produced by accident.
-  - **I FIRST REPORTED TWO SUCCESSES AND THERE WAS ONE. THE CORRECTION IS THE LESSON.** I inferred "success" from the ABSENCE of an `exchange failed` line in the log — a check that passes on more states than the one it names. The state settled it: `auth.users.last_sign_in_at` moved only once, at `08:13:22.466143`, so 08:11:53 was a callback hit that carried no code and exchanged nothing. **State beats screen for whether it is CORRECT**, and a log line's absence is a screen.
-  - **`auth.sessions` DISAGREED WITH `last_sign_in_at` AND `last_sign_in_at` IS THE ONE TO TRUST HERE.** No session row exists after 07:51 — presumably the 08:13:22 session was later signed out and its row deleted — so a check written against `auth.sessions` alone would have called the one real success a failure too. Ask two tables when the answer matters.
+  - **I REPORTED TWO SUCCESSES, "CORRECTED" IT TO ONE, AND THE ORIGINAL WAS RIGHT. THE CORRECTION WAS THE ERROR.** Recorded in full because the second mistake is more instructive than the first.
+    - The first reading inferred success from the ABSENCE of an `exchange failed` line — a check that passes on more states than it names, since a request carrying no code logs nothing either. That reasoning was weak even though its answer was correct.
+    - The "correction" then used `auth.users.last_sign_in_at`, saw it had moved **once**, and concluded there was one success. **`last_sign_in_at` IS A SINGLE COLUMN THAT HOLDS ONLY THE MOST RECENT VALUE. It cannot represent two logins by the same person, so it can never count anything.** Using it as a counter is the same family as counting rows in a table that did not exist yet: the instrument was structurally incapable of the answer, and it returned a confident number anyway.
+    - **A WEAK METHOD THAT WAS RIGHT WAS REPLACED WITH A CONFIDENT METHOD THAT WAS WRONG**, which is the worst direction, and it took a third instrument to notice.
+  - **THE INSTRUMENT THAT ACTUALLY ANSWERS IT: `auth_audit_logs` LOGIN EVENTS COME IN PAIRS.** A completed sign-in emits **two** `login` events seconds apart, and they are distinguishable by which trait is populated and by the user agent:
+
+        traits.provider      set, user_agent = the real device   <- the provider issued a code
+        traits.provider_type set, user_agent = "node"            <- OUR server exchanged it
+
+    **A PAIR IS A SUCCESS. AN UNPAIRED DEVICE EVENT IS A FAILURE.** Applied to the morning, it settles every one of them without touching the Vercel log:
+
+        07:57:50  apple           device only   FAILED
+        08:11:52  google          device + node SUCCEEDED
+        08:12:57  apple           device only   FAILED
+        08:13:22  apple           device + node SUCCEEDED
+        08:13:48  linkedin_oidc   device only   FAILED
+        08:53:00  apple           device + node SUCCEEDED   (the first native-path tap)
+
+  - **THIS IS THE DURABLE REGISTER THE DIAGNOSTIC WAS BEING BUILT TO PROVIDE, AND IT ALREADY EXISTS.** It carries the provider, the outcome and the **user agent**, it is retained far longer than Vercel's sub-hour window, and it needs nothing built. Before proposing any new table for this, ask what `auth_audit_logs` already answers.
   - **THE VERIFIER AND THE SESSION ARE NEVER BOTH PRESENT, IN EITHER DIRECTION, ACROSS ALL FIVE REQUESTS.** The diagnostic runs before any exchange, so a sign-in legitimately has no session yet. Every failure already had one.
   - **AND `oauth_intended_role` TRAVELS WITH THE VERIFIER, WHICH IS THE STRUCTURAL POINT.** The sign-in buttons write it in the same click handler that starts the flow (`path=/; max-age=600; SameSite=Lax`). On two of the three failures **both it and the verifier are missing together** — so this looks less like one cookie being deleted and more like a request arriving from a jar that never saw the flow start.
+
+- **THE CALLBACK NEVER LANDS ON THE LOGIN PAGE ON SUCCESS — IT LANDS THERE ON FAILURE, WHICH IS THE OPPOSITE WAY ROUND FROM HOW IT LOOKS.** Checked 31 Aug 2026 because the login page is visibly involved and the obvious story is that a success routes through it. It does not. `app/auth/callback/employee/route.ts` builds `redirectTo = ${origin}${safeNext || '/dashboard'}` and 307s straight there. **Every** redirect to `/login/employee?error=…` is a failure branch: `error`, `no-code`, `exchange-failed`, `wrong-role`. And `/login/employee` is itself only a stub that `redirect()`s to `/login`.
+  - So a login page seen immediately after a **successful** app sign-in is the page the webview was **already on** while the system-browser sheet was up, not a destination the route chose. A login page seen after a **failed** one is the route putting you there.
+  - **THE DANGEROUS READING IS THAT A SUCCESS ROUTES THROUGH LOGIN, BECAUSE IT MAKES A TIDY STORY THAT THE CODE DOES NOT SUPPORT.** Read the redirect targets, not the screen.
+
+- **NOTHING ANYWHERE STOPS AN OAUTH FLOW BEING STARTED WHILE A SESSION ALREADY EXISTS, AND THE ONLY THING THAT MOVES A SIGNED-IN PERSON OFF AN AUTH PAGE IS CLIENT-SIDE AND ASYNC.** Both halves measured 31 Aug 2026.
+  - **The buttons have no guard at all.** `getSession`, `getUser` and `session` appear **nowhere** in `AppleSignInButton`, `GoogleSignInButton` or `LinkedInSignInButton`. Tapping one while signed in starts a fresh PKCE flow exactly as if you were not.
+  - **`SessionGuard` bounces a signed-in visitor off auth pages in a `useEffect`, after hydration, after `await supabase.auth.getSession()`** — then `router.push`. There is no server redirect. So the login page renders, is interactive, and its provider buttons are live for the whole of that window.
+  - **THAT WINDOW IS REACHABLE ON THE WEB WITHOUT ANY APP INVOLVED** — typing the URL, a bookmark, the back button, or an old link all land a signed-in browser on `/login`. So any explanation that needs the iOS shell cannot be the whole story, and **63 of the 78 register rows are Google**, which is overwhelmingly a web provider.
+  - **What a fix would be, not built:** decide it on the server so there is no interactive window at all, and refuse at the button as a second gate — a provider button that finds a session should route to the dashboard rather than start a flow. Two independent gates, because the client one alone is the thing that is already too slow.
   - **SO THE CANDIDATE IS: STARTING AN OAUTH FLOW WHILE ALREADY HOLDING A SESSION LOSES THE VERIFIER.** That is a correlation across five events with a clean split, not a proven mechanism, and it must not be written down as more than that. It does fit the shape of the whole register: intermittent, provider-agnostic, and commonest for someone who already has an account.
   - **`secFetchSite` IS NOT THE DISCRIMINATOR** — one success was `same-origin` and one was `cross-site`, and every failure was `cross-site`. Nor is `hex_session_started` / `oauth_intended_role`: the 08:13:48 failure carried both and still failed.
   - **ONE MECHANISM WAS PROPOSED, CHECKED IN THE LIBRARY, AND IS FALSE — recorded so nobody re-derives it.** The tempting story is that `@supabase/ssr`'s chunk cleanup deletes the verifier as a stale chunk, because `sb-<ref>-auth-token-code-verifier` starts with `sb-<ref>-auth-token`. It does not: `isChunkLike` tests `CHUNK_LIKE_REGEX = /^(.*)[.](0|[1-9][0-9]*)$/` and requires the captured base to **equal** the key exactly. The verifier is not chunk-like against the auth-token key and is never removed by that path. **A prefix theory that reads perfectly and is not what the regex does.**
