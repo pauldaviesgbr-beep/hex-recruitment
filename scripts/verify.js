@@ -550,6 +550,23 @@ const ALL = [
   // exactly run #4's state — one named failure, exit 1, green on restore.
   { name: 'iosassets:prove', cmd: npm, args: ['run', 'iosassets:prove'] },
 
+  // signedimage:prove EXISTS BECAUSE THE GOOD ANSWER WAS ALREADY IN THE
+  // CODEBASE AND NOBODY APPLIED IT OUTWARD. SignedImage resolves its URL in a
+  // useEffect and renders `fallback` while it does — or NOTHING when no
+  // fallback is passed. Four of seventeen call sites passed one; the other
+  // thirteen showed an empty box while signing, and an empty box forever if
+  // the image failed.
+  //
+  // IT COUNTS ELEMENTS RATHER THAN LINES, which is the whole reason it is a
+  // script and not a habit: `grep -n "<SignedImage"` counts LINES and cannot
+  // see a multi-line element, and it under-reported this population three
+  // times running before anything was written down.
+  //
+  // Filesystem only, so it runs on every machine and can never be a red
+  // nobody expects. Watched failing on purpose by deleting one fallback:
+  // one named failure with its file and line, exit 1, green on restore.
+  { name: 'signedimage:prove', cmd: npm, args: ['run', 'signedimage:prove'] },
+
   // weboauth:prove IS THE CHECK THAT MATTERS MOST ON THE NATIVE WORK, and it
   // is here rather than outside verify because it needs nothing but the
   // filesystem and one imported function — no device, no deployment.

@@ -199,11 +199,12 @@ export default function TalentPoolPage() {
               <div key={c.applicationId} className={styles.card}>
                 <div className={styles.cardLeft}>
                   <div className={styles.avatar}>
-                    {c.candidatePhoto ? (
-                      <SignedImage src={c.candidatePhoto} alt={c.candidateName} className={styles.avatarImg} />
-                    ) : (
-                      <span className={styles.avatarInitial}>{c.candidateName.split(' ').map(n => n[0]).join('').slice(0, 2)}</span>
-                    )}
+                    <SignedImage
+                      src={c.candidatePhoto}
+                      alt={c.candidateName}
+                      className={styles.avatarImg}
+                      fallback={<span className={styles.avatarInitial}>{c.candidateName.split(' ').map(n => n[0]).join('').slice(0, 2)}</span>}
+                    />
                   </div>
                   <div className={styles.cardInfo}>
                     <div className={styles.cardName}>{c.candidateName}</div>

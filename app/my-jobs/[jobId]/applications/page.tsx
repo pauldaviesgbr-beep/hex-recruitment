@@ -864,17 +864,17 @@ export default function JobApplicationsPage() {
                   >
                     {/* Candidate Photo */}
                     <div className={styles.candidatePhoto}>
-                      {application.candidatePhoto ? (
-                        <SignedImage
-                          src={application.candidatePhoto}
-                          alt={application.candidateName || ''}
-                          className={styles.photoImage}
-                        />
-                      ) : (
-                        <div className={styles.photoPlaceholder}>
-                          {getInitials(application.candidateName)}
-                        </div>
-                      )}
+                      {/* Fallback covers no-photo, still-signing and failed. */}
+                      <SignedImage
+                        src={application.candidatePhoto}
+                        alt={application.candidateName || ''}
+                        className={styles.photoImage}
+                        fallback={
+                          <div className={styles.photoPlaceholder}>
+                            {getInitials(application.candidateName)}
+                          </div>
+                        }
+                      />
                     </div>
 
                     {/* Candidate Info — single line: name · position · location · applied */}
@@ -1054,10 +1054,16 @@ export default function JobApplicationsPage() {
                           <div className={styles.signatureDisplay}>
                             <p className={styles.signatureLabel}>Your Signature:</p>
                             <div className={styles.signatureBox}>
+                              {/* The CANDIDATE's signature, eighteen lines below
+                                  on this same panel, has always fallen back to
+                                  the typed name. The EMPLOYER's fell back to
+                                  nothing. Same page, same offer, two answers —
+                                  the right one was already here. */}
                               <SignedImage
                                 src={application.offer.employerSignatureImageUrl}
                                 alt={`Signature of ${application.offer.employerSignatureName || 'employer'}`}
                                 style={{ maxHeight: 70, maxWidth: '100%', display: 'block' }}
+                                fallback={<span className={styles.signatureText}>{application.offer.employerSignatureName || 'Employer'}</span>}
                               />
                             </div>
                             {application.offer.employerSignatureTimestamp && (

@@ -473,13 +473,19 @@ function JobAnalyticsContent() {
                     {view.viewer_id && viewerProfiles[view.viewer_id] ? (
                       <div className={styles.viewerProfile}>
                         <div className={styles.viewerAvatar}>
-                          {viewerProfiles[view.viewer_id].profile_picture_url ? (
-                            <SignedImage src={viewerProfiles[view.viewer_id].profile_picture_url} alt="" className={styles.viewerAvatarImg} />
-                          ) : (
-                            <span className={styles.viewerAvatarInitial}>
-                              {viewerProfiles[view.viewer_id].full_name?.charAt(0) || '?'}
-                            </span>
-                          )}
+                          {/* SignedImage renders the fallback for all three of
+                              no-photo, still-signing and failed-to-load. The
+                              ternary only covered the first. */}
+                          <SignedImage
+                            src={viewerProfiles[view.viewer_id].profile_picture_url}
+                            alt=""
+                            className={styles.viewerAvatarImg}
+                            fallback={
+                              <span className={styles.viewerAvatarInitial}>
+                                {viewerProfiles[view.viewer_id].full_name?.charAt(0) || '?'}
+                              </span>
+                            }
+                          />
                         </div>
                         <div className={styles.viewerInfo}>
                           <Link

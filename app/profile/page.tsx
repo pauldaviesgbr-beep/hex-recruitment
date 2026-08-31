@@ -284,11 +284,14 @@ export default function ProfilePage() {
         <div className={styles.profileCard}>
           <div className={styles.profileHeader}>
             <div className={styles.avatar}>
-              {profileData?.photoPreview ? (
-                <SignedImage src={profileData.photoPreview} alt={fullName} className={styles.avatarImg} />
-              ) : (
-                <span className={styles.avatarInitials}>{initials || '?'}</span>
-              )}
+              {/* The candidate's own profile. A blank circle here is the first
+                  thing they see after uploading a photo we told them to add. */}
+              <SignedImage
+                src={profileData?.photoPreview}
+                alt={fullName}
+                className={styles.avatarImg}
+                fallback={<span className={styles.avatarInitials}>{initials || '?'}</span>}
+              />
             </div>
             <div className={styles.profileInfo}>
               <h1 className={styles.profileName}>{fullName || 'Your Name'}</h1>
