@@ -598,13 +598,17 @@ export default function PipelinePage() {
                             >
                               <div className={styles.cardHeader}>
                                 <div className={styles.cardAvatar}>
-                                  {card.candidatePhoto ? (
-                                    <SignedImage src={card.candidatePhoto} alt={card.candidateName} className={styles.cardAvatarImg} />
-                                  ) : (
-                                    <span className={styles.cardAvatarInitial}>
-                                      {card.candidateName.split(' ').map(n => n[0]).join('').slice(0, 2)}
-                                    </span>
-                                  )}
+                                  {/* Fallback covers no-photo, still-signing and failed. */}
+                                  <SignedImage
+                                    src={card.candidatePhoto}
+                                    alt={card.candidateName}
+                                    className={styles.cardAvatarImg}
+                                    fallback={
+                                      <span className={styles.cardAvatarInitial}>
+                                        {card.candidateName.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                                      </span>
+                                    }
+                                  />
                                 </div>
                                 <div className={styles.cardInfo}>
                                   <span className={styles.cardName}>{card.candidateName}</span>

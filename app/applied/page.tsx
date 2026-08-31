@@ -195,11 +195,18 @@ export default function AppliedPage() {
               <div key={a.id} className={styles.row}>
                 <div className={styles.colCandidate}>
                   <div className={styles.avatar}>
-                    {a.candidatePhoto ? (
-                      <SignedImage src={a.candidatePhoto} alt={a.candidateName} className={styles.avatarImg} />
-                    ) : (
-                      <span className={styles.avatarInitial}>{a.candidateName.split(' ').map(n => n[0]).join('').slice(0, 2)}</span>
-                    )}
+                    {/* THE TERNARY IS GONE BECAUSE SignedImage ALREADY HANDLES
+                        ALL THREE STATES. It renders `fallback` when there is no
+                        src, while the signed URL is still being fetched, and
+                        when the image fails to load. The outer ternary only
+                        covered the first of those, so a photo that was still
+                        signing — or one that 404'd — rendered NOTHING. */}
+                    <SignedImage
+                      src={a.candidatePhoto}
+                      alt={a.candidateName}
+                      className={styles.avatarImg}
+                      fallback={<span className={styles.avatarInitial}>{a.candidateName.split(' ').map(n => n[0]).join('').slice(0, 2)}</span>}
+                    />
                   </div>
                   <div>
                     <Link href={`/candidates/${a.candidateId}`} className={styles.candidateName}>{a.candidateName}</Link>

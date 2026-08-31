@@ -1000,10 +1000,20 @@ export default function MyJobsPage() {
                                 <p style={{ margin: '0 0 0.35rem', fontSize: '0.72rem', color: '#15803d', fontWeight: 600, letterSpacing: '0.02em', textTransform: 'uppercase' }}>
                                   ✓ Signed by {application.offer.employerSignatureName || 'Employer'}
                                 </p>
+                                {/* NOT INITIALS — A SIGNATURE IS NOT AN AVATAR.
+                                    The right fallback already existed one file
+                                    away, on the candidate's own signature in
+                                    /my-jobs: show the name the person typed
+                                    when they signed. Without it, an image that
+                                    fails or is still signing leaves an offer
+                                    letter showing "Signed by" and then nothing
+                                    at all, which is the worst thing this
+                                    particular panel could render. */}
                                 <SignedImage
                                   src={application.offer.employerSignatureImageUrl}
                                   alt={`Signature of ${application.offer.employerSignatureName || 'Employer'}`}
                                   style={{ maxHeight: 56, maxWidth: '100%', display: 'block' }}
+                                  fallback={<span style={{ fontFamily: "var(--font-cursive), 'Dancing Script', cursive", fontSize: '1.5rem', color: '#1a1a1a' }}>{application.offer.employerSignatureName || 'Employer'}</span>}
                                 />
                               </div>
                             )}
@@ -1058,6 +1068,7 @@ export default function MyJobsPage() {
                                     src={application.offer.signatureImageUrl}
                                     alt={`Signature of ${application.offer.signatureName || 'candidate'}`}
                                     style={{ maxHeight: 64, maxWidth: '100%', display: 'block' }}
+                                    fallback={<span style={{ fontFamily: "var(--font-cursive), 'Dancing Script', cursive", fontSize: '1.5rem', color: '#1a1a1a' }}>{application.offer.signatureName || candidateName}</span>}
                                   />
                                 </div>
                               )}

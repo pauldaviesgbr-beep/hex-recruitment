@@ -635,11 +635,13 @@ export default function InterviewsPage() {
                   <div key={interview.interviewId} className={`${styles.interviewRow} ${styles.pastRow}`}>
                     <div className={styles.rowMain}>
                       <span className={styles.rowAvatar} aria-hidden="true">
-                        {interview.candidatePhoto ? (
-                          <SignedImage src={interview.candidatePhoto} alt="" className={styles.cardPhotoImg} />
-                        ) : (
-                          <span className={styles.cardPhotoPlaceholder}>{getInitials(interview.candidateName)}</span>
-                        )}
+                        {/* Fallback covers no-photo, still-signing and failed. */}
+                        <SignedImage
+                          src={interview.candidatePhoto}
+                          alt=""
+                          className={styles.cardPhotoImg}
+                          fallback={<span className={styles.cardPhotoPlaceholder}>{getInitials(interview.candidateName)}</span>}
+                        />
                       </span>
                       <RowInlineFields
                         sepClassName={styles.fieldSep}

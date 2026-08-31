@@ -566,15 +566,14 @@ export default function MessagesPage() {
                   onClick={() => handleSelectConversation(conversation)}
                 >
                   <div className={styles.avatar}>
-                    {conversation.participantProfilePicture ? (
-                      <SignedImage
-                        src={conversation.participantProfilePicture}
-                        alt={conversation.participantName}
-                        className={styles.avatarImg}
-                      />
-                    ) : (
-                      getInitials(conversation.participantName)
-                    )}
+                    {/* Fallback covers no-photo, still-signing and failed —
+                        the ternary only covered no-photo. */}
+                    <SignedImage
+                      src={conversation.participantProfilePicture}
+                      alt={conversation.participantName}
+                      className={styles.avatarImg}
+                      fallback={<>{getInitials(conversation.participantName)}</>}
+                    />
                     {conversation.isOnline && <span className={styles.onlineIndicator} />}
                   </div>
                   <div className={styles.conversationInfo}>
@@ -616,15 +615,12 @@ export default function MessagesPage() {
                   ←
                 </button>
                 <div className={styles.chatHeaderAvatar}>
-                  {selectedConversation.participantProfilePicture ? (
-                    <SignedImage
-                      src={selectedConversation.participantProfilePicture}
-                      alt={selectedConversation.participantName}
-                      className={styles.avatarImg}
-                    />
-                  ) : (
-                    getInitials(selectedConversation.participantName)
-                  )}
+                  <SignedImage
+                    src={selectedConversation.participantProfilePicture}
+                    alt={selectedConversation.participantName}
+                    className={styles.avatarImg}
+                    fallback={<>{getInitials(selectedConversation.participantName)}</>}
+                  />
                   {selectedConversation.isOnline && (
                     <span className={styles.onlineIndicator} />
                   )}

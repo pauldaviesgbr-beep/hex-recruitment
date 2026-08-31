@@ -86,11 +86,16 @@ export default function CandidateDetail({
       {/* ── Header ───────────────────────────────────── */}
       <div className={styles.header}>
         <div className={styles.avatar}>
-          {c.profilePictureUrl ? (
-            <SignedImage src={c.profilePictureUrl} alt={c.fullName || ''} />
-          ) : (
-            <span className={styles.avatarInitials}>{initialsOf(c.fullName)}</span>
-          )}
+          {/* THE EMPTY BOX WAS HERE. SignedImage resolves its signed URL in a
+              useEffect, so between mount and the URL arriving it rendered
+              NOTHING — the ternary above only asked whether a photo existed at
+              all. A blank circle where a face should be reads as broken; the
+              initials read as intentional and are already the right shape. */}
+          <SignedImage
+            src={c.profilePictureUrl}
+            alt={c.fullName || ''}
+            fallback={<span className={styles.avatarInitials}>{initialsOf(c.fullName)}</span>}
+          />
         </div>
         <div className={styles.headerInfo}>
           <h1 className={styles.name}>{c.fullName}</h1>
