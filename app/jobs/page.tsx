@@ -1331,6 +1331,28 @@ function JobsPageContent() {
                 )
               })()}
 
+              {/* ELIGIBILITY — AND THE REASON THIS EXISTS TWICE IS THE POINT.
+                  /jobs?id= is a SECOND COPY of the advert: its own benefits,
+                  description, requirements and skills blocks, its own Apply Now
+                  button and its own ApplyNowModal. So a candidate can read a
+                  job and apply to it WITHOUT EVER OPENING /job/[id].
+
+                  The first version of this change put the section only on
+                  /job/[id], which would have left everyone who applies from the
+                  board never seeing the line at all — the exact population the
+                  requirement is for. Found by asking whether applying can start
+                  from the board, not by looking at this file.
+
+                  Absent stays absent here too: nothing renders for the 20
+                  adverts with an empty array. */}
+              {selectedJob.workAuthorization && selectedJob.workAuthorization.length > 0 && (
+                <div className={styles.detailSection}>
+                  <h2 className={styles.detailSectionTitle}>Eligibility</h2>
+                  <ul className={styles.detailList}>{selectedJob.workAuthorization.map((item, i) => <li key={i}>{item}</li>)}</ul>
+                  <p className={styles.detailEligibilityNote}>Stated by the employer on this advert.</p>
+                </div>
+              )}
+
               {selectedJob.requirements && selectedJob.requirements.length > 0 && (
                 <div className={styles.detailSection}>
                   <h2 className={styles.detailSectionTitle}>Requirements</h2>

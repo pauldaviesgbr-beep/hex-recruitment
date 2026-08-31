@@ -277,6 +277,24 @@ export function cardModelFromJob(job: Job): FeedCardModel {
       ...employmentBadges.map(label => ({ label })),
       ...(job.workLocationType ? [{ label: job.workLocationType }] : []),
       ...(job.urgent ? [{ label: 'Urgent' }] : []),
+      // A "Right to work required" BADGE WAS BUILT HERE, MEASURED, AND DROPPED
+      // ON PURPOSE. Recorded so nobody finds an empty slot and rebuilds it.
+      //
+      // It rendered on 231 of 251 live adverts — 92% of cards — so it
+      // distinguished almost nothing in a badge row that already carries four
+      // real discriminators, and it pushed the row to a second line on every
+      // card.
+      //
+      // WHAT SETTLED IT WAS THE APPLY PATH, NOT THE RATIO. THE CARD HAS NO
+      // APPLY CONTROL — only Save. Clicking a card pushes /jobs?id=, which is
+      // the board's own copy of the advert and carries its own Apply Now
+      // button. So every route to applying passes through an advert view, and
+      // BOTH of them now render the Eligibility section: /job/[id] and the
+      // board detail. The full sentence is always read before the Apply
+      // button, which is strictly better than four scanned words on a card.
+      //
+      // IT WOULD EARN ITS PLACE AGAIN the day applying becomes possible from
+      // the card itself — that is the condition to re-check, not the ratio.
       ...(easyApply ? [{ label: 'Easy apply', accent: true }] : []),
     ],
 

@@ -471,6 +471,40 @@ export default function JobDetailPage() {
               </div>
             )}
 
+            {/* ELIGIBILITY — THE EMPLOYER'S STATED REQUIREMENT.
+                jobs.work_authorization has carried "Right to work in the UK
+                required" on 231 live adverts since they were imported, and
+                until now it was rendered NOWHERE. The recruiter who asked us to
+                "state it on each job" had already stated it 231 times; the gap
+                was never the data.
+
+                ITS OWN SECTION RATHER THAN A BULLET IN Requirements. All 231
+                rows that carry it also have a requirements list, so folding it
+                in would bury it at the end of eight other bullets — which is
+                the "buried rather than absent" outcome this is meant to fix.
+
+                THE ATTRIBUTION LINE IS NOT DECORATION. Same reason the
+                candidate badges stopped saying "Verified": this must read as
+                the employer's requirement, never as something Thrive has
+                checked about anybody.
+
+                NOTHING RENDERS FOR THE 20 ADVERTS WITH AN EMPTY ARRAY. Absent
+                stays absent — a default here would be a claim only the
+                employer can make. */}
+            {job.workAuthorization && job.workAuthorization.length > 0 && (
+              <div className={styles.section}>
+                <h2 className={styles.sectionTitle}>Eligibility</h2>
+                <ul className={styles.requirementsList}>
+                  {job.workAuthorization.map((item, i) => (
+                    <li key={i}>{item}</li>
+                  ))}
+                </ul>
+                <p className={styles.eligibilityNote}>
+                  Stated by the employer on this advert.
+                </p>
+              </div>
+            )}
+
             {/* Requirements */}
             {job.requirements && job.requirements.length > 0 && (
               <div className={styles.section}>
