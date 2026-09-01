@@ -869,6 +869,40 @@ wrong reason is worse than no check, because it ends the search.
     anything in `scripts/`, ask of every writing script whether its target is
     an ARGUMENT or a LITERAL. 26 of 120 files can write; 14 can delete.
 
+- **THE SWEEP FOUND TWO MORE, AND THE INTERESTING PART IS THAT I DESCRIBED THEM
+  WRONG FIRST.** `scripts/run-migrations.js` and `scripts/insert-employer-profile.js`
+  both took no argument and both hardcoded `pauldavies.gbr@gmail.com` — **Paul's
+  real candidate login** — inserting an `employer_profiles` row for it. That is
+  not cosmetic: **owning an `employer_profiles` row is exactly what blocks
+  self-deletion and switches `/settings/privacy` to the employer branch**, so a
+  stray run would have silently taken away his own ability to delete his account.
+  Nothing referenced either file. **BOTH DELETED 1 Sept 2026.**
+  - **I CALLED THEM "a third undocumented path that writes schema, alongside
+    `apply_migration` and the `db push` we forbid". THAT WAS WRONG, and it was
+    repeated back to me before I checked it.** Dating the files settles it:
+    `insert-employer-profile.js` and all three `.sql` files it reads arrived in
+    `cce9f68` on **1 March 2026, the first commit**; `run-migrations.js` arrived
+    28 March. **The ledger's first row is 7 April.** They are not a rival path
+    competing with `apply_migration` — they are **fossils of how schema was
+    applied before the ledger existed**, and the schema half is already dead
+    because all three `.sql` files have since been deleted from the repo.
+  - **AND THE LEDGER CANNOT TELL YOU WHETHER THEY EVER RAN.** Both tables
+    `run-migrations.js` would create (`platform_settings`, `saved_candidates`)
+    exist, and **no ledger row creates either** — which looks damning until you
+    notice the ledger begins 7 April and the repository begins 1 March. **The
+    entire original schema was created in a five-week window the ledger never
+    recorded**, so their absence is absence of a RETAINED RECORD, not of the
+    event. Same shape as `email_log` reading zero because the table did not
+    exist yet. The only durable trace either script could leave is the
+    `employer_profiles` row, and there is none — meaning *never ran* and *ran,
+    row later removed* are *now indistinguishable*.
+  - **THE GENERAL LESSON IS ABOUT THE DESCRIPTION, NOT THE SCRIPTS.** "A live
+    third path writing schema" is alarming and actionable; "March fossils whose
+    inputs are gone" is neither. I reached for the first because I had found a
+    real hazard ten minutes earlier and was still reading everything in that
+    light. **A correct finding next to an overstated one makes the overstatement
+    credible** — check the dates before you name a thing a live path.
+
 - THE POSITIVE CONTROL MUST NOT COST MORE THAN THE THING IT PROVES.
   The obvious way to watch the employer gate fail is to remove it and
   redeploy — which means publishing a build where employers CAN erase
