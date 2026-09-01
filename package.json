@@ -61,6 +61,7 @@
     "erasureemployerlive:prove": "npx tsx --conditions=react-server scripts/prove-erasure-employer-live.ts",
     "erasurelive:prove": "npx tsx --conditions=react-server scripts/prove-erasure-live.ts",
     "tombstone:create": "npx tsx --conditions=react-server scripts/create-tombstone-owner.ts",
+    "applereviewemployer:create": "npx tsx --conditions=react-server scripts/create-apple-review-employer.ts",
     "tombstonelive:prove": "npx tsx --conditions=react-server scripts/prove-erasure-tombstone-live.ts",
     "deletegate:prove": "npx tsx --conditions=react-server scripts/prove-employer-delete-gate.ts",
     "navheight:prove": "node scripts/prove-mobile-header-clearance.mjs",
