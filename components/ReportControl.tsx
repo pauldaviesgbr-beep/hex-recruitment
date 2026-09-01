@@ -29,7 +29,19 @@ import styles from './ReportControl.module.css'
 // may file a report, which is the failure this codebase spent 1 Sept 2026
 // cataloguing.
 
-export type ReportTarget = 'job' | 'message'
+// THE THREE SURFACES THAT CARRY CONTENT A USER CAN MEET.
+//
+// `comment` was missing from the first pass because the build was scoped to
+// what could be FILMED, and a shift comment could not be — there has never been
+// one. That was the wrong test: our own age-rating declaration to Apple lists
+// shift comments as user-generated content, so omitting it would have had us
+// declaring user content in one document and denying it in another.
+//
+// KEEP THIS IN STEP WITH THE DATABASE. content_reports.target_type has a CHECK
+// constraint listing the same three values; a fourth added here without the
+// migration is refused at insert time, which is the loud direction — but it
+// would be refused only once somebody tapped it.
+export type ReportTarget = 'job' | 'message' | 'comment'
 
 // THE REASONS ARE FIXED, NOT FREE TEXT. A free-text-only report is unreadable
 // in aggregate and gives the person no idea what we act on. The detail box is
@@ -50,11 +62,19 @@ const REASONS: Record<ReportTarget, string[]> = {
     'It asks for money or personal documents',
     'Something else',
   ],
+  comment: [
+    'It is abusive or threatening',
+    'It is offensive or discriminatory',
+    'It is spam or an advert',
+    'It shares someone’s personal details',
+    'Something else',
+  ],
 }
 
 const LABEL: Record<ReportTarget, string> = {
   job: 'Report this job',
   message: 'Report this conversation',
+  comment: 'Report',
 }
 
 export default function ReportControl({

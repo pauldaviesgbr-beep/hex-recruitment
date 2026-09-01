@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Header from '@/components/Header'
 import { ThumbsUp } from 'lucide-react'
+import ReportControl from '@/components/ReportControl'
 import { supabase } from '@/lib/supabase'
 import { getCurrentEmployerOwnerId, getEmployerCapabilities } from '@/lib/employer'
 import { roleMeta, formatWhen, formatRate, timeAgo, initialsOf, type TempPost, type TempComment } from '@/lib/tempWork'
@@ -30,9 +31,19 @@ export default function ManageTempWorkPage() {
   const [replyTo, setReplyTo] = useState<string | null>(null)
   const [replyDraft, setReplyDraft] = useState('')
 
+  // WHO IS LOOKING, not who owns the post — and they are different people on a
+  // team account. The report control is hidden on your OWN comment, and the
+  // feed decides that from `c.user_id === userId`. Deciding it here from
+  // `author_role` or from the owner id instead would be a second definition of
+  // "mine", which is the failure this codebase spent 1 Sept cataloguing: two
+  // versions of one fact, and the wrong one gets read. Same column, same
+  // comparison, both renderers.
+  const [me, setMe] = useState<string | null>(null)
+
   const load = useCallback(async () => {
     const ownerId = (await getCurrentEmployerOwnerId(supabase))
     const { data: { session } } = await supabase.auth.getSession()
+    setMe(session?.user?.id ?? null)
     const eid = ownerId ?? session?.user?.id
     if (!eid) return
     const { data: postRows } = await supabase
@@ -324,6 +335,20 @@ export default function ManageTempWorkPage() {
                             <button disabled={busy === c.id} onClick={() => deleteComment(c)} style={{ background: 'none', border: 'none', padding: 0, fontSize: '0.74rem', fontWeight: 600, color: '#b91c1c', cursor: 'pointer' }}>
                               Delete
                             </button>
+                            {/* HIDE AND DELETE ARE NOT A REPORT. They are the
+                                owner tidying their own post; nobody is told, and
+                                nothing is recorded for us to look at. An employer
+                                who receives something abusive needs to be able to
+                                REPORT it as well as remove it — and this is the
+                                second of the two comment renderers, which is why
+                                reportcontrol:prove asserts the class rather than
+                                naming files.
+
+                                Not on your own comment: filing a report against
+                                yourself files a real row somebody has to read. */}
+                            {c.user_id !== me && (
+                              <ReportControl targetType="comment" targetId={c.id} />
+                            )}
                           </div>
                         </div>
                       </div>
