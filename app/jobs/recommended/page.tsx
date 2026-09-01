@@ -601,6 +601,19 @@ export default function RecommendedJobsPage() {
                         </div>
                       )}
 
+                      {/* SAME WORDING AND SAME CONDITION AS /job/[id]. Do not vary it. */}
+                      {selectedJob.workAuthorization && selectedJob.workAuthorization.length > 0 && (
+                        <div className={styles.detailSection}>
+                          <h2 className={styles.detailSectionTitle}>Eligibility</h2>
+                          <ul className={styles.detailList}>
+                            {selectedJob.workAuthorization.map((item, i) => (
+                              <li key={i}>{item}</li>
+                            ))}
+                          </ul>
+                          <p className={styles.detailEligibilityNote}>Stated by the employer on this advert.</p>
+                        </div>
+                      )}
+
                       {/* Skills */}
                       {selectedJob.skillsRequired && selectedJob.skillsRequired.length > 0 && (
                         <div className={styles.detailSection}>

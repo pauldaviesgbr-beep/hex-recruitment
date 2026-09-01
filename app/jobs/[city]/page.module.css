@@ -421,3 +421,11 @@
     padding: 0.75rem 1rem 2rem;
   }
 }
+
+/* The right-to-work line under Eligibility. Same style as /job/[id]. */
+.detailEligibilityNote {
+  margin: 0.25rem 0 0;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: #94a3b8;
+}

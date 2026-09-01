@@ -173,6 +173,19 @@ export default function SectorJobsPage() {
                       </ul>
                     </div>
                   )}
+                  {/* SAME WORDING AND SAME CONDITION AS /job/[id]. Do not vary it:
+                      this is the FIFTH place the block had to be added, and a
+                      sixth variant would be a claim about the law worded a
+                      different way on a different page. */}
+                  {selectedJob.workAuthorization && selectedJob.workAuthorization.length > 0 && (
+                    <div className={styles.detailSection}>
+                      <h3 className={styles.detailSectionTitle}>Eligibility</h3>
+                      <ul className={styles.detailList}>
+                        {selectedJob.workAuthorization.map((item, i) => <li key={i}>{item}</li>)}
+                      </ul>
+                      <p className={styles.detailEligibilityNote}>Stated by the employer on this advert.</p>
+                    </div>
+                  )}
                   {selectedJob.benefits?.length > 0 && (
                     <div className={styles.detailSection}>
                       <h3 className={styles.detailSectionTitle}>Benefits</h3>
