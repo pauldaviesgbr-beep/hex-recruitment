@@ -812,6 +812,10 @@ Standing rules for Claude Code on this project. These override default behaviour
 
 - **A rule broken five times needs a mechanism, not another line.** "Read the deployment record, don't guess the preview hostname" was written down after the second failure and broken three more times — a DNS error and two 404s, each briefly reading as "the route is broken". `npm run preview-url` now prints the real URLs from the record. Same argument as `migrations:check` and the pre-push hook: discipline is what already failed, so make the correct move the easy one.
 
+- **A CSS MODULE CLASS THAT DOES NOT EXIST RENDERS UNSTYLED TEXT AND THROWS NOTHING — SO THE JSX PASSES EVERY CHECK WHILE THE PAGE LOOKS WRONG.** `styles.detailEligibilityNote` on a stylesheet that has no such rule compiles, type-checks, builds, and evaluates to `undefined`; React drops the attribute and prints a bare line. On 1 Sept 2026 the right-to-work block was added to five renderers and **four of the five stylesheets had no class for it** — a grep for `workAuthorization`, for `Eligibility`, or for the whole JSX block would have passed on all four. Sixth instance in one day of a check being true of more than the thing it tests.
+  - **THE ASSERTION IS THE AGREEMENT, NOT EITHER SIDE.** `styles.foo` exists in the TSX and `.foo` exists in the module: neither alone is the claim. Same shape as `--sticky-offset: 40px` against a cell rendering at 52, and as `width: 112px` rendering at 145 — a declared name and a rendered rule are different objects and only a comparison sees it.
+  - **AND IT IS WORSE THAN A MISSING STYLE, BECAUSE THE CONTENT IS RIGHT.** Nothing is absent, nothing errors, the words are correct — the line simply sits in the wrong typeface at the wrong size in the wrong colour, which reads as a rendering bug rather than a missing file. Only a screenshot or the stylesheet finds it.
+
 ## When two versions of a thing exist, the wrong one gets read
 
 The pattern this file has carried longest is **a check that is true of more than the thing it tests**. This is the OTHER one, and on 1 Sept 2026 it produced three faults in a single day, which makes it the more common failure now.
