@@ -52,10 +52,15 @@
 //                                                         destroys its own audit trail
 //
 // THE NINE `anonymise` RULES — and note WHY each survivor survives:
-//   job_applications    CASCADE   survives: the rule nulls candidate_id
-//   messages            CASCADE   survives: the rule nulls sender_id
-//   temp_post_comments  CASCADE   survives: the rule nulls user_id
-//   job_offers          CASCADE   ✗ DESTROYED — deliberately does NOT null candidate_id
+//   job_applications    CASCADE   survives: the rule nulls candidate_id (nullable)
+//   temp_post_comments  CASCADE   survives: the rule nulls user_id (nullable)
+//   messages            CASCADE   ✗ DESTROYED — sender_id is NOT NULL, so the rule
+//                                   CANNOT null it and does not try. Its own comment
+//                                   says "sender_id is NOT NULL so it survives as a
+//                                   dangling id" — that is exactly backwards: the
+//                                   dangling id is what the cascade follows.
+//   job_offers          CASCADE   ✗ DESTROYED — candidate_id is NOT NULL and the rule
+//                                   deliberately keeps it, "because the contract is kept"
 //   job_views           SET NULL  survives: the constraint nulls it for us
 //   job_click_events    SET NULL  survives
 //   job_impressions     SET NULL  survives
@@ -65,10 +70,18 @@
 // THE NINETEEN `delete` RULES are unaffected — a cascade would remove them
 // anyway; the plan simply gets there first.
 //
-// THE THREE SURVIVING ANONYMISE RULES SURVIVE BY LUCK, NOT BY DESIGN. Nobody
+// THE TWO SURVIVING ANONYMISE RULES SURVIVE BY LUCK, NOT BY DESIGN. Nobody
 // chose to null the FK column in order to defeat a cascade; they nulled it
 // because the person had to become unlinkable, and defeating the cascade fell
 // out of that. It is now load-bearing and nothing said so until today.
+//
+// AND THE DIVIDING LINE IS NULLABILITY, WHICH IS WHY IT LOOKS ARBITRARY:
+// job_applications.candidate_id and temp_post_comments.user_id are NULLABLE, so
+// the rules could null them and did. messages.sender_id and
+// job_offers.candidate_id are NOT NULL, so those rules could not — and both
+// wrote a comment explaining the value would "survive as a dangling id",
+// unaware that the dangling id is precisely what the cascade follows.
+// The fix for both is a TOMBSTONE user id rather than NULL.
 //
 // ── AND TWO CONSTRAINTS THAT REFUSE THE DELETE OUTRIGHT ───────────────────
 //
