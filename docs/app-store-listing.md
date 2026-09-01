@@ -135,3 +135,84 @@ then dashboard, saved jobs, applications, profile.
 
 They are browser captures, so the top bar sits slightly shorter than in
 the real app, which carries the safe-area inset.
+
+---
+
+## If the reviewer deletes the credentials — recreation steps
+
+**ASSUME THEY WILL.** Apple asked for an account-deletion demonstration, and
+reviewers test what they are shown. Both accounts in the Notes field are
+deletable from inside the app, which is the entire point of the change.
+
+### ⚠️ THERE IS NO SCRIPT THAT RECREATES EITHER ACCOUNT
+
+`scripts/seed-test-accounts.js` seeds **content** — adverts, saved jobs — for
+accounts that **already exist**, and it does so against two hardcoded uids
+(`dda822a2-…` and `e8ad7a0b-…`). If either account is deleted the uid is gone,
+and that script writes against a dead id. **It will not rebuild anything.**
+Nothing recreates Marcus Hale at all; that account was made by hand.
+
+### RECREATING IS NOT UNDOING, AND THIS IS THE PART THAT SURPRISES
+
+A recreated account gets a **NEW user id**. Everything the deletion repointed
+stays repointed — at the tombstone, forever.
+
+**If the employer demo (`+employer@`, Thrive Test Employer) is deleted:**
+
+- its **4 filled adverts are archived and owned by the tombstone**. They do not
+  come back to a recreated employer, and several drives assert against them
+- the **applications on them survive** — Marcus's 2 and the `+candidate`
+  fixture's 3 — with `employer_notes` cleared, but now hanging off adverts the
+  new account does not own
+- `employer_profiles`, `employer_subscriptions` and `employer_members` rows are
+  deleted outright
+- the fixture message thread survives with `participant_2` repointed at the
+  tombstone and `participant_2_name` reading **"Deleted account"**
+- the founding-cohort spot returns to the pool on its own
+
+**If Marcus (`+applereview@`) is deleted:**
+
+- his **2 applications survive with `candidate_id` NULLed** — so Thrive Test
+  Employer's pipeline keeps the rows and loses the person
+- his messages and the fixture thread survive, repointed at the tombstone
+- profile, CV, photo, saved jobs and alerts are deleted outright
+- `protected:prove` **goes red on the next `npm run verify`**, which is how we
+  find out
+
+### THE STEPS
+
+**Marcus Hale — `pauldavies.gbr+applereview@gmail.com`**
+
+1. Create the auth user with `email_confirm: true` and role `employee`. It must
+   be confirmed or `reap-unconfirmed` removes it within three days.
+2. Set a password and **paste it into App Store Connect → App Review
+   Information**. The old password is dead; the record there is now wrong.
+3. Create the `candidate_profiles` row — keyed on **`user_id`**, not `id`:
+   full name **Marcus Hale**, job title **Senior Chef de Partie**,
+   `is_discoverable: true`.
+4. Upload an avatar and a CV named `marcus-hale-cv.pdf`.
+5. Save 4 jobs, and apply to **Thrive Test Employer's own filled adverts only** —
+   an application against a live advert emails a real employer, and Goldenkeys
+   and Host are real companies.
+6. **Update `lib/protectedAccounts.ts` with the new uid** and run
+   `npm run protected:prove`. The census looks accounts up BY ID precisely so a
+   recreated account is not mistaken for the original.
+
+**The employer demo — `pauldavies.gbr+employer@gmail.com`**
+
+1. Create the auth user, confirmed, role `employer`.
+2. Create the `employer_profiles` row: company **Thrive Test Employer**,
+   `approval_status: 'approved'`.
+3. Update the two hardcoded uids in `scripts/seed-test-accounts.js`, then run it
+   to rebuild the 4 adverts. **They are new rows** — the originals stay archived
+   under the tombstone.
+4. Re-point any drive that asserts against the old advert ids.
+
+### THE CHEAPER OPTION, IF YOU WOULD RATHER NOT REBUILD
+
+**Hand Apple the candidate credential only**, and say in the reply that employer
+accounts are a separate approved business tier available on the web. It is
+honest, it is one sentence, and it halves what has to be rebuilt. The counter —
+that a reviewer can create an employer account themselves from the launch screen
+in under a minute — is real, but they would then be deleting an account they
+made rather than one of ours.
