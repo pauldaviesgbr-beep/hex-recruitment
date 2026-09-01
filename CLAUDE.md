@@ -812,6 +812,25 @@ Standing rules for Claude Code on this project. These override default behaviour
 
 - **A rule broken five times needs a mechanism, not another line.** "Read the deployment record, don't guess the preview hostname" was written down after the second failure and broken three more times — a DNS error and two 404s, each briefly reading as "the route is broken". `npm run preview-url` now prints the real URLs from the record. Same argument as `migrations:check` and the pre-push hook: discipline is what already failed, so make the correct move the easy one.
 
+## When two versions of a thing exist, the wrong one gets read
+
+The pattern this file has carried longest is **a check that is true of more than the thing it tests**. This is the OTHER one, and on 1 Sept 2026 it produced three faults in a single day, which makes it the more common failure now.
+
+**WHEN YOU READ A DEFINITION, CHECK WHETHER A SECOND ONE EXISTS.** Not "is this definition correct" — it usually is. The question is whether it is the one that runs.
+
+**IT IS NOT THE SAME AS DUPLICATION DRIFT.** The existing entries about `companyNameFromEmail` and `initialsOf` are about two copies going out of sync. This is worse and quieter: **both copies are correct, and the reader picks the wrong one.** Nothing is inconsistent, nothing type-checks differently, and the conclusion is confidently wrong.
+
+Four instances, evidenced rather than asserted:
+
+- **TWO ERASURE PLANS, SAME TABLE, OPPOSITE BEHAVIOUR.** I reported `messages` as surviving an erasure because "the rule nulls `sender_id`". It does not — `sender_id` is NOT NULL, the candidate rule never nulls it, and the rows were destroyed by the cascade. **I had authored an EMPLOYER `messages` rule an hour earlier that DOES null it, and read my own.** Both rules were correct for their own plan. The audit that went into a report was wrong.
+- **TWO GATES ON THE SAME QUESTION, KEYED ON DIFFERENT FACTS.** `/settings/privacy` decided "is this an employer" from `user_metadata.role`; `/api/account/delete` decided it from owning an `employer_profiles` row. The three team-invite routes stamp `role: 'employer'` on members who own no row — so a team member was told their account is closed by hand about an account the API would have deleted on request. **Neither half errored and neither was wrong on its own.**
+- **TWO CAREER STORES ON A CANDIDATE.** `candidate_profiles.work_history` (jsonb, written by the profile form) and `candidate_cvs.cv_data` (jsonb, the parsed CV — "the richest personal data we hold"). Both hold the same person's employment history. A question about someone's career has two places to read and they need not agree.
+- **THREE COPIES OF THE JOB ADVERT, AND THE THIRD ONE ALREADY COST SOMETHING.** `/job/[id]`, the inline detail pane on `/jobs` (reached by `/jobs?id=<uuid>`, `searchParams.get('id')` at line 355), and `components/JobDetailModal`. **The right-to-work Eligibility block added on 1 Sept 2026 reached the first two and MISSED the modal** — `grep -c workAuthorization components/JobDetailModal.tsx` returns **0**, on a component that renders eight advert sections including Requirements and Additional Information. It is live on `/jobs/recommended`, `/jobs/sector/[sector]`, `/jobs/[city]` and `/saved-jobs`.
+
+**THE CHEAP HABIT, AND IT IS ONE COMMAND.** Before trusting a definition you have just read, grep for the table name, the column, or the component's job — not for the file you are already in. `grep -rn "table: 'messages'"` returns two hits. `grep -rln "sectionTitle}>.*Requirements"` finds three advert renderers. **The second copy announces itself in seconds and is invisible if you do not ask.**
+
+**AND THE TELL THAT YOU ARE IN IT:** you are confident, the code in front of you says exactly what you expect, and the thing still does not behave. That is not a reason to re-read the same file harder. It is the reason to ask what else defines this.
+
 ## Verification — how checks fail quietly
 
 These are all real, from this project. A check that passes for the
