@@ -125,10 +125,66 @@ export interface TableRule {
   nullColumns?: string[]
   /** For 'anonymise': columns set to a literal (used where NOT NULL forbids null). */
   literalColumns?: { column: string; value: string }[]
+  /**
+   * For 'anonymise': columns repointed at TOMBSTONE_USER_ID.
+   *
+   * THE ONLY THING THAT SAVES A NOT NULL FK COLUMN ON A CASCADE TABLE. Nulling
+   * is what makes the other anonymise rules survive; where the column forbids
+   * null, this is the same move with a placeholder instead of nothing.
+   *
+   * NOT a literalColumns entry, deliberately: the value is a real account id
+   * resolved at runtime, and writing it as a literal in the plan would put a
+   * uuid in a document people edit by hand — where a typo produces a valid uuid
+   * pointing at nobody, NOT NULL is satisfied, and the row is orphaned silently.
+   */
+  tombstoneColumns?: string[]
   why: string
   /** Set when action is 'blocked' — what stops it, and what the options are. */
   blocker?: string
 }
+
+// ─── THE TOMBSTONE OWNER ───────────────────────────────────────────────────
+//
+// SOME ROWS MUST OUTLIVE THE PERSON, AND THEIR LINK TO THAT PERSON IS A
+// NOT NULL COLUMN WITH A CASCADE BEHIND IT. They cannot be nulled, so they are
+// pointed here instead — at an account that is never deleted:
+//
+//     job_offers.candidate_id   NOT NULL → auth.users CASCADE   a signed contract
+//     messages.sender_id        NOT NULL → auth.users CASCADE   a thread's shape
+//     jobs.employer_id          NOT NULL → auth.users CASCADE   an archived advert
+//
+// WHY NOT MAKE THE COLUMNS NULLABLE? That is a migration against `jobs` — 319
+// rows, 251 of them live on the public board — plus an audit of every consumer
+// that assumes non-null, while an App Store review is open against a binary
+// that loads production directly. The tombstone needs no schema change and is
+// reversible with an UPDATE.
+//
+// ⚠️ AUTHENTICATING AS THIS ACCOUNT WOULD MEAN OWNING EVERY ARCHIVED ADVERT AND
+// EVERY HISTORICAL CONTRACT, because RLS grants on `auth.uid() = employer_id`
+// and `auth.uid() = candidate_id`. It is protected by three independent guards,
+// none of which depends on a password staying secret — the `.invalid` address
+// cannot receive mail anywhere on the internet (RFC 2606, a property of the DNS
+// root rather than of our configuration), the account is BANNED so Supabase
+// refuses authentication outright, and the password is random and never
+// recorded. See scripts/create-tombstone-owner.ts, which proves all three.
+//
+// IT IS NOT UNDELETABLE. Nothing refuses a deleteUser call on it, and a note is
+// not a guard. That is separate work.
+// RE-EXPORTED, NOT REDEFINED. The values live in lib/protectedAccounts.ts,
+// which is also what `protected:prove` reads when it asserts every run that the
+// account still exists and is still banned.
+//
+// THEY WERE DEFINED HERE FIRST AND THAT WAS A SECOND DEFINITION. Both copies
+// were correct, which is exactly the failure CLAUDE.md records under "when two
+// versions of a thing exist, the wrong one gets read" — nothing would have been
+// inconsistent until somebody rotated the account and updated one of them.
+// A constant that has drifted from the live row is worse than no constant: the
+// erasure would point rows at a uuid belonging to nobody, and NOT NULL would
+// not save us, because the value is still a perfectly valid uuid.
+// Consumers import them from lib/protectedAccounts directly. Deliberately NOT
+// re-exported through here: a re-export is a second NAME for the same value,
+// and the next person greping for where the tombstone id comes from should
+// find one answer rather than two paths to it.
 
 // ─── THE PLAN ──────────────────────────────────────────────────────────────
 
@@ -190,11 +246,61 @@ export const ERASURE_PLAN: TableRule[] = [
          "personal data, and an erasure that leaves a note naming the person has not erased them." },
 
   // ── PAUL'S DECISION (b): MESSAGES — their words go, the other side stays ──
+  // ⚠️ THIS RULE DID NOT WORK AT ALL UNTIL 1 SEPT 2026, AND ITS OWN COMMENT
+  // EXPLAINED WHY WITHOUT NOTICING. It used to end: "sender_id is NOT NULL so it
+  // survives as a dangling id". That is exactly backwards — `messages.sender_id`
+  // has an ON DELETE CASCADE to auth.users, so the dangling id is precisely what
+  // the cascade follows, and every message was DELETED rather than blanked. The
+  // policy and the delete panel both promise "anything you wrote in a message
+  // becomes '[deleted]'", and instead the whole row vanished, taking the other
+  // party's thread structure with it.
+  //
+  // The column cannot be nulled, so it is repointed at the tombstone. Same move
+  // as job_applications' NULL, with a placeholder because NOT NULL forbids none.
   { table: 'messages', column: 'sender_id', action: 'anonymise',
-    literalColumns: [{ column: 'content', value: '[deleted]' }],
-    why: "Decision (b). The employer's own messages are their words and must not vanish from their inbox. " +
-         "Thread structure intact. NOTE THE LIMIT: sender_id is NOT NULL so it survives as a dangling id, and " +
-         "the OTHER party's messages may still name the person — we are not editing someone else's words." },
+    tombstoneColumns: ['sender_id'],
+    literalColumns: [
+      { column: 'content', value: '[deleted]' },
+      // sender_name is NOT NULL and denormalised, so it would otherwise keep
+      // naming the person on every message they ever sent.
+      { column: 'sender_name', value: 'Deleted account' },
+    ],
+    why: "Decision (b). The employer's own messages are their words and must not vanish from their inbox, and " +
+         "the thread keeps its shape so their replies still make sense. The person's words go, their name goes, " +
+         "and sender_id is repointed at the tombstone because it is NOT NULL and cannot be cleared. " +
+         "NOTE THE LIMIT, which is unchanged: the OTHER party's messages may still name the person — we are " +
+         "not editing someone else's words." },
+
+  // ⚠️ `conversations` WAS NOT IN THIS PLAN AT ALL, AND IT DEFEATED THE RULE
+  // ABOVE A SECOND TIME. Found 1 Sept 2026 by the live proof: even after
+  // messages.sender_id was repointed at the tombstone, the message was still
+  // GONE when read back. The reason is one level up —
+  //
+  //     conversations.participant_1 → auth.users   ON DELETE CASCADE
+  //     conversations.participant_2 → auth.users   ON DELETE CASCADE
+  //     messages.conversation_id    → conversations ON DELETE CASCADE
+  //
+  // — so deleting the person destroyed the CONVERSATION, and every message in
+  // it went with it, INCLUDING THE EMPLOYER'S OWN. Decision (b) says the
+  // employer's words must not vanish from their inbox; the thread they were in
+  // was being deleted out from under them.
+  //
+  // TWO RULES, ONE PER SIDE, because a conversation has two participant columns
+  // and the executor matches one column at a time. `profile_views` is already
+  // in the plan twice for the same reason.
+  { table: 'conversations', column: 'participant_1', action: 'anonymise',
+    tombstoneColumns: ['participant_1'],
+    literalColumns: [{ column: 'participant_1_name', value: 'Deleted account' }],
+    nullColumns: ['participant_1_company'],
+    why: 'The thread survives so the OTHER party keeps their own messages and the replies still make ' +
+         'sense. The person is replaced by the tombstone because the column is NOT NULL and carries a ' +
+         'CASCADE — without this the whole conversation, and every message in it, is destroyed.' },
+  { table: 'conversations', column: 'participant_2', action: 'anonymise',
+    tombstoneColumns: ['participant_2'],
+    literalColumns: [{ column: 'participant_2_name', value: 'Deleted account' }],
+    nullColumns: ['participant_2_company'],
+    why: 'The same, for the other side of the thread. Which side a person is on is an accident of who ' +
+         'started the conversation, so both must be handled or half of them are destroyed.' },
 
   // ── PAUL'S DECISION (c): NOTIFICATIONS ABOUT THEM, SENT TO OTHERS ────────
   { table: 'notifications', column: 'user_id', action: 'delete',
@@ -218,11 +324,37 @@ export const ERASURE_PLAN: TableRule[] = [
   // A signed offer is a contract; both parties have a legitimate interest and
   // UK GDPR permits retention for legal claims. The surveillance columns are
   // NOT contract terms and are cleared.
+  // ⚠️ THE SAME FAULT, AND HERE THE REASONING WAS THE CAUSE. This rule used to
+  // say "the contract is kept — candidate_id is NOT NULL and stays,
+  // deliberately", and `job_offers.candidate_id` has an ON DELETE CASCADE to
+  // auth.users. THE DELIBERATELY-KEPT COLUMN IS THE ONE THE CASCADE FOLLOWS, so
+  // the argument for preserving the contract is what guaranteed it was
+  // destroyed. Vacuously safe until now only because no offer has ever been
+  // signed — job_offers has 0 rows.
+  //
+  // ── WHAT A CONTRACT NEEDS, AND WHAT ERASURE TAKES ────────────────────────
+  //
+  // These pull against each other and the resolution is not "keep less".
+  // A contract's evidential value is in its TERMS and its SIGNATURES, not in a
+  // foreign key to a login. The row already carries `signature_name` — the name
+  // the candidate typed when they signed — plus the timestamp, the signature
+  // image and the terms via job_id. All of that stays.
+  //
+  // WHAT GOES IS THE LINK TO A PLATFORM ACCOUNT, which is what makes the row a
+  // record OF A USER rather than a record of an agreement. And keeping the
+  // signed name is lawful rather than an exception we are stretching: the
+  // erasure right is not absolute, and a signed employment contract sits
+  // squarely inside the carve-outs for legal obligations and for the
+  // establishment or defence of legal claims. A contract signed by nobody would
+  // not be a contract, which is the whole reason this rule is not 'delete'.
   { table: 'job_offers', column: 'candidate_id', action: 'anonymise',
+    tombstoneColumns: ['candidate_id'],
     nullColumns: ['signature_ip', 'signature_user_agent'],
-    why: 'Decision (e). The contract is kept — candidate_id is NOT NULL and stays, deliberately. ' +
-         'signature_ip and signature_user_agent are cleared: they are surveillance data, not contract terms, ' +
-         'and nothing about the contract surviving requires them.' },
+    why: 'Decision (e). The contract is kept, and NOW ACTUALLY SURVIVES: candidate_id is NOT NULL so it is ' +
+         'repointed at the tombstone rather than left pointing at a user who is being deleted, which used to ' +
+         'destroy the row through the cascade. signature_name, the signature image, the timestamp and the ' +
+         'terms all stay — they are what makes it a contract. signature_ip and signature_user_agent are ' +
+         'cleared: surveillance data, not contract terms, and nothing about the contract requires them.' },
   { table: 'offer_audit_log', column: 'actor_user_id', action: 'keep',
     why: 'Decision (e). The audit trail of a contract. Kept for the same reason as the contract itself.' },
 

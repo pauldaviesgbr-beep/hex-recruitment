@@ -57,6 +57,8 @@
     "protected:prove": "npx tsx --conditions=react-server scripts/prove-protected-accounts.ts",
     "erasure:prove": "npx tsx scripts/prove-erasure.ts",
     "erasurelive:prove": "npx tsx --conditions=react-server scripts/prove-erasure-live.ts",
+    "tombstone:create": "npx tsx --conditions=react-server scripts/create-tombstone-owner.ts",
+    "tombstonelive:prove": "npx tsx --conditions=react-server scripts/prove-erasure-tombstone-live.ts",
     "deletegate:prove": "npx tsx --conditions=react-server scripts/prove-employer-delete-gate.ts",
     "navheight:prove": "node scripts/prove-mobile-header-clearance.mjs",
     "iosshell:prove": "node scripts/prove-ios-shell.mjs",
