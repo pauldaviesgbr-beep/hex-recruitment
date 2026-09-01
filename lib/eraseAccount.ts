@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { ERASURE_PLAN, BUCKET, objectBelongsTo, blockers, type ReceiptLine } from './erasure'
+import { TOMBSTONE_USER_ID } from './protectedAccounts'
 
 // CARRIES OUT THE ERASURE PLAN. It decides nothing — lib/erasure.ts holds every
 // decision and this walks it.
@@ -57,6 +58,17 @@ export async function eraseAccount(
   const startedAt = new Date().toISOString()
   const errors: string[] = []
   const tables: ReceiptLine[] = []
+
+  // READ BEFORE ANYTHING IS DESTROYED. `created_at` and the role are needed for
+  // the departure row at the end, and by then the account is gone. A failure
+  // here is not fatal — the departure row simply carries less.
+  let joinedAt: string | null = null
+  let role: string | null = null
+  try {
+    const { data } = await admin.auth.admin.getUserById(userId)
+    joinedAt = data?.user?.created_at ?? null
+    role = ((data?.user?.user_metadata as any)?.role as string) ?? null
+  } catch { /* the departure row degrades rather than the erasure failing */ }
 
   // ── 1. STORAGE, FIRST AND ALWAYS ────────────────────────────────────────
   //
@@ -133,6 +145,10 @@ export async function eraseAccount(
           const patch: Record<string, unknown> = {}
           for (const c of rule.nullColumns || []) patch[c] = null
           for (const l of rule.literalColumns || []) patch[l.column] = l.value
+          // THE TOMBSTONE COLUMNS GO LAST so a rule cannot accidentally null a
+          // column it also repoints — the placeholder wins, and a NOT NULL
+          // column set to null would throw rather than fail quietly.
+          for (const c of rule.tombstoneColumns || []) patch[c] = TOMBSTONE_USER_ID
           const { error } = await admin.from(rule.table).update(patch).eq(rule.column, matchValue as string)
           if (error) throw error
           affected = matched || 0
@@ -161,6 +177,66 @@ export async function eraseAccount(
       const { error } = await admin.auth.admin.deleteUser(userId)
       if (error) errors.push(`auth delete failed: ${error.message}`)
       else authDeleted = true
+    }
+  }
+
+  // ── 4. THE DEPARTURE ROW — THE ONLY TRACE AN ERASURE LEAVES ─────────────
+  //
+  // UNTIL 1 SEPT 2026 A COMPLETED SELF-DELETION LEFT NO RECORD ANYWHERE.
+  // `deletion_requests` would have been the instrument and it has an ON DELETE
+  // CASCADE, so the erasure destroyed its own audit trail. `user_departures`
+  // survives — it is the one table here with NO foreign key to auth.users — but
+  // nothing on this path ever wrote to it, even though the plan lists it as
+  // 'keep'. Its only writer was reap-unconfirmed. So "no candidate has ever
+  // deleted their account" was an inference that could not be checked, about
+  // the one action that most needs a trail.
+  //
+  // ── WRITTEN AFTER SUCCESS, WHICH IS THE OPPOSITE OF reap-unconfirmed ────
+  //
+  // The reaper writes its row FIRST and says why: a logged departure that did
+  // not happen is "visible and correctable", where the other order loses the
+  // record silently. That reasoning is right for the reaper and wrong here,
+  // because of the sentinel below — the reaper's row carries the real user id
+  // so a bad row can be found and removed, and ours cannot. A false row we
+  // could never identify is worse than a missing one we shout about, so this
+  // writes only on a completed deletion and logs loudly if it cannot.
+  //
+  // ── WHAT IT CARRIES, AND WHAT IT DELIBERATELY DOES NOT ──────────────────
+  //
+  // NOT THE PERSON'S USER ID. `user_id` is NOT NULL so something must go there,
+  // and the real uuid would be a correlation key kept about somebody who has
+  // just asked to be unlinkable. The all-zero uuid is used because it is
+  // unmistakably not an account: a random uuid would look like a real id and
+  // send the next person hunting a row that never existed.
+  //
+  // The rest is the same shape the reaper already uses and is honest without
+  // being identifying: the email DOMAIN only, the role, when they joined, how
+  // long they stayed. Enough to answer "how many people delete, and how soon",
+  // which is the question this table exists for. Not enough to answer "who".
+  if (!dryRun && authDeleted) {
+    const joined = joinedAt ? new Date(joinedAt) : null
+    const { error: logErr } = await admin.from('user_departures').insert({
+      user_id: '00000000-0000-0000-0000-000000000000',
+      email_domain: opts.email?.split('@')[1]?.toLowerCase() ?? null,
+      role: role ?? null,
+      reason: 'self_deleted',
+      joined_at: joined?.toISOString() ?? null,
+      days_held: joined
+        ? Math.max(0, Math.floor((Date.now() - joined.getTime()) / 86_400_000))
+        : null,
+    })
+    // NOT pushed to `errors`. The account is already gone, and a non-empty
+    // errors array makes the route tell the person their deletion FAILED —
+    // which would be a lie, and the worst possible thing to say to somebody
+    // who has just deleted their account.
+    if (logErr) {
+      console.error('[eraseAccount] DEPARTURE LOG FAILED — the deletion completed but left no trace:',
+        logErr.message)
+      tables.push({ table: 'user_departures', action: 'keep', matched: 0, affected: 0,
+        note: 'DEPARTURE LOG FAILED: ' + logErr.message })
+    } else {
+      tables.push({ table: 'user_departures', action: 'keep', matched: 0, affected: 1,
+        note: 'departure recorded — domain, role and duration only, no identifier' })
     }
   }
 

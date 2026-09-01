@@ -559,6 +559,24 @@ const ALL = [
   // reddens on a missing credential teaches people to reach for --no-verify.
   { name: 'erasurelive:prove', cmd: npm, args: ['run', 'erasurelive:prove'], couldNotRun: 2 },
 
+  // THE TWO PROMISES THE PLAN MADE AND THE DATABASE BROKE.
+  //
+  // `erasure:prove` reads the RULES, and it passed for months on a plan whose
+  // messages rule said content = '[deleted]' and whose job_offers rule said
+  // "the contract is kept" — both true of the plan and false of the database,
+  // because messages.sender_id and job_offers.candidate_id are NOT NULL with an
+  // ON DELETE CASCADE. The rows were destroyed by the last step of the erasure
+  // and nothing could see it.
+  //
+  // This one erases a real throwaway candidate and SELECTs the rows back. It
+  // also found a third fault nobody had looked for: `conversations` was not in
+  // the plan at all, and its participant columns cascade — so the whole thread
+  // was destroyed, taking the EMPLOYER'S own messages with it.
+  //
+  // Needs the database and a service key, so it SKIPS (exit 2) rather than
+  // failing on a machine without them, exactly as erasurelive:prove does.
+  { name: 'tombstonelive:prove', cmd: npm, args: ['run', 'tombstonelive:prove'], couldNotRun: 2 },
+
   // iosshell:prove IS IN THIS LIST, unlike the other two recent additions, and
   // the reason is the rule rather than the topic: it is filesystem and text
   // only — no Mac, no build, no deployment, no database — so it runs by
