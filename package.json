@@ -54,6 +54,7 @@
     "herosearch:prove": "npx tsx scripts/prove-hero-search.ts",
     "feedexpiry:prove": "npx tsx scripts/prove-feed-expiry.ts",
     "deletiongatekey:prove": "node scripts/prove-deletion-gate-key.mjs",
+    "protected:prove": "npx tsx --conditions=react-server scripts/prove-protected-accounts.ts",
     "erasure:prove": "npx tsx scripts/prove-erasure.ts",
     "erasurelive:prove": "npx tsx --conditions=react-server scripts/prove-erasure-live.ts",
     "deletegate:prove": "npx tsx --conditions=react-server scripts/prove-employer-delete-gate.ts",

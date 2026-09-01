@@ -503,6 +503,27 @@ const ALL = [
   //
   // It also asserts each of the five decisions individually, so quietly
   // reversing one is a failing check rather than a diff nobody reads.
+  // THE CENSUS. Two accounts survive only because nobody has run the wrong
+  // thing: the credential Apple signs in with to review the app, and the
+  // tombstone owner that every row outliving a deleted person points at.
+  //
+  // NOTHING WOULD RECORD EITHER LOSS. `is_test` is a label nothing consults
+  // before deleting; there is no instrument for a self-deletion; and a sweep by
+  // email pattern is exactly how +demo and +e2e went on 14 Aug 2026. Losing the
+  // review credential shows up months later as a rejected app update with no
+  // visible cause. Losing the tombstone destroys every archived advert, signed
+  // contract and anonymised message by the cascade it exists to defeat.
+  //
+  // It cannot PREVENT either — a `before delete on auth.users` trigger would,
+  // and is held because it is a migration on auth.users during an open review.
+  // This makes the loss impossible to miss instead.
+  //
+  // Reads only. Needs the database, so it SKIPS (exit 2) without a service key,
+  // and the skip says in as many words that it is not a pass. Watched failing
+  // on purpose against a wrong id: the account is named, what breaks is printed
+  // in full inside a banner, exit 1.
+  { name: 'protected:prove', cmd: npm, args: ['run', 'protected:prove'], couldNotRun: 2 },
+
   { name: 'erasure:prove', cmd: npm, args: ['run', 'erasure:prove'] },
 
   // TWO GATES THAT DECIDE THE SAME THING MUST DECIDE IT FROM THE SAME FACT.
