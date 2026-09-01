@@ -16,6 +16,7 @@ import { formatJobAddress, formatJobLocation } from '@/lib/jobCard'
 import { useAnalyticsTracking } from '@/hooks/useAnalyticsTracking'
 import styles from './page.module.css'
 import { Ico } from '@/components/icons'
+import ReportControl from '@/components/ReportControl'
 
 export default function JobDetailPage() {
   const params = useParams()
@@ -504,6 +505,11 @@ export default function JobDetailPage() {
                 </p>
               </div>
             )}
+
+            {/* ONE SHARED CONTROL, in all seven advert renderers. See
+                reportcontrol:prove — a per-page copy is how the dead button
+                in JobDetailModal went unnoticed from March to September. */}
+            <ReportControl targetType="job" targetId={job.id} />
 
             {/* Requirements */}
             {job.requirements && job.requirements.length > 0 && (

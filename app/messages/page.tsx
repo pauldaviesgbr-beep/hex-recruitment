@@ -8,6 +8,8 @@ import Header from '@/components/Header'
 import SignedImage from '@/components/SignedImage'
 import { supabase } from '@/lib/supabase'
 import { chooserLoginPath } from '@/lib/loginRedirect'
+import ReportControl from '@/components/ReportControl'
+import BlockControl from '@/components/BlockControl'
 import styles from './page.module.css'
 import { Ico } from '@/components/icons'
 import {
@@ -53,6 +55,16 @@ export default function MessagesPage() {
   const [isEmployer, setIsEmployer] = useState(false)
   const [showSidebar, setShowSidebar] = useState(true)
   const [currentUserId, setCurrentUserId] = useState<string | null>(null)
+
+  // WHETHER THIS PERSON HAS BLOCKED THE OTHER ONE.
+  //
+  // Only the BLOCKER can know. The RLS policy on user_blocks deliberately hides
+  // a block from the person it is against — being told you have been blocked is
+  // a reason to make another account — so the blocked party sees a normal
+  // composer and their send is refused by the database. That refusal is
+  // surfaced as a message rather than swallowed; see handleSendMessage.
+  const [threadBlocked, setThreadBlocked] = useState(false)
+  const [sendError, setSendError] = useState<string | null>(null)
 
   // ── Refs ───────────────────────────────────────────────────────────────
   const messageListRef = useRef<HTMLDivElement>(null)
@@ -318,6 +330,19 @@ export default function MessagesPage() {
     if (selectedConversation) {
       loadMessages(selectedConversation.id)
       markConversationAsRead(selectedConversation.id)
+      setSendError(null)
+      // Reset to false and re-ask per thread. Carrying the previous thread's
+      // answer would tell somebody a conversation is closed when it is not.
+      setThreadBlocked(false)
+      const other = selectedConversation.participantId
+      if (other) {
+        supabase.auth.getSession().then(({ data: { session } }) => {
+          if (!session) return
+          supabase.from('user_blocks').select('id')
+            .eq('blocker_id', session.user.id).eq('blocked_id', other).maybeSingle()
+            .then(({ data, error }) => { if (!error) setThreadBlocked(!!data) })
+        })
+      }
     }
   }, [selectedConversation, markConversationAsRead, loadMessages])
 
@@ -435,8 +460,19 @@ export default function MessagesPage() {
     if (error) {
       console.error('Failed to send message:', error.message)
       setNewMessage(content)
+      // A SEND REFUSED BY THE BLOCK MUST SAY SO. The blocked party cannot see
+      // the block — RLS hides it from them deliberately — so without this the
+      // message simply reappears in the box with no explanation, which is the
+      // "far end where nothing reports back" fault this project keeps finding.
+      // 42501 is the RLS refusal; anything else is a genuine failure.
+      setSendError(
+        (error as any)?.code === '42501'
+          ? 'This conversation is closed. Neither of you can send messages in it.'
+          : 'That did not send. Please try again.',
+      )
       return
     }
+    setSendError(null)
 
     if (inserted) {
       const newMsg: Message = {
@@ -632,7 +668,27 @@ export default function MessagesPage() {
                   </p>
                 </div>
               </div>
+              {/* THE ONLY THREAD VIEW IN THE PRODUCT. Surveyed before building:
+                  /jobs CREATES a conversation when someone applies but never
+                  renders one, and ChatBot is the "Ask Thrive" support widget,
+                  which is not a conversations row at all. reportcontrol:prove
+                  asserts that there is exactly one and that it carries both
+                  controls, so a second thread view cannot appear without them. */}
               <div className={styles.chatHeaderActions}>
+                {selectedConversation.participantId && (
+                  <>
+                    <ReportControl
+                      targetType="message"
+                      targetId={selectedConversation.id}
+                    />
+                    <BlockControl
+                      conversationId={selectedConversation.id}
+                      otherUserId={selectedConversation.participantId}
+                      otherName={selectedConversation.participantName}
+                      onChange={setThreadBlocked}
+                    />
+                  </>
+                )}
               </div>
             </div>
 
@@ -680,6 +736,21 @@ export default function MessagesPage() {
 
             {/* Chat Input */}
             <div className={styles.chatInputArea}>
+              {/* THE BLOCKER GETS A CLOSED THREAD RATHER THAN A BOX THAT FAILS.
+                  The other party cannot be shown this — RLS hides the block
+                  from the person it is against — so their send is refused by
+                  the database and handleSendMessage explains it. Two different
+                  experiences on purpose: one is informed, the other is not
+                  told they have been blocked. */}
+              {threadBlocked && (
+                <p className={styles.blockedNotice} role="status">
+                  You have blocked {selectedConversation.participantName}. Neither of you can send
+                  messages here. Use Unblock above to reopen it.
+                </p>
+              )}
+              {sendError && !threadBlocked && (
+                <p className={styles.blockedNotice} role="alert">{sendError}</p>
+              )}
               <form onSubmit={handleSendMessage} className={styles.chatInputForm}>
                 <div className={styles.inputWrapper}>
                   <textarea
@@ -692,7 +763,8 @@ export default function MessagesPage() {
                         handleSendMessage(e)
                       }
                     }}
-                    placeholder="Type a message..."
+                    placeholder={threadBlocked ? "This conversation is closed" : "Type a message..."}
+                    disabled={threadBlocked}
                     className={styles.chatInput}
                     rows={1}
                   />
@@ -702,7 +774,7 @@ export default function MessagesPage() {
                 <button
                   type="submit"
                   className={styles.sendBtn}
-                  disabled={!newMessage.trim()}
+                  disabled={!newMessage.trim() || threadBlocked}
                   aria-label="Send message"
                 >
                   ➤

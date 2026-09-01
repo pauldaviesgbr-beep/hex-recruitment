@@ -13,6 +13,7 @@ import { selectQuote } from '@/lib/jobQuote'
 import CompanyReviewsSummary from '@/components/CompanyReviewsSummary'
 import { useAnalyticsTracking, ViewSource } from '@/hooks/useAnalyticsTracking'
 import ApplyNowModal from '@/components/ApplyNowModal'
+import ReportControl from '@/components/ReportControl'
 import styles from './JobDetailModal.module.css'
 import { Ico } from '@/components/icons'
 
@@ -599,9 +600,13 @@ export default function JobDetailModal({
               {job.jobReference && job.category && ' | '}
               {job.category && `Category: ${job.category}`}
             </p>
-            <button className={styles.reportBtn}>
-              <Ico name="flag" size={16} /> Report this job
-            </button>
+            {/* THIS BUTTON HAD NO onClick FROM 1 MARCH TO 1 SEPT 2026 — the
+                repository's first commit put it here and nothing was ever
+                wired to it. It advertised itself as live (cursor: pointer, a
+                red hover) and on a phone, where there is no hover, a tap did
+                nothing at all: no spinner, no toast, no error.
+                It is now the shared control. */}
+            <ReportControl targetType="job" targetId={job.id} className={styles.reportBtn} />
           </div>
         </div>
 
