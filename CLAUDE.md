@@ -834,6 +834,38 @@ wrong reason is worse than no check, because it ends the search.
     and a red nobody expects to be green is a red nobody reads. Same
     reasoning as `rlsprobe:prove`.
 
+- THE SECOND ONE WAS WORSE, AND IT DID NOT GUESS A TARGET — IT HARDCODED
+  THE ONE ACCOUNT THIS FILE SAYS NEVER TO TOUCH. `scripts/delete-test-users.js`
+  ran `main()` unconditionally at the bottom of the file, took no argument,
+  asked no confirmation, held the service-role key, and its two targets were
+  `pauldavies.gbr@gmail.com` — **Paul's real account, which exists and had
+  signed in the day before** — and `gicalorandi@gmail.com`. It walked 25
+  table/column pairs including `{ table: 'jobs', column: 'employer_id' }`, then
+  called `auth.admin.deleteUser`. **DELETED 1 Sept 2026.**
+  - **IT ALSO LIED WHILE IT WORKED.** The loop printed `Cleared <table>`
+    whenever `error` was null, and a delete matching nothing returns no error.
+    So it reported success on every table whether or not it touched one — the
+    same fault as reading your own `echo` instead of an exit status, in a
+    script whose whole job is deletion.
+  - **NOTHING REFERENCED IT** — no npm script, no workflow, no doc — and it
+    entered the repository as a stowaway inside `d395575`, a commit about
+    storing the PKCE verifier in cookies. **A file nothing calls is a file
+    nobody reviews**, and an unrelated commit is how it gets in.
+  - **WHAT THE DELETION ACHIEVES AND WHAT IT DOES NOT.** It can no longer be
+    run by accident from a fresh clone or by tab-completing in `scripts/`,
+    which is the actual risk — it carries no credential of its own. It is
+    still in history and always will be, and one
+    `git checkout d395575 -- scripts/delete-test-users.js` puts it back.
+    **History was deliberately NOT rewritten:** the file holds no secret, the
+    repository is public so it is already published, and rewriting 1,753
+    commits would break every clone and every sha quoted in this file.
+    **This entry is what stops it coming back**, because the reason lives here
+    rather than only in a commit message.
+  - **AND THE SWEEP THAT WOULD HAVE FOUND IT WAS NEVER RUN.** It surfaced while
+    looking for something else. Two instances is a class: before trusting
+    anything in `scripts/`, ask of every writing script whether its target is
+    an ARGUMENT or a LITERAL. 26 of 120 files can write; 14 can delete.
+
 - THE POSITIVE CONTROL MUST NOT COST MORE THAN THE THING IT PROVES.
   The obvious way to watch the employer gate fail is to remove it and
   redeploy — which means publishing a build where employers CAN erase
