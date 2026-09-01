@@ -61,6 +61,95 @@ for (const a of adverts) {
   console.log('  ' + (a.ok ? 'ok   ' : 'FAIL ') + a.file)
 }
 
+// ── AND WHERE IT SITS, NOT ONLY THAT IT EXISTS ────────────────────────────
+//
+// "Is it mounted" was a TRUE answer to a different question, and it is how one
+// file sat wrong among seven. On app/job/[id]/page.tsx the control was mounted
+// between the Eligibility block and the Requirements heading: present, visible,
+// and 56% down a 3752px page with four more sections below it — rendering
+// directly under "Stated by the employer on this advert", so it read as a
+// footnote to Eligibility rather than as a control. Paul scrolled to the
+// bottom on a handset and reported it MISSING. This check said `ok`.
+//
+// SO ASSERT THE ORDER. The mount must come after the LAST of the detail
+// sections it belongs beneath — the same three fields used to identify a
+// renderer in the first place. On the old /job/[id] the mount preceded
+// `.requirements.map(`, so this would have gone red on the exact state that
+// shipped.
+//
+// WHAT IT CANNOT SEE, SAID PLAINLY RATHER THAN GLOSSED: this is SOURCE ORDER.
+// It is render order only because these are siblings in one tree, which they
+// are in all seven today. It cannot see CSS that repositions an element, it
+// cannot see a wrapper that moves a subtree, and it cannot tell you the
+// control is 1649px from the foot rather than 40px. A drive is the only thing
+// that answers the last one — scripts/drive-report-control-on-job-page.mjs
+// prints the position and every heading around it.
+// ── THE FIRST VERSION OF THIS ASSERTION UNDER-COUNTED, AND IT IS WORTH
+//    KEEPING THE REASON ─────────────────────────────────────────────────────
+//
+// It compared the mount against the last `.requirements|.benefits|
+// .workAuthorization.map(`. That found three misplaced files and MISSED two
+// more, because on /jobs/recommended and /saved-jobs the sections that follow
+// the control are "Skills Required" and "Reviews" — real sections that are not
+// one of those three fields. A discriminator built from the three fields that
+// IDENTIFY a renderer is not a discriminator for where an advert ENDS.
+//
+// So it compares against SECTION HEADINGS, split into the ones that are part
+// of the advert and the ones that come after it. And a heading in neither list
+// is a FAILURE, not a shrug: a new section added below the control would
+// otherwise pass quietly, which is the whole fault this assertion exists for.
+const JOB_SECTIONS = [
+  'Job Details', 'Description', 'Full Job Description', 'Responsibilities',
+  'Requirements', 'Skills Required', 'Benefits', 'Eligibility', 'Location',
+  'Additional Information',
+]
+// After the advert: about the COMPANY or about other adverts, not about this
+// job. The control ends the advert, so these may legitimately follow it.
+const AFTER_THE_ADVERT = ['About', 'Reviews for', 'Similar Jobs']
+
+const HEADING = /(?:s|S)ectionTitle\}>([^<{]*)/g
+
+console.log('')
+console.log('AND IT ENDS THE ADVERT — the mount comes after every section about the job')
+console.log('')
+for (const a of adverts) {
+  const s = readFileSync(a.file, 'utf8')
+  const mountAt = s.search(MOUNTS_CONTROL)
+  if (mountAt < 0) continue
+
+  let lastJob = null
+  const unknown = []
+  for (const m of s.matchAll(HEADING)) {
+    const text = m[1].trim()
+    if (!text) continue
+    if (JOB_SECTIONS.includes(text)) { lastJob = { text, at: m.index }; continue }
+    if (AFTER_THE_ADVERT.some(t => text.startsWith(t))) continue
+    unknown.push(text)
+  }
+
+  if (unknown.length) {
+    console.log(`  FAIL ${a.file}`)
+    console.log(`       unclassified section heading(s): ${[...new Set(unknown)].join(', ')}`)
+    console.log('       Add each to JOB_SECTIONS or to AFTER_THE_ADVERT in this file.')
+    console.log('       Until then this cannot say whether the control ends the advert.')
+    bad++
+    continue
+  }
+  if (!lastJob) {
+    console.log(`  FAIL ${a.file}   no job section headings found at all — the search has broken`)
+    bad++
+    continue
+  }
+  const ok = mountAt > lastJob.at
+  console.log('  ' + (ok ? 'ok   ' : 'FAIL ') + a.file.padEnd(38) +
+    `last job section: "${lastJob.text}"`)
+  if (!ok) {
+    console.log(`       the control is at char ${mountAt}; "${lastJob.text}" still renders at ${lastJob.at}.`)
+    console.log('       It is mounted, and it is in the middle of the advert.')
+    bad++
+  }
+}
+
 // SAME GUARD AS rtw:prove. If the discriminator ever stops matching, this would
 // find no renderers and report a clean pass on nothing at all.
 const EXPECTED_ADVERT_RENDERERS = 7

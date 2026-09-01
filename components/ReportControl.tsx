@@ -77,14 +77,35 @@ const LABEL: Record<ReportTarget, string> = {
   comment: 'Report',
 }
 
+// ICON-ONLY IS FOR A BAR, NOT FOR PROSE.
+//
+// In the conversation header this and BlockControl were two full-text buttons
+// sharing one row with a back arrow, an avatar, the correspondent's name and
+// their role. Measured on an iPhone 14 Pro profile: unwrapped the two need
+// 303px of a 393px bar, so BOTH wrapped to 2.8 lines each and dragged the name
+// and the role into wrapping with them — a 137px header, 20.8% of the visible
+// screen, on the one screen a reviewer reads while deciding whether Thrive has
+// working moderation.
+//
+// So the header gets icons and the SHEET keeps the words: the sheet's title is
+// already the full label, so nothing is lost and nothing is duplicated. This
+// is the conventional phone pattern and it is also the pattern this page had
+// before the two labelled controls replaced it — `.headerActionBtn` was still
+// declared in page.module.css, applied to nothing.
+//
+// AN ICON-ONLY CONTROL MUST CARRY ITS NAME. `aria-label` and `title` both get
+// the same label a sighted person would have read, so the accessible name does
+// not change with the presentation.
 export default function ReportControl({
   targetType,
   targetId,
   className,
+  iconOnly = false,
 }: {
   targetType: ReportTarget
   targetId: string
   className?: string
+  iconOnly?: boolean
 }) {
   const [open, setOpen] = useState(false)
   const [reason, setReason] = useState('')
@@ -138,8 +159,12 @@ export default function ReportControl({
         className={className || styles.trigger}
         onClick={() => setOpen(true)}
         data-report-control={targetType}
+        aria-label={iconOnly ? (done ? 'Reported' : LABEL[targetType]) : undefined}
+        title={iconOnly ? (done ? 'Reported' : LABEL[targetType]) : undefined}
       >
-        <Ico name="flag" size={16} /> {done ? 'Reported' : LABEL[targetType]}
+        {iconOnly
+          ? <Ico name="flag" size={20} />
+          : <><Ico name="flag" size={16} /> {done ? 'Reported' : LABEL[targetType]}</>}
       </button>
 
       {open && (

@@ -506,11 +506,6 @@ export default function JobDetailPage() {
               </div>
             )}
 
-            {/* ONE SHARED CONTROL, in all seven advert renderers. See
-                reportcontrol:prove — a per-page copy is how the dead button
-                in JobDetailModal went unnoticed from March to September. */}
-            <ReportControl targetType="job" targetId={job.id} />
-
             {/* Requirements */}
             {job.requirements && job.requirements.length > 0 && (
               <div className={styles.section}>
@@ -571,6 +566,26 @@ export default function JobDetailPage() {
                 )}
               </div>
             </div>
+
+            {/* ONE SHARED CONTROL, in all seven advert renderers. See
+                reportcontrol:prove — a per-page copy is how the dead button
+                in JobDetailModal went unnoticed from March to September.
+
+                IT ENDS THE ADVERT. It used to sit between Eligibility and
+                Requirements, which put it 56% down a 3752px page with
+                Requirements, Additional Information, Similar Jobs and Reviews
+                still to come — and directly under "Stated by the employer on
+                this advert", so it read as a footnote to the Eligibility block
+                rather than as a control. Paul scrolled to the bottom of this
+                page on a handset and reported it MISSING.
+
+                THAT IS WORSE THAN ABSENT: absence is findable by searching,
+                and a control that looks like part of another section is not.
+                `reportcontrol:prove` could not see it, because "is it mounted"
+                is a true answer to a different question — so that check now
+                asserts POSITION as well, and this must stay the last thing in
+                the advert body. */}
+            <ReportControl targetType="job" targetId={job.id} />
 
             {/* Company Info */}
             {job.companyDescription && (
