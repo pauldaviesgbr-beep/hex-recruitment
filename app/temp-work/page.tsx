@@ -15,6 +15,7 @@ import JobCard from '@/components/JobCard'
 import FeedCard from '@/components/FeedCard'
 import { supabaseJobToJob } from '@/lib/types'
 import type { Job } from '@/lib/mockJobs'
+import ReportControl from '@/components/ReportControl'
 import styles from './page.module.css'
 
 // WHAT THIS PAGE READS, and why it reads two things.
@@ -859,8 +860,16 @@ export default function TempWorkPage() {
                                 <span className={styles.cTime}>{timeAgo(c.created_at)}</span>
                               </div>
                               <p className={styles.cBody}>{c.body}</p>
-                              {c.user_id === userId && (
+                              {c.user_id === userId ? (
                                 <button className={styles.cDelete} onClick={() => deleteComment(post, c)}>Delete</button>
+                              ) : (
+                                /* THE ONE SURFACE ON THIS PLATFORM THAT IS GENUINELY
+                                   USER-GENERATED. Commenting has no role gate — the
+                                   INSERT policy is user_id = auth.uid() — so a
+                                   candidate's words render here publicly under their
+                                   own name. Reporting your OWN comment is pointless;
+                                   you can delete it, which is the branch above. */
+                                <ReportControl targetType="comment" targetId={c.id} className={styles.cDelete} />
                               )}
                             </div>
                           </div>

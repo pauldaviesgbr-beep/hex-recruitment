@@ -565,6 +565,17 @@ const ALL = [
   // not exist. Needs the database, so it SKIPS (exit 2) without credentials.
   { name: 'blockrefuses:prove', cmd: npm, args: ['run', 'blockrefuses:prove'], couldNotRun: 2 },
 
+  // AND THE ONE THING reportcontrol:prove IS STRUCTURALLY UNABLE TO SEE.
+  // That check reads files, so it passes on a control wired to a target_type
+  // the database's CHECK constraint refuses — perfect in the source, broken at
+  // the moment somebody taps it. This files a real comment report through RLS
+  // against a THROWAWAY shift post owned by the employer fixture (the only live
+  // post on this board belongs to a real employer), asserts an unlisted
+  // target_type is refused by the constraint rather than by RLS, and asserts
+  // the board is id-for-id and status-for-status what it found. SKIPS (exit 2)
+  // without credentials.
+  { name: 'commentreport:prove', cmd: npm, args: ['run', 'commentreport:prove'], couldNotRun: 2 },
+
   { name: 'erasure:prove', cmd: npm, args: ['run', 'erasure:prove'] },
 
   // TWO GATES THAT DECIDE THE SAME THING MUST DECIDE IT FROM THE SAME FACT.

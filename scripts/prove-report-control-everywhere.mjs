@@ -106,10 +106,47 @@ if (threadViews.length !== 1 || threadViews[0] !== THREAD_VIEW) {
   if (!hasBlock) bad++
 }
 
+// ── SHIFT COMMENTS — THE ONLY GENUINELY USER-GENERATED SURFACE ────────────
+//
+// A candidate can comment on a shift post: temp_post_comments' INSERT policy is
+// `user_id = auth.uid()` with NO ROLE GATE, and the comment renders publicly
+// under their own name with a link to their profile. Our age-rating
+// declaration to Apple lists this content; the first 1.2 pass omitted it
+// because it could not be FILMED, which was the wrong test.
+//
+// TWO RENDERERS TODAY — the public feed and the employer's own management
+// view. Found by asking which files RENDER a comment body, not by naming them,
+// so a third turns this red instead of passing quietly.
+const commentRenderers = []
+for (const f of files) {
+  const s = readFileSync(f, 'utf8')
+  // Renders a comment: maps over comment rows AND prints the body.
+  if (/comments\[|TempComment/.test(s) && /\.body\}/.test(s)) {
+    commentRenderers.push({ file: f.split(sep).join('/'), ok: MOUNTS_CONTROL.test(s) })
+  }
+}
+commentRenderers.sort((a, b) => a.file.localeCompare(b.file))
+
+console.log('')
+console.log(`${commentRenderers.length} shift-comment renderers found`)
+for (const c of commentRenderers) {
+  if (!c.ok) bad++
+  console.log('  ' + (c.ok ? 'ok   ' : 'FAIL ') + c.file)
+}
+
+// Same zero-guard as the others: a discriminator that stops matching would
+// otherwise report a clean pass on nothing at all.
+const EXPECTED_COMMENT_RENDERERS = 2
+if (commentRenderers.length < EXPECTED_COMMENT_RENDERERS) {
+  console.log(`FAIL  only ${commentRenderers.length} comment renderers found, expected at least ${EXPECTED_COMMENT_RENDERERS}`)
+  console.log('      The SEARCH has broken, not the product.')
+  bad++
+}
+
 console.log('')
 if (bad) {
   console.log(`${bad} FAILED`)
   process.exit(1)
 }
-console.log('every advert renderer and the thread view carry the shared controls')
+console.log('every advert renderer, the thread view and both comment renderers carry the shared controls')
 process.exit(0)
