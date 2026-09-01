@@ -942,3 +942,11 @@ a.locationInfo.locationLink:hover {
     margin-top: 0.5rem;
   }
 }
+
+/* The right-to-work line under Eligibility. Same style as /job/[id]. */
+.eligibilityNote {
+  margin: 0.25rem 0 0;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: #94a3b8;
+}

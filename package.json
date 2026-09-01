@@ -55,6 +55,7 @@
     "feedexpiry:prove": "npx tsx scripts/prove-feed-expiry.ts",
     "deletiongatekey:prove": "node scripts/prove-deletion-gate-key.mjs",
     "protected:prove": "npx tsx --conditions=react-server scripts/prove-protected-accounts.ts",
+    "rtw:prove": "node scripts/prove-right-to-work-everywhere.mjs",
     "erasure:prove": "npx tsx scripts/prove-erasure.ts",
     "erasureemployer:prove": "npx tsx scripts/prove-erasure-employer.ts",
     "erasureemployerlive:prove": "npx tsx --conditions=react-server scripts/prove-erasure-employer-live.ts",

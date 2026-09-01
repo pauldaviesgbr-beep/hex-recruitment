@@ -524,6 +524,23 @@ const ALL = [
   // in full inside a banner, exit 1.
   { name: 'protected:prove', cmd: npm, args: ['run', 'protected:prove'], couldNotRun: 2 },
 
+  // THE RIGHT-TO-WORK LINE REACHED TWO OF SEVEN ADVERT RENDERERS, and an
+  // employer was told in writing that it was live. Nobody knew there were
+  // seven — the count went 2 → 3 → 7 in one morning as each search widened.
+  // Four pages render their OWN inline detail pane as well as importing
+  // JobDetailModal.
+  //
+  // It asks the question the other way round: find every file that RENDERS
+  // advert detail (`.requirements.map(` / `.benefits.map(` — a card does
+  // neither) and assert each also renders workAuthorization. That catches a
+  // renderer that does not exist yet, which is the actual risk. It also fails
+  // if it finds FEWER than seven, because a discriminator that stops matching
+  // would otherwise report a clean pass on nothing.
+  //
+  // Filesystem only, milliseconds, fast tier. Watched failing on purpose by
+  // breaking the modal's block: one named failure, exit 1, green on restore.
+  { name: 'rtw:prove', cmd: npm, args: ['run', 'rtw:prove'] },
+
   { name: 'erasure:prove', cmd: npm, args: ['run', 'erasure:prove'] },
 
   // TWO GATES THAT DECIDE THE SAME THING MUST DECIDE IT FROM THE SAME FACT.

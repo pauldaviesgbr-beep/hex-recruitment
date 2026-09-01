@@ -510,6 +510,25 @@ export default function JobDetailModal({
             </div>
           )}
 
+          {/* SAME WORDING AND SAME CONDITION AS /job/[id]. Do not vary it.
+              THIS COMPONENT WAS THE FIRST ONE MISSED. The block was added to
+              /job/[id] and the /jobs inline pane on 1 Sept 2026 and reached
+              neither this modal nor the four other inline panes — two of seven
+              renderers — while the employer had already been told it was live.
+              See "when two versions of a thing exist, the wrong one gets read"
+              in CLAUDE.md, and rtw:prove, which now counts them. */}
+          {job.workAuthorization && job.workAuthorization.length > 0 && (
+            <div className={styles.section}>
+              <h2 className={styles.sectionTitle}>Eligibility</h2>
+              <ul className={styles.requirementsList}>
+                {job.workAuthorization.map((item, i) => (
+                  <li key={i}>{item}</li>
+                ))}
+              </ul>
+              <p className={styles.eligibilityNote}>Stated by the employer on this advert.</p>
+            </div>
+          )}
+
           {/* Skills Section */}
           {job.skillsRequired && job.skillsRequired.length > 0 && (
             <div className={styles.section}>
