@@ -75,6 +75,19 @@ export const PROTECTED_ACCOUNTS: ProtectedAccount[] = [
     requires: { emailConfirmed: true, candidateProfile: true },
   },
   {
+    id: 'dfad7ed4-21a7-4d61-b3ea-b784511f9c01',
+    email: 'pauldavies.gbr+applereviewemployer@gmail.com',
+    whatBreaks:
+      'THE EMPLOYER CREDENTIAL APPLE SIGNS IN WITH. Created 1 Sept 2026 as a distinct account so that a ' +
+      'reviewer testing the account-deletion we asked them to look at costs us nothing — deleting Thrive ' +
+      'Test Employer instead would send its four filled adverts to the tombstone permanently, and several ' +
+      'drives assert against them. Company "Thrive Demo Kitchen", three FILLED adverts (never active: ' +
+      'nothing of ours belongs on the public board while the agencies are browsing it), two applications ' +
+      'from Marcus and one message thread with him, so both sides of the demonstration are review fixtures.',
+    // No candidateProfile — this one owns an employer_profiles row instead.
+    requires: { emailConfirmed: true },
+  },
+  {
     id: TOMBSTONE_USER_ID,
     email: TOMBSTONE_EMAIL,
     whatBreaks:
