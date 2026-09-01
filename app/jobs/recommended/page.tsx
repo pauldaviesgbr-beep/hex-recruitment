@@ -21,6 +21,7 @@ import { useAnalyticsTracking } from '@/hooks/useAnalyticsTracking'
 import styles from './page.module.css'
 import { Ico } from '@/components/icons'
 import { formatJobLocation } from '@/lib/jobCard'
+import ReportControl from '@/components/ReportControl'
 
 export default function RecommendedJobsPage() {
   const { jobs, loading: jobsLoading, error: jobsError, refreshJobs } = useJobs()
@@ -613,6 +614,11 @@ export default function RecommendedJobsPage() {
                           <p className={styles.detailEligibilityNote}>Stated by the employer on this advert.</p>
                         </div>
                       )}
+
+            {/* ONE SHARED CONTROL, in all seven advert renderers. See
+                reportcontrol:prove — a per-page copy is how the dead button
+                in JobDetailModal went unnoticed from March to September. */}
+            <ReportControl targetType="job" targetId={selectedJob.id} />
 
                       {/* Skills */}
                       {selectedJob.skillsRequired && selectedJob.skillsRequired.length > 0 && (

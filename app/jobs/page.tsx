@@ -90,6 +90,7 @@ import {
   type PrefFilter,
 } from '@/lib/candidatePrefs'
 import { Ico } from '@/components/icons'
+import ReportControl from '@/components/ReportControl'
 const categories = [{ id: 'all', label: 'All Jobs' }, ...sharedCategories]
 
 // getJobSector now lives in lib/jobSector.ts — the preference resolver needs it too.
@@ -1352,6 +1353,11 @@ function JobsPageContent() {
                   <p className={styles.detailEligibilityNote}>Stated by the employer on this advert.</p>
                 </div>
               )}
+
+            {/* ONE SHARED CONTROL, in all seven advert renderers. See
+                reportcontrol:prove — a per-page copy is how the dead button
+                in JobDetailModal went unnoticed from March to September. */}
+            <ReportControl targetType="job" targetId={selectedJob.id} />
 
               {selectedJob.requirements && selectedJob.requirements.length > 0 && (
                 <div className={styles.detailSection}>

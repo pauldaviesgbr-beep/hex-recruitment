@@ -131,9 +131,49 @@ async function main() {
       after.writeAllowed === true, after.verdict)
 
 
+    // ── 5. AND A REPORT CAN ACTUALLY BE FILED ──────────────────────────
+    // The control writes straight to `content_reports` through RLS — there is
+    // no route — so the policy IS the feature. Proven the same way: as a
+    // signed-in person, not as the service role.
+    const report = await probeWrite(env, {
+      kind: 'insert',
+      table: 'content_reports',
+      payload: {
+        reporter_id: candidateId,
+        target_type: 'message',
+        target_id: convId,
+        reason: 'It is spam or a scam',
+        detail: 'probe',
+      },
+      auth: candidate,
+    })
+    check('A REPORT CAN BE FILED by a signed-in person',
+      report.writeAllowed === true, report.verdict)
+
+    // AND NOBODY ELSE CAN READ IT. A report the reported party can see is
+    // worse than no report control at all.
+    const asEmployer = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.NEXT_PUBLIC_SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: `Bearer ${employer.token}` } },
+      auth: { persistSession: false },
+    })
+    const { data: theirView } = await asEmployer.from('content_reports')
+      .select('id').eq('target_id', convId)
+    check('…and the OTHER party cannot read it', (theirView || []).length === 0,
+      `${(theirView || []).length} visible to them`)
+
+    const asCandidate = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.NEXT_PUBLIC_SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: `Bearer ${candidate.token}` } },
+      auth: { persistSession: false },
+    })
+    const { data: ownView } = await asCandidate.from('content_reports')
+      .select('id').eq('target_id', convId)
+    check('…while the reporter can read their own back',
+      (ownView || []).length === 1, `${(ownView || []).length}`)
+
   } catch (e) {
     check('the proof ran to completion', false, e.message)
   } finally {
+    await admin.from('content_reports').delete().eq('detail', 'probe').then(() => {}, () => {})
     await admin.from('user_blocks').delete().neq('blocker_id', '00000000-0000-0000-0000-000000000000')
       .then(() => {}, () => {})
     if (convId) {
@@ -142,6 +182,9 @@ async function main() {
       const { data: left } = await admin.from('conversations').select('id').eq('id', convId).maybeSingle()
       check('teardown: the probe thread is gone', !left, left ? 'STILL THERE' : 'gone')
     }
+    const { count: reportsLeft } = await admin.from('content_reports')
+      .select('*', { count: 'exact', head: true })
+    check('teardown: no probe reports left behind', (reportsLeft || 0) === 0, `${reportsLeft}`)
     const { count: blocksLeft } = await admin.from('user_blocks')
       .select('*', { count: 'exact', head: true })
     check('teardown: no blocks left behind', (blocksLeft || 0) === 0, `${blocksLeft}`)

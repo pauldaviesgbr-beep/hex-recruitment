@@ -12,6 +12,7 @@ import { useJobs } from '@/lib/JobsContext'
 import { SEO_SECTORS } from '@/lib/seo'
 import styles from './page.module.css'
 import { formatJobLocation } from '@/lib/jobCard'
+import ReportControl from '@/components/ReportControl'
 
 export default function SectorJobsPage() {
   const params = useParams()
@@ -186,6 +187,11 @@ export default function SectorJobsPage() {
                       <p className={styles.detailEligibilityNote}>Stated by the employer on this advert.</p>
                     </div>
                   )}
+
+            {/* ONE SHARED CONTROL, in all seven advert renderers. See
+                reportcontrol:prove — a per-page copy is how the dead button
+                in JobDetailModal went unnoticed from March to September. */}
+            <ReportControl targetType="job" targetId={selectedJob.id} />
                   {selectedJob.benefits?.length > 0 && (
                     <div className={styles.detailSection}>
                       <h3 className={styles.detailSectionTitle}>Benefits</h3>

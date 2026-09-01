@@ -541,6 +541,30 @@ const ALL = [
   // breaking the modal's block: one named failure, exit 1, green on restore.
   { name: 'rtw:prove', cmd: npm, args: ['run', 'rtw:prove'] },
 
+  // THE SAME CHECK, FOR THE 1.2 CONTROLS — written WITH the feature rather
+  // than after the next miss. It asks which files render advert detail and
+  // asserts each mounts the SHARED ReportControl, not a button that says
+  // "report": the dead control in JobDetailModal was exactly such a button,
+  // with no onClick, from March to September, and nothing reading the page
+  // could tell it from a working one. It also asserts there is exactly ONE
+  // thread view and that it carries both the report and block controls.
+  { name: 'reportcontrol:prove', cmd: npm, args: ['run', 'reportcontrol:prove'] },
+
+  // AND THAT THE BLOCK ACTUALLY REFUSES, through real sessions.
+  //
+  // Its FIRST assertion is the regression check and that is the point:
+  // blocking is one clause in the `messages` INSERT policy, which governs every
+  // send in the product. A mistake there does not break blocking, it breaks
+  // MESSAGING, silently, for everyone. It also proves the BLOCKER is refused —
+  // a block that only stops the other person is a mute — and that unblocking
+  // restores sending, without which the whole thing passes on a policy that
+  // refuses everybody.
+  //
+  // The service role bypasses RLS, so this goes through rls-probe as a
+  // signed-in person; an admin-client version would report a block that does
+  // not exist. Needs the database, so it SKIPS (exit 2) without credentials.
+  { name: 'blockrefuses:prove', cmd: npm, args: ['run', 'blockrefuses:prove'], couldNotRun: 2 },
+
   { name: 'erasure:prove', cmd: npm, args: ['run', 'erasure:prove'] },
 
   // TWO GATES THAT DECIDE THE SAME THING MUST DECIDE IT FROM THE SAME FACT.
