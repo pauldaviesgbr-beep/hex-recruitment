@@ -505,6 +505,23 @@ const ALL = [
   // reversing one is a failing check rather than a diff nobody reads.
   { name: 'erasure:prove', cmd: npm, args: ['run', 'erasure:prove'] },
 
+  // TWO GATES THAT DECIDE THE SAME THING MUST DECIDE IT FROM THE SAME FACT.
+  // The delete panel branched on user_metadata.role while /api/account/delete
+  // checked for an employer_profiles row — and the three team-invite routes
+  // stamp role:'employer' on members who own no row. So a team member was told
+  // "your account is closed by hand, email us" about an account the API would
+  // have deleted on request: we refused a right to the one class of user
+  // entitled to it, and neither half errored.
+  //
+  // It asks about the JSX BRANCH form specifically, because `userType ===
+  // 'employer'` is legitimately used three times in that file to pick which
+  // table to read. And it strips comments before asking whether the route
+  // gates on metadata — the route's own comment explains why it must not, and
+  // the first run of this check reported that prose as the fault.
+  // Filesystem only, milliseconds, fast tier. Watched failing on purpose by
+  // restoring the old branch: two named failures, exit 1, green on restore.
+  { name: 'deletiongatekey:prove', cmd: npm, args: ['run', 'deletiongatekey:prove'] },
+
   // THE PLAN AND THE EXECUTION ARE DIFFERENT CLAIMS, so they get different
   // checks. erasure:prove above reads the RULES — that 'employer_notes' is
   // listed in nullColumns. A plan can list a column the executor never

@@ -69,6 +69,26 @@ export default function PrivacySettingsPage() {
   const [confirmText, setConfirmText] = useState('')
   const [deleting, setDeleting] = useState(false)
 
+  // ── WHO OWNS A COMPANY, AS A ROW RATHER THAN AS A CLAIM ──────────────────
+  //
+  // THE DELETION PANEL USED TO BRANCH ON `userType`, WHICH COMES FROM
+  // user_metadata.role — AND THAT IS WRONG FOR TEAM MEMBERS, IN THE DIRECTION
+  // THAT DENIES SOMEBODY A RIGHT.
+  //
+  // All three invite routes — /api/team/accept, /api/team/invite-code and
+  // /api/team/invite-signup — stamp `role: 'employer'` into a member's
+  // metadata. A member owns NO employer_profiles row of their own. So the
+  // screen told them "your account is closed by hand, email us", while
+  // /api/account/delete — which checks the ROW, not the metadata — would have
+  // erased them normally on request. We were refusing a deletion to the one
+  // class of user entitled to it, and telling them something untrue about
+  // their own account to do it.
+  //
+  // NULL UNTIL ASKED, so the panel renders nothing rather than guessing during
+  // the fetch. Guessing 'employee' would flash a Delete button at an owner;
+  // guessing 'employer' would flash the wrong message at a member.
+  const [ownsEmployerProfile, setOwnsEmployerProfile] = useState<boolean | null>(null)
+
   useEffect(() => {
     const loadSettings = async () => {
       if (DEV_MODE) {
@@ -78,6 +98,10 @@ export default function PrivacySettingsPage() {
           return
         }
         setUserType(type)
+        // Dev mode has no database to ask, so the mock role stands in. It is
+        // the one place the metadata IS the answer, because there is no row to
+        // disagree with it.
+        setOwnsEmployerProfile(type === 'employer')
 
         // Load from localStorage
         const savedSettings = localStorage.getItem('privacySettings')
@@ -103,6 +127,19 @@ export default function PrivacySettingsPage() {
       const role = session.user.user_metadata?.role
       const type = role === 'employer' ? 'employer' : 'employee'
       setUserType(type)
+
+      // ASKED SEPARATELY FROM THE SETTINGS FETCH, ON PURPOSE.
+      // The settings query below selects privacy_settings and would return
+      // null both for "no row" and for "the query failed" — and treating a
+      // failure as "no company" would show an owner a Delete button that the
+      // server then refuses. This asks one question with one answer, and
+      // leaves the flag null if it cannot be answered.
+      const { data: ownedCompany, error: companyErr } = await supabase
+        .from('employer_profiles')
+        .select('id')
+        .eq('user_id', session.user.id)
+        .maybeSingle()
+      if (!companyErr) setOwnsEmployerProfile(!!ownedCompany)
 
       // ASK WHETHER THEY ALREADY HAVE ONE OUTSTANDING. Best effort — if this
       // fails the button is simply offered, and a second press is a no-op
@@ -708,7 +745,18 @@ export default function PrivacySettingsPage() {
                 four times and never existed; no catch-all, no bounce, every
                 message silently gone. Do not print an address here that has
                 not been tested. */}
-            {userType === 'employer' ? (
+            {/* BRANCHED ON THE ROW, NOT ON user_metadata.role — the same fact
+                /api/account/delete checks. A team member carries role:'employer'
+                in their metadata and owns no company, so the old test showed
+                them "closed by hand" for an account the server would have
+                deleted on request. Two gates keyed on different facts is how
+                that happened; they are keyed on one fact now.
+
+                NULL MEANS NOT ASKED YET, and renders nothing. It is a third
+                state rather than a falsy employer: defaulting either way would
+                flash the wrong panel at somebody for the length of a fetch, and
+                the wrong panel here is a wrong statement about their rights. */}
+            {ownsEmployerProfile === null ? null : ownsEmployerProfile ? (
               <div className={styles.dangerItem}>
                 <div className={styles.dangerInfo}>
                   <span className={styles.dangerName}>Closing your account</span>
