@@ -5,11 +5,101 @@
 // is a document rather than an archaeology exercise through an imperative
 // script. The executor walks this list; it decides nothing itself.
 //
-// WHY THIS SHAPE. There is not one foreign key from public to auth.users, so
-// nothing cascades and every deletion is a manual enumeration. A list that can
-// be diffed, reviewed and asserted against the live catalogue is the only way
-// that stays correct as tables are added — an imperative script silently goes
-// stale the day someone adds a table and doesn't think about erasure.
+// WHY THIS SHAPE. A list that can be diffed, reviewed and asserted against the
+// live catalogue is the only thing that stays correct as tables are added — an
+// imperative script silently goes stale the day someone adds a table and
+// doesn't think about erasure.
+//
+// ╔═══════════════════════════════════════════════════════════════════════╗
+// ║ THIS COMMENT USED TO SAY: "There is not one foreign key from public to ║
+// ║ auth.users, so nothing cascades and every deletion is a manual         ║
+// ║ enumeration."  IT IS FALSE, AND IT WAS FALSE WHEN IT WAS WRITTEN.      ║
+// ╚═══════════════════════════════════════════════════════════════════════╝
+//
+// Measured 1 Sept 2026 from `pg_constraint`: about 55 foreign keys point into
+// auth.users and MOST OF THEM CASCADE — jobs, messages, conversations,
+// notifications, employer_profiles, interviews, job_offers, saved_candidates,
+// candidate_profiles and more.
+//
+// WHY NOBODY SAW IT: `information_schema`'s constraint views return nothing
+// useful for these tables. A foreign-key query against it on `jobs` comes back
+// EMPTY. Only `pg_constraint` shows them. That is a tool chosen specifically to
+// answer this question, answering it wrongly — the same shape as `cat -A` not
+// showing the \r and `executablePath()` returning a path for a binary that does
+// not exist.
+//
+// ── IT INVERTS THE RISK THE PLAN WAS DESIGNED AROUND ──────────────────────
+//
+// Every rule below was written as though a row would SURVIVE unless the plan
+// named it. The truth is often the opposite: rows go WHETHER OR NOT the plan
+// names them, at the moment auth.users is deleted — which is the LAST step,
+// after every careful anonymise above it.
+//
+// ┌─ THE RULE ──────────────────────────────────────────────────────────────┐
+// │ An ANONYMISE rule on a CASCADE table survives ONLY IF it nulls the       │
+// │ column the constraint follows.                                          │
+// │ A KEEP rule on a CASCADE table does not survive at all.                 │
+// │ Check pg_constraint — never information_schema — before deciding that   │
+// │ a row will survive.                                                      │
+// └─────────────────────────────────────────────────────────────────────────┘
+//
+// ── THE AUDIT, 1 Sept 2026: ALL 31 RULES ─────────────────────────────────
+//
+// THE THREE `keep` RULES:
+//   user_departures     no FK at all                    SURVIVES
+//   offer_audit_log     actor_user_id  NO ACTION        SURVIVES — and blocks, see below
+//   deletion_requests   user_id        CASCADE          ✗ DESTROYED — the erasure
+//                                                         destroys its own audit trail
+//
+// THE NINE `anonymise` RULES — and note WHY each survivor survives:
+//   job_applications    CASCADE   survives: the rule nulls candidate_id (nullable)
+//   temp_post_comments  CASCADE   survives: the rule nulls user_id (nullable)
+//   messages            CASCADE   ✗ DESTROYED — sender_id is NOT NULL, so the rule
+//                                   CANNOT null it and does not try. Its own comment
+//                                   says "sender_id is NOT NULL so it survives as a
+//                                   dangling id" — that is exactly backwards: the
+//                                   dangling id is what the cascade follows.
+//   job_offers          CASCADE   ✗ DESTROYED — candidate_id is NOT NULL and the rule
+//                                   deliberately keeps it, "because the contract is kept"
+//   job_views           SET NULL  survives: the constraint nulls it for us
+//   job_click_events    SET NULL  survives
+//   job_impressions     SET NULL  survives
+//   platform_feedback   SET NULL  survives
+//   application_status_events  no FK   survives
+//
+// THE NINETEEN `delete` RULES are unaffected — a cascade would remove them
+// anyway; the plan simply gets there first.
+//
+// THE TWO SURVIVING ANONYMISE RULES SURVIVE BY LUCK, NOT BY DESIGN. Nobody
+// chose to null the FK column in order to defeat a cascade; they nulled it
+// because the person had to become unlinkable, and defeating the cascade fell
+// out of that. It is now load-bearing and nothing said so until today.
+//
+// AND THE DIVIDING LINE IS NULLABILITY, WHICH IS WHY IT LOOKS ARBITRARY:
+// job_applications.candidate_id and temp_post_comments.user_id are NULLABLE, so
+// the rules could null them and did. messages.sender_id and
+// job_offers.candidate_id are NOT NULL, so those rules could not — and both
+// wrote a comment explaining the value would "survive as a dangling id",
+// unaware that the dangling id is precisely what the cascade follows.
+// The fix for both is a TOMBSTONE user id rather than NULL.
+//
+// ── AND TWO CONSTRAINTS THAT REFUSE THE DELETE OUTRIGHT ───────────────────
+//
+//   offer_audit_log.actor_user_id   → auth.users   NO ACTION   0 rows today
+//   employer_members.invited_by     → auth.users   NO ACTION   0 of 9 rows set
+//
+// NO ACTION IS NOT "SAFE". If a referencing row exists, deleting auth.users
+// RAISES and the whole transaction rolls back. eraseAccount catches it, skips
+// the auth delete, and the route returns "your account has NOT been deleted".
+//
+// SO ANYONE WHO HAS EVER SIGNED AN OFFER, OR EVER INVITED A COLLEAGUE, CANNOT
+// DELETE THEIR ACCOUNT AT ALL. It is a dead end, not data loss — it fails
+// loudly, which is the better direction — but it is 5.1.1(v) failing on a real
+// person. It is a FUSE rather than a fault only because both tables are empty:
+// nobody has used the offer flow or the team invites yet. It is a fuse on the
+// CANDIDATE path as much as the employer one.
+//
+// NOT FIXED IN THIS CHANGE, deliberately, and costed separately.
 //
 // THE DECISIONS BELOW ARE PAUL'S, made 25 Aug 2026 as sole director of the data
 // controller. They are recorded here with their reasoning so the next person
