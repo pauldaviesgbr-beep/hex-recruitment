@@ -78,10 +78,19 @@ export async function POST(req: NextRequest) {
   //
   // THE ERASURE PLAN IS CANDIDATE-SHAPED. Every rule in it reasons about a
   // candidate, and employer_profiles, jobs and subscriptions are not in it at
-  // all. None of those tables has a foreign key either, so nothing cascades.
-  // An employer running this would lose their login while their company
-  // profile and every advert stayed on the public board, owned by a user id
-  // that no longer exists. 9 employers, 319 adverts, 251 of them live.
+  // all.
+  //
+  // ⚠️ THIS COMMENT USED TO CONTINUE: "None of those tables has a foreign key
+  // either, so nothing cascades." THAT IS FALSE. Measured from pg_constraint on
+  // 1 Sept 2026: jobs.employer_id, employer_profiles.user_id and
+  // employer_subscriptions.user_id ALL cascade from auth.users, as do about 55
+  // other columns. information_schema returns nothing for these tables, which
+  // is why it was believed. See the audit at the top of lib/erasure.ts.
+  //
+  // IT MATTERS HERE BECAUSE IT INVERTS THE FEAR. The worry was that an employer
+  // would lose their login while their adverts stayed on the public board owned
+  // by nobody. The opposite is true: the adverts, and every candidate
+  // application underneath them, would be DELETED by the cascade.
   //
   // THE SIGNAL IS A ROW, NOT A CLAIM. user_metadata.role is writable by the
   // user — supabase.auth.updateUser({ data: { role: 'employee' } }) — so the
