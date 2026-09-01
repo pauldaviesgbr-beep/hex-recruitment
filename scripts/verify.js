@@ -542,6 +542,29 @@ const ALL = [
   // Filesystem only, milliseconds, fast tier. Watched failing on purpose by
   // restoring the old branch: two named failures, exit 1, green on restore.
   { name: 'deletiongatekey:prove', cmd: npm, args: ['run', 'deletiongatekey:prove'] },
+  // THE EMPLOYER PLAN, AND IT IS HERE FOR ONE ASSERTION IN PARTICULAR.
+  // Employer tables use two id spaces — every employer_id is the owner's USER
+  // id except employer_members, which is the PROFILE id — and both are uuid, so
+  // the compiler cannot tell them apart. The executor treats zero matches as
+  // success, so a rule pointed at the wrong space deletes nothing and reports
+  // matched: 0, which looks exactly like an employer with no team. Nothing goes
+  // red and the team survives the deletion of their company.
+  //
+  // It also carries a COVERAGE list: every table in the schema that holds an
+  // employer id must have a decision, so the next table added goes red here
+  // rather than being silently left behind. Watched failing on purpose by
+  // dropping employer_members' idSpace — two named failures, exit 1.
+  { name: 'erasureemployer:prove', cmd: npm, args: ['run', 'erasureemployer:prove'] },
+
+  // AND THE SAME PLAN RUN FOR REAL. It creates a throwaway employer with an
+  // advert and an application, erases them, and reads every row back — which is
+  // the only thing that can catch the fault that shaped this whole feature: the
+  // adverts were archived correctly, the receipt said `jobs archive matched=1
+  // affected=1`, and the rows were GONE, because jobs.employer_id cascades from
+  // auth.users. The plan was right and the schema removed its work.
+  //
+  // Needs the database and a service key, so it SKIPS (exit 2) without them.
+  { name: 'erasureemployerlive:prove', cmd: npm, args: ['run', 'erasureemployerlive:prove'], couldNotRun: 2 },
 
   // THE PLAN AND THE EXECUTION ARE DIFFERENT CLAIMS, so they get different
   // checks. erasure:prove above reads the RULES — that 'employer_notes' is

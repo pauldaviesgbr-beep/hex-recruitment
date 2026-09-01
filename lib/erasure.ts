@@ -111,19 +111,47 @@ export type Action =
   | 'delete'
   /** The row stays; identifying columns are nulled or blanked. */
   | 'anonymise'
+  /** The row stays and stays whole; it is taken out of circulation. */
+  | 'archive'
   /** Deliberately untouched, with a reason. */
   | 'keep'
   /** Cannot be done as decided — a constraint blocks it. The executor STOPS. */
   | 'blocked'
+
+/**
+ * WHICH ID THE `column` HOLDS. Employer tables use TWO DIFFERENT ID SPACES and
+ * getting it wrong is SILENT: the executor treats zero matches as success, so a
+ * rule pointed at the wrong space reports `matched: 0` and looks like a table
+ * the employer simply had no rows in.
+ *
+ * Measured across the live data on 1 Sept 2026 rather than assumed:
+ *
+ *     jobs                   319 / 319 rows match a user_id     → 'user'
+ *     employer_availability    7 /   7 rows match a user_id     → 'user'
+ *     temp_posts               1 /   1 rows match a user_id     → 'user'
+ *     employer_members         9 /   9 rows match a PROFILE id  → 'profile'
+ *
+ * NINE MORE TABLES WERE EMPTY, so the data could not answer for them and their
+ * space was READ FROM THE CODE THAT WRITES THEM instead — `job_offers` carries
+ * the comment "employer_id MUST be the employer OWNER's user id", and
+ * `employer_email_templates` "keyed employer_id = owner user_id". Every writer
+ * uses `getCurrentEmployerOwnerId()`.
+ *
+ * So the rule is: **every `employer_id` in this schema is the owner's USER id
+ * except `employer_members`, which is the employer PROFILE id.**
+ */
+export type IdSpace = 'user' | 'profile' | 'email'
 
 export interface TableRule {
   table: string
   /** The column carrying the person's id. */
   column: string
   action: Action
+  /** Which id `column` holds. Defaults to 'user'. */
+  idSpace?: IdSpace
   /** For 'anonymise': columns set to null. */
   nullColumns?: string[]
-  /** For 'anonymise': columns set to a literal (used where NOT NULL forbids null). */
+  /** For 'anonymise' and 'archive': columns set to a literal. */
   literalColumns?: { column: string; value: string }[]
   /**
    * For 'anonymise': columns repointed at TOMBSTONE_USER_ID.
@@ -138,6 +166,13 @@ export interface TableRule {
    * pointing at nobody, NOT NULL is satisfied, and the row is orphaned silently.
    */
   tombstoneColumns?: string[]
+  /**
+   * Match `column` against the ids of THIS EMPLOYER'S JOBS rather than against
+   * a user or profile id. Only job_applications needs it: the employer link is
+   * job_applications.job_id → jobs.employer_id, and there is no employer column
+   * to `.eq()` on. The executor resolves the job list first.
+   */
+  viaEmployerJobs?: boolean
   why: string
   /** Set when action is 'blocked' — what stops it, and what the options are. */
   blocker?: string
@@ -401,6 +436,190 @@ export const ERASURE_PLAN: TableRule[] = [
     why: 'It IS the departure log, and it stores an email DOMAIN rather than an address.' },
 ]
 
+// ─── THE EMPLOYER PLAN ─────────────────────────────────────────────────────
+//
+// WHAT ERASING AN EMPLOYER DOES. A SEPARATE LIST, NOT A BRANCH IN THE FIRST
+// ONE, because almost nothing is shared: the candidate plan reasons about a
+// person applying for work, and this one reasons about a business account that
+// other people's data hangs off.
+//
+// PAUL'S DECISIONS, 1 Sept 2026, recorded with their reasoning:
+//
+//   (a) ADVERTS ARE ARCHIVED, NOT DELETED. A live vacancy nobody can answer is
+//       worse than one that has gone; but deleting the row would take the
+//       CONTEXT of every application under it — a candidate's own record of
+//       what they applied for. Archiving satisfies both.
+//
+//   (b) APPLICATIONS ARE KEPT, AND THE EMPLOYER SIDE IS ANONYMISED. Candidates
+//       applied in confidence to a company. That is CANDIDATE data, and it does
+//       not become deletable because the employer's login goes. This is the
+//       exact mirror of what we already do to an employer's records when a
+//       CANDIDATE leaves.
+//
+//   (c) DELETION REFUSES WHILE OTHER TEAM MEMBERS EXIST. Removing the owner
+//       under a colleague's feet would break their account silently. The owner
+//       is told to remove the team first. Ownership TRANSFER is a follow-up
+//       feature and deliberately not a prerequisite.
+//
+// AND ONE THING THAT NEEDED NO DECISION, because the schema already handles it:
+// THE FOUNDING-COHORT SPOT RETURNS TO THE POOL ON ITS OWN.
+// `count_founding_spots_claimed()` is `COUNT(*) FROM employer_subscriptions s
+// JOIN auth.users u ON u.id = s.user_id`, so the moment the auth row goes the
+// spot stops being counted. No code here does that, and none should.
+export const EMPLOYER_ERASURE_PLAN: TableRule[] = [
+  // ── THE ADVERTS: ARCHIVED AND REPOINTED, IN ONE RULE ─────────────────────
+  //
+  // THIS RULE WAS BLOCKED UNTIL THE TOMBSTONE EXISTED, and the reason is worth
+  // keeping because it nearly cost a migration:
+  //
+  //     jobs_employer_id_fkey        jobs.employer_id → auth.users   CASCADE
+  //     job_applications_job_id_fkey job_applications.job_id → jobs  CASCADE
+  //
+  // The LAST step of the erasure is deleting auth.users — that is what makes
+  // the login actually go — and it took every advert with it, and every
+  // application underneath those adverts with them. Archiving them first
+  // worked perfectly and was undone a moment later.
+  //
+  // MEASURED, NOT REASONED. The live proof archived the advert and anonymised
+  // the application — receipt `jobs archive matched=1 affected=1` — and both
+  // rows were GONE when read back. The executor was correct; the schema removed
+  // its work.
+  //
+  // THE FIRST PROPOSED FIX WAS A MIGRATION making employer_id nullable with ON
+  // DELETE SET NULL. It was dropped in favour of the tombstone: a schema change
+  // to the table behind 251 live adverts, plus an audit of every consumer that
+  // assumes non-null, is a poor trade against pointing the column at an account
+  // that is never deleted. Same outcome, no migration, reversible with an
+  // UPDATE.
+  { table: 'jobs', column: 'employer_id', action: 'archive',
+    tombstoneColumns: ['employer_id'],
+    literalColumns: [{ column: 'status', value: 'archived' }],
+    why: "Decision (a). The advert comes off the board so no candidate applies to a company that is gone, " +
+         "and the ROW stays because every application under it needs its title and company for the " +
+         "candidate's own record — deleting it would erase candidate history in order to erase an " +
+         "employer. employer_id is repointed at the tombstone because it is NOT NULL and carries a " +
+         "CASCADE; without that the row is destroyed a moment after being archived." },
+
+
+  // DECISION (b), AND THE ONE RULE THAT CANNOT BE A SIMPLE `.eq()`.
+  // There is no employer column on job_applications — the link is
+  // job_applications.job_id → jobs.employer_id. `viaEmployerJobs` tells the
+  // executor to resolve that job list first and match `job_id` against it.
+  //
+  // NOT modelled as 'blocked': that action makes the ROUTE refuse the whole
+  // erasure, which is the opposite of what should happen here.
+  { table: 'job_applications', column: 'job_id', action: 'anonymise', viaEmployerJobs: true,
+    nullColumns: ['employer_notes'],
+    why: "Decision (b). The application STAYS — it is the candidate's record of applying, and it does not " +
+         "become deletable because the employer left. What goes is the employer side: `employer_notes` is " +
+         "free text an employer wrote about a named candidate, which is that candidate's personal data as " +
+         "much as anyone's. Exact mirror of the candidate plan, which nulls the same column." },
+
+  // ── Theirs alone: no other party has an interest ─────────────────────────
+  { table: 'employer_profiles', column: 'user_id', action: 'delete',
+    why: 'The profile is the business account: company name, contact name, email, phone, business address.' },
+  { table: 'employer_subscriptions', column: 'user_id', action: 'delete',
+    why: "The commercial relationship, keyed to a user id that is about to stop existing. NOTHING HAS " +
+         "EVER BEEN CHARGED — free founding mode, Stripe unreachable — so no financial record is lost " +
+         "and the 6-year HMRC retention does not bite. REVISIT THE DAY MONEY CHANGES HANDS: this becomes " +
+         "'keep' the moment there is an invoice behind it." },
+  { table: 'employer_availability', column: 'employer_id', action: 'delete',
+    why: 'Their interview availability. Meaningless without them.' },
+  { table: 'employer_availability_overrides', column: 'employer_id', action: 'delete',
+    why: 'Block-outs against the availability above.' },
+  { table: 'employer_email_templates', column: 'employer_id', action: 'delete',
+    why: 'Their own message templates. Their words, about their own hiring, to nobody now.' },
+  { table: 'ai_generation_usage', column: 'employer_id', action: 'delete',
+    why: 'Usage metering for one account.' },
+  { table: 'saved_candidates', column: 'employer_id', action: 'delete',
+    why: 'Their shortlist of candidates. The candidates are untouched; the shortlist was theirs.' },
+  { table: 'interview_notes', column: 'employer_id', action: 'delete',
+    why: 'Free text they wrote about candidates. Under decision (b) this is the employer side of a ' +
+         'candidate record and it goes — a note naming a candidate is that candidate\'s data too.' },
+  { table: 'temp_posts', column: 'employer_id', action: 'delete',
+    why: 'Short-notice shift posts. Unlike a job advert nothing hangs off one: interest is recorded ' +
+         'separately and is deleted with the candidate who expressed it.' },
+  { table: 'interviews', column: 'employer_id', action: 'delete',
+    why: 'An interview with an employer who no longer exists cannot happen. Deleted rather than kept so ' +
+         'no candidate is left holding a booking against nobody. ZERO ROWS TODAY — this rule exists so ' +
+         'the first one is not a surprise.' },
+  { table: 'interview_bookings', column: 'employer_id', action: 'delete',
+    why: 'The booked slot behind an interview. Same reasoning. NOTE, and it is not ours to fix here: a ' +
+         'booking that reached Google Calendar is NOT removed from the calendar by this — the privacy ' +
+         'policy already says disconnecting does not delete existing events. ZERO ROWS TODAY.' },
+
+  // ── Team ────────────────────────────────────────────────────────────────
+  //
+  // MATCHED ON THE PROFILE ID, NOT THE USER ID. The one table in the schema
+  // that does. Getting this wrong deletes nothing and reports success.
+  { table: 'employer_members', column: 'employer_id', idSpace: 'profile', action: 'delete',
+    why: 'Membership rows for a company that no longer exists. Reached ONLY once the refusal above has ' +
+         'confirmed no OTHER member remains, so in practice this removes the owner\'s own row.' },
+
+  // ── Shared with the candidate plan: same table, same reasoning ───────────
+  { table: 'device_tokens', column: 'user_id', action: 'delete',
+    why: 'MUST go, or push notifications keep arriving after the account is gone.' },
+  { table: 'push_log', column: 'user_id', action: 'delete', why: 'Delivery log for pushes to them.' },
+  { table: 'notifications', column: 'user_id', action: 'delete', why: 'Their own notifications.' },
+  { table: 'user_onboarding', column: 'user_id', action: 'delete', why: 'Their onboarding progress.' },
+  { table: 'platform_feedback', column: 'user_id', action: 'anonymise', nullColumns: ['user_id'],
+    why: 'The feedback is useful; who sent it is not.' },
+  // sender_id is NOT NULL — this rule said `nullColumns: ['sender_id']` when it
+  // was written and would have THROWN on the first employer with a message.
+  // Repointed at the tombstone instead, exactly as the candidate plan does.
+  { table: 'messages', column: 'sender_id', action: 'anonymise',
+    tombstoneColumns: ['sender_id'],
+    literalColumns: [{ column: 'content', value: '[deleted]' },
+                     { column: 'sender_name', value: 'Deleted account' }],
+    why: 'Same treatment a candidate gets. The thread keeps its shape so the other party\'s replies still ' +
+         'make sense; the words and the author go.' },
+  // AND THE THREAD ITSELF, or the messages above are destroyed one level up:
+  // both participant columns cascade and messages cascade from conversations.
+  // Missing from both plans until the live proof found it.
+  { table: 'conversations', column: 'participant_1', action: 'anonymise',
+    tombstoneColumns: ['participant_1'],
+    literalColumns: [{ column: 'participant_1_name', value: 'Deleted account' }],
+    nullColumns: ['participant_1_company'],
+    why: 'The thread survives so the candidate keeps their own messages and the replies still make sense.' },
+  { table: 'conversations', column: 'participant_2', action: 'anonymise',
+    tombstoneColumns: ['participant_2'],
+    literalColumns: [{ column: 'participant_2_name', value: 'Deleted account' }],
+    nullColumns: ['participant_2_company'],
+    why: 'The same, for the other side. Which side someone is on is an accident of who started the thread.' },
+  { table: 'job_views', column: 'viewer_id', action: 'anonymise', nullColumns: ['viewer_id'],
+    why: 'A view stays in the statistics with nobody attached. The row is a count, not a person.' },
+  { table: 'job_click_events', column: 'user_id', action: 'anonymise', nullColumns: ['user_id'],
+    why: 'A click on a board result. Kept for the funnel, with the person detached from it.' },
+  { table: 'job_impressions', column: 'user_id', action: 'anonymise', nullColumns: ['user_id'],
+    why: 'An impression carries the SEARCH QUERY that produced it, which is declared to Apple as Search ' +
+         'History linked to the user. Detaching the user is what makes keeping the query honest.' },
+  { table: 'application_status_events', column: 'actor_id', action: 'anonymise', nullColumns: ['actor_id'],
+    why: 'The event happened and matters to the candidate; who moved it does not.' },
+  { table: 'profile_views', column: 'viewer_id', action: 'delete',
+    why: 'Candidate profiles THEY viewed. viewer_id is NOT NULL so anonymising is impossible.' },
+
+  // ── Reachable only by email ─────────────────────────────────────────────
+  { table: 'email_log', column: 'recipient', idSpace: 'email', action: 'delete',
+    why: 'Delivery log against an address that is being erased. MATCHED BY EMAIL.' },
+  { table: 'waitlist', column: 'email', idSpace: 'email', action: 'delete',
+    why: 'Nothing but the address. MATCHED BY EMAIL.' },
+
+  // ── Kept, deliberately ──────────────────────────────────────────────────
+  { table: 'company_reviews', column: 'employer_id', action: 'keep',
+    why: "A review is the CANDIDATE'S speech about a workplace, not the employer's data. Deleting an " +
+         "employer must not delete what people said about working for them. `employer_response` is the " +
+         "one part they wrote, and it is public commentary they chose to publish." },
+  { table: 'job_offers', column: 'employer_id', action: 'keep',
+    why: 'A signed offer is a CONTRACT and is kept for the same reason it is kept when a candidate ' +
+         'leaves. Zero rows today; this rule exists so the first one is not a surprise.' },
+  { table: 'offer_audit_log', column: 'actor_user_id', action: 'keep',
+    why: 'The audit trail of a contract.' },
+  { table: 'deletion_requests', column: 'user_id', action: 'keep',
+    why: 'The record that proves we did what was asked.' },
+  { table: 'user_departures', column: 'user_id', action: 'keep',
+    why: 'The departure log. Stores an email DOMAIN, not an address.' },
+]
+
 /** Tables matched by email address rather than by a user id. */
 export const EMAIL_MATCHED = ERASURE_PLAN
   .filter(r => ['email_log', 'waitlist', 'employer_members'].includes(r.table))
@@ -439,6 +658,11 @@ export function objectBelongsTo(name: string, userId: string): boolean {
 /** Anything the plan cannot carry out as decided. The executor must refuse. */
 export function blockers(): TableRule[] {
   return ERASURE_PLAN.filter(r => r.action === 'blocked')
+}
+
+/** The same question, asked of the employer plan. */
+export function employerBlockers(): TableRule[] {
+  return EMPLOYER_ERASURE_PLAN.filter(r => r.action === 'blocked')
 }
 
 export interface ReceiptLine {
