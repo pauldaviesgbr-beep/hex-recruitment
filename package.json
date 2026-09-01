@@ -56,6 +56,8 @@
     "deletiongatekey:prove": "node scripts/prove-deletion-gate-key.mjs",
     "protected:prove": "npx tsx --conditions=react-server scripts/prove-protected-accounts.ts",
     "erasure:prove": "npx tsx scripts/prove-erasure.ts",
+    "erasureemployer:prove": "npx tsx scripts/prove-erasure-employer.ts",
+    "erasureemployerlive:prove": "npx tsx --conditions=react-server scripts/prove-erasure-employer-live.ts",
     "erasurelive:prove": "npx tsx --conditions=react-server scripts/prove-erasure-live.ts",
     "tombstone:create": "npx tsx --conditions=react-server scripts/create-tombstone-owner.ts",
     "tombstonelive:prove": "npx tsx --conditions=react-server scripts/prove-erasure-tombstone-live.ts",

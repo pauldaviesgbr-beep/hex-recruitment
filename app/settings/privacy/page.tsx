@@ -59,6 +59,7 @@ export default function PrivacySettingsPage() {
   const [saving, setSaving] = useState(false)
   const [exporting, setExporting] = useState(false)
   const [userType, setUserType] = useState<'employer' | 'employee' | null>(null)
+
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [settings, setSettings] = useState<PrivacySettings>(defaultJobSeekerSettings)
   const [requesting, setRequesting] = useState(false)
@@ -745,30 +746,29 @@ export default function PrivacySettingsPage() {
                 four times and never existed; no catch-all, no bounce, every
                 message silently gone. Do not print an address here that has
                 not been tested. */}
-            {/* BRANCHED ON THE ROW, NOT ON user_metadata.role — the same fact
-                /api/account/delete checks. A team member carries role:'employer'
-                in their metadata and owns no company, so the old test showed
-                them "closed by hand" for an account the server would have
-                deleted on request. Two gates keyed on different facts is how
-                that happened; they are keyed on one fact now.
+            {/* ONE PANEL FOR BOTH ROLES, AND THAT IS THE POINT OF THE CHANGE.
+                Until 1 Sept 2026 an employer got a different panel here with no
+                button and an email address on it. That was a real gap — App
+                Store Guideline 5.1.1(v) requires an app offering account
+                creation to offer account deletion in the app, "Hire on Thrive"
+                is the primary call to action on our own launch screen, and our
+                Terms promised employers this route in three places while it did
+                not exist.
 
-                NULL MEANS NOT ASKED YET, and renders nothing. It is a third
-                state rather than a falsy employer: defaulting either way would
-                flash the wrong panel at somebody for the length of a fetch, and
-                the wrong panel here is a wrong statement about their rights. */}
-            {ownsEmployerProfile === null ? null : ownsEmployerProfile ? (
-              <div className={styles.dangerItem}>
-                <div className={styles.dangerInfo}>
-                  <span className={styles.dangerName}>Closing your account</span>
-                  <span className={styles.dangerDescription}>
-                    Employer accounts are closed by hand, because your job adverts and the
-                    applications candidates have sent to them have to be dealt with first.
-                    Email <a href="mailto:contact@thrivecareer.co.uk">contact@thrivecareer.co.uk</a>{' '}
-                    and we will take care of it.
-                  </span>
-                </div>
-              </div>
-            ) : (
+                THE CONTROL IS IDENTICAL AND ONLY THE DESCRIPTION DIFFERS,
+                because the two roles genuinely lose different things and a
+                shared sentence would have to be vague about both. What must NOT
+                differ is the path: one button, one typed confirmation, one
+                endpoint. The server decides which erasure plan runs.
+
+                AND THE DESCRIPTION BRANCHES ON THE ROW, NOT ON
+                user_metadata.role — the same fact /api/account/delete checks. A
+                team member carries role:'employer' in their metadata and owns no
+                company, so the metadata test would tell them their adverts are
+                being archived when they have none. NULL MEANS NOT ASKED YET and
+                renders nothing: defaulting either way describes the wrong
+                consequences to somebody for the length of a fetch. */}
+            {ownsEmployerProfile === null ? null : (
             <div className={styles.dangerItem}>
               <div className={styles.dangerInfo}>
                 <span className={styles.dangerName}>Delete my account</span>
@@ -776,13 +776,25 @@ export default function PrivacySettingsPage() {
                     SUBSTANCE. Section 7 tells people three things are kept and
                     why; a settings screen that says "everything is deleted"
                     would make that page a lie the moment they read it. */}
-                <span className={styles.dangerDescription}>
-                  Deletes your account and your data straight away. Your profile, CV, photo,
-                  saved jobs, alerts and notifications are removed. Applications you sent stay
-                  with the employer with your name and details stripped out, anything you wrote
-                  in a message becomes &quot;[deleted]&quot;, and a signed job offer is kept because it is
-                  a contract. This cannot be undone.
-                </span>
+                {ownsEmployerProfile ? (
+                  <span className={styles.dangerDescription}>
+                    Deletes your account and your company profile straight away. Your job adverts are
+                    archived, so they come off the board and nobody can apply to them. Applications
+                    candidates already sent you are kept — they are the candidate&apos;s own record of
+                    applying — but any notes you wrote about them are removed, along with your saved
+                    candidates, interview availability and message templates. Anything you wrote in a
+                    message becomes &quot;[deleted]&quot;, and reviews people left about your company stay,
+                    because those are their words rather than yours. This cannot be undone.
+                  </span>
+                ) : (
+                  <span className={styles.dangerDescription}>
+                    Deletes your account and your data straight away. Your profile, CV, photo,
+                    saved jobs, alerts and notifications are removed. Applications you sent stay
+                    with the employer with your name and details stripped out, anything you wrote
+                    in a message becomes &quot;[deleted]&quot;, and a signed job offer is kept because it is
+                    a contract. This cannot be undone.
+                  </span>
+                )}
               </div>
               {/* IT IS A BUTTON AGAIN, AND NOW IT EARNS THAT. It was briefly a
                   mailto link, on the principle that a button implies something
