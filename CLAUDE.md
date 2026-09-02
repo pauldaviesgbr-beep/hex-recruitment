@@ -154,6 +154,10 @@ Standing rules for Claude Code on this project. These override default behaviour
 
 - **DO NOT PIPE A CHECK. IF YOU MUST, `set -o pipefail` FIRST.** A pipe returns the LAST command's status, so `EXIT=0` sits happily on top of a crash — `node drive.mjs | tail -30` reported success over a stack trace that killed the process.
   - This replaces an entry that merely DESCRIBED that happening. The description had been in this file for weeks, was read the same night, and did not prevent it. **A rule you have to remember at the moment of typing is not a rule, it is a hope** — so this one is phrased as the instruction rather than the anecdote.
+  - **AND IT FAILS MOST OFTEN WHILE YOU ARE BUSY PROVING SOMETHING ELSE — Paul's observation, 2 Sept 2026, about me doing it that morning.** The BEFORE half of a positive control was run as `node drive.mjs | tail -16` and printed **`BEFORE EXIT: 0`** over a run that had exited **1**. The drive was correct, the failure it reported was correct, and the exit line above it was `tail`'s. **The rule caught mid-use of the rule**, in a session that had already written two entries about reading exit codes rather than labels.
+  - **THE REASON IS ATTENTION, NOT IGNORANCE.** Nobody pipes a check they are thinking about. It happens when the check is *scaffolding for something else* — you are proving the autofocus, and the drive is just the instrument, so the instrument gets the careless treatment. **The moments the rule protects are exactly the moments you are not watching it.**
+  - Same shape as the stale timezone offset from the same morning: **a correct operation on a corrupted input, and neither announces itself.** `tail` really does exit 0; +3 really is how you add three. The output looks like an answer in both cases.
+  - **So the defence cannot be vigilance.** Redirect to a file and read the status — `cmd > "$TEMP/out.txt" 2>&1; echo "exit: $?"` — then `grep` or `tail` the file as much as you like. The status and the reading are separated, and the careless half is the one that cannot lie.
   - The habit exists to shorten output. If a check's output is too long to read, **the summary is the thing to fix** — every drive here already ends with one line and an exit code.
 - Watched failing on purpose (a deliberate type error): exit 1, three of four named, the real compiler error shown. Then green again on restore.
 
@@ -842,6 +846,14 @@ Four instances, evidenced rather than asserted:
 **THE CHEAP HABIT, AND IT IS ONE COMMAND.** Before trusting a definition you have just read, grep for the table name, the column, or the component's job — not for the file you are already in. `grep -rn "table: 'messages'"` returns two hits. `grep -rln "sectionTitle}>.*Requirements"` finds three advert renderers. **The second copy announces itself in seconds and is invisible if you do not ask.**
 
 **AND THE TELL THAT YOU ARE IN IT:** you are confident, the code in front of you says exactly what you expect, and the thing still does not behave. That is not a reason to re-read the same file harder. It is the reason to ask what else defines this.
+
+
+- **A FIX REPORTED AS COMPLETE IS ONLY EVER COMPLETE ACROSS THE SET YOU ENUMERATED — Paul's line, after it happened TWICE IN ONE DAY.** 2 Sept 2026:
+  - **The advert renderers went 2 → 3 → 7.** The right-to-work line was added to two, driven, verified, merged, and an employer told it was live. Then the report control was "mounted everywhere" — and asserting POSITION rather than presence found it wrong on **five** of the seven.
+  - **The demo posters went 2 → 3.** A leak was fixed on the two the homepage appeared to use; the sweep found a **third** pair, `ai-questions`, forty lines further down the same file, with the same browser chrome and the same bookmarks bar.
+  - **BOTH CORRECTIONS CAME FROM ASKING "HOW MANY ARE THERE" RATHER THAN "IS THIS ONE FIXED."** Nothing else would have found either. The fix was minutes in both cases; **the enumeration was the work.**
+  - **AND THE COUNT IS ALWAYS TOO LOW, NEVER TOO HIGH** — the same direction as "9 of 62", "11 of 37 call sites" and "seven emoji of thirty-seven". A search finds what it was shaped to find, so the shape of the search IS the finding. That is why `reportcontrol:prove` and `rtw:prove` ask which files RENDER an advert rather than which files mention reporting, and why both carry a zero-guard: a discriminator that stops matching would otherwise report a clean pass on nothing at all.
+  - **THE HABIT: BEFORE REPORTING A FIX AS DONE, SAY OUT LOUD HOW MANY THERE ARE AND HOW YOU COUNTED THEM.** If the answer is "the ones I was shown", it is not done — it is done to the edge of somebody else's frame, which is the same fault as reading the bottom of a page and concluding a control is absent.
 
 ## Verification — how checks fail quietly
 
