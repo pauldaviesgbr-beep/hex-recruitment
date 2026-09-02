@@ -346,6 +346,55 @@ export default function MessagesPage() {
     }
   }, [selectedConversation, markConversationAsRead, loadMessages])
 
+  // PUBLISH HOW MUCH OF THE VIEWPORT THE KEYBOARD IS COVERING.
+  //
+  // `.messagesLayout` is `position: fixed; bottom: var(--keyboard-inset, 0px)`
+  // at <=768px. iOS does NOT shrink the LAYOUT viewport when the software
+  // keyboard opens — only the visual one — so a plain `bottom: 0` keeps
+  // resolving to a point behind the keyboard, and iOS scrolls the visual
+  // viewport to reveal the focused input, dragging the whole fixed block up
+  // and taking the chat header — and Report and Block with it — off screen.
+  //
+  // THE MEASUREMENT, AND WHY IT IS THIS ONE. `visualViewport.height` is what
+  // the person can actually see; `window.innerHeight` is the layout viewport,
+  // which the keyboard does not change. `offsetTop` is how far iOS has already
+  // scrolled the visual viewport inside the layout one. The difference is the
+  // covered strip, and clamping at 0 means the address bar collapsing — which
+  // moves these numbers slightly and is not a keyboard — can never push the
+  // layout upward.
+  //
+  // NEITHER DECLARATIVE ANSWER WORKS HERE, WHICH IS WHY THIS IS JS.
+  // `100dvh` tracks browser chrome, not the keyboard: on iOS the keyboard is
+  // not part of the dynamic viewport. `interactive-widget=resizes-content` in
+  // the viewport meta is the proper fix and Safari on iOS does not implement
+  // it. This is the only mechanism that reads the keyboard on this platform.
+  //
+  // IT IS A NO-OP EVERYWHERE ELSE. No `visualViewport` and no listener is
+  // attached, so the variable is never set and the CSS falls back to `0px`. A
+  // desktop browser reports a covered strip of 0. It is set on the messages
+  // page only and removed on unmount, so no other page can inherit it.
+  //
+  // NOT VERIFIED ON A HANDSET as of 2 Sept 2026. I cannot raise a software
+  // keyboard from a headless browser, so this is the mechanism written down —
+  // not a claim that it works. See the report for what to look at.
+  useEffect(() => {
+    const vv = typeof window !== 'undefined' ? window.visualViewport : null
+    if (!vv) return
+    const root = document.documentElement
+    const apply = () => {
+      const covered = Math.max(0, window.innerHeight - vv.height - vv.offsetTop)
+      root.style.setProperty('--keyboard-inset', `${Math.round(covered)}px`)
+    }
+    apply()
+    vv.addEventListener('resize', apply)
+    vv.addEventListener('scroll', apply)
+    return () => {
+      vv.removeEventListener('resize', apply)
+      vv.removeEventListener('scroll', apply)
+      root.style.removeProperty('--keyboard-inset')
+    }
+  }, [])
+
   // OPENING A CONVERSATION DOES NOT FOCUS THE COMPOSER, DELIBERATELY.
   //
   // There used to be a `setTimeout(() => inputRef.current?.focus(), 100)`
