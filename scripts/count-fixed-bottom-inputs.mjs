@@ -67,14 +67,30 @@ for (const f of css) {
     const sel = m[1].trim().split('\n').pop().trim()
     const decl = m[2]
     if (!/position:\s*fixed/.test(decl)) continue
-    const bottom0 = /bottom:\s*0/.test(decl)
+    // BOTTOM: ANY VALUE, NOT bottom: 0.
+    // The first version asked for `bottom: 0` and MISSED ChatBot, whose panel
+    // is `bottom: calc(24px + var(--consent-h, 0px))` — fixed, anchored to the
+    // bottom edge, carrying an input, and autofocusing it on open. An offset
+    // from the bottom is still anchored to the bottom, and the iOS keyboard
+    // does not care about the 24px. Same shape as checking for the instances
+    // instead of the class.
+    const bottomAnchored = /bottom:\s*[^;}]+/.test(decl)
     const inset0 = /inset:\s*0/.test(decl)
-    if (!bottom0 && !inset0) continue
-    const top0 = /top:\s*0/.test(decl) || inset0
+    if (!bottomAnchored && !inset0) continue
+    const top0 = /top:\s*[^;}]+/.test(decl) || inset0
+    // THE SPLIT IS DESCRIPTIVE, NOT DECISIVE, AND THE FIRST VERSION HAD IT
+    // BACKWARDS. Widening `bottom: 0` to `bottom: <any>` moved
+    // `.messagesLayout` out of "bottom bar" and into "full-screen", because it
+    // sets top AND bottom — and it is the one surface where this fault is
+    // PROVEN. A category that hides the known case is the wrong category.
+    //
+    // What decides risk is that the element's BOTTOM EDGE is pinned to the
+    // layout viewport while an input sits inside it. Everything below is
+    // at risk; the sub-split only says what shape it is.
     found.push({
       file: f.split(sep).join('/'),
       selector: sel,
-      shape: top0 ? 'full-screen' : 'bottom bar',
+      shape: top0 ? 'full-height panel (top and bottom both pinned)' : 'floating bar (bottom only)',
     })
   }
 }
@@ -108,8 +124,8 @@ rows.sort((a, b) =>
   (a.shape.localeCompare(b.shape)) || (Number(b.hasInput) - Number(a.hasInput)) ||
   a.file.localeCompare(b.file))
 
-const bars = rows.filter(r => r.shape === 'bottom bar')
-const full = rows.filter(r => r.shape === 'full-screen')
+const bars = rows.filter(r => r.shape.startsWith('floating'))
+const full = rows.filter(r => r.shape.startsWith('full-height'))
 
 const table = (label, set) => {
   console.log('')
@@ -125,15 +141,15 @@ const table = (label, set) => {
 }
 
 console.log('SURFACES PINNED TO THE VIEWPORT, AND WHETHER THEY CARRY A TEXT INPUT')
-table('bottom bars — pinned to the bottom edge only', bars)
-table('full-screen — top and bottom both pinned', full)
+table('floating bars — bottom edge pinned only', bars)
+table('full-height panels — top AND bottom pinned (this is the /messages shape)', full)
 
 const atRisk = rows.filter(r => r.hasInput)
 console.log('')
 console.log('THE ANSWER')
 console.log('')
-console.log(`  ${bars.filter(r => r.hasInput).length}  bottom bars carrying a text input   <- the /messages shape`)
-console.log(`  ${full.filter(r => r.hasInput).length}  full-screen surfaces carrying one    <- a different shape, check separately`)
+console.log(`  ${bars.filter(r => r.hasInput).length}  floating bars carrying a text input`)
+console.log(`  ${full.filter(r => r.hasInput).length}  full-height panels carrying one   <- .messagesLayout is in here`)
 console.log(`  ${atRisk.length}  total`)
 console.log('')
 console.log('  This PRINTS. It does not pass or fail — it is the survey before the sweep,')
