@@ -56,7 +56,17 @@ const check = (label: string, ok: boolean, detail?: string) => {
 
 async function main() {
   const stamp = Date.now()
-  const email = `pauldavies.gbr+tombstone${stamp}@gmail.com`
+  // THE DOMAIN IS THE DISCRIMINATOR, AND IT HAS TO BE PER-RUN.
+  // `user_departures` records the email DOMAIN and a fixed zero uuid, so a
+  // row written by this proof and one written by prove-erasure-employer-live
+  // or prove-null-author-render — both of which call eraseAccount, and all
+  // three of which `verify` runs CONCURRENTLY — are identical on every column
+  // this script used to filter on. It counted its siblings' rows and its
+  // teardown DELETED them. Observed 2 Sept 2026: `teardown: the proof's
+  // departure row is gone   2 left`, on a push hook, with the database
+  // measured clean afterwards.
+  const DOMAIN = `tombstone-proof-${stamp}.invalid`
+  const email = `proof@${DOMAIN}`
   const SIGNED_AS = `Proof Runner ${stamp}`
   const SAID = `I am very interested in this role. ${stamp}`
   let userId: string | null = null
@@ -129,8 +139,12 @@ async function main() {
     if (oErr || !offer) throw new Error('could not create the offer: ' + oErr?.message)
     offerId = offer.id as string
 
+    // Scoped to OUR domain, so a sibling erasing at the same moment cannot
+    // move it. A global count is what made `beforeDepartures + 1` a race
+    // rather than an assertion.
     const beforeDepartures = (await admin.from('user_departures')
-      .select('*', { count: 'exact', head: true })).count || 0
+      .select('*', { count: 'exact', head: true })
+      .eq('email_domain', DOMAIN)).count || 0
 
     // ── ERASE ────────────────────────────────────────────────────────────
     const receipt = await eraseAccount(admin, userId, { email })
@@ -165,13 +179,17 @@ async function main() {
     // ── THE TRACE ────────────────────────────────────────────────────────
     const { data: departures, count: afterCount } = await admin.from('user_departures')
       .select('user_id, email_domain, role, reason, days_held', { count: 'exact' })
-      .eq('reason', 'self_deleted').order('departed_at', { ascending: false }).limit(1)
+      .eq('reason', 'self_deleted').eq('email_domain', DOMAIN)
+      .order('departed_at', { ascending: false }).limit(1)
     check('A DEPARTURE ROW WAS WRITTEN — an erasure used to leave no trace at all',
       (afterCount || 0) > 0 && (await admin.from('user_departures')
-        .select('*', { count: 'exact', head: true })).count === beforeDepartures + 1,
-      `${beforeDepartures} → ${(await admin.from('user_departures').select('*', { count: 'exact', head: true })).count}`)
+        .select('*', { count: 'exact', head: true })
+        .eq('email_domain', DOMAIN)).count === beforeDepartures + 1,
+      `${beforeDepartures} → ${(await admin.from('user_departures')
+        .select('*', { count: 'exact', head: true })
+        .eq('email_domain', DOMAIN)).count}`)
     const dep = departures?.[0]
-    check('…it carries the email DOMAIN only', dep?.email_domain === 'gmail.com', String(dep?.email_domain))
+    check('…it carries the email DOMAIN only', dep?.email_domain === DOMAIN, String(dep?.email_domain))
     check('…and NOT the person\'s user id', dep?.user_id === '00000000-0000-0000-0000-000000000000',
       String(dep?.user_id))
 
@@ -187,8 +205,11 @@ async function main() {
     if (appId) await admin.from('job_applications').delete().eq('id', appId).then(() => {}, () => {})
     if (msgId) await admin.from('messages').delete().eq('id', msgId).then(() => {}, () => {})
     if (convId) await admin.from('conversations').delete().eq('id', convId).then(() => {}, () => {})
+    // ONLY OUR OWN. The previous filter was reason + gmail.com + the zero
+    // uuid, every part of which a SIBLING proof's row also satisfies — so
+    // this delete used to destroy another running proof's audit row.
     await admin.from('user_departures').delete()
-      .eq('reason', 'self_deleted').eq('email_domain', 'gmail.com')
+      .eq('reason', 'self_deleted').eq('email_domain', DOMAIN)
       .eq('user_id', '00000000-0000-0000-0000-000000000000').then(() => {}, () => {})
     if (userId) await admin.auth.admin.deleteUser(userId).catch(() => {})
 
@@ -204,7 +225,8 @@ async function main() {
       check(`teardown: the throwaway ${label} is gone`, !left, left ? 'STILL THERE' : 'gone')
     }
     const { count: leftDep } = await admin.from('user_departures')
-      .select('*', { count: 'exact', head: true }).eq('reason', 'self_deleted')
+      .select('*', { count: 'exact', head: true })
+      .eq('reason', 'self_deleted').eq('email_domain', DOMAIN)
     check('teardown: the proof\'s departure row is gone', (leftDep || 0) === 0, `${leftDep} left`)
   }
 
