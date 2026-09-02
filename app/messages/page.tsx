@@ -346,12 +346,42 @@ export default function MessagesPage() {
     }
   }, [selectedConversation, markConversationAsRead, loadMessages])
 
-  // Focus input when conversation opens
-  useEffect(() => {
-    if (selectedConversation) {
-      setTimeout(() => inputRef.current?.focus(), 100)
-    }
-  }, [selectedConversation])
+  // OPENING A CONVERSATION DOES NOT FOCUS THE COMPOSER, DELIBERATELY.
+  //
+  // There used to be a `setTimeout(() => inputRef.current?.focus(), 100)`
+  // here. It arrived in `cce9f68` — the repository's FIRST COMMIT, 1 March
+  // 2026 — months before this page had a mobile layout to weigh it against.
+  // No width check, no touch check, no condition of any kind. Nobody chose it
+  // for a phone, because when it was written there was no phone to choose for.
+  //
+  // ON iOS IT RAISED THE KEYBOARD UNPROMPTED, AND THAT COST THE HEADER.
+  // The keyboard does not shrink the LAYOUT viewport, only the visual one, and
+  // `.messagesLayout` is `position: fixed; bottom: 0` at <=768px — so its
+  // bottom edge stays behind the keyboard and iOS scrolls the visual viewport
+  // to reveal the focused input. The chat header goes with it, and the chat
+  // header is where Report and Block live.
+  //
+  // So the screen an App Store reviewer opens to check that moderation
+  // controls exist had scrolled them off before the reviewer touched anything.
+  //
+  // AND IT IS WRONG ON DESKTOP TOO, which is why this is a fix rather than a
+  // workaround: opening a thread is not a declaration that you intend to type.
+  // You might be reading it, checking what was said, or looking for the report
+  // control. Stealing focus jumps the scroll position for all three.
+  //
+  // THIS IS NOT THE VIEWPORT FIX. Tapping the composer deliberately still
+  // triggers the layout fault; that is a separate change on `.messagesLayout`.
+  // This only stops the fault being reached without the person asking for it.
+  //
+  // `scripts/drive-thread-does-not-steal-focus.mjs` asserts it from the
+  // rendered page — activeElement after the thread opens — because a grep can
+  // say this line is gone and cannot say nothing else focuses the composer.
+  // It also asserts the composer STILL focuses when tapped, so the check
+  // cannot pass on a composer that is disabled or missing.
+  //
+  // ChatBot.tsx carries the identical line and KEEPS it, on purpose: that
+  // widget only opens on an explicit tap whose single purpose is to type a
+  // question, and it has no content outside the panel to lose.
 
   // Poll for new messages every 5 seconds
   useEffect(() => {
