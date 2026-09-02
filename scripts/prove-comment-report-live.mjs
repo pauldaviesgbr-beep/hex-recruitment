@@ -42,6 +42,7 @@
 // constraint does not list, and requires that one to be REFUSED — and refused
 // by the CONSTRAINT rather than by RLS, which are different answers.
 
+import { randomUUID } from 'node:crypto'
 import { createClient } from '@supabase/supabase-js'
 import { loadEnv, sessionFor, probeWrite } from './lib/rls-probe.mjs'
 
@@ -61,9 +62,29 @@ const admin = createClient(env.NEXT_PUBLIC_SUPABASE_URL, SERVICE, { auth: { pers
 
 const CANDIDATE_EMAIL = 'pauldavies.gbr+candidate@gmail.com'
 const EMPLOYER_EMAIL = 'pauldavies.gbr+employer@gmail.com'
-const MARKER = 'comment-report probe — delete me'
+// ── THE MARKER IS UNIQUE PER RUN, AND THAT TOOK THREE GOES ───────────────
+//
+// One shared marker was wrong in both directions and each fix caused the next
+// fault:
+//
+//   1. A shared title meant the board comparison saw a SIBLING run's probe
+//      post as an unexplained change, and reported "the board is NOT as it was
+//      found" — red, about the product, caused by another copy of itself.
+//   2. Excluding the marker from the comparison fixed that, and then a
+//      teardown that deleted by postId alone LEAKED a row whenever a run died
+//      between the insert and learning the id.
+//   3. A backstop deleting every post with the marker fixed the leak and
+//      killed a sibling run's LIVE post mid-check — the other run's comment
+//      insert then had no post to attach to, and it reported "no row".
+//
+// A PREFIX plus a per-run id settles all three. The prefix is what "not a real
+// post" is recognised by; the full title is what THIS run may delete. Two runs
+// can now overlap completely and neither can touch the other.
+const MARKER_PREFIX = 'comment-report probe — delete me'
+const MARKER = `${MARKER_PREFIX} #${randomUUID().slice(0, 8)}`
 
 let bad = 0
+let skipped = false
 const check = (label, ok, detail) => {
   if (!ok) bad++
   console.log('  ' + (ok ? 'ok   ' : 'FAIL ') + String(label).padEnd(62) + (detail ?? ''))
@@ -72,17 +93,34 @@ const check = (label, ok, detail) => {
 async function main() {
   let postId = null
   let commentId = null
+  // Hoisted so the teardown can guard on the OWNER as well as the marker even
+  // when the run died before postId was assigned. See the backstop below.
+  let employerUid = null
 
   // READ THE BOARD BEFORE TOUCHING IT. The teardown compares against this, so
-  // "the real post is untouched" is a measurement rather than an assumption.
-  const { data: liveBefore } = await admin.from('temp_posts').select('id, status')
-  const before = (liveBefore || []).map(p => `${p.id}:${p.status}`).sort().join(',')
-  console.log(`the board holds ${(liveBefore || []).length} shift post(s) before this runs`)
+  // "the real post is untouched" is a measurement rather than an assumption —
+  // and it EXCLUDES every probe post, this run's or a sibling's, recognised by
+  // the prefix. See the MARKER block above for why that took three attempts.
+  //
+  // It stays honest: a REAL post that appeared, vanished or changed status
+  // still fails this, because no real post carries the prefix. It is narrower
+  // than "nothing on the board changed", and it is the widest statement the
+  // check can make truthfully while another copy of itself may be running.
+  const notOurs = (rows) => (rows || [])
+    .filter(p => !String(p.title || '').startsWith(MARKER_PREFIX))
+    .map(p => `${p.id}:${p.status}`).sort().join(',')
+
+  const { data: liveBefore } = await admin.from('temp_posts').select('id, status, title')
+  const before = notOurs(liveBefore)
+  const mine = (liveBefore || []).filter(p => String(p.title || '').startsWith(MARKER_PREFIX)).length
+  console.log(`the board holds ${(liveBefore || []).length - mine} real shift post(s) before this runs` +
+    (mine ? `  (and ${mine} probe post(s) — another run of this check is in flight)` : ''))
   console.log('')
 
   try {
     const candidate = await sessionFor(env, CANDIDATE_EMAIL)
     const employer = await sessionFor(env, EMPLOYER_EMAIL)
+    employerUid = employer.userId
 
     // ── A THROWAWAY POST ────────────────────────────────────────────────
     const { data: post, error: pErr } = await admin.from('temp_posts').insert({
@@ -183,10 +221,51 @@ async function main() {
       `${(ownView || []).length}`)
 
   } catch (e) {
-    check('the proof ran to completion', false, e.message)
+    // ── A DEAD NETWORK IS NOT A PRODUCT FAULT ─────────────────────────────
+    //
+    // This blocked a push on 1 Sept 2026 with `could not create the probe
+    // post: TypeError: fetch failed` — the machine was running a verify, a
+    // push hook and a browser drive at once, and the request never left. The
+    // check reported FAILED, which reads as "shift comments cannot be
+    // reported" and is a statement about the product this run never made.
+    //
+    // Exit 2 SKIP is the convention this project already uses for exactly
+    // this: migrations:check does it, verify.js knows it as `couldNotRun: 2`,
+    // and NOT VERIFIED is deliberately not the same thing as FAIL. Narrow on
+    // purpose — only a TRANSPORT failure, and only before any assertion about
+    // the product has been made. Anything else stays as loud as it was.
+    const transport = /fetch failed|ECONNRESET|ETIMEDOUT|ENOTFOUND|EAI_AGAIN|socket hang up/i
+      .test(String(e?.message || e))
+    if (transport && bad === 0) {
+      console.log('')
+      console.log('SKIP  the network went away before anything was asserted:')
+      console.log('      ' + String(e?.message || e).slice(0, 140))
+      console.log('      This is NOT a pass. Nothing about reporting was checked.')
+      skipped = true
+    } else {
+      check('the proof ran to completion', false, e.message)
+    }
   } finally {
     console.log('')
     await admin.from('content_reports').delete().eq('detail', MARKER).then(() => {}, () => {})
+
+    // ── THE BACKSTOP, AND IT EXISTS BECAUSE A CONTROL LEAKED A ROW ────────
+    //
+    // Watching the network-blip path fail on purpose left a probe post on the
+    // live feed: the throw landed BETWEEN the insert succeeding and
+    // `postId = post.id`, so the id-based teardown below had nothing to delete
+    // and the row sat there. Deleting by postId alone assumes the run got far
+    // enough to learn the id — which is exactly the assumption a failure
+    // breaks, and the teardown is the one part of a check that has to survive
+    // the failure.
+    //
+    // GUARDED SO THE WRONG TARGET IS IMPOSSIBLE: the marker title, which no
+    // real post carries, AND the employer fixture as owner.
+    if (employerUid) {
+      await admin.from('temp_posts').delete()
+        .eq('title', MARKER).eq('employer_id', employerUid).then(() => {}, () => {})
+    }
+
     if (postId) {
       await admin.from('notifications').delete().eq('related_id', String(postId)).then(() => {}, () => {})
       await admin.from('temp_post_comments').delete().eq('post_id', postId).then(() => {}, () => {})
@@ -205,13 +284,22 @@ async function main() {
     // status against the read taken before anything was written, so a real
     // post that was touched shows up here rather than a count that still adds
     // up.
-    const { data: liveAfter } = await admin.from('temp_posts').select('id, status')
-    const after = (liveAfter || []).map(p => `${p.id}:${p.status}`).sort().join(',')
-    check('teardown: the board is exactly as it was found', after === before,
-      `${(liveAfter || []).length} post(s)`)
+    const { data: liveAfter } = await admin.from('temp_posts').select('id, status, title')
+    const after = notOurs(liveAfter)
+    const stillMine = (liveAfter || []).filter(p => String(p.title || '').startsWith(MARKER_PREFIX)).length
+    check('teardown: every REAL shift post is exactly as it was found', after === before,
+      `${(liveAfter || []).length - stillMine} real post(s)` +
+      (stillMine ? `, ${stillMine} probe post(s) belonging to another run` : ''))
   }
 
   console.log('')
+  // A SKIP OUTRANKS THE HAPPY SENTENCE. Printing "a shift comment can be
+  // reported" after a run that never reached the report is the exact false
+  // pass this file exists to avoid.
+  if (skipped) {
+    console.log('SKIPPED — the network failed at setup, so nothing was checked. Re-run it.')
+    process.exit(2)
+  }
   console.log(bad
     ? `${bad} FAILED`
     : 'a shift comment can be reported, an unlisted target cannot, and the board is unchanged')

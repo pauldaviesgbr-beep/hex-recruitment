@@ -80,7 +80,28 @@ export function loadEnv() {
  * admin generate_link yields a hashed_token, /auth/v1/verify exchanges it.
  * Needs SUPABASE_SERVICE_ROLE_KEY in env. Use ONLY on test accounts.
  */
-export async function sessionFor(env, email) {
+// ── TWO RUNS MINTING FOR THE SAME ACCOUNT KILL EACH OTHER'S TOKEN ─────────
+//
+// `auth.users` holds ONE token per account. A second generate_link overwrites
+// the first, and the first's /verify then comes back
+// `403 otp_expired — Email link is invalid or has expired`.
+//
+// THIS IS ALREADY IN CLAUDE.md, ABOUT PASSWORD RESETS: "requesting a second
+// reset link kills the first, and the refusal it produces blames the wrong
+// thing". Same mechanism, different consumer — and the message is just as
+// misleading here, because nothing has expired. It reads as a broken fixture.
+//
+// It bites whenever two checks that use this helper overlap: two pushes, or a
+// push while `npm run verify` is running. Observed 1 Sept 2026 by running
+// `commentreport:prove` twice a second apart — one passed, one died at the
+// first sessionFor.
+//
+// So it retries ONCE on a superseded token, and only on that. A retry loop
+// would hide a genuinely broken fixture; one retry closes the race and leaves
+// every other failure exactly as loud as it was.
+const SUPERSEDED = /otp_expired|invalid or has expired/i
+
+export async function sessionFor(env, email, attempt = 0) {
   const service = env.SUPABASE_SERVICE_ROLE_KEY
   if (!service) throw new ProbeError('SUPABASE_SERVICE_ROLE_KEY missing — cannot mint a session')
   const g = await fetch(`${env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/admin/generate_link`, {
@@ -96,7 +117,15 @@ export async function sessionFor(env, email) {
     headers: { apikey: env.NEXT_PUBLIC_SUPABASE_ANON_KEY, 'Content-Type': 'application/json' },
     body: JSON.stringify({ type: 'magiclink', token_hash: hash }),
   })
-  if (!v.ok) throw new ProbeError(`verify ${v.status}: ${(await v.text()).slice(0, 120)}`)
+  if (!v.ok) {
+    const body = (await v.text()).slice(0, 200)
+    if (attempt === 0 && SUPERSEDED.test(body)) {
+      // Not a wait-and-hope: mint a fresh link immediately. The token was
+      // taken, not timed out, so there is nothing to wait for.
+      return sessionFor(env, email, 1)
+    }
+    throw new ProbeError(`verify ${v.status}: ${body.slice(0, 120)}`)
+  }
   const vj = await v.json()
   return { token: vj.access_token, userId: vj.user?.id, role: vj.user?.user_metadata?.role, email }
 }
