@@ -828,6 +828,15 @@ Standing rules for Claude Code on this project. These override default behaviour
   - **THE ASSERTION IS THE AGREEMENT, NOT EITHER SIDE.** `styles.foo` exists in the TSX and `.foo` exists in the module: neither alone is the claim. Same shape as `--sticky-offset: 40px` against a cell rendering at 52, and as `width: 112px` rendering at 145 — a declared name and a rendered rule are different objects and only a comparison sees it.
   - **AND IT IS WORSE THAN A MISSING STYLE, BECAUSE THE CONTENT IS RIGHT.** Nothing is absent, nothing errors, the words are correct — the line simply sits in the wrong typeface at the wrong size in the wrong colour, which reads as a rendering bug rather than a missing file. Only a screenshot or the stylesheet finds it.
 
+- **ASSERTING THE VALUE IN A RULE IS NOT ASSERTING THE VALUE ON THE PAGE — A LATER DECLARATION WINS AND YOUR CHECK NEVER SEES IT.** `democrop:prove` guards the three properties that crop a Chrome window, bookmarks bar and all, off the three home-page demo videos. Paul asked the right question — does it assert the VALUES or only that the properties EXIST? It asserted the values: `1280 / 550 -> 1280 / 672`, `bottom -> center` and `cover -> contain` each gave exit 1 and the correctly named failure, watched on purpose and unpiped. **But the question found a real gap one step along.** Adding
+
+      @media (max-width: 768px) { .demoVideo { object-position: center } }
+
+  leaves the original rule untouched and word-for-word correct, so all three value checks pass — **measured, exit 0, zero failures** — and the bookmarks bar is back at exactly the width the App Store recording is shot at. A guard reporting green while the fault it exists to prevent is live on the home page.
+  - **IT IS THE SPECIFICITY RULE ALREADY IN THIS FILE, MET FROM THE OTHER SIDE.** There a media query silently undid a FIX; here it silently undoes a CHECK. Same mechanism, and the second one is worse because the check is what you would look at to find out.
+  - **THE CLOSE IS A COUNT, NOT A PARSER.** Each of those three properties is used ONCE in that stylesheet and has no other reason to appear, so "declared exactly once" says "nothing overrides the crop" exactly and in one line. If a second use ever becomes legitimate it has to become a specificity comparison — **and that is a moment to think, not a number to raise.**
+  - **AND ONE DELIBERATE STRICTNESS, RECORDED SO IT IS NOT LATER MISTAKEN FOR A BUG:** the check also rejects `aspect-ratio: 2.327`, which is the same ratio and would work. The literal `1280 / 550` documents the arithmetic that makes the crop exact — 672 − 550 = 122, the height of the Chrome window — and a decimal hides it. Stricter than the behaviour it guards is the safe direction, but say so rather than sell it as precision.
+
 ## When two versions of a thing exist, the wrong one gets read
 
 The pattern this file has carried longest is **a check that is true of more than the thing it tests**. This is the OTHER one, and on 1 Sept 2026 it produced three faults in a single day, which makes it the more common failure now.
