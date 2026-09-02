@@ -166,11 +166,34 @@
    committed to anything and the action costs them nothing, which is the same
    reasoning that puts yellow on Apply Now. */
 
+/* RESERVED HEIGHTS — WHY THREE BLOCKS ON THIS PAGE CARRY A min-height.
+   app/page.tsx is a client component and four useEffect fetches fill in the
+   count, the salary count, the newest roles and the founding-spots number.
+   Until they land those blocks are empty, so the page was ~460px shorter and
+   everything below shifted down when the data arrived — measured on a cold
+   load: "See Thrive in action" moved from y=617 to y=964.
+
+   That is App Store guideline 2.1 territory (app completeness) on the first
+   screen a reviewer sees, so the space is reserved and nothing moves.
+
+   EVERY NUMBER HERE WAS MEASURED ON THE SETTLED PAGE, at the width it applies
+   to, not estimated:
+
+       width   newest-roles   247 line   founding strip
+        1440       268px        21px         46px
+         820       318px        20px         46px
+         393       361px        20px         67px
+
+   VISUAL ONLY. No fetch, no gate and no claim changed — a block that does not
+   know its value still says nothing, it just says nothing in the right amount
+   of space. If any of these blocks is redesigned, re-measure rather than
+   nudging the number: the whole point is that it matches the settled height. */
 .heroUnderline {
   font-size: 13.5px;
   line-height: 1.5;
   color: #A9B7CB;
   margin: 14px 0 0;
+  min-height: 20px;
 }
 
 .heroUnderline strong { color: #fff; font-weight: 700; }
@@ -183,6 +206,10 @@
 .heroRolesSection {
   background: var(--off-white);
   padding: 22px 0 26px;
+  /* Reserved — see the note above .heroUnderline. box-sizing so this number is
+     the rendered box height, which is the thing that was measured. */
+  box-sizing: border-box;
+  min-height: 268px;
 }
 
 .heroRolesInner {
@@ -313,6 +340,11 @@
 .foundingStrip {
   margin: 0;
   padding: 12px 16px;
+  /* Reserved — see the note above .heroUnderline. 46px is one line at desktop
+     and tablet; the mobile block raises it to 67px, where the sentence wraps
+     to two. The band therefore paints immediately and only the words wait. */
+  box-sizing: border-box;
+  min-height: 46px;
   background: #F1F5F9;
   border-bottom: 1px solid var(--border-gray);
   text-align: center;
@@ -778,12 +810,21 @@
 /* Responsive */
 /* Tablet (≤1024px) — headline 32px per spec */
 @media (max-width: 1024px) {
+  /* Reserved — measured at 820px. See the note above .heroUnderline. */
+  .heroRolesSection { min-height: 318px; }
+
   .heroTitle {
     font-size: 2rem; /* 32px */
   }
 }
 
 @media (max-width: 768px) {
+  /* Reserved — measured at 393px, the width the App Store recording is shot
+     at. See the note above .heroUnderline. The strip is taller here because
+     the sentence wraps to two lines. */
+  .heroRolesSection { min-height: 361px; }
+  .foundingStrip { min-height: 67px; }
+
   .hero {
     min-height: auto;
     padding: 4.5rem 0 2.5rem;
@@ -874,13 +915,35 @@
   border-radius: 14px;
   overflow: hidden;
   line-height: 0;
+  /* RESERVES THE HEIGHT BEFORE THE MEDIA LOADS, and defines the window the
+     crop above is measured against. Without it the three demo blocks had no
+     height until their poster decoded, which moved everything below them —
+     the earliest and largest shift on this page, and a separate cause from
+     the data-driven one the min-heights address. */
+  aspect-ratio: 1280 / 550;
   background: #0f172a;
   border: 1px solid rgba(15, 23, 42, 0.06);
   box-shadow: 0 12px 32px rgba(15, 23, 42, 0.14);
 }
 .demoVideo {
   width: 100%;
-  height: auto;
+  /* THE CSS PERFORMS THE SAME CROP AS THE POSTER, AND THE ARITHMETIC IS EXACT.
+     The recordings are 1280x672 and include 122px of Chrome window at the top
+     — tab strip, address bar and a bookmarks bar with readable entries. The
+     posters have been re-cut to 1280x550; the videos could not be, because the
+     job-banners bucket only accepts image/* and refuses an mp4.
+
+     cover + object-position: bottom removes the overflow from the TOP, and the
+     overflow is exactly 672 - 550 = 122px — the chrome, to the pixel. So the
+     browser furniture is off screen whether the poster or the video is
+     showing, and the two have the same shape so neither reflows into the
+     other.
+
+     WHEN THE CROPPED MP4s ARE UPLOADED this stays correct and becomes a no-op:
+     a 1280x550 source already fills a 1280/550 box with nothing to crop. */
+  height: 100%;
+  object-fit: cover;
+  object-position: bottom;
   display: block;
 }
 .demoText { flex: 1 1 42%; }

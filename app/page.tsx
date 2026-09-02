@@ -195,13 +195,19 @@ export default function Home() {
               live roles with a real figure equals the count of live roles.
               Note that `salary_max is not null` is NOT the test — both those
               rows pass it. The value has to be above zero. */}
-          {liveJobs !== null && liveJobs > 0 && (
-            <p className={styles.heroUnderline}>
-              <strong>{liveJobs.toLocaleString()}</strong> roles live now
-              {rolesWithSalary !== null && rolesWithSalary === liveJobs && ', with the salary on every one'}
-              . No account needed to look.
-            </p>
-          )}
+          {/* SAME SHAPE AS THE FOUNDING STRIP: the <p> always renders and
+              reserves its line, and only the sentence waits for the count.
+              The claim itself is still gated exactly as before — nothing is
+              said until liveJobs is known and above zero. */}
+          <p className={styles.heroUnderline}>
+            {liveJobs !== null && liveJobs > 0 && (
+              <>
+                <strong>{liveJobs.toLocaleString()}</strong> roles live now
+                {rolesWithSalary !== null && rolesWithSalary === liveJobs && ', with the salary on every one'}
+                . No account needed to look.
+              </>
+            )}
+          </p>
 
         </div>
       </section>
@@ -247,11 +253,34 @@ export default function Home() {
 
       {/* The founding-cohort offer. It was inside the hero, arguing to
           employers on a screen that now belongs to candidates. It is the one
-          money claim we are allowed to make, so it moves rather than goes. */}
+          money claim we are allowed to make, so it moves rather than goes.
+
+          IT RENDERS NOTHING UNTIL THE COUNT IS KNOWN, AND THAT IS THE WHOLE
+          FIX. There used to be a `: ` branch here — "First 100 employers get
+          12 months free · no card needed · free for candidates to apply" —
+          shown while `spotsRemaining` was still null.
+
+          `spotsRemaining` is fetched client-side, so that placeholder was on
+          screen for the whole of every cold load: A MONEY CLAIM ABOUT AN OFFER
+          WE HAD NOT COUNTED, on the candidate-facing home page, and the first
+          thing an App Store reviewer saw. It also said something different
+          from the settled text, so the strip visibly rewrote itself.
+
+          THE LINE DIRECTLY ABOVE THIS ONE ALREADY HANDLED THE SAME PROBLEM THE
+          RIGHT WAY. `liveJobs !== null && liveJobs > 0` renders nothing until
+          it knows, for exactly the reason argued in its own comment: a count
+          that never answers must drop the claim rather than default it in.
+          Two treatments of one question, forty lines apart, and the one that
+          invented a value was the one a candidate saw. */}
+      {/* THE ELEMENT IS ALWAYS RENDERED; ONLY THE WORDS WAIT. The <p> holds
+          its own height from the first paint (see .foundingStrip's min-height),
+          so the band is there immediately and nothing below it moves when the
+          count lands. Making the whole <p> conditional would have removed the
+          false claim and introduced a 46-67px jump in its place. */}
       <p className={styles.foundingStrip}>
         {spotsRemaining !== null
           ? `${spotsRemaining} of ${EMPLOYER_COHORT_CAP} founding spots left · ${foundingPhraseShort()} · no card needed`
-          : `First ${EMPLOYER_COHORT_CAP} employers get ${foundingPhraseShort()} · no card needed · free for candidates to apply`}
+          : ''}
       </p>
 
 
