@@ -847,6 +847,14 @@ Four instances, evidenced rather than asserted:
 
 **AND THE TELL THAT YOU ARE IN IT:** you are confident, the code in front of you says exactly what you expect, and the thing still does not behave. That is not a reason to re-read the same file harder. It is the reason to ask what else defines this.
 
+
+- **A FIX REPORTED AS COMPLETE IS ONLY EVER COMPLETE ACROSS THE SET YOU ENUMERATED — Paul's line, after it happened TWICE IN ONE DAY.** 2 Sept 2026:
+  - **The advert renderers went 2 → 3 → 7.** The right-to-work line was added to two, driven, verified, merged, and an employer told it was live. Then the report control was "mounted everywhere" — and asserting POSITION rather than presence found it wrong on **five** of the seven.
+  - **The demo posters went 2 → 3.** A leak was fixed on the two the homepage appeared to use; the sweep found a **third** pair, `ai-questions`, forty lines further down the same file, with the same browser chrome and the same bookmarks bar.
+  - **BOTH CORRECTIONS CAME FROM ASKING "HOW MANY ARE THERE" RATHER THAN "IS THIS ONE FIXED."** Nothing else would have found either. The fix was minutes in both cases; **the enumeration was the work.**
+  - **AND THE COUNT IS ALWAYS TOO LOW, NEVER TOO HIGH** — the same direction as "9 of 62", "11 of 37 call sites" and "seven emoji of thirty-seven". A search finds what it was shaped to find, so the shape of the search IS the finding. That is why `reportcontrol:prove` and `rtw:prove` ask which files RENDER an advert rather than which files mention reporting, and why both carry a zero-guard: a discriminator that stops matching would otherwise report a clean pass on nothing at all.
+  - **THE HABIT: BEFORE REPORTING A FIX AS DONE, SAY OUT LOUD HOW MANY THERE ARE AND HOW YOU COUNTED THEM.** If the answer is "the ones I was shown", it is not done — it is done to the edge of somebody else's frame, which is the same fault as reading the bottom of a page and concluding a control is absent.
+
 ## Verification — how checks fail quietly
 
 These are all real, from this project. A check that passes for the
