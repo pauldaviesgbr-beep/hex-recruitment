@@ -13,6 +13,12 @@ Standing rules for Claude Code on this project. These override default behaviour
   - **This is not cosmetic on a ROLLING draft.** The draft is refreshed in place, so the timestamp in it is the ONLY staleness check a fresh session — or Paul, hours later — has for whether it describes now or this morning.
   - Git shas and log timestamps were never affected; those come from tools. It is only the line a person types. `date -u` costs nothing.
 
+- **PAUL IS ON UK TIME. BST = UTC+1. Reports and cron schedules are stated in UTC; convert with +1.** He was in Greece on EEST (UTC+3) through August and came back to the UK on **24 August 2026**.
+  - **THE STALE OFFSET PRODUCED A CONFIDENT WRONG ANSWER, AND THE ARITHMETIC WAS PERFECT.** On 2 Sept 2026 he sent four handset screenshots stamped 06:22–06:26. Converted at +3 they are 03:22–03:26 UTC, and the fix he was asking about landed at 05:25 UTC — so they were reported as predating it by **two hours**, which is why they showed the old header. At +1 they are 05:22–05:26: they predate it by **one to three minutes, and the last was taken after it**. Every step of the sum was right and the reference frame was two weeks out of date.
+  - **SAME FAMILY AS READING A LABEL INSTEAD OF AN EXIT CODE.** Both are a correct operation on a wrong input, and neither announces itself: a stale offset converts as confidently as a fresh one, and the answer looks exactly like an answer.
+  - **A STORED OFFSET IS A FACT ABOUT WHERE SOMEBODY WAS, AND PEOPLE MOVE.** It is the same rot as the board count, the "only two proven addresses" and the 231 Goldenkeys adverts — but harder to notice, because a location has no row anywhere to disagree with it.
+  - **THE CHEAP DEFENCE: WHEN A CONVERSION WOULD CHANGE A CONCLUSION, PRINT BOTH.** "05:25 UTC (06:25 yours)" makes the frame visible and lets him catch the drift in one glance. A bare local time hides the only assumption that can be wrong.
+
 ## Saying what you actually did
 
 - **Say plainly what you DROVE and what you only READ. Never dress up one as the other.** "Verified" means a browser was pointed at it and something was clicked. If a state could not be reached — no data existed, the account was wrong, it would have touched real rows — say so and say why, rather than reasoning about the code and calling that verification. Every UI bug found on this project so far was found by a person unable to click something, never by reading.
