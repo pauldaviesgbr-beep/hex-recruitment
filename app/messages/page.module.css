@@ -800,12 +800,30 @@
 }
 
 @media (max-width: 768px) {
+  /* THE BOTTOM EDGE FOLLOWS THE KEYBOARD.
+     iOS does NOT shrink the layout viewport when the software keyboard opens
+     — only the visual one — so `bottom: 0` keeps resolving to a point that is
+     now behind the keyboard. iOS then scrolls the visual viewport to reveal
+     the focused input, which drags this whole fixed block upward and takes
+     the chat header, and the Report and Block controls in it, off the screen.
+
+     `--keyboard-inset` is published by MessagesPage from the visualViewport
+     API and is 0px whenever no keyboard is open, on every browser that does
+     not have one, and on every browser without visualViewport at all. So this
+     is a no-op everywhere except the case it exists for.
+
+     100dvh WOULD NOT HAVE FIXED THIS. dvh tracks browser chrome — the address
+     bar collapsing — and not the keyboard; on iOS the keyboard is not part of
+     the dynamic viewport. Neither would `interactive-widget=resizes-content`
+     in the viewport meta, which is the declarative answer and which Safari on
+     iOS does not implement. The JS is not laziness; it is the only mechanism
+     that reads the keyboard on this platform. */
   .messagesLayout {
     position: fixed;
     top: var(--nav-height);
     left: 0;
     right: 0;
-    bottom: 0;
+    bottom: var(--keyboard-inset, 0px);
     height: auto;
   }
 }
