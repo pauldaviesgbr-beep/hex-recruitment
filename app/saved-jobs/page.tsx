@@ -452,11 +452,6 @@ export default function SavedJobsPage() {
                     </div>
                   )}
 
-            {/* ONE SHARED CONTROL, in all seven advert renderers. See
-                reportcontrol:prove — a per-page copy is how the dead button
-                in JobDetailModal went unnoticed from March to September. */}
-            <ReportControl targetType="job" targetId={selectedJob.id} />
-
                   {/* Skills */}
                   {selectedJob.skillsRequired && selectedJob.skillsRequired.length > 0 && (
                     <div className={styles.detailSection}>
@@ -468,6 +463,11 @@ export default function SavedJobsPage() {
                       </div>
                     </div>
                   )}
+
+                  {/* ONE SHARED CONTROL, in all seven advert renderers, and it
+                      ENDS the advert — the Reviews block below is about the
+                      COMPANY. See reportcontrol:prove. */}
+                  <ReportControl targetType="job" targetId={selectedJob.id} />
 
                   {/* Company Reviews */}
                   <div className={styles.detailSection}>

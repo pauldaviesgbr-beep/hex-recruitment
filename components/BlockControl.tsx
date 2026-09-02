@@ -34,16 +34,40 @@ import styles from './ReportControl.module.css'
 // because a person choosing to block should know they are closing the
 // conversation rather than hiding it.
 
+// ── THE GLYPH WAS THE REPORT CONTROL'S, AND SO WAS THE STYLING ───────────
+//
+// Until 1 Sept 2026 this rendered `<Ico name="flag">` — the SAME icon as
+// ReportControl, drawn from the same Lucide path, sitting immediately beside
+// it in the conversation header. Read off the live page, the two path strings
+// were byte-identical. It also used `ReportControl.module.css`'s `.trigger`,
+// so it wore the report control's styling as well as its glyph.
+//
+// TWO IDENTICAL ICONS SIDE BY SIDE IS HOW SOMEBODY BLOCKS AN EMPLOYER WHEN
+// THEY MEANT TO REPORT THEM, and the person reaching for either is by
+// definition already upset. One of the two is destructive and reversible only
+// by finding the same control again.
+//
+// A SOURCE GREP COULD NOT HAVE FOUND THIS. Both are `<Ico name="…"/>` with
+// different names in the file; whether the names resolve to different drawings
+// is a question only the rendered DOM answers. It was found by reading the
+// SVGs off a driven page.
+//
+// `ban` is the circle-and-slash — the conventional block mark, and about as
+// far from a flag as the set goes.
 export default function BlockControl({
   conversationId,
   otherUserId,
   otherName,
   onChange,
+  className,
+  iconOnly = false,
 }: {
   conversationId: string
   otherUserId: string
   otherName: string
   onChange?: (blocked: boolean) => void
+  className?: string
+  iconOnly?: boolean
 }) {
   const [blocked, setBlocked] = useState<boolean | null>(null)
   const [open, setOpen] = useState(false)
@@ -98,16 +122,26 @@ export default function BlockControl({
 
   if (blocked === null) return null
 
+  // ONE LABEL, USED BY THE VISIBLE TEXT AND BY THE ACCESSIBLE NAME. Two pieces
+  // of state that must agree need one path that sets both — an icon-only
+  // control whose aria-label says "Block" while its action unblocks is a
+  // confidently wrong statement about somebody's own safety.
+  const label = blocked ? `Unblock ${otherName}` : `Block ${otherName}`
+
   return (
     <>
       <button
         type="button"
-        className={styles.trigger}
+        className={className || styles.trigger}
         onClick={() => (blocked ? apply(false) : setOpen(true))}
         disabled={working}
         data-block-control={blocked ? 'blocked' : 'open'}
+        aria-label={iconOnly ? label : undefined}
+        title={iconOnly ? label : undefined}
       >
-        <Ico name="flag" size={16} /> {blocked ? `Unblock ${otherName}` : `Block ${otherName}`}
+        {iconOnly
+          ? <Ico name="ban" size={20} />
+          : <><Ico name="ban" size={16} /> {label}</>}
       </button>
 
       {open && (

@@ -1354,11 +1354,6 @@ function JobsPageContent() {
                 </div>
               )}
 
-            {/* ONE SHARED CONTROL, in all seven advert renderers. See
-                reportcontrol:prove — a per-page copy is how the dead button
-                in JobDetailModal went unnoticed from March to September. */}
-            <ReportControl targetType="job" targetId={selectedJob.id} />
-
               {selectedJob.requirements && selectedJob.requirements.length > 0 && (
                 <div className={styles.detailSection}>
                   <h2 className={styles.detailSectionTitle}>Requirements</h2>
@@ -1372,6 +1367,11 @@ function JobsPageContent() {
                   <div className={styles.detailSkills}>{selectedJob.skillsRequired.map((s, i) => <span key={i} className={styles.detailSkillTag}>{s}</span>)}</div>
                 </div>
               )}
+
+              {/* ONE SHARED CONTROL, in all seven advert renderers, and it ENDS
+                  the advert — the Reviews block below is about the COMPANY, not
+                  about this job. See reportcontrol:prove, which asserts both. */}
+              <ReportControl targetType="job" targetId={selectedJob.id} />
 
               <div className={styles.detailSection}>
                 <h3 className={styles.detailSectionTitle}>Reviews for {selectedJob.company}</h3>

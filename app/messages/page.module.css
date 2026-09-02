@@ -416,12 +416,21 @@
   color: var(--text-gray);
 }
 
+/* FLEX-SHRINK: 0 IS THE HALF THAT WAS MISSING, AND IT IS WHY THE HEADER
+   BROKE. Two auto-width flex children with no floor compress until their text
+   wraps, and the wrapping then pushed the name and the role into wrapping too.
+   Fixed-size icon buttons cannot compress, but the rule is stated here anyway
+   so the next control added to this row inherits the guarantee rather than
+   rediscovering the fault. */
 .chatHeaderActions {
   display: flex;
   gap: 0.5rem;
+  flex-shrink: 0;
 }
 
 .headerActionBtn {
+  flex-shrink: 0;
+  color: var(--text-gray);
   width: 40px;
   height: 40px;
   border-radius: 8px;

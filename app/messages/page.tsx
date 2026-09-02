@@ -674,18 +674,33 @@ export default function MessagesPage() {
                   which is not a conversations row at all. reportcontrol:prove
                   asserts that there is exactly one and that it carries both
                   controls, so a second thread view cannot appear without them. */}
+              {/* ICONS IN THE BAR, LABELS IN THE SHEET.
+                  These were two full-text buttons in a row that also holds a
+                  back arrow, an avatar, the correspondent's name and their
+                  role. Unwrapped the two needed 303px of a 393px bar, so both
+                  wrapped to 2.8 lines and took the name and the role with
+                  them — a 137px header, 20.8% of an iPhone screen.
+
+                  `.headerActionBtn` is the 40x40 style this header used before
+                  the labelled controls replaced it. It was still declared and
+                  applied to nothing: the answer was already in the file,
+                  written once and never applied outward. */}
               <div className={styles.chatHeaderActions}>
                 {selectedConversation.participantId && (
                   <>
                     <ReportControl
                       targetType="message"
                       targetId={selectedConversation.id}
+                      className={styles.headerActionBtn}
+                      iconOnly
                     />
                     <BlockControl
                       conversationId={selectedConversation.id}
                       otherUserId={selectedConversation.participantId}
                       otherName={selectedConversation.participantName}
                       onChange={setThreadBlocked}
+                      className={styles.headerActionBtn}
+                      iconOnly
                     />
                   </>
                 )}
