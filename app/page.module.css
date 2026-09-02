@@ -927,7 +927,22 @@
 }
 .demoVideo {
   width: 100%;
-  /* THE CSS PERFORMS THE SAME CROP AS THE POSTER, AND THE ARITHMETIC IS EXACT.
+  /* ⚠ DO NOT REMOVE object-fit OR object-position HERE, AND DO NOT CHANGE THE
+     aspect-ratio ON .demoVideoWrap, WITHOUT READING THIS. They are not
+     styling. They are the only thing cropping the recordings.
+
+     WHAT COMES BACK IF THEY GO: the top 122px of all three demo videos, which
+     is a Chrome window belonging to Paul — tab strip, address bar reading
+     thrivecareer.co.uk/pipeline, his extensions, his avatar, and a BOOKMARKS
+     BAR with "Stripe" and "API Keys · Resend" legible. On the home page. On
+     every visit. It was published that way until 2 September 2026.
+
+     `democrop:prove` asserts these three properties still exist and its
+     failure message says exactly that. It is FILESYSTEM ONLY, so it cannot
+     see the videos and cannot tell you the crop is still the right size — it
+     can only stop the rule being deleted innocently, which is the real risk.
+
+     THE CSS PERFORMS THE SAME CROP AS THE POSTER, AND THE ARITHMETIC IS EXACT.
      The recordings are 1280x672 and include 122px of Chrome window at the top
      — tab strip, address bar and a bookmarks bar with readable entries. The
      posters have been re-cut to 1280x550; the videos could not be, because the

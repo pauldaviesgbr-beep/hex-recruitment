@@ -698,6 +698,20 @@ const ALL = [
   // one named failure with its file and line, exit 1, green on restore.
   { name: 'signedimage:prove', cmd: npm, args: ['run', 'signedimage:prove'] },
 
+  // THE HOME PAGE'S DEMO VIDEOS ARE CROPPED IN CSS, AND THE CROP IS THE ONLY
+  // THING KEEPING A BROWSER WINDOW OFF THE FRONT PAGE. The three recordings
+  // are 1280x672 screen captures whose top 122px is Chrome — including a
+  // bookmarks bar with "Stripe" and "API Keys · Resend" legible. They were
+  // published that way until 2 Sept 2026. The posters were re-cut; the videos
+  // could not be, because the job-banners bucket refuses video/mp4.
+  //
+  // Three CSS properties do the crop and NOTHING about them announces what
+  // they are for — a reviewer tidying that rule would have no reason to keep
+  // it. This is filesystem-only, so it cannot prove the crop is the right
+  // SIZE; it only stops the rule being removed innocently, which is the risk
+  // that actually exists.
+  { name: 'democrop:prove', cmd: npm, args: ['run', 'democrop:prove'] },
+
   // weboauth:prove IS THE CHECK THAT MATTERS MOST ON THE NATIVE WORK, and it
   // is here rather than outside verify because it needs nothing but the
   // filesystem and one imported function — no device, no deployment.
