@@ -96,6 +96,27 @@ if (wrap && video) {
   check('.demoVideo sets object-fit: cover', fit)
   check('.demoVideo sets object-position: bottom', pos)
 
+  // ── AND NOTHING LATER OVERRIDES THEM ─────────────────────────────────
+  //
+  // ASSERTING THE VALUE IN THE RULE IS NOT ASSERTING THE VALUE ON THE PAGE.
+  // Adding `@media (max-width: 768px) { .demoVideo { object-position: center } }`
+  // leaves the original rule untouched and word-for-word correct, so the three
+  // checks above all pass — and the browser furniture is back at exactly the
+  // width the App Store recording is shot at. Demonstrated: that override
+  // scored exit 0 and zero failures before this block existed.
+  //
+  // A media query adds no specificity, so a later declaration simply wins.
+  // Each of these properties is used ONCE in this stylesheet and has no other
+  // reason to appear, so "exactly one declaration" is a cheap and exact way to
+  // say "nothing overrides the crop". If a second use is ever legitimate this
+  // needs to become a specificity comparison rather than a count — and that is
+  // the moment to think, not to raise the number.
+  for (const prop of ['aspect-ratio', 'object-fit', 'object-position']) {
+    const n = (rules.match(new RegExp(prop + '\\s*:', 'g')) || []).length
+    check(`${prop} is declared exactly once — nothing overrides it`, n === 1,
+      n === 1 ? '' : `${n} declarations`)
+  }
+
   if (!ar || !fit || !pos) {
     console.log('')
     console.log('  WHAT THIS MEANS, not what the property is called:')
