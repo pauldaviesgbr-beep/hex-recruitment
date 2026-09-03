@@ -85,7 +85,21 @@ const plannedNulls = (table: string) =>
 
 async function main() {
   const stamp = Date.now()
-  const email = `pauldavies.gbr+emperasure${stamp}@gmail.com`
+  // A PER-RUN DOMAIN, BECAUSE eraseAccount WRITES A user_departures ROW.
+  // That row carries reason 'self_deleted', a FIXED zero uuid and the email
+  // DOMAIN — nothing else. THREE proofs call eraseAccount and verify runs
+  // them concurrently, so on a shared domain their rows are indistinguishable:
+  // this one used to leave its row behind forever, and tombstonelive's
+  // over-broad teardown was silently sweeping up after it. When that was
+  // narrowed (eca71cb) the leak surfaced — 2 rows after one verify run,
+  // measured 3 Sept 2026. The domain is the only column we control, so it is
+  // the discriminator.
+  //
+  // user_departures is the ONLY durable record of a self-deletion, so a proof
+  // row in it is not untidiness — it is a fake departure in the one table
+  // that answers how many people leave and how soon.
+  const DOMAIN = `emperasure-proof-${stamp}.invalid`
+  const email = `proof@${DOMAIN}`
   const NOTE = `Spoke to them ${stamp}. Strong on pastry, free from the 3rd.`
   let userId: string | null = null
   let profileId: string | null = null
@@ -199,6 +213,11 @@ async function main() {
       await admin.from('employer_members').delete().eq('employer_id', profileId).then(() => {}, () => {})
       await admin.from('employer_profiles').delete().eq('id', profileId).then(() => {}, () => {})
     }
+    // ONLY OUR OWN — keyed on the per-run domain, so a sibling proof's
+    // audit row is never touched.
+    await admin.from('user_departures').delete()
+      .eq('reason', 'self_deleted').eq('email_domain', DOMAIN)
+      .eq('user_id', '00000000-0000-0000-0000-000000000000').then(() => {}, () => {})
     if (userId) await admin.auth.admin.deleteUser(userId).catch(() => {})
 
     // And PROVE the teardown, rather than assuming it. An orphan advert left by
@@ -212,6 +231,12 @@ async function main() {
         .select('id').eq('id', appId).maybeSingle()
       check('teardown: the throwaway application is gone', !leftover, leftover ? 'STILL THERE' : 'gone')
     }
+    // THE ONE THIS PROOF NEVER CLEANED UP. Scoped to our domain, so it
+    // counts our row and cannot see a concurrent sibling's.
+    const { count: depLeft } = await admin.from('user_departures')
+      .select('*', { count: 'exact', head: true })
+      .eq('reason', 'self_deleted').eq('email_domain', DOMAIN)
+    check("teardown: the proof's departure row is gone", (depLeft || 0) === 0, `${depLeft} left`)
   }
 
   console.log('')
