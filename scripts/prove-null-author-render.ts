@@ -79,7 +79,21 @@ async function main() {
   pad('open post', post.id)
 
   // ── a disposable candidate who comments ──────────────────────────────
-  const candEmail = `pauldavies.gbr+rendercand${stamp}@gmail.com`
+  // A PER-RUN DOMAIN, BECAUSE eraseAccount WRITES A user_departures ROW.
+  // That row carries reason 'self_deleted', a FIXED zero uuid and the email
+  // DOMAIN — nothing else. THREE proofs call eraseAccount and verify runs
+  // them concurrently, so on a shared domain their rows are indistinguishable:
+  // this one used to leave its row behind forever, and tombstonelive's
+  // over-broad teardown was silently sweeping up after it. When that was
+  // narrowed (eca71cb) the leak surfaced — 2 rows after one verify run,
+  // measured 3 Sept 2026. The domain is the only column we control, so it is
+  // the discriminator.
+  //
+  // user_departures is the ONLY durable record of a self-deletion, so a proof
+  // row in it is not untidiness — it is a fake departure in the one table
+  // that answers how many people leave and how soon.
+  const DOMAIN = `rendercand-proof-${stamp}.invalid`
+  const candEmail = `proof@${DOMAIN}`
   const { data: cand, error: cErr } = await admin.auth.admin.createUser({
     email: candEmail, password: 'render-' + stamp, email_confirm: true,
     user_metadata: { role: 'candidate', full_name: 'Render Fixture' },
@@ -117,6 +131,18 @@ async function main() {
   pad('author_avatar', String(after.data?.author_avatar))
   pad('body', after.data?.body)
   pad('the row still exists', !!after.data)
+
+  // OUR OWN DEPARTURE ROW. eraseAccount wrote it; nothing else removes it,
+  // and it would otherwise sit in user_departures looking like a real
+  // candidate who deleted their account. Scoped to the per-run domain so a
+  // concurrent sibling proof's row is never touched.
+  await admin.from('user_departures').delete()
+    .eq('reason', 'self_deleted').eq('email_domain', DOMAIN)
+    .eq('user_id', '00000000-0000-0000-0000-000000000000').then(() => {}, () => {})
+  const { count: depLeft } = await admin.from('user_departures')
+    .select('*', { count: 'exact', head: true })
+    .eq('reason', 'self_deleted').eq('email_domain', DOMAIN)
+  pad('departure row cleaned up', (depLeft || 0) === 0)
 
   console.log('\nNOW DRIVE IT:')
   console.log(`  node scripts/drive-null-author-comment.mjs ${post.id}`)
