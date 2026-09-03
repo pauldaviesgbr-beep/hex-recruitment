@@ -104,6 +104,36 @@ function storePassword(value: string) {
   }
 }
 
+// A MINIMAL, VALID, ONE-PAGE PDF, BUILT IN CODE. The alternative — reading
+// a fixture file from disk — is the *.png-gitignore trap: the file renders
+// on the machine that made it and does not exist for anyone else. Offsets
+// in the xref are computed, not typed, so the PDF is correct by
+// construction.
+function minimalCvPdf(name: string, title: string): Buffer {
+  const esc = (s: string) => s.replace(/[\\()]/g, m => '\\' + m)
+  const stream = `BT /F1 24 Tf 72 770 Td (${esc(name)}) Tj ET\n` +
+    `BT /F1 12 Tf 72 742 Td (${esc(title)}) Tj ET\n` +
+    `BT /F1 10 Tf 72 714 Td (Demonstration CV for App Store review. Not a real person.) Tj ET\n`
+  const objs = [
+    '<< /Type /Catalog /Pages 2 0 R >>',
+    '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+    '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>',
+    `<< /Length ${stream.length} >>\nstream\n${stream}endstream`,
+    '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
+  ]
+  let body = '%PDF-1.4\n'
+  const offsets: number[] = []
+  objs.forEach((o, i) => {
+    offsets.push(body.length)
+    body += `${i + 1} 0 obj ${o} endobj\n`
+  })
+  const xref = body.length
+  body += `xref\n0 ${objs.length + 1}\n0000000000 65535 f \n` +
+    offsets.map(o => `${String(o).padStart(10, '0')} 00000 n \n`).join('') +
+    `trailer << /Size ${objs.length + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`
+  return Buffer.from(body, 'latin1')
+}
+
 async function main() {
   let user = await findByEmail(EMAIL)
   let minted = false
@@ -179,6 +209,26 @@ async function main() {
     if (error) throw new Error('could not create the application: ' + error.message)
   }
 
+  // ── A CV FILE, so "your CV" on the deletion screen is a real object ────
+  // eraseAccount's storage sweep removes `${uid}/` objects, so deleting this
+  // account on camera destroys a real file — which is what makes the take
+  // honest rather than theatrical.
+  const { data: cvBefore } = await admin.from('candidate_profiles')
+    .select('cv_url').eq('user_id', uid).maybeSingle()
+  if (!cvBefore?.cv_url) {
+    const cvPath = `${uid}/cv-deletion-take.pdf`
+    const up = await admin.storage.from('profiles').upload(cvPath,
+      // A PLAIN HYPHEN, deliberately: the PDF body is latin1, and an em dash
+      // (U+2014) truncates to 0x14 there and renders as a BLANK — seen on the
+      // first render of this file, not reasoned about.
+      minimalCvPdf(FULL_NAME, 'Chef de Partie - London'),
+      { contentType: 'application/pdf', upsert: true })
+    if (up.error) throw new Error('could not upload the CV: ' + up.error.message)
+    const { error } = await admin.from('candidate_profiles')
+      .update({ cv_url: cvPath, cv_file_name: 'jordan-ellis-cv.pdf' }).eq('user_id', uid)
+    if (error) throw new Error('could not attach the CV: ' + error.message)
+  }
+
   // ── PROVE THE END STATE ────────────────────────────────────────────────
   console.log('')
   const fresh = await admin.auth.admin.getUserById(uid)
@@ -194,6 +244,16 @@ async function main() {
   const { count: saved } = await admin.from('saved_jobs')
     .select('*', { count: 'exact', head: true }).eq('candidate_id', uid)
   check('it has saved jobs, so the deletion screen is not empty', (saved || 0) > 0, `${saved}`)
+
+  const { data: cvNow } = await admin.from('candidate_profiles')
+    .select('cv_url').eq('user_id', uid).maybeSingle()
+  check('it has a CV on the profile', !!cvNow?.cv_url, String(cvNow?.cv_url))
+  if (cvNow?.cv_url) {
+    const dl = await admin.storage.from('profiles').download(cvNow.cv_url)
+    const size = dl.data ? (await dl.data.arrayBuffer()).byteLength : 0
+    check('…and the CV OBJECT exists in storage — the url is not a promise',
+      !dl.error && size > 0, `${size} bytes`)
+  }
 
   const { data: apps } = await admin.from('job_applications')
     .select('job_id').eq('candidate_id', uid)
