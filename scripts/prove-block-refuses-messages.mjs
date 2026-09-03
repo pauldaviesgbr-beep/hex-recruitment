@@ -3,7 +3,8 @@
 //
 //   node scripts/prove-block-refuses-messages.mjs
 //
-// Skips (exit 2) without credentials. Cleans up everything it writes.
+// Skips (exit 2) without credentials. Cleans up ITS OWN rows — see below for
+// why that phrase is load-bearing.
 //
 // ── THE FIRST ASSERTION IS THE REGRESSION CHECK, AND IT IS THE POINT ──────
 //
@@ -27,7 +28,36 @@
 // a "violates row-level security" coming from a SELECT can never masquerade as
 // a refused INSERT. That distinction is why this file uses the helper rather
 // than a hand-rolled client.
+//
+// ── THE TEARDOWN TOUCHES ONLY WHAT THIS RUN CAN PROVE IS ITS OWN ─────────
+//
+// The first version of this teardown ran
+//
+//     delete().neq('blocker_id', <the zero uuid>)
+//
+// The zero uuid is not a real blocker, so "not equal to it" is true of EVERY
+// row: that line did not delete the proof's blocks, it EMPTIED user_blocks —
+// on every verify run, which is every push. It never did damage only because
+// nobody had blocked anyone yet; the moment Report/Block shipped for
+// Guideline 1.2, the first REAL block (possibly Apple's reviewer's) was one
+// verify away from silent destruction. Found 3 Sept 2026, by enumeration
+// rather than by a failure, because a wipe of an empty table is invisible.
+//
+// And the last two checks counted content_reports and user_blocks GLOBALLY
+// and asserted zero — a claim about the state of the WORLD, true only while
+// the tables were empty, kept true by the wipe above. The day a real row
+// existed they would have gone red about the product, and the tempting fix —
+// make the teardown delete harder — is exactly the wrong one.
+//
+// So: every row this proof creates is identified by something only THIS RUN
+// writes. Blocks are identified by the FIXTURE PAIR (only this proof blocks
+// the two test accounts against each other) and reports by a per-run MARKER
+// (a constant 'probe' cannot survive two copies of this script running at
+// once — the commentreport lesson, 8cb9060). Deletes and counts key on those
+// and nothing wider. A real person's block must SURVIVE this teardown; the
+// control for that lives in the commit that made this change.
 
+import { randomUUID } from 'node:crypto'
 import { createClient } from '@supabase/supabase-js'
 import { loadEnv, sessionFor, probeWrite } from './lib/rls-probe.mjs'
 
@@ -48,6 +78,10 @@ const admin = createClient(env.NEXT_PUBLIC_SUPABASE_URL, SERVICE, { auth: { pers
 const CANDIDATE_EMAIL = 'pauldavies.gbr+candidate@gmail.com'
 const EMPLOYER_EMAIL = 'pauldavies.gbr+employer@gmail.com'
 
+// Per-run, so two copies of this proof cannot mistake each other's reports
+// for their own — and so the teardown can name exactly what it may remove.
+const MARKER = `block-probe — delete me #${randomUUID().slice(0, 8)}`
+
 let bad = 0
 const check = (label, ok, detail) => {
   if (!ok) bad++
@@ -57,11 +91,16 @@ const check = (label, ok, detail) => {
 
 async function main() {
   let convId = null
+  // Declared out here so the teardown can scope its deletes to the fixture
+  // pair. Null until the sessions resolve; a teardown running before that
+  // matches nothing, which is the correct amount.
+  let candidateId = null
+  let employerId = null
   try {
     const candidate = await sessionFor(env, CANDIDATE_EMAIL)
     const employer = await sessionFor(env, EMPLOYER_EMAIL)
-    const candidateId = candidate.userId
-    const employerId = employer.userId
+    candidateId = candidate.userId
+    employerId = employer.userId
 
     // A THROWAWAY THREAD, not the fixture one. This test blocks and unblocks,
     // and doing that to a thread other checks rely on would couple them.
@@ -113,7 +152,9 @@ async function main() {
       candBlocked.writeAllowed === false, candBlocked.verdict)
 
     // ── 3. THE OTHER DIRECTION OF THE SAME ROW ─────────────────────────
-    await admin.from('user_blocks').delete().eq('blocker_id', candidateId)
+    // Both sides named, so only the block THIS proof just made can match.
+    await admin.from('user_blocks').delete()
+      .eq('blocker_id', candidateId).eq('blocked_id', employerId)
     await admin.from('user_blocks').insert({ blocker_id: employerId, blocked_id: candidateId })
 
     const candBlocked2 = await send(candidate, 'candidate')
@@ -125,7 +166,8 @@ async function main() {
 
     // ── 4. UNBLOCKING RESTORES IT ──────────────────────────────────────
     // Without this the whole thing passes on a policy that refuses everybody.
-    await admin.from('user_blocks').delete().eq('blocker_id', employerId)
+    await admin.from('user_blocks').delete()
+      .eq('blocker_id', employerId).eq('blocked_id', candidateId)
     const after = await send(candidate, 'candidate')
     check('UNBLOCKING RESTORES SENDING — the policy is not just refusing everyone',
       after.writeAllowed === true, after.verdict)
@@ -143,7 +185,7 @@ async function main() {
         target_type: 'message',
         target_id: convId,
         reason: 'It is spam or a scam',
-        detail: 'probe',
+        detail: MARKER,
       },
       auth: candidate,
     })
@@ -173,21 +215,36 @@ async function main() {
   } catch (e) {
     check('the proof ran to completion', false, e.message)
   } finally {
-    await admin.from('content_reports').delete().eq('detail', 'probe').then(() => {}, () => {})
-    await admin.from('user_blocks').delete().neq('blocker_id', '00000000-0000-0000-0000-000000000000')
-      .then(() => {}, () => {})
+    // ONLY THIS RUN'S ROWS. The report carries the per-run MARKER; the blocks
+    // are identified by the fixture PAIR, which nothing but this proof
+    // creates. A real person's block or report must pass through this
+    // teardown untouched.
+    await admin.from('content_reports').delete().eq('detail', MARKER).then(() => {}, () => {})
+    if (candidateId && employerId) {
+      await admin.from('user_blocks').delete()
+        .in('blocker_id', [candidateId, employerId])
+        .in('blocked_id', [candidateId, employerId])
+        .then(() => {}, () => {})
+    }
     if (convId) {
       await admin.from('messages').delete().eq('conversation_id', convId).then(() => {}, () => {})
       await admin.from('conversations').delete().eq('id', convId).then(() => {}, () => {})
       const { data: left } = await admin.from('conversations').select('id').eq('id', convId).maybeSingle()
       check('teardown: the probe thread is gone', !left, left ? 'STILL THERE' : 'gone')
     }
+    // And the counts ask about THE PROOF, not the world. The old global
+    // versions asserted two production tables were empty — true only while
+    // nobody had used the feature, and kept true by the wipe.
     const { count: reportsLeft } = await admin.from('content_reports')
-      .select('*', { count: 'exact', head: true })
-    check('teardown: no probe reports left behind', (reportsLeft || 0) === 0, `${reportsLeft}`)
-    const { count: blocksLeft } = await admin.from('user_blocks')
-      .select('*', { count: 'exact', head: true })
-    check('teardown: no blocks left behind', (blocksLeft || 0) === 0, `${blocksLeft}`)
+      .select('*', { count: 'exact', head: true }).eq('detail', MARKER)
+    check('teardown: this run\'s report rows are gone', (reportsLeft || 0) === 0, `${reportsLeft}`)
+    if (candidateId && employerId) {
+      const { count: blocksLeft } = await admin.from('user_blocks')
+        .select('*', { count: 'exact', head: true })
+        .in('blocker_id', [candidateId, employerId])
+        .in('blocked_id', [candidateId, employerId])
+      check('teardown: this run\'s blocks are gone', (blocksLeft || 0) === 0, `${blocksLeft}`)
+    }
   }
 
   console.log('')
