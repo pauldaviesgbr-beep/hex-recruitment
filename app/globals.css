@@ -119,6 +119,16 @@
   --z-dropdown: 110;
   --z-chatbot: 120;
   --z-feedback: 130;
+  /* THE SIDEBAR FAMILY, BELOW EVERY MODAL. It lived on hardcoded literals
+     (1000/1001/1099/1100) for weeks, above var(--z-modal) - so a full-screen
+     advert modal slid UNDER the hamburger, which is what Paul filmed on
+     /saved-jobs on 4 Sept 2026. Above the header and dropdowns, below the
+     modals; never fix this by raising --z-modal, which pushes sixteen
+     modals over the cookie banner. */
+  --z-sidebar-nav: 140;
+  --z-sidebar-toggle: 141;
+  --z-sidebar-overlay: 148;
+  --z-sidebar: 150;
   --z-modal: 200;
   --z-toast: 300;
 }

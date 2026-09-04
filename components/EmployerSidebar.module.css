@@ -10,7 +10,7 @@
   background: var(--dark-gray);
   display: flex;
   flex-direction: column;
-  z-index: 1100;
+  z-index: var(--z-sidebar);
   transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   border-right: 1px solid rgba(255, 255, 255, 0.08);
 }
@@ -217,7 +217,7 @@
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.1s ease;
-  z-index: 1000;
+  z-index: var(--z-sidebar-nav);
 }
 
 .collapsed .item:hover::after {
@@ -279,7 +279,7 @@ button.item {
      stylesheet the app got it wrong from. */
   top: calc(0.7rem + env(safe-area-inset-top, 0px));
   left: 0.75rem;
-  z-index: 1001;
+  z-index: var(--z-sidebar-toggle);
   width: 40px;
   height: 40px;
   border: none;
@@ -324,7 +324,7 @@ button.item {
     position: fixed;
     inset: 0;
     background: rgba(0, 0, 0, 0.5);
-    z-index: 1099;
+    z-index: var(--z-sidebar-overlay);
     cursor: pointer;
   }
 
