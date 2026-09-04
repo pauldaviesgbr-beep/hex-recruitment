@@ -69,10 +69,24 @@
   right: -24px;
 }
 
-/* Close Button */
+/* Close Button.
+
+   THE TOP OFFSET CLEARS THE NOTCH, AND THE ARITHMETIC IS THE ACCOUNT
+   SHEET'S. This was `top: 1rem` — and on a notched phone the whole 40px
+   button sat inside the ~59px status zone beside the Dynamic Island,
+   where iOS takes the touches. With the sheet full-screen at mobile
+   there is no backdrop to tap and no keyboard for Escape, so the modal
+   became a TRAP: the ways out were the edge-swipe abandoning the page,
+   or killing the app. Filmed by Paul on 4 Sept 2026, mid-recording for
+   Apple, one tap from a reviewer's reproduction.
+
+   max(1rem, env+6px) computes to EXACTLY the old 16px wherever the
+   inset is 0 — every desktop and web browser — so the web cannot
+   regress by arithmetic. On a notch it rides 6px below the inset, the
+   same grace Header's .sheetClose has always used. */
 .closeBtn {
   position: absolute;
-  top: 1rem;
+  top: max(1rem, calc(env(safe-area-inset-top, 0px) + 6px));
   right: 1rem;
   width: 40px;
   height: 40px;
@@ -882,7 +896,12 @@ a.locationInfo.locationLink:hover {
   }
 
   .closeBtn {
-    top: 0.5rem;
+    /* THIS IS THE RULE THAT RUNS ON A PHONE, and it silently overrode the
+       base rule's safe-area fix — found by prove-modal-close-clears-the-
+       notch counting top: declarations before this branch was even
+       committed. On the handset the button sat at 8px, deeper in the
+       status zone than the diagnosis said. Same arithmetic, mobile base. */
+    top: max(0.5rem, calc(env(safe-area-inset-top, 0px) + 6px));
     right: 0.5rem;
     width: 32px;
     height: 32px;
