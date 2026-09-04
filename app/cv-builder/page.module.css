@@ -69,12 +69,15 @@
 
 .bannerActions {
   display: flex;
-  /* CONTROLS WRAP; CONTENT SCROLLS. Without this, four buttons on a 393px
-     phone shrink to min-content and then CLIP at the screen edge — Paul
-     filmed "Download Word" with its corner cut off on 4 Sept 2026. That a
-     Chromium drive rendered the same row wrapped while the handset clipped
-     it is the tell: without the declaration the row's behaviour is font-
-     metric luck, not design. */
+  /* CONTROLS WRAP; CONTENT SCROLLS — at every width, unconditionally.
+     CORRECTED HISTORY, because the first version of this comment claimed a
+     fault that did not exist: the MOBILE media block 800 lines down has
+     carried flex-wrap since 29 Aug 2026 (8d34bf0), and the base rule was
+     read in isolation — the second-definition trap. The unwrapped, clipped
+     "Download Word" Paul filmed on 4 Sept was a STALE WKWebView bundle
+     rendering pre-29-Aug CSS: an unwrapped row plus a half-pinned band is
+     exactly what that bundle draws. This declaration makes the wrap
+     unconditional so no width is ever relying on one distant block. */
   flex-wrap: wrap;
   gap: 0.5rem;
 }
