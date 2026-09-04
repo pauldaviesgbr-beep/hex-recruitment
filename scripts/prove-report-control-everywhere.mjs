@@ -232,6 +232,44 @@ if (commentRenderers.length < EXPECTED_COMMENT_RENDERERS) {
   bad++
 }
 
+// ── AND "REPORTED" IS READ BACK, NOT REMEMBERED ───────────────────────────
+//
+// `done` alone is component memory. It NEVER survived a remount, on any
+// surface, from the day the control was built — and fourteen database
+// assertions, a browser drive and this very check all passed, because every
+// one of them read the label on the mount that wrote it. A person re-opening
+// an advert they had just reported saw "Report this job" (3 Sept 2026, on
+// camera). A PROOF THAT ONLY READS ON THE MOUNT THAT WROTE IS TESTING
+// MEMORY, NOT PERSISTENCE.
+//
+// This is the static half: the MECHANISM must exist in the component — a
+// SELECT from content_reports keyed on the reporter and the target, feeding
+// setDone. The behavioural half is scripts/drive-reported-survives-remount.mjs,
+// which submits on one mount and asserts the label on ANOTHER; it needs a
+// deployment and credentials, so it cannot live in verify — this line can.
+//
+// Distinguishing, not substring-lucky: the pre-fix component touched
+// content_reports exactly ONCE (the insert). The fixed one touches it twice,
+// and only the fixed one selects from it.
+const control = readFileSync(join('components', 'ReportControl.tsx'), 'utf8')
+const touches = (control.match(/from\('content_reports'\)/g) || []).length
+const selectsBack = /from\('content_reports'\)\s*[\s\S]{0,40}\.select\(/.test(control)
+  && /eq\('reporter_id'/.test(control) && /eq\('target_id'/.test(control)
+const feedsDone = /\bsetDone\(true\)/.test(control)
+const backdropGuard = /onClick=\{sending \? undefined : close\}/.test(control)
+
+console.log('')
+console.log('the control itself')
+const mech = [
+  ['ReportControl reads content_reports BACK, not only writes it', touches >= 2 && selectsBack, `${touches} touch(es)`],
+  ['…keyed on the reporter and the target, feeding done', selectsBack && feedsDone, ''],
+  ['…and the backdrop is deaf while sending, same as Cancel', backdropGuard, ''],
+]
+for (const [label, ok, detail] of mech) {
+  if (!ok) bad++
+  console.log('  ' + (ok ? 'ok   ' : 'FAIL ') + String(label).padEnd(62) + detail)
+}
+
 console.log('')
 if (bad) {
   console.log(`${bad} FAILED`)

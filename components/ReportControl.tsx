@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Ico } from '@/components/icons'
 import styles from './ReportControl.module.css'
@@ -114,6 +114,35 @@ export default function ReportControl({
   const [done, setDone] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // "REPORTED" MUST SURVIVE A REMOUNT, so it is READ BACK, not remembered.
+  // `done` alone is component memory: it never survived navigating away and
+  // back, on any surface, since the control was built — every proof passed
+  // because every proof read the label on the mount that wrote it. Found
+  // 3 Sept 2026 by a person re-opening an advert they had just reported and
+  // seeing "Report this job". RLS already grants the reporter SELECT on
+  // their own rows — blockrefuses proves "the reporter can read their own
+  // back" through a real session on every verify — so this asks the table
+  // the same question the submit answered.
+  //
+  // .limit(1) and read the array, NOT maybeSingle(): the pre-read-back era
+  // allowed duplicate filings, so a second row must render as "Reported",
+  // not as a thrown "multiple rows" error.
+  useEffect(() => {
+    let stale = false
+    ;(async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session || stale) return
+      const { data } = await supabase.from('content_reports')
+        .select('id')
+        .eq('reporter_id', session.user.id)
+        .eq('target_type', targetType)
+        .eq('target_id', targetId)
+        .limit(1)
+      if (!stale && (data?.length ?? 0) > 0) setDone(true)
+    })()
+    return () => { stale = true }
+  }, [targetType, targetId])
+
   const submit = async () => {
     if (!reason) { setError('Choose a reason so we know what to look at.'); return }
     setSending(true)
@@ -168,7 +197,11 @@ export default function ReportControl({
       </button>
 
       {open && (
-        <div className={styles.backdrop} role="presentation" onClick={close}>
+        /* THE BACKDROP IS DEAF WHILE SENDING, same as Cancel. It used to be
+           live for the whole flight of the insert, so one stray tap closed
+           the sheet silently and the thanks screen rendered into nothing —
+           the person's report landed and nothing ever said so. */
+        <div className={styles.backdrop} role="presentation" onClick={sending ? undefined : close}>
           <div
             className={styles.sheet}
             role="dialog"
