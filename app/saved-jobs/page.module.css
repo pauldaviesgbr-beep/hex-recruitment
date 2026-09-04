@@ -583,13 +583,21 @@
   }
 }
 
-@media (max-width: 768px) {
-  .pageHeader {
-    position: sticky;
-    top: var(--nav-height);
-    z-index: 10;
-  }
-}
+/* NOT STICKY AT MOBILE, DELIBERATELY. It used to declare position: sticky;
+   top: var(--nav-height) here — and that sticky was DEAD: body carries
+   overflow-x: hidden inside the mobile media query (globals.css), which
+   makes body a scroll container whose scrollport never scrolls, so a
+   body-level sticky pins to nothing. Measured 4 Sept 2026: computed top
+   70px, actual band top 25px after a 500px scroll — drifting, not pinned.
+   In WKWebView the same dead sticky half-pins and jumps, which is the
+   "scroll is glitchy" Paul filmed; and even revived it would pin ~59px
+   UNDER the header on a notched phone, because var(--nav-height) knows
+   nothing about env(safe-area-inset-top).
+
+   So at mobile the band simply scrolls away with its content, honestly.
+   If the class fix ever lands (body overflow-x: clip + inset-aware tops —
+   see the 31 Aug sticky entry in CLAUDE.md), sticky can return here WITH
+   top: calc(var(--nav-height) + env(safe-area-inset-top, 0px)). */
 
 /* The right-to-work line under Eligibility. Same style as /job/[id]. */
 .detailEligibilityNote {
