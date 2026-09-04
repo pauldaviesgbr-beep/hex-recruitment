@@ -69,6 +69,13 @@
 
 .bannerActions {
   display: flex;
+  /* CONTROLS WRAP; CONTENT SCROLLS. Without this, four buttons on a 393px
+     phone shrink to min-content and then CLIP at the screen edge — Paul
+     filmed "Download Word" with its corner cut off on 4 Sept 2026. That a
+     Chromium drive rendered the same row wrapped while the handset clipped
+     it is the tell: without the declaration the row's behaviour is font-
+     metric luck, not design. */
+  flex-wrap: wrap;
   gap: 0.5rem;
 }
 
@@ -800,11 +807,17 @@
    RESPONSIVE
    ========================== */
 @media (max-width: 768px) {
-  .banner {
-    position: sticky;
-    top: var(--nav-height);
-    z-index: 10;
-  }
+  /* NOT STICKY AT MOBILE, DELIBERATELY — the saved-jobs decision applied to
+     its twin. This declared position: sticky; top: var(--nav-height), and
+     that sticky is DEAD at mobile (body's overflow-x: hidden makes body a
+     scroll container whose scrollport never scrolls). Measured 4 Sept 2026:
+     declared top 70px, rect at 12px while scrolled — never pinned. In
+     WKWebView the dead sticky HALF-PINS and the 120px toolbar band sat on
+     top of the section header below it, clipping the AI Assist button —
+     Paul filmed it. The toolbar now scrolls away with the page; scroll up
+     to Save. When option B lands (overflow-x: clip + inset-aware tops),
+     sticky can return here WITH
+     top: calc(var(--nav-height) + env(safe-area-inset-top, 0px)). */
 
   .layout {
     padding-top: 0.5rem;
