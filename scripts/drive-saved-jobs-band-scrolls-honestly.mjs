@@ -72,10 +72,16 @@ const before = await snap()
 check('the band exists and is NOT declared sticky at this width',
   before.bandPosition !== 'sticky', String(before.bandPosition))
 
-await page.mouse.move(196, 500)
-await page.mouse.wheel(0, 500)
-// Wait for the scroll to land as a fact, not a hope.
-await page.waitForFunction(() => window.scrollY > 300, null, { timeout: 10000 })
+// SCROLL WHAT EXISTS. The first version demanded scrollY > 300 and timed
+// out on BOTH deployments: with three saved cards the page's entire scroll
+// range is ~45px, and the earlier 900px measurements were of the MODAL'S
+// inner scroller, not the page. Ask for the maximum, read what was
+// achieved, and require only that it is nonzero - the assertion is about
+// AGREEMENT of travel, not about distance.
+await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight))
+await page.waitForFunction(() => window.scrollY > 10, null, { timeout: 10000 })
+const scrolled = await page.evaluate(() => Math.round(window.scrollY))
+console.log(`  (page scrolled ${scrolled}px — the whole range available)`)
 const after = await snap()
 
 const bandMoved = before.bandTop - after.bandTop
@@ -84,7 +90,7 @@ check('the band MOVED WITH THE CONTENT under scroll',
   Math.abs(bandMoved - cardMoved) <= 2,
   `band moved ${bandMoved}px, a card moved ${cardMoved}px`)
 check('…and it genuinely travelled, not pinned somewhere',
-  bandMoved > 300, `${bandMoved}px`)
+  bandMoved >= Math.min(scrolled, 20), `${bandMoved}px of ${scrolled}px scrolled`)
 
 await browser.close()
 console.log('')
