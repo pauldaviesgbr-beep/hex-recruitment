@@ -123,45 +123,71 @@ const whatPaintsOnToggle = (page) => page.evaluate(() => {
   await page.context().close()
 }
 
-// ── EMPLOYER SIDE: /candidates + the profile overlay ─────────────────────
+// ── EMPLOYER SIDE: /my-jobs applications + ScheduleInterviewModal ────────
+//
+// The first version drove /candidates and FAILED WRONGLY, twice over: its
+// click hit the cards CONTAINER (no modal ever opened), and its "an
+// overlay at --z-modal exists" gate was satisfied by the FeedbackWidget's
+// permanent z-200 strip. Worse, the surface itself was wrong: on mobile,
+// /candidates NAVIGATES to the profile page — no modal exists there at
+// all, and the profile page's contact modal is dead code (showContact is
+// never set). The reachable employer modal on a phone is Schedule
+// Interview on /my-jobs applications, and it needs a SHORTLISTED
+// application — so the fixture's own application is put in that state and
+// RESTORED VERBATIM in a finally, the category-E shape. Fixture-to-fixture
+// only: the application is the test candidate's, against the test
+// employer's own advert.
 {
-  const page = await (await browser.newContext({
-    ...devices['iPhone 14 Pro'],
-    extraHTTPHeaders: process.env.VERCEL_AUTOMATION_BYPASS_SECRET
-      ? { 'x-vercel-protection-bypass': process.env.VERCEL_AUTOMATION_BYPASS_SECRET } : {},
-  })).newPage()
-  await withSeededStorage(page, 'consentAccepted')
-  await signIn(page, 'pauldavies.gbr+employer@gmail.com', EMP_PASS)
-  await page.goto(`${BASE}/candidates`, { waitUntil: 'domcontentloaded' })
-  await page.waitForFunction(() => {
-    const h = document.querySelector('h1, h2')
-    return !!h && !/loading/i.test(h.textContent)
-  }, null, { timeout: 30000 })
-
-  console.log('')
-  console.log('employer — /candidates')
-  const before = await whatPaintsOnToggle(page)
-  check('the employer toggle paints on its own page', before === 'THE TOGGLE', before)
-
-  // Open a candidate card to raise the overlay at --z-modal.
-  const opened = await page.evaluate(() => {
-    const card = document.querySelector('[class*="candidateCard"], [class*="card"]')
-    if (!card) return false
-    card.click(); return true
-  })
-  await page.waitForTimeout(800)
-  const overlayUp = await page.evaluate(() =>
-    [...document.querySelectorAll('*')].some(e => getComputedStyle(e).zIndex === '200' && getComputedStyle(e).position === 'fixed'))
-  if (opened && overlayUp) {
-    const paints = await whatPaintsOnToggle(page)
-    check('WITH THE OVERLAY OPEN, it covers the employer toggle',
-      paints === 'THE MODAL LAYER' || paints === 'NO TOGGLE ON THIS PAGE', paints)
-  } else {
-    check('an overlay at --z-modal could be raised on /candidates', false,
-      `card clicked: ${opened}, overlay seen: ${overlayUp} — pick another employer surface`)
+  const { createClient } = await import('@supabase/supabase-js')
+  const admin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } })
+  const { data: emp } = await admin.from('employer_profiles')
+    .select('user_id').eq('company_name', 'Thrive Test Employer').single()
+  const { data: apps } = await admin.from('job_applications')
+    .select('id, status, job_id, jobs!inner(employer_id)').eq('jobs.employer_id', emp.user_id).limit(1)
+  const app = apps?.[0]
+  if (!app) { check('an application on the test employer exists to drive', false, 'none found'); }
+  else {
+    const original = app.status
+    console.log('')
+    console.log(`employer — /my-jobs applications (app ${app.id.slice(0, 8)}…, status recorded: ${original})`)
+    try {
+      await admin.from('job_applications').update({ status: 'shortlisted' }).eq('id', app.id)
+      const page = await (await browser.newContext({
+        ...devices['iPhone 14 Pro'],
+        extraHTTPHeaders: process.env.VERCEL_AUTOMATION_BYPASS_SECRET
+          ? { 'x-vercel-protection-bypass': process.env.VERCEL_AUTOMATION_BYPASS_SECRET } : {},
+      })).newPage()
+      await withSeededStorage(page, 'consentAccepted')
+      await signIn(page, 'pauldavies.gbr+employer@gmail.com', EMP_PASS)
+      await page.goto(`${BASE}/my-jobs/${app.job_id}/applications`, { waitUntil: 'domcontentloaded' })
+      await page.waitForFunction(() =>
+        [...document.querySelectorAll('button')].some(b => /Schedule Interview/.test(b.textContent)),
+        null, { timeout: 30000 })
+      check('the employer toggle paints on its own page',
+        (await whatPaintsOnToggle(page)) === 'THE TOGGLE', await whatPaintsOnToggle(page))
+      await page.evaluate(() => {
+        [...document.querySelectorAll('button')].find(b => /Schedule Interview/.test(b.textContent)).click()
+      })
+      await page.waitForFunction(() =>
+        [...document.querySelectorAll('*')].some(e => {
+          const cs = getComputedStyle(e)
+          return cs.position === 'fixed' && cs.zIndex === '200' && e.getBoundingClientRect().height > 200
+        }), null, { timeout: 10000 })
+      const paints = await whatPaintsOnToggle(page)
+      check('WITH THE SCHEDULE MODAL OPEN, it covers the employer toggle',
+        paints === 'THE MODAL LAYER' || paints === 'NO TOGGLE ON THIS PAGE', paints)
+      await page.context().close()
+    } finally {
+      // RESTORE VERBATIM, and prove it — never leave a fixture in a state a
+      // drive invented.
+      await admin.from('job_applications').update({ status: original }).eq('id', app.id)
+      const { data: back } = await admin.from('job_applications').select('status').eq('id', app.id).single()
+      check('the application status is restored verbatim', back.status === original,
+        `${back.status} (was ${original})`)
+    }
   }
-  await page.context().close()
 }
+
 
 await browser.close()
 console.log('')
