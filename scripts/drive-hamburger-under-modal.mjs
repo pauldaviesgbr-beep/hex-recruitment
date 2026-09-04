@@ -81,19 +81,28 @@ const whatPaintsOnToggle = (page) => page.evaluate(() => {
   check('the toggle paints on its own page, no modal open',
     (await whatPaintsOnToggle(page)) === 'THE TOGGLE', await whatPaintsOnToggle(page))
 
-  // The drawer-over-modal case, in the order that used to be wrong:
-  // drawer OPEN first, then the modal over it.
+  // DRAWER MECHANICS STILL WORK AT THE NEW z: open it, dismiss it by its
+  // own overlay, and PROVE it is gone - the first version of this drive
+  // left the drawer open on a wrong heuristic and its overlay ate the next
+  // click, which read as a broken page.
   await page.locator('[class*="mobileToggle"]').first().click()
-  await page.waitForTimeout(300)
-  await page.keyboard.press('Escape').catch(() => {})
-  // Close the drawer again by toggling, so the card is clickable.
-  const drawerOpen = await page.evaluate(() =>
-    [...document.querySelectorAll('[class*="sidebar"], nav')].some(e => {
-      const r = e.getBoundingClientRect(); return r.width > 200 && r.left >= -5 && getComputedStyle(e).visibility !== 'hidden'
-    }))
-  if (drawerOpen) await page.locator('[class*="mobileToggle"]').first().click().catch(() => {})
-  await page.waitForTimeout(200)
+  await page.waitForFunction(() => {
+    const o = document.querySelector('[class*="overlay"]')
+    return o && getComputedStyle(o).display !== 'none'
+  }, null, { timeout: 5000 })
+  // The drawer covers the overlay's centre, so click a point the drawer
+  // does not reach - the right-hand edge of the screen.
+  await page.mouse.click(380, 500)
+  await page.waitForFunction(() => {
+    const o = document.querySelector('[class*="CandidateSidebar_overlay"]')
+    return !o || getComputedStyle(o).display === 'none'
+  }, null, { timeout: 5000 })
+  check('the drawer opens and its overlay dismisses it at the new z', true)
 
+  // AND THE HOLDING-UP ANSWER, stated as an assertion: once a modal is up,
+  // the toggle is UNDERNEATH it, so no flow can reach the drawer from
+  // inside a modal - the modal's own close is the only way out, and it is
+  // asserted below. Nothing was found leaning on the old order.
   await page.locator('[class*="listCardTitle"]').first().click()
   await page.waitForFunction(() => document.querySelectorAll('[data-report-control="job"]').length > 0, null, { timeout: 15000 })
   const paints = await whatPaintsOnToggle(page)
