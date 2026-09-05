@@ -356,9 +356,22 @@ export default function CVBuilderPage() {
             },
       }
 
+      // THE BEARER, WITHOUT WHICH THIS ROUTE HAS ANSWERED 401 SINCE 26 MARCH.
+      // /api/ai-assist requires Authorization; 047dc9e added that on
+      // 26 Mar 2026 ("critical security fixes") and THIS caller was never
+      // updated — five months of a button that alerts "Unauthorized" the
+      // moment anybody taps it, on the web as much as in the app. Four other
+      // call sites of the same route send it; this was the fifth nobody
+      // enumerated. Same shape as theirs, deliberately.
+      const { data: { session: aiSession } } = await supabase.auth.getSession()
       const res = await fetch('/api/ai-assist', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(aiSession?.access_token
+            ? { Authorization: `Bearer ${aiSession.access_token}` }
+            : {}),
+        },
         body: JSON.stringify(payload),
       })
 
@@ -378,10 +391,25 @@ export default function CVBuilderPage() {
         }
         setAiModalOpen(false)
       } else {
-        alert(result.error || 'Failed to generate text. Please try again.')
+        // OUR SENTENCE, NEVER THE SERVER'S. This used to alert
+        // `result.error` verbatim — which is how a person tapping AI Assist
+        // got the word "Unauthorized" for five months: a raw API string,
+        // meaningless to them, and describing a fault they could do nothing
+        // about. Same doctrine as lib/loginErrors: a failure becomes words
+        // in one place, and anything unrecognised lands on ours.
+        alert(
+          res.status === 429
+            ? 'That’s a few too many in a row. Wait a minute and try again.'
+            : res.status === 401
+              ? 'Please sign in again, then try that once more.'
+              : 'We couldn’t write that just now. Please try again.',
+        )
       }
     } catch {
-      alert('Failed to connect to AI service. Please try again.')
+      // Covers the 30s maxDuration running out and a dropped connection —
+      // both reach here as a rejected fetch, and both are the same thing to
+      // the person holding the phone.
+      alert('That didn’t reach us — check your signal and try again.')
     } finally {
       setAiLoading(false)
     }
