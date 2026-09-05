@@ -115,6 +115,21 @@ export default function LoginPanel({
         email: pendingEmail,
         options: { emailRedirectTo: `${siteUrl}${safeReturn || '/dashboard'}` },
       })
+      // AND IF THE SERVER SAYS IT IS ALREADY CONFIRMED, BELIEVE IT AND STOP
+      // NAGGING. This is the ONE moment the browser can learn the thing it
+      // otherwise cannot: the person has told us to resend, so we are asking
+      // about an address they hold, and Supabase's refusal names the reason.
+      // It is not an enumeration oracle — the caller has to have the flag
+      // already, and the answer only ever reaches the person who asked.
+      // One tap becomes a permanent fix for this browser.
+      const alreadyDone = /already\s*(been\s*)?confirmed|already\s*registered|already\s*verified/i
+        .test(resendErr?.message || '')
+      if (alreadyDone) {
+        clearPendingConfirm()
+        setPendingEmail(null)
+        setResend('idle')
+        return
+      }
       setResend(resendErr ? 'error' : 'sent')
     } catch { setResend('error') }
   }
@@ -169,12 +184,30 @@ export default function LoginPanel({
 
       {pendingEmail && (
         <div className={styles.pending}>
-          <p className={styles.pendingTitle}>Confirm your email to finish</p>
+          {/* THIS BANNER MUST NOT ASSERT WHAT THIS BROWSER CANNOT KNOW.
+              It used to read "Confirm your email to finish", stated as fact.
+              The flag behind it is written at signup in localStorage and can
+              only be cleared by something happening IN THIS BROWSER — a
+              session appearing, a password sign-in, or a seven-day expiry.
+              Confirmation happens server-side, and in the iOS shell it
+              happens in SAFARI, so the app can never learn it. Paul was told
+              to confirm an address he had confirmed an hour earlier, and
+              every app user who registers by email takes that exact path.
+
+              WE DO NOT ASK THE SERVER, DELIBERATELY. An "is this address
+              confirmed?" endpoint would answer for ANY address to ANY
+              caller — an account-enumeration oracle, a worse fault than a
+              stale notice.
+
+              So the copy carries the ACTION and drops the CLAIM: it is true
+              whether or not they have already confirmed. */}
+          <p className={styles.pendingTitle}>One more step — or already done?</p>
           {/* overflowWrap:anywhere lives in the stylesheet — an email address
               has no spaces, and a plus-address ran 101px past this box on a
               390px screen because the browser had nowhere legal to break it. */}
           <p className={styles.pendingBody}>
-            You signed up as <strong>{pendingEmail}</strong>. Click the link we emailed you.
+            You signed up as <strong>{pendingEmail}</strong>. If you haven’t confirmed
+            it yet, click the link we emailed you — if you already have, just log in below.
           </p>
           <button type="button" onClick={handleResend} disabled={resend === 'sending'} className={styles.resend}>
             {resend === 'sending' ? 'Sending…' : resend === 'sent' ? 'Email sent' : 'Resend email'}
