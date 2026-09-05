@@ -6,6 +6,15 @@ import { FREE_FOUNDING_MODE } from '@/lib/constants/cohort'
 import { provisionFoundingEmployer } from '@/lib/foundingSignup'
 import type { EmailClass } from '@/lib/emailDomains'
 import { parseAttrCookie, attributionColumns, type Attribution } from '@/lib/attribution'
+
+// How old a session may be and still count as "minted by a sibling request of
+// this same click". One click fans out into several requests milliseconds
+// apart — read from a real employer's auth log on 25 Aug 2026 — so a session
+// created by one of them is seconds old when the next arrives. Anything older
+// is a leftover from a different sign-in and proves nothing about the token
+// being presented now. Sixty seconds is generous for the duplicate case and
+// still far below the hours that separate two signups on one browser.
+export const SIBLING_SESSION_MAX_AGE_MS = 60_000
 import { geoColumnsFromRequest } from '@/lib/geo'
 import { safeReturnPath } from '@/lib/safeRedirect'
 import { nameFromAuth, greetingName } from '@/lib/displayName'
@@ -129,13 +138,49 @@ export async function handleAuthCallback(
       // Supabase rather than trusting the cookie. A forged or expired cookie
       // returns no user and falls through to the redirect exactly as before.
       // Somebody with no session and a dead token still gets bounced.
+      // ── AND THE SESSION IT FINDS MUST BE THE ONE THIS TOKEN JUST MADE ──
+      //
+      // "THE SAME PERSON, ONE REQUEST LATER" WAS TRUE OF THE FAULT ABOVE AND
+      // FALSE OF THE ONE IT CREATED. This branch used to accept ANY valid
+      // session in the jar as proof that a sibling request had done the work.
+      // On 4 Sept 2026 a registration take proved otherwise: a signup was
+      // confirmed for one name while the browser still held YESTERDAY'S
+      // session for a different account, and this branch looked at that
+      // stranger's session and said "continuing". The person landed on the
+      // dashboard as somebody else and typed their onboarding answers onto
+      // the wrong profile — silently, no error anywhere. Two signups from one
+      // phone browser reproduce it, which means a reviewer can.
+      //
+      // A BRANCH THAT REASONS ABOUT WHO THE USER IS HAS TO CHECK, NOT ASSUME.
+      // The discriminator is AGE: a session minted by a sibling request of
+      // the SAME CLICK is seconds old; a leftover from another sign-in is
+      // hours old and is no evidence at all about THIS token.
+      //
+      // A STALE SESSION IS CLEARED, NOT CARRIED — leaving it would land them
+      // on a dashboard as the wrong person, which is the fault itself.
+      // scope: 'local' clears THIS browser's cookies and leaves the other
+      // account's session alive on its own devices; it is not ours to end.
       const { data: { user: alreadySignedIn } } = await supabase.auth.getUser()
-      if (alreadySignedIn) {
-        console.log('[auth/callback] verifyOtp failed but a valid session is already present — continuing', {
+      const signedInAt = alreadySignedIn?.last_sign_in_at
+        ? Date.parse(alreadySignedIn.last_sign_in_at)
+        : 0
+      const sessionAgeMs = Date.now() - signedInAt
+
+      if (alreadySignedIn && sessionAgeMs <= SIBLING_SESSION_MAX_AGE_MS) {
+        console.log('[auth/callback] verifyOtp failed but a FRESH session is present — a sibling request of this same click did the work; continuing', {
           userId: alreadySignedIn.id,
+          sessionAgeMs,
           otpType,
           reason: otpError.message,
         })
+      } else if (alreadySignedIn) {
+        console.error('[auth/callback] verifyOtp failed and the session present is STALE — it belongs to an earlier sign-in, not to this link. Clearing rather than continuing as the wrong account.', {
+          staleUserId: alreadySignedIn.id,
+          sessionAgeMs,
+          otpType,
+        })
+        await supabase.auth.signOut({ scope: 'local' })
+        return NextResponse.redirect(`${origin}/login?error=link_already_used`)
       } else {
         console.error('[auth/callback] verifyOtp FAILED', otpError.message)
         return NextResponse.redirect(
