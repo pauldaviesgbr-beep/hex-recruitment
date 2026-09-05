@@ -599,6 +599,16 @@
    see the 31 Aug sticky entry in CLAUDE.md), sticky can return here WITH
    top: calc(var(--nav-height) + env(safe-area-inset-top, 0px)). */
 
+@media (max-width: 768px) {
+  .pageHeader {
+    /* The removed sticky's top was ALSO this no-pad page's only clearance
+       under the fixed mobile header — the same double duty as the CV
+       Builder banner, measured the same morning: band top 0 under a 68px
+       header. Base padding 1.25rem, plus the header. */
+    padding-top: calc(var(--nav-height) + 1.25rem);
+  }
+}
+
 /* The right-to-work line under Eligibility. Same style as /job/[id]. */
 .detailEligibilityNote {
   margin: 0.25rem 0 0;

@@ -822,6 +822,16 @@
      sticky can return here WITH
      top: calc(var(--nav-height) + env(safe-area-inset-top, 0px)). */
 
+  .banner {
+    /* THE STICKY WAS DOING TWO JOBS, and removing it removed both. Its
+       top: 70px was also the ONLY thing clearing the fixed mobile header
+       on this no-pad page — measured 5 Sept 2026: band top 0 under a 68px
+       header, elementFromPoint at the band saying THE HEADER. The no-pad
+       rule: THE FIRST BAND OWNS THE CLEARANCE. Base padding 0.75rem, plus
+       the header. */
+    padding-top: calc(var(--nav-height) + 0.75rem);
+  }
+
   .layout {
     padding-top: 0.5rem;
     scroll-margin-top: 80px;
