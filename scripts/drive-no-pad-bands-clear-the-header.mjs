@@ -14,7 +14,12 @@
 // viewport" is TRUE OF AN ELEMENT BEHIND ANOTHER ELEMENT. Paul filmed the
 // yellow button-bottoms peeking out from under the header on 5 Sept 2026.
 //
-// So this asserts VISIBILITY, not viewport membership: on each page, the
+// THE ASSERTION TARGETS THE CONTENT, NOT THE BAND BOX — the no-pad idiom
+// deliberately extends the band's padded box UNDER the header (dark band
+// flush under dark header), so the box top being 0 is CORRECT rendering.
+// The first version asserted the box and failed the FIX — the inside-the-
+// viewport lesson's cousin, caught by the pair refusing to pass.
+// So this asserts VISIBILITY of the content: on each page, the
 // band's top edge sits at or below the header's bottom edge, AND
 // elementFromPoint just inside the band's top returns the band — the
 // paint question, which a rect comparison alone cannot answer.
@@ -55,8 +60,8 @@ await page.locator('button[type="submit"]').first().click()
 await page.waitForFunction(() => !location.pathname.includes('/login'), null, { timeout: 30000 })
 
 for (const [path, sel, label] of [
-  ['/cv-builder', '[class*="banner"]', 'the CV Builder toolbar band'],
-  ['/saved-jobs', '[class*="pageHeader"]', 'the Saved Jobs band'],
+  ['/cv-builder', '[class*="bannerTitle"]', 'the CV Builder toolbar CONTENT'],
+  ['/saved-jobs', '[class*="pageTitle"]', 'the Saved Jobs band CONTENT'],
 ]) {
   await page.goto(`${BASE}${path}`, { waitUntil: 'domcontentloaded' })
   await page.waitForFunction((s) => !!document.querySelector(s), sel, { timeout: 30000 })
@@ -66,7 +71,10 @@ for (const [path, sel, label] of [
     const band = document.querySelector(s)
     const hb = header.getBoundingClientRect().bottom
     const bt = band.getBoundingClientRect().top
-    const probe = document.elementFromPoint(196, bt + 10)
+    const r = band.getBoundingClientRect()
+    // At the ELEMENT'S OWN CENTRE - a fixed x=196 probed the flex container
+    // BESIDE a left-aligned title and misread the fix as failing.
+    const probe = document.elementFromPoint(r.left + r.width / 2, bt + 10)
     return {
       headerBottom: Math.round(hb), bandTop: Math.round(bt),
       paints: probe ? (probe.closest(s) ? 'the band' : (probe.closest('header') ? 'THE HEADER' : String(probe.className).slice(0, 30))) : 'nothing',
