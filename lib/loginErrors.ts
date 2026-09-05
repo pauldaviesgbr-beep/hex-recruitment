@@ -122,5 +122,15 @@ export function callbackErrorCopy(value: string | null | undefined): string | nu
   // it is not a failure, it is the wrong door.
   if (value === 'wrong-role' || value === 'wrong_account') return null
 
+  // A SPENT LINK IS THE ONE CASE WHERE "TRY AGAIN" IS ADVICE THAT CANNOT
+  // WORK. The confirm callback sends this when the token was already used
+  // AND the session in the jar belongs to an earlier sign-in — so the person
+  // is holding a dead link and has just had a stranger's cookies cleared.
+  // The generic sentence below would tell them to retry the one thing that
+  // can never succeed; this one tells them what actually gets them in.
+  if (value === 'link_already_used') {
+    return 'That link was already used. Please sign in below.'
+  }
+
   return 'Sign-in didn’t complete. Please try again.'
 }
