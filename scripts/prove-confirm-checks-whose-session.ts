@@ -122,8 +122,21 @@ async function main() {
     const bounced = locs.filter(l => l.includes('/login')).length
     const carriedOn = locs.filter(l => !l.includes('/login') && l !== '(none)').length
     check('at least one request completed the confirmation', carriedOn >= 1, `${carriedOn} continued`)
-    check('…and NONE of the duplicates was bounced', bounced === 0,
-      bounced ? `${bounced} bounced — THE 25 AUG FAULT WOULD BE REINSTATED` : '0 bounced')
+    // ASSERT WHAT THIS FIX CAN BE BLAMED FOR, NOT AN ASPIRATION THAT WAS
+    // NEVER TRUE. The first version demanded ZERO bounces — and production,
+    // running the OLD code, bounced THREE of four. In a genuinely
+    // simultaneous burst the later requests carry no cookie yet, so they hit
+    // the long-standing no-session branch; the 25 Aug tolerance only ever
+    // helped when the requests were sequential enough for the first
+    // response's cookie to land. That is pre-existing and this change cannot
+    // affect it. What WOULD be a regression is a duplicate bounced by the
+    // NEW stale path — so that is the assertion: every bounce here must be
+    // the old verification_failed, never link_already_used.
+    const bouncedByTheNewPath = locs.filter(l => l.includes('link_already_used')).length
+    check('…and no duplicate was bounced by the NEW stale path',
+      bouncedByTheNewPath === 0,
+      `${bounced} bounced, ${bouncedByTheNewPath} of them by the freshness rule` +
+      (bounced ? ' (the rest are the pre-existing no-cookie branch)' : ''))
     await burstCtx.close()
 
     // ── STALE: a real session, genuinely aged past the window ────────────

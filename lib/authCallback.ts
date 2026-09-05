@@ -179,8 +179,19 @@ export async function handleAuthCallback(
           sessionAgeMs,
           otpType,
         })
+        // THE CLEARING COOKIES RIDE ON `response`, AND A FRESH REDIRECT
+        // THROWS THEM AWAY. signOut writes its removals through the cookie
+        // adapter, which sets them on the placeholder `response` built at the
+        // top of this function — so returning a NEW NextResponse.redirect
+        // here sends the person to /login with the stranger's session still
+        // in their jar. Driven 5 Sept 2026: the bounce and the message were
+        // both right and the two auth cookies were still there afterwards,
+        // which is arguably worse than before — a "link already used"
+        // message while still signed in as somebody else. Carry them across.
         await supabase.auth.signOut({ scope: 'local' })
-        return NextResponse.redirect(`${origin}/login?error=link_already_used`)
+        const bounce = NextResponse.redirect(`${origin}/login?error=link_already_used`)
+        for (const c of response.cookies.getAll()) bounce.cookies.set(c)
+        return bounce
       } else {
         console.error('[auth/callback] verifyOtp FAILED', otpError.message)
         return NextResponse.redirect(
