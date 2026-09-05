@@ -8,6 +8,7 @@ import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, Bord
 import { saveAs } from 'file-saver'
 import Header from '@/components/Header'
 import { supabase } from '@/lib/supabase'
+import { isNativeApp } from '@/lib/nativeOAuth'
 import { DEV_MODE } from '@/lib/mockAuth'
 import styles from './page.module.css'
 import { Ico } from '@/components/icons'
@@ -96,6 +97,29 @@ export default function CVBuilderPage() {
 
   // Profile data for AI context
   const [profileData, setProfileData] = useState<Record<string, unknown> | null>(null)
+
+  // ── EXPORT IS HIDDEN IN THE iOS SHELL, BECAUSE IT CANNOT WORK THERE ────
+  //
+  // Export PDF calls jsPDF's pdf.save() and Download Word calls file-saver's
+  // saveAs(); both are browser downloads — an object URL plus a synthetic
+  // anchor click. A Capacitor WKWebView has no download handling for that,
+  // so on a handset both buttons tap and NOTHING HAPPENS, silently. Paul
+  // found it on the phone; no desktop drive would.
+  //
+  // Hidden rather than relabelled: a label that promises something which
+  // does not exist is worse than either. The web is untouched.
+  //
+  // The proper fixes and their costs are recorded in the report —
+  // @capacitor/filesystem + @capacitor/share needs a NEW BINARY (neither is
+  // installed; only app and browser are), while uploading to the profiles
+  // bucket and opening a signed URL in the in-app sheet is web-only but
+  // needs a cleanup rule. This is the holding position until one lands.
+  //
+  // IN AN EFFECT, NOT DURING RENDER: isNativeApp() reads window.Capacitor,
+  // which the server does not have — reading it while rendering would make
+  // the server and client markup disagree.
+  const [nativeShell, setNativeShell] = useState(false)
+  useEffect(() => { setNativeShell(isNativeApp()) }, [])
 
   const previewRef = useRef<HTMLDivElement>(null)
 
@@ -1190,12 +1214,16 @@ export default function CVBuilderPage() {
             <button className={styles.previewToggle} onClick={() => setShowPreview(!showPreview)}>
               {showPreview ? 'Edit' : 'Preview'}
             </button>
-            <button className={styles.exportBtn} onClick={exportPDF} disabled={exporting}>
-              {exporting ? 'Exporting...' : 'Export PDF'}
-            </button>
-            <button className={styles.exportBtn} onClick={exportWord} disabled={exportingWord}>
-              {exportingWord ? 'Creating...' : 'Download Word'}
-            </button>
+            {!nativeShell && (
+              <>
+                <button className={styles.exportBtn} onClick={exportPDF} disabled={exporting}>
+                  {exporting ? 'Exporting...' : 'Export PDF'}
+                </button>
+                <button className={styles.exportBtn} onClick={exportWord} disabled={exportingWord}>
+                  {exportingWord ? 'Creating...' : 'Download Word'}
+                </button>
+              </>
+            )}
           </div>
         </div>
       </section>
@@ -1267,14 +1295,21 @@ export default function CVBuilderPage() {
                 Next Step
               </button>
             ) : (
-              <div className={styles.exportBtns}>
-                <button className={styles.nextBtn} onClick={exportPDF} disabled={exporting}>
-                  {exporting ? 'Exporting...' : 'Export PDF'}
-                </button>
-                <button className={styles.nextBtn} onClick={exportWord} disabled={exportingWord}>
-                  {exportingWord ? 'Creating...' : 'Download Word'}
-                </button>
-              </div>
+              /* THE SECOND RENDERING, and the one a sweep would miss. On the
+                 LAST step these REPLACE Next Step, so hiding them leaves this
+                 row with Back alone — checked before doing it, and Save CV
+                 and Preview remain in the toolbar above, so the step is not a
+                 dead end. */
+              !nativeShell && (
+                <div className={styles.exportBtns}>
+                  <button className={styles.nextBtn} onClick={exportPDF} disabled={exporting}>
+                    {exporting ? 'Exporting...' : 'Export PDF'}
+                  </button>
+                  <button className={styles.nextBtn} onClick={exportWord} disabled={exportingWord}>
+                    {exportingWord ? 'Creating...' : 'Download Word'}
+                  </button>
+                </div>
+              )
             )}
           </div>
         </div>
