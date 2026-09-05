@@ -45,6 +45,22 @@ const stickies = bannerBlocks.filter(b => /position:\s*sticky/.test(b))
 check('.banner declares sticky in NONE of its blocks', stickies.length === 0,
   `${bannerBlocks.length} block(s), ${stickies.length} sticky`)
 
+// AND THE BAND OWNS ITS CLEARANCE. The sticky's top: 70px was doing TWO
+// jobs, and the first version of this check watched only one of them:
+// removing the sticky also removed the ONLY thing clearing the fixed
+// mobile header on this no-pad page. "All four buttons inside the
+// viewport" stayed green while the toolbar rendered BEHIND the header —
+// INSIDE THE VIEWPORT IS TRUE OF AN ELEMENT BEHIND ANOTHER ELEMENT.
+// Measured 5 Sept 2026: band top 0 under a 68px header, on camera.
+// The behavioural half — the band's top edge BELOW the header's bottom
+// edge, by elementFromPoint — lives in
+// scripts/drive-no-pad-bands-clear-the-header.mjs, which needs a
+// deployment; this line is the static half that runs everywhere.
+const clearance = bannerBlocks.some(b =>
+  /padding-top:\s*calc\(\s*var\(--nav-height\)\s*\+/.test(b))
+check('.banner owns its header clearance (nav-height in a padding-top)',
+  clearance, '')
+
 console.log('')
 if (bad) {
   console.log(`${bad} FAILED`)
