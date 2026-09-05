@@ -237,7 +237,14 @@ export default function LoginPanel({
 
         <label className={styles.remember}>
           <input type="checkbox" checked={rememberMe} onChange={e => setRememberMe(e.target.checked)} />
-          <span>Keep me signed in on this browser</span>
+          {/* "on this device", not "on this browser". Inside the iOS shell
+              the word browser reads as a website in a wrapper — the one
+              impression the whole App Store review is trying to avoid — and
+              it is no less true on the web, where a person thinks in
+              devices. The MECHANISM is still per-browser (a session cookie,
+              see the note at the top of this file); the SENTENCE does not
+              need to name it. */}
+          <span>Keep me signed in on this device</span>
         </label>
 
         {error && <p className={styles.error}>{error}</p>}

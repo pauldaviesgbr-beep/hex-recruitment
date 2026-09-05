@@ -56,6 +56,7 @@
     "deletiongatekey:prove": "node scripts/prove-deletion-gate-key.mjs",
     "protected:prove": "npx tsx --conditions=react-server scripts/prove-protected-accounts.ts",
     "rtw:prove": "node scripts/prove-right-to-work-everywhere.mjs",
+    "nobrowsercopy:prove": "node scripts/prove-no-browser-in-copy.mjs",
     "cvtoolbar:prove": "node scripts/prove-cv-builder-toolbar.mjs",
     "modalclose:prove": "node scripts/prove-modal-close-clears-the-notch.mjs",
     "sidebarz:prove": "node scripts/prove-sidebar-z-tokens.mjs",
