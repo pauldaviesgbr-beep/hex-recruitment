@@ -550,7 +550,11 @@ const ALL = [
   // thread view and that it carries both the report and block controls.  // The sidebar family stays on the tokens, below every modal - the 4 Sept
   // hamburger-over-the-advert fault cannot come back as a literal typed into
   // one of the two sidebar stylesheets. Filesystem only.  // The job modal's x clears the notch, in BOTH its blocks - the mobile
-  // media query's override is the rule that actually runs on a phone.  // The CV Builder toolbar wraps and its banner claims no dead sticky.
+  // media query's override is the rule that actually runs on a phone.  // The CV Builder toolbar wraps and its banner claims no dead sticky.  // The iOS shell loads the live site, so every sentence is read inside the
+  // app too - and there 'browser' gives the wrapper away. Two files are
+  // allow-listed where the distinction is the actual point.
+  { name: 'nobrowsercopy:prove', cmd: npm, args: ['run', 'nobrowsercopy:prove'] },
+
   { name: 'cvtoolbar:prove', cmd: npm, args: ['run', 'cvtoolbar:prove'] },
 
   { name: 'modalclose:prove', cmd: npm, args: ['run', 'modalclose:prove'] },

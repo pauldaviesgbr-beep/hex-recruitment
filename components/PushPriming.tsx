@@ -127,7 +127,10 @@ export default function PushPriming({ trigger }: { trigger: boolean }) {
         </button>
       </div>
       {isIOS() ? null : (
-        <p className={styles.tiny}>Your browser will ask you to confirm.</p>
+        // "your device", not "your browser" — read inside the iOS shell as
+        // often as on the web, and there the word browser gives the wrapper
+        // away.
+        <p className={styles.tiny}>Your device will ask you to confirm.</p>
       )}
     </div>
   )

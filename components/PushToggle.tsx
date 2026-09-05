@@ -50,7 +50,10 @@ export default function PushToggle() {
   if (status === null) return <p style={muted}>Checking…</p>
 
   if (status === 'unsupported') {
-    return <p style={muted}>This browser doesn&rsquo;t support notifications.</p>
+    // "This device", not "This browser" — same reason as the other two: in
+    // the iOS shell the word browser gives the wrapper away, and on the web
+    // a person thinks in devices anyway.
+    return <p style={muted}>This device doesn&rsquo;t support notifications.</p>
   }
 
   if (status === 'ios-needs-install') {
