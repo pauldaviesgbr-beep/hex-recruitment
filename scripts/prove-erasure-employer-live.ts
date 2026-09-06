@@ -135,6 +135,29 @@ async function main() {
     jobId = job.id as string
     check('the advert starts ACTIVE, so archiving is a real change', job.status === 'active', String(job.status))
 
+    // ── THIS THROWAWAY EMPLOYER DECLARES ITSELF A FIXTURE ────────────────────
+    //
+    // Added 6 Sept 2026, when the new fixture guard refused the application
+    // below and took this whole proof red — correctly. The guard raises when a
+    // fixture CANDIDATE applies to an advert whose owner is not a fixture
+    // EMPLOYER, and `CANDIDATE` here is one of the four. This employer is
+    // minted at runtime with a random uuid, so it can never appear on the
+    // static list in the migration.
+    //
+    // THE FIX IS NOT TO LOOSEN THE GUARD. This account IS a fixture — created
+    // by a proof, deleted by the same proof a few lines later — so it says so.
+    // Loosening the rule to let the application through would have put back
+    // exactly the hole that emailed Goldenkeys twice.
+    //
+    // The row carries no teardown of its own: fixture_accounts.user_id is
+    // ON DELETE CASCADE from auth.users, so deleting the account takes it. The
+    // teardown asserts that rather than assuming it.
+    const { error: fxErr } = await admin.from('fixture_accounts').insert({
+      user_id: userId, kind: 'employer', label: `Erasure Proof Ltd ${stamp}`,
+      note: 'Throwaway, created and deleted by prove-erasure-employer-live.',
+    })
+    if (fxErr) throw new Error('could not register the throwaway employer as a fixture: ' + fxErr.message)
+
     const { data: app, error: aErr } = await admin.from('job_applications').insert({
       job_id: jobId, candidate_id: CANDIDATE, status: 'pending', employer_notes: NOTE,
     }).select('id').single()
@@ -230,6 +253,17 @@ async function main() {
       const { data: leftover } = await admin.from('job_applications')
         .select('id').eq('id', appId).maybeSingle()
       check('teardown: the throwaway application is gone', !leftover, leftover ? 'STILL THERE' : 'gone')
+    }
+    // THE FIXTURE ROW GOES BY CASCADE, AND THAT IS ASSERTED RATHER THAN
+    // ASSUMED — a fixture_accounts row surviving its account would be a
+    // permanent, invisible exemption for a uuid nobody can look up. Keyed on
+    // this run's own user id, never a global count, so a concurrent sibling's
+    // row cannot turn this red.
+    if (userId) {
+      const { data: fxLeft } = await admin.from('fixture_accounts')
+        .select('user_id').eq('user_id', userId).maybeSingle()
+      check("teardown: the throwaway's fixture row went with the account",
+        !fxLeft, fxLeft ? 'STILL THERE' : 'gone')
     }
     // THE ONE THIS PROOF NEVER CLEANED UP. Scoped to our domain, so it
     // counts our row and cannot see a concurrent sibling's.
