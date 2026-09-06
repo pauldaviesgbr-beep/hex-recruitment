@@ -10,6 +10,7 @@ import PushPriming from '@/components/PushPriming'
 import type { Conversation } from '@/lib/mockMessages'
 import styles from './ApplyNowModal.module.css'
 import { Ico } from '@/components/icons'
+import { isFixtureGuardError, FIXTURE_GUARD_MESSAGE } from '@/lib/applicationGuard'
 
 interface ApplyNowModalProps {
   job: Job
@@ -157,6 +158,18 @@ export default function ApplyNowModal({ job, isOpen, onClose, onSuccess }: Apply
         .from('job_applications')
         .insert(appData)
       if (insertError) {
+        // THE GUARD'S OWN SENTENCE, NOT THE SERVER'S. The trigger raises a
+        // marker; what a person reads is written by us. This path already
+        // returned before notifying on 23505, which is why it needed no other
+        // repair — the /jobs copy did not, and emailed the employer anyway.
+        if (isFixtureGuardError(insertError)) {
+          // ALERTED HERE, NOT THROWN. The catch below shows a fixed "Failed to
+          // submit application. Please try again." and discards err.message —
+          // and "try again" is actively wrong advice for a refusal that can
+          // never succeed. The requirement was that it say WHY.
+          alert(FIXTURE_GUARD_MESSAGE)
+          return
+        }
         if (insertError.code === '23505') {
           setSubmitted(true)
           onSuccess(job.id)
