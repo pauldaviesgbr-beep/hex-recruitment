@@ -601,16 +601,18 @@ Standing rules for Claude Code on this project. These override default behaviour
   - **And derive the threshold from the measured rects, not from arithmetic on the CSS.** The run computes `avatar.top - toggle.bottom` and prints it, so the statement "any inset above 22.2px reaches it" is a fact about the page rather than a sum I did.
   - Same spine as the drive with empty storage: **the tool hands you one state and it is not the state your users are in.**
 
-- **THERE ARE TWO z-index SCALES IN THIS PRODUCT AND THE SIDEBAR FAMILY SITS ENTIRELY ABOVE THE TOKENS. NOT FIXED — Paul's call, 31 Aug 2026 — SO HERE IS WHAT IT COSTS.**
+- **THE TWO z-index SCALES ARE NOW ONE. FIXED 4 Sept 2026 — this entry said "NOT FIXED" for two days after it had been, which is the failure it is now a record of.**
 
-      tokens (globals.css)      --z-header 100 · --z-dropdown 110 · --z-modal 200
-      sidebar literals (both)   drawer 1100 · overlay 1099 · toggle 1001 · nav 1000
-      others                    CookieConsent 1001 · NotificationBell 1000 · two 9999s
+      tokens (globals.css)   --z-header 100 · --z-dropdown 110
+                             --z-sidebar-nav 140 · --z-sidebar-toggle 141
+                             --z-sidebar-overlay 148 · --z-sidebar 150
+                             --z-modal 200
 
-  - **EVERY ONE OF THE 16 `var(--z-modal)` USERS IS BENEATH THE SIDEBAR DRAWER, ITS OVERLAY AND ITS TOGGLE.** So any modal opened from a page where the drawer is available can be covered by navigation — and the drawer's dimming overlay at 1099 will paint *over* a modal at 200. That is a real fault waiting for somebody to open a modal with the drawer open; it has not bitten yet only because the drawer is usually shut.
-  - The account-sheet fix did **not** address this. It moves `.header` to 1201 *while it hosts the sheet* and puts it back afterwards — one screen, one state. Every other modal is still underneath.
-  - **Why it was not done on 31 Aug:** renumbering means moving the drawer and its overlay as well, which changes what covers the header on every page for both roles, on the same day a build was in front of App Store review. Wrong day, not wrong idea.
-  - **When it is done, the shape is to put the sidebar family on the tokens** (`--z-sidebar`, `--z-sidebar-overlay`, `--z-sidebar-toggle`) rather than to raise the tokens — raising `--z-modal` moves 16 things at once and pushes modals over the cookie banner at 1001. And the check that catches the regression already exists: `elementFromPoint`, not a z-index comparison.
+  - **THE SIDEBAR FAMILY IS ON THE TOKENS AND SITS BELOW EVERY MODAL**, which was the shape this entry predicted: the family moved DOWN onto the scale rather than `--z-modal` moving up, because raising the token would have shifted 16 things at once and pushed modals over the cookie banner. The old literals were drawer 1100 · overlay 1099 · toggle 1001 · nav 1000, all of them above `var(--z-modal)`.
+  - **`sidebarz:prove` GUARDS IT** — the four tokens are declared, the family sits above the header and below every modal, the relative order nav < toggle < overlay < drawer holds, and **zero hardcoded z-index literals remain** in either sidebar file. That last one is what stops the scale being re-split by somebody typing a number.
+  - **WHAT WAS TRUE AND IS NO LONGER: a modal opened with the drawer open is no longer covered by navigation.** Anyone reasoning from the old text would plan around a fault that does not exist — which is why it is corrected rather than deleted.
+  - **THE ENTRY BEING STALE IS THE POINT, AND IT IS THE SAME CLASS AS THE STORED TIMEZONE AND THE 251 ADVERTS.** A file that records a live fault which no longer exists is exactly as misleading as one that misses a fault: both make the next person reason from something untrue, and neither announces itself. The board count could at least be read from `jobs`; **a "NOT FIXED" line has nothing to disagree with it except the code it describes.**
+  - So when a fault is fixed, **the entry about it is part of the fix.** Found 6 Sept 2026 while answering a question about what an employer would see on camera — nobody was auditing this file, and nothing would have flagged it.
 
 - **NOBODY HAD EVER LOOKED AT THIS SITE AT TABLET WIDTH UNTIL 30 Aug 2026, AND IT SHOWS AT 1032px.** Recorded, not fixed — Paul's call, and it is a proper piece of work rather than a tidy-up. Three things seen on the candidate dashboard at that width: a large dead gap between the avatar row and the progress bar; a void before "Senior Chef de Partie"; and the Recommended card rendering as **one image rather than a grid**.
   - **The reason it is a class and not three bugs:** every breakpoint in this product was written for a phone or a desktop, so 769–1200 is whatever the desktop rules happen to do in a narrower box. It is not a designed width. Expect more than these three when somebody looks properly.
