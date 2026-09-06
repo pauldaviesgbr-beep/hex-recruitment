@@ -165,6 +165,32 @@ try {
   // The label survived and the control still LOOKED unreported, because in
   // icon-only mode nothing but the accessible name changed. These assert the
   // state is on the button and visible in what was painted.
+  // WAIT FOR THE COLOUR TO STOP MOVING, ON A PREDICATE RATHER THAN A CLOCK.
+  // The first version of this read FAILED on a correct product: background
+  // changed instantly and foreground did not, from the same CSS rule. The
+  // reason is `transition: color 0.2s` on .trigger — background has no
+  // transition, so it snaps, while getComputedStyle mid-transition returns the
+  // INTERPOLATED value, which at t=0 is still the old grey. A check that races
+  // an animation is a check that lies, and this one lied in the direction that
+  // wastes a session on working code.
+  // AND "DIFFERENT FROM GREY" IS NOT "FINISHED" EITHER. The first repair waited
+  // for the colour to CHANGE, which the very first frame of the transition
+  // satisfies — it passed while reading rgb(113,108,121), a value three
+  // hundredths of the way from grey to red and no more settled than before.
+  // The predicate has to be STABILITY: two reads, 100ms apart, that agree and
+  // are not the starting value. Value-agnostic on purpose, so it does not have
+  // to be retyped when the palette changes.
+  const settled = await page.waitForFunction(prev => {
+    const b = document.querySelector('[data-report-control="job"]')
+    if (!b) return false
+    const now = getComputedStyle(b).color
+    if (now === prev) return false
+    const w = window
+    if (w.__lastColour !== now) { w.__lastColour = now; return false }
+    return true
+  }, plainLook?.fg, { timeout: 5000, polling: 100 }).then(() => true).catch(() => false)
+  check('the colour transition has FINISHED, not merely started', settled,
+    settled ? 'stable across two reads' : 'never settled')
   const doneLook = await appearance()
   check('the remounted button carries data-reported=yes', doneLook?.reported === 'yes',
     String(doneLook?.reported))
