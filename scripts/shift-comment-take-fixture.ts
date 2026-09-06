@@ -102,18 +102,37 @@ async function ownerId(): Promise<string> {
   return u.id
 }
 
-async function findPost(uid: string) {
+// ── OWNER-KEYED, NOT TITLE-KEYED (6 Sept 2026) ───────────────────────────
+//
+// This was `.eq('title', MARKER)`, which is right for a post this script
+// creates and USELESS FOR ONE A PERSON TYPES UNDER A CAMERA. Step 11 is Paul
+// posting a shift himself, through the form, with a title that has to look
+// plausible in a video going to Apple — so the teardown cannot depend on him
+// typing a marker correctly, and it must not require him to.
+//
+// THE OWNER IS THE DISCRIMINATOR BECAUSE IT IS EXACT HERE, not because it is
+// convenient: Thrive Demo Kitchen owns ZERO temp posts, read immediately
+// before this change. So "every temp post owned by dfad7ed4" is precisely the
+// post from the take and nothing else. That is a fact about today's rows, and
+// --census is what re-establishes it before each take rather than trusting
+// this comment.
+//
+// RETURNS AN ARRAY, and every caller handles more than one. maybeSingle()
+// would THROW on a second row — turning "something unexpected is here" into a
+// crash, at the moment you most need to be told what is there.
+async function findPosts(uid: string) {
   const { data } = await admin.from('temp_posts')
-    .select('id, title, employer_id, status')
-    .eq('title', MARKER).eq('employer_id', uid).maybeSingle()
-  return data || null
+    .select('id, title, employer_id, status, created_at')
+    .eq('employer_id', uid)
+    .order('created_at', { ascending: true })
+  return data || []
 }
 
 // WHAT --down WOULD HAVE TO TAKE. Printed for a post that may not exist yet,
 // which is the point: the list is derived from the schema, not from what
 // happens to be lying around after a run.
 async function census(uid: string) {
-  const post = await findPost(uid)
+  const posts = await findPosts(uid)
   console.log('')
   console.log('WHAT THE REMOVAL HAS TO TAKE WITH IT')
   console.log('')
@@ -132,9 +151,24 @@ async function census(uid: string) {
   console.log('    --down refuses if any conversation points at this post.')
   console.log('')
 
-  if (!post) {
-    console.log('  The fixture does not exist yet. Nothing to count.')
+  console.log(`  TEMP POSTS OWNED BY ${OWNER_EMAIL}: ${posts.length}`)
+  for (const p of posts) {
+    console.log(`    ${p.id}  ${p.status.padEnd(6)}  "${p.title}"`)
+  }
+  console.log('')
+
+  if (posts.length === 0) {
+    console.log('  Nothing owned. This is the expected state BEFORE the take.')
     return
+  }
+  // NAMING WHAT WOULD GO, not what would remain. The step 8 teardown asserted
+  // "0 reports left" — a line that passes whether or not one was ever filed,
+  // and it took a request log to find out which. The census now prints the
+  // post's id and title so the record says what was removed.
+  const post = posts[0]
+  if (posts.length > 1) {
+    console.log(`  MORE THAN ONE. --down would remove all ${posts.length}, each by its own id.`)
+    console.log('')
   }
   const { data: comments } = await admin.from('temp_post_comments')
     .select('id').eq('post_id', post.id)
@@ -156,9 +190,12 @@ async function census(uid: string) {
 }
 
 async function up(uid: string) {
-  const already = await findPost(uid)
+  // ANY post owned by Demo Kitchen counts as "already up" — including one Paul
+  // posted himself in a take. --up must never quietly add a SECOND post to a
+  // public feed that is supposed to hold one fixture at a time.
+  const already = (await findPosts(uid))[0] || null
   if (already) {
-    console.log(`already up: ${already.id}`)
+    console.log(`already up: ${already.id}  "${already.title}"`)
   } else {
     const { data, error } = await admin.from('temp_posts').insert({
       employer_id: uid,
@@ -176,7 +213,7 @@ async function up(uid: string) {
     console.log(`created post: ${data.id}`)
   }
 
-  const post = await findPost(uid)
+  const post = (await findPosts(uid))[0] || null
   if (!post) throw new Error('the post is not there after creating it')
 
   const { data: existing } = await admin.from('temp_post_comments')
@@ -215,15 +252,44 @@ async function up(uid: string) {
 }
 
 async function down(uid: string) {
-  const post = await findPost(uid)
-  if (!post) {
-    console.log('nothing to remove — the fixture post is not there.')
+  const posts = await findPosts(uid)
+  if (posts.length === 0) {
+    console.log('nothing to remove — Demo Kitchen owns no temp posts.')
     return
   }
+  // MORE THAN ONE IS UNEXPECTED AND IS NAMED RATHER THAN SWALLOWED. All of
+  // them are still ours by the owner rule, so all of them go — but each by its
+  // own id, and each printed, so the record says what was removed.
+  if (posts.length > 1) {
+    console.log(`  ${posts.length} posts owned — removing each by its own id:`)
+    for (const p of posts) console.log(`    ${p.id}  "${p.title}"`)
+    console.log('')
+  }
+  const post = posts[0]
 
-  // THE GUARD. Everything below deletes against this id; it is only ours if
-  // BOTH the marker and the owner match, which findPost already required.
-  console.log(`removing ${post.id}`)
+  // ── COUNT BEFORE DELETING, AND SAY WHAT WENT ────────────────────────────
+  //
+  // The old teardown asserted "THE REPORT FROM THE TAKE IS GONE — 0". THAT
+  // LINE PASSES WHETHER OR NOT A REPORT WAS EVER FILED: it deletes, then
+  // counts. On 6 Sept it went green and I could not tell from it whether the
+  // step 8 take had worked — it took the PostgREST request log to establish
+  // that Paul's report really had landed, and I first asked that log for the
+  // wrong hour and nearly reported the opposite.
+  //
+  // So the counts are taken FIRST and printed as what was REMOVED. "1 post,
+  // 1 comment, 1 report removed" is a different sentence from "0 remain", and
+  // only one of them can tell you the take worked.
+  const before: Record<string, number> = {}
+  const countOf = async (t: string, col: string, val: unknown) => {
+    const { count } = await admin.from(t).select('*', { count: 'exact', head: true }).eq(col, val as never)
+    return count || 0
+  }
+  before.comments = await countOf('temp_post_comments', 'post_id', post.id)
+  before.likes = await countOf('temp_post_likes', 'post_id', post.id)
+  before.interest = await countOf('temp_interest', 'temp_post_id', post.id)
+  before.notifications = await countOf('notifications', 'related_id', String(post.id))
+
+  console.log(`removing ${post.id}  "${post.title}"`)
 
   // A REAL ROW WOULD BE SILENTLY MUTATED. Refuse rather than null it.
   const { data: convs } = await admin.from('conversations')
@@ -242,12 +308,32 @@ async function down(uid: string) {
   const { data: comments } = await admin.from('temp_post_comments')
     .select('id').eq('post_id', post.id)
   const commentIds = (comments || []).map(c => c.id)
+
+  // COUNTED WHILE THE COMMENT IDS ARE STILL READABLE — after the post goes
+  // they are unfindable, and this is the number that says whether the take
+  // worked.
+  before.reports = 0
+  for (const cid of commentIds) {
+    before.reports += await countOf('content_reports', 'target_id', cid)
+  }
+
   for (const cid of commentIds) {
     await admin.from('content_reports').delete().eq('target_id', cid).eq('target_type', 'comment')
   }
   await admin.from('notifications').delete().eq('related_id', String(post.id))
 
-  await admin.from('temp_posts').delete().eq('id', post.id).eq('employer_id', uid)
+  // EVERY post owned, each by its own id AND the owner — never a filter that
+  // could widen. Normally exactly one.
+  for (const p of posts) {
+    await admin.from('temp_posts').delete().eq('id', p.id).eq('employer_id', uid)
+  }
+
+  console.log('')
+  console.log('  REMOVED — counted before the delete, not after:')
+  console.log(`    ${posts.length} post${posts.length === 1 ? '' : 's'}`)
+  console.log(`    ${before.comments} comment${before.comments === 1 ? '' : 's'}`)
+  console.log(`    ${before.reports} report${before.reports === 1 ? '' : 's'}   <- the take filed ${before.reports === 0 ? 'NOTHING' : 'this'}`)
+  console.log(`    ${before.likes} like${before.likes === 1 ? '' : 's'} · ${before.interest} interest · ${before.notifications} notification${before.notifications === 1 ? '' : 's'}`)
 
   console.log('')
   const { data: left } = await admin.from('temp_posts').select('id').eq('id', post.id).maybeSingle()
