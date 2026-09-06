@@ -1,5 +1,12 @@
 'use client'
 
+// ONE ANSWER TO "ARE WE IN THE SHELL", NOT A SECOND COPY OF THE CAPACITOR
+// CHECK. isNativeApp() already decides this for the OAuth hand-off and for
+// hiding the CV Builder's exports; a local reimplementation here is exactly
+// the drift this codebase keeps finding. nativeOAuth imports nothing, so
+// there is no cycle.
+import { isNativeApp } from './nativeOAuth'
+
 /**
  * Browser end of web push. No Firebase SDK — pushManager.subscribe() is native
  * in every browser that supports push at all.
@@ -126,6 +133,32 @@ export async function getSubscription(): Promise<PushSubscription | null> {
  * other, which is precisely where the old version went wrong.
  */
 export async function getPushStatus(): Promise<PushStatus> {
+  // ── THE NATIVE SHELL IS NOT A SAFARI TAB, AND THE ORDER IS THE BUG ───────
+  //
+  // On 6 Sept 2026, inside the iOS app, a candidate who had just applied was
+  // told to "Tap the Share button at the bottom of Safari" and add Thrive to
+  // their home screen. They were already IN Thrive. Filmed for Apple, one
+  // screen after a successful application.
+  //
+  // Why: isIOS() is TRUE in the Capacitor WKWebView, and isStandalone() is
+  // FALSE there — `display-mode: standalone` is not reported and
+  // navigator.standalone is a Safari-tab-only property. So the shell matched
+  // the one branch written for "iPhone user browsing in Safari".
+  //
+  // THIS CHECK GOES FIRST because the branch below pre-empts pushSupported().
+  // Even where the shell would have fallen through to 'unsupported' on its own
+  // merits, the iOS branch answered before it ever got the chance — the fault
+  // is the ORDER as much as the condition, and putting the native question
+  // first is what makes that impossible rather than accidental.
+  //
+  // 'unsupported' is the HONEST answer today, not a convenient one: WKWebView
+  // has no Push API, and APNs is deliberately unbuilt. PushPriming renders
+  // nothing for it (so applying ends on the plain confirmation), and PushToggle
+  // says "This device doesn't support notifications", which is true.
+  //
+  // WHEN APNs IS BUILT THIS IS THE LINE THAT CHANGES — the shell then wants a
+  // native permission path, not silence. Nothing else needs to move.
+  if (isNativeApp()) return 'unsupported'
   if (isIOS() && !isStandalone()) return 'ios-needs-install'
   if (!pushSupported()) return 'unsupported'
   if (await getSubscription()) return 'subscribed'
