@@ -208,7 +208,24 @@ export default function ManageTempWorkPage() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
                   <div>
                     <div style={{ fontWeight: 700, color: C.ink, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                      <span>{meta.icon} {post.title}</span>
+                      {/* `meta.icon` IS A NAME, NOT A CHARACTER — this was
+                          `{meta.icon} {post.title}` and rendered the literal
+                          words "chef-hat" and "utensils" beside the title,
+                          on camera, in a take for Apple.
+
+                          It used to hold an emoji, so printing it was right.
+                          The emoji sweep changed the VALUE to an icon name and
+                          this reader kept doing what it always had: still
+                          valid JSX, still compiled, still rendered — just
+                          wrong. A data change leaving a consumer behind looks
+                          nothing like a broken build.
+
+                          It is the ONLY reader of .icon in the codebase, so
+                          the icon has never once rendered correctly here. */}
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                        <Ico name={meta.icon} size={16} />
+                        {post.title}
+                      </span>
                       {post.status !== 'open' && <span style={pill('#f1f5f9', '#475569')}>{post.status}</span>}
                     </div>
                     <div style={{ fontSize: '0.82rem', color: C.sub, marginTop: 2 }}>
