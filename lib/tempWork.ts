@@ -1,11 +1,21 @@
 // Shared model for the Temp Work feed. Client + server safe.
 
 import type { FeedCardModel } from '@/components/FeedCard'
+import type { IconName } from '@/components/icons'
 import { formatMoney } from '@/lib/money'
 
 // ── Grouped role taxonomy (one source for the composer picker AND the filter) ──
 export interface RoleDef { key: string; label: string }
-export interface RoleGroup { key: string; label: string; icon: string; roles: RoleDef[] }
+
+// `icon` IS IconName, NOT string, AND THAT IS THE HALF THAT LASTS.
+//
+// It was `string`, so nothing checked that these six names correspond to icons
+// that exist. They all do — verified by hand on 6 Sept 2026, which is exactly
+// the kind of verification that is true once and then quietly stops being
+// true. The seventh name somebody adds should not depend on anyone remembering
+// to check it again; `IconName` is `keyof typeof ICONS`, so a name that is not
+// an icon is now a compile error at the point it is typed.
+export interface RoleGroup { key: string; label: string; icon: IconName; roles: RoleDef[] }
 
 export const ROLE_GROUPS: RoleGroup[] = [
   { key: 'kitchen', label: 'Kitchen', icon: 'chef-hat', roles: [
@@ -49,7 +59,10 @@ const ROLE_INDEX: Record<string, { role: RoleDef; group: RoleGroup }> = (() => {
   return idx
 })()
 
-export function roleMeta(key: string): { key: string; label: string; groupKey: string; groupLabel: string; icon: string } {
+// The return type carries IconName through too — widening it back to `string`
+// here would undo the guarantee one line after making it, since this is what
+// every caller actually holds.
+export function roleMeta(key: string): { key: string; label: string; groupKey: string; groupLabel: string; icon: IconName } {
   const hit = ROLE_INDEX[key]
   if (hit) return { key, label: hit.role.label, groupKey: hit.group.key, groupLabel: hit.group.label, icon: hit.group.icon }
   return { key, label: key, groupKey: 'other', groupLabel: 'Other', icon: 'briefcase' }
