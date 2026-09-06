@@ -89,6 +89,23 @@ const waitForControl = () =>
   page.waitForFunction(() => !!document.querySelector('[data-report-control="job"]'), null, { timeout: 30000 })
 const label = async () => (await page.locator('[data-report-control="job"]').first().textContent())?.trim()
 
+// WHAT THE BUTTON LOOKS LIKE, FROM THE BROWSER RATHER THAN THE STYLESHEET.
+// Friday's version of this drive asserted the TEXT and passed — on /messages
+// the same component renders icon-only, so the only thing that changed was an
+// aria-label and the control looked identical to the person filming it. A
+// declared rule is a request; getComputedStyle is what was painted.
+const appearance = () => page.evaluate(() => {
+  const b = document.querySelector('[data-report-control="job"]')
+  if (!b) return null
+  const s = getComputedStyle(b)
+  return {
+    bg: s.backgroundColor,
+    fg: s.color,
+    reported: b.getAttribute('data-reported'),
+    pressed: b.getAttribute('aria-pressed'),
+  }
+})
+
 async function reportHere() {
   const btn = page.locator('[data-report-control="job"]').first()
   await btn.scrollIntoViewIfNeeded()
@@ -124,6 +141,10 @@ try {
   await page.goto(`${BASE}/job/${JOB_A}`, { waitUntil: 'domcontentloaded' })
   await waitForControl()
   check('starts unreported', (await label()) === 'Report this job', await label())
+  // THE UNREPORTED APPEARANCE, READ BEFORE ANYTHING IS FILED. Both states have
+  // to come off the same page or "the reported one looks different" is not a
+  // comparison, it is a description of one button.
+  const plainLook = await appearance()
   const out1 = await reportHere()
   check('the thanks screen appears', out1 === 'THANKS', out1)
   check('same mount reads Reported', (await label()) === 'Reported', await label())
@@ -139,6 +160,34 @@ try {
     return b && b.textContent.trim() === 'Reported'
   }, null, { timeout: 15000 }).then(() => true).catch(() => false)
   check('REMOUNT reads Reported — persistence, not memory', survived1, await label())
+
+  // ── THE PART FRIDAY'S PROOF COULD NOT SEE ────────────────────────────────
+  // The label survived and the control still LOOKED unreported, because in
+  // icon-only mode nothing but the accessible name changed. These assert the
+  // state is on the button and visible in what was painted.
+  const doneLook = await appearance()
+  check('the remounted button carries data-reported=yes', doneLook?.reported === 'yes',
+    String(doneLook?.reported))
+  check('…and aria-pressed, so it is not colour alone', doneLook?.pressed === 'true',
+    String(doneLook?.pressed))
+  check('the PAINTED background differs from the unreported one',
+    !!doneLook && !!plainLook && doneLook.bg !== plainLook.bg,
+    `${plainLook?.bg} -> ${doneLook?.bg}`)
+  check('…and so does the foreground',
+    !!doneLook && !!plainLook && doneLook.fg !== plainLook.fg,
+    `${plainLook?.fg} -> ${doneLook?.fg}`)
+
+  // A SECOND TAP MUST SAY IT IS A RECALL, NOT AN ACKNOWLEDGEMENT. This is the
+  // exact thing that read as two successful filings on camera on 6 Sept 2026
+  // while content_reports held ONE row: the refusal was right and the sheet
+  // said "Thanks — we have it" both times.
+  await page.locator('[data-report-control="job"]').first().click()
+  await page.waitForSelector('#reportControlTitle', { timeout: 10000 })
+  const reopened = (await page.locator('#reportControlTitle').textContent())?.trim()
+  check('re-opening says it is ALREADY reported', reopened === 'You have already reported this', reopened)
+  check('…and does NOT thank them for something they did not just do',
+    reopened !== 'Thanks — we have it', reopened)
+  await page.click('button:has-text("Close")')
 
   console.log('')
 
