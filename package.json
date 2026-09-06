@@ -19,6 +19,7 @@
     "hold:prove": "node scripts/prove-hold.js",
     "assertchanged:prove": "node scripts/prove-assert-changed.mjs",
     "rlsprobe:prove": "node scripts/prove-rls-probe.mjs",
+    "fixtureguard:prove": "npx tsx scripts/prove-fixture-guard.ts",
     "unmerged": "node scripts/unmerged.js",
     "emails:prove": "npx tsx scripts/render-activation-emails.ts",
     "webpush:prove": "npx tsx scripts/prove-webpush.ts",

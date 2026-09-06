@@ -91,6 +91,7 @@ import {
 } from '@/lib/candidatePrefs'
 import { Ico } from '@/components/icons'
 import ReportControl from '@/components/ReportControl'
+import { isFixtureGuardError, FIXTURE_GUARD_MESSAGE } from '@/lib/applicationGuard'
 const categories = [{ id: 'all', label: 'All Jobs' }, ...sharedCategories]
 
 // getJobSector now lives in lib/jobSector.ts — the preference resolver needs it too.
@@ -689,8 +690,29 @@ function JobsPageContent() {
           company: selectedJob.company,
           screening_answers: answersPayload.length > 0 ? answersPayload : null,
         })
+      // ── A FAILED INSERT USED TO CARRY ON REGARDLESS, AND THAT DEFEATS THE
+      //    GUARD ENTIRELY. This was `console.warn` and nothing else, so steps
+      //    2, 3 and 4 below ran whether or not a row had been written: the
+      //    employer got an in-app notification, an email, a conversation and an
+      //    auto-message for an application that does not exist. Refusing the
+      //    row while still emailing the employer would be WORSE than the fault
+      //    the guard exists to fix, so the return is what makes the guard mean
+      //    anything.
       if (insertError) {
-        console.warn('Supabase insert warning:', insertError.message)
+        if (isFixtureGuardError(insertError)) {
+          alert(FIXTURE_GUARD_MESSAGE)
+          return
+        }
+        // 23505 is the unique constraint: they have already applied. Treated as
+        // success and NOT re-notified, which is what ApplyNowModal already did
+        // and this path did not — a second tap used to send a second email.
+        if (insertError.code === '23505') {
+          setHasApplied(true)
+          setApplicationSubmitted(true)
+          setAppliedJobIds(prev => { const next = new Set(prev); next.add(selectedJob.id); return next })
+          return
+        }
+        throw new Error(insertError.message)
       }
 
       // Increment application_count on the job. Supabase v2 rpc() returns a
