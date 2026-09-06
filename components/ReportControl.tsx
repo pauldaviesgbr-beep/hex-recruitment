@@ -113,6 +113,15 @@ export default function ReportControl({
   const [sending, setSending] = useState(false)
   const [done, setDone] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // WHICH MOUNT WROTE IT. `done` says a report exists; it does not say whether
+  // THIS mount is the one that filed it, and the two need different words.
+  // Without this, re-opening a reported target showed "Thanks — we have it" —
+  // an acknowledgement of something just done — so a second tap looked exactly
+  // like a second successful filing. On 6 Sept 2026 that is precisely what
+  // happened on camera: two taps, two identical thanks screens, and ONE row in
+  // content_reports. The refusal was correct and the screen made it invisible.
+  const [justSent, setJustSent] = useState(false)
+  const [reportedAt, setReportedAt] = useState<string | null>(null)
 
   // "REPORTED" MUST SURVIVE A REMOUNT, so it is READ BACK, not remembered.
   // `done` alone is component memory: it never survived navigating away and
@@ -133,12 +142,16 @@ export default function ReportControl({
       const { data: { session } } = await supabase.auth.getSession()
       if (!session || stale) return
       const { data } = await supabase.from('content_reports')
-        .select('id')
+        .select('id, created_at')
         .eq('reporter_id', session.user.id)
         .eq('target_type', targetType)
         .eq('target_id', targetId)
+        .order('created_at', { ascending: true })
         .limit(1)
-      if (!stale && (data?.length ?? 0) > 0) setDone(true)
+      if (!stale && (data?.length ?? 0) > 0) {
+        setDone(true)
+        setReportedAt(data![0].created_at as string)
+      }
     })()
     return () => { stale = true }
   }, [targetType, targetId])
@@ -165,6 +178,7 @@ export default function ReportControl({
       })
       if (insErr) throw insErr
       setDone(true)
+      setJustSent(true)
     } catch (e: any) {
       // NAMED, NOT SWALLOWED. A report that silently fails is worse than no
       // report control: the person believes they have told us.
@@ -188,6 +202,11 @@ export default function ReportControl({
         className={className || styles.trigger}
         onClick={() => setOpen(true)}
         data-report-control={targetType}
+        /* THE STATE IS ITS OWN ATTRIBUTE. `data-report-control` carries the
+           TYPE and reportcontrol:prove keys on it, so the state cannot be
+           overloaded onto it without breaking a check that is about placement. */
+        data-reported={done ? 'yes' : 'no'}
+        aria-pressed={done}
         aria-label={iconOnly ? (done ? 'Reported' : LABEL[targetType]) : undefined}
         title={iconOnly ? (done ? 'Reported' : LABEL[targetType]) : undefined}
       >
@@ -210,10 +229,19 @@ export default function ReportControl({
             onClick={e => e.stopPropagation()}
           >
             {done ? (
+              /* TWO DIFFERENT SENTENCES FOR TWO DIFFERENT FACTS. "Thanks — we
+                 have it" acknowledges something just done; saying it to
+                 somebody re-opening a target they reported yesterday tells
+                 them they have just filed again, which is false. The second
+                 branch is a RECALL, and it says when. */
               <>
-                <h2 id="reportControlTitle" className={styles.title}>Thanks — we have it</h2>
+                <h2 id="reportControlTitle" className={styles.title}>
+                  {justSent ? 'Thanks — we have it' : 'You have already reported this'}
+                </h2>
                 <p className={styles.body}>
-                  Someone will look at this. We do not tell the other party who reported them.
+                  {justSent
+                    ? 'Someone will look at this. We do not tell the other party who reported them.'
+                    : `We have your report${reportedAt ? ` from ${new Date(reportedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long' })}` : ''} and someone will look at it. There is no need to send it again.`}
                 </p>
                 <button type="button" className={styles.primary} onClick={close}>Close</button>
               </>

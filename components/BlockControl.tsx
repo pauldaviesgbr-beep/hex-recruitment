@@ -136,6 +136,15 @@ export default function BlockControl({
         onClick={() => (blocked ? apply(false) : setOpen(true))}
         disabled={working}
         data-block-control={blocked ? 'blocked' : 'open'}
+        /* THE SAME VISIBLE-STATE GAP AS ReportControl, AND IT COSTS MORE HERE.
+           In iconOnly mode this rendered the identical `ban` glyph whether or
+           not the person was blocked, while the CLICK did opposite things —
+           tapping when blocked runs apply(false) and UNBLOCKS IMMEDIATELY,
+           with no sheet and no confirmation. So an unchanged icon is not a
+           cosmetic omission on this control: it is a silent state reversal
+           one tap away. Found 6 Sept 2026 alongside the report one. */
+        data-blocked={blocked ? 'yes' : 'no'}
+        aria-pressed={blocked}
         aria-label={iconOnly ? label : undefined}
         title={iconOnly ? label : undefined}
       >

@@ -89,6 +89,23 @@ const waitForControl = () =>
   page.waitForFunction(() => !!document.querySelector('[data-report-control="job"]'), null, { timeout: 30000 })
 const label = async () => (await page.locator('[data-report-control="job"]').first().textContent())?.trim()
 
+// WHAT THE BUTTON LOOKS LIKE, FROM THE BROWSER RATHER THAN THE STYLESHEET.
+// Friday's version of this drive asserted the TEXT and passed — on /messages
+// the same component renders icon-only, so the only thing that changed was an
+// aria-label and the control looked identical to the person filming it. A
+// declared rule is a request; getComputedStyle is what was painted.
+const appearance = () => page.evaluate(() => {
+  const b = document.querySelector('[data-report-control="job"]')
+  if (!b) return null
+  const s = getComputedStyle(b)
+  return {
+    bg: s.backgroundColor,
+    fg: s.color,
+    reported: b.getAttribute('data-reported'),
+    pressed: b.getAttribute('aria-pressed'),
+  }
+})
+
 async function reportHere() {
   const btn = page.locator('[data-report-control="job"]').first()
   await btn.scrollIntoViewIfNeeded()
@@ -124,6 +141,10 @@ try {
   await page.goto(`${BASE}/job/${JOB_A}`, { waitUntil: 'domcontentloaded' })
   await waitForControl()
   check('starts unreported', (await label()) === 'Report this job', await label())
+  // THE UNREPORTED APPEARANCE, READ BEFORE ANYTHING IS FILED. Both states have
+  // to come off the same page or "the reported one looks different" is not a
+  // comparison, it is a description of one button.
+  const plainLook = await appearance()
   const out1 = await reportHere()
   check('the thanks screen appears', out1 === 'THANKS', out1)
   check('same mount reads Reported', (await label()) === 'Reported', await label())
@@ -139,6 +160,60 @@ try {
     return b && b.textContent.trim() === 'Reported'
   }, null, { timeout: 15000 }).then(() => true).catch(() => false)
   check('REMOUNT reads Reported — persistence, not memory', survived1, await label())
+
+  // ── THE PART FRIDAY'S PROOF COULD NOT SEE ────────────────────────────────
+  // The label survived and the control still LOOKED unreported, because in
+  // icon-only mode nothing but the accessible name changed. These assert the
+  // state is on the button and visible in what was painted.
+  // WAIT FOR THE COLOUR TO STOP MOVING, ON A PREDICATE RATHER THAN A CLOCK.
+  // The first version of this read FAILED on a correct product: background
+  // changed instantly and foreground did not, from the same CSS rule. The
+  // reason is `transition: color 0.2s` on .trigger — background has no
+  // transition, so it snaps, while getComputedStyle mid-transition returns the
+  // INTERPOLATED value, which at t=0 is still the old grey. A check that races
+  // an animation is a check that lies, and this one lied in the direction that
+  // wastes a session on working code.
+  // AND "DIFFERENT FROM GREY" IS NOT "FINISHED" EITHER. The first repair waited
+  // for the colour to CHANGE, which the very first frame of the transition
+  // satisfies — it passed while reading rgb(113,108,121), a value three
+  // hundredths of the way from grey to red and no more settled than before.
+  // The predicate has to be STABILITY: two reads, 100ms apart, that agree and
+  // are not the starting value. Value-agnostic on purpose, so it does not have
+  // to be retyped when the palette changes.
+  const settled = await page.waitForFunction(prev => {
+    const b = document.querySelector('[data-report-control="job"]')
+    if (!b) return false
+    const now = getComputedStyle(b).color
+    if (now === prev) return false
+    const w = window
+    if (w.__lastColour !== now) { w.__lastColour = now; return false }
+    return true
+  }, plainLook?.fg, { timeout: 5000, polling: 100 }).then(() => true).catch(() => false)
+  check('the colour transition has FINISHED, not merely started', settled,
+    settled ? 'stable across two reads' : 'never settled')
+  const doneLook = await appearance()
+  check('the remounted button carries data-reported=yes', doneLook?.reported === 'yes',
+    String(doneLook?.reported))
+  check('…and aria-pressed, so it is not colour alone', doneLook?.pressed === 'true',
+    String(doneLook?.pressed))
+  check('the PAINTED background differs from the unreported one',
+    !!doneLook && !!plainLook && doneLook.bg !== plainLook.bg,
+    `${plainLook?.bg} -> ${doneLook?.bg}`)
+  check('…and so does the foreground',
+    !!doneLook && !!plainLook && doneLook.fg !== plainLook.fg,
+    `${plainLook?.fg} -> ${doneLook?.fg}`)
+
+  // A SECOND TAP MUST SAY IT IS A RECALL, NOT AN ACKNOWLEDGEMENT. This is the
+  // exact thing that read as two successful filings on camera on 6 Sept 2026
+  // while content_reports held ONE row: the refusal was right and the sheet
+  // said "Thanks — we have it" both times.
+  await page.locator('[data-report-control="job"]').first().click()
+  await page.waitForSelector('#reportControlTitle', { timeout: 10000 })
+  const reopened = (await page.locator('#reportControlTitle').textContent())?.trim()
+  check('re-opening says it is ALREADY reported', reopened === 'You have already reported this', reopened)
+  check('…and does NOT thank them for something they did not just do',
+    reopened !== 'Thanks — we have it', reopened)
+  await page.click('button:has-text("Close")')
 
   console.log('')
 

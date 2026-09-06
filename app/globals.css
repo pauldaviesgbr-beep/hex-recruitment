@@ -660,3 +660,35 @@ body[data-sidebar="expanded"] [data-sidebar-logo] {
   .hideOnMobile { display: none !important; }
 }
 
+
+/* ── THE REPORTED / BLOCKED STATES, GLOBAL AND ON PURPOSE ──────────────────
+ *
+ * ReportControl and BlockControl both take a `className` from whoever mounts
+ * them — on /messages that is `.headerActionBtn` from a CSS module — so a
+ * rule inside either component's own module could not reach those mounts.
+ * Keying on the ATTRIBUTE reaches all seven renderers whatever class they
+ * pass, and cannot silently miss one the way a per-stylesheet copy does.
+ *
+ * QUALIFIED WITH `button` DELIBERATELY. A bare `[data-reported='yes']` is
+ * one attribute — specificity 0,1,0 — which TIES with `.headerActionBtn` and
+ * is then decided by stylesheet order, i.e. by luck. `button[...]` is 0,1,1
+ * and wins wherever it is loaded. The :hover pair exists for the same reason:
+ * `.headerActionBtn:hover` is 0,2,0 and would otherwise repaint the state
+ * away under a finger.
+ *
+ * The icon SHAPE is unchanged on purpose. A green tick would read as "we
+ * verified this", which is a claim we have not made — this file already
+ * records one of those. Fill plus colour plus aria-pressed carries the state
+ * without the glyph asserting anything.
+ */
+button[data-reported='yes'],
+button[data-blocked='yes'] {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+button[data-reported='yes']:hover,
+button[data-blocked='yes']:hover {
+  background: #fecaca;
+  color: #991b1b;
+}
