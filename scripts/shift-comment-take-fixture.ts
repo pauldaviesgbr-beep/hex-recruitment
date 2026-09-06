@@ -4,6 +4,9 @@
 //   npx tsx --conditions=react-server scripts/shift-comment-take-fixture.ts --up
 //   npx tsx --conditions=react-server scripts/shift-comment-take-fixture.ts --down
 //
+// Add --owner=test-employer to work against Thrive Test Employer instead of
+// Demo Kitchen. Default is demo-kitchen.
+//
 // ── IT IS A SHOOT-DAY FIXTURE, NOT A STANDING ONE ────────────────────────
 //
 // /temp-work holds exactly ONE post and it belongs to Neway International, a
@@ -69,11 +72,40 @@ if (!URL_ || !KEY) {
 }
 const admin: SupabaseClient = createClient(URL_, KEY, { auth: { persistSession: false } })
 
-// Thrive Demo Kitchen — the account Apple is given. It owns the post so the
-// reviewer sees an employer posting a shift, and so the comment takes the
-// owner branch of the notify trigger.
-const OWNER_EMAIL = 'pauldavies.gbr+applereviewemployer@gmail.com'
-const COMPANY = 'Thrive Demo Kitchen'
+// ── WHICH FIXTURE EMPLOYER, CHOSEN FROM A CLOSED LIST ────────────────────
+//
+// This was a single constant for Thrive Demo Kitchen. On 6 Sept 2026 that
+// account's password turned out to be unrecoverable — generated once, printed
+// once, never stored, and never signed into — so step 11 was filmed as Thrive
+// Test Employer instead, and a teardown keyed on Demo Kitchen WOULD NOT HAVE
+// FOUND THE POST.
+//
+// IT IS A NAMED CHOICE FROM AN ALLOW-LIST, NOT A FREE ARGUMENT. The safety
+// property that mattered was never "it is a constant" — it was that no typo
+// can point this at a real employer. A two-key map keeps that: an unknown
+// --owner exits rather than guessing, so the failure is a refusal and not a
+// deletion somewhere unintended.
+//
+// The default stays Demo Kitchen, so every existing invocation means what it
+// meant yesterday.
+const OWNERS: Record<string, { email: string; company: string }> = {
+  'demo-kitchen': {
+    email: 'pauldavies.gbr+applereviewemployer@gmail.com',
+    company: 'Thrive Demo Kitchen',
+  },
+  'test-employer': {
+    email: 'pauldavies.gbr+employer@gmail.com',
+    company: 'Thrive Test Employer',
+  },
+}
+const ownerArg = (process.argv.find(a => a.startsWith('--owner=')) || '').split('=')[1] || 'demo-kitchen'
+const chosen = OWNERS[ownerArg]
+if (!chosen) {
+  console.log(`unknown --owner "${ownerArg}". Allowed: ${Object.keys(OWNERS).join(' | ')}`)
+  process.exit(2)
+}
+const OWNER_EMAIL = chosen.email
+const COMPANY = chosen.company
 
 // THE MARKER IS THE ONLY THING THIS SCRIPT MAY DELETE, and --down also
 // requires the owner to match. A title alone is a shared mutable; the
@@ -84,7 +116,7 @@ const COMMENT_BODY =
 
 const mode = process.argv.find(a => ['--census', '--up', '--down'].includes(a))
 if (!mode) {
-  console.log('usage: --census | --up | --down')
+  console.log('usage: --census | --up | --down   [--owner=demo-kitchen|test-employer]')
   process.exit(2)
 }
 
