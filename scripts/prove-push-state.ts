@@ -24,6 +24,10 @@ type Stub = {
   subscription: object | null
   standalone: boolean
   iOS: boolean
+  /** Running inside the Capacitor shell. Independent of iOS and standalone —
+   *  which is the whole point: on 6 Sept 2026 the shell was iOS TRUE and
+   *  standalone FALSE, indistinguishable from a Safari tab to the old code. */
+  native?: boolean
 }
 
 function applyStub(s: Stub) {
@@ -32,6 +36,9 @@ function applyStub(s: Stub) {
     matchMedia: (q: string) => ({ matches: s.standalone && q.includes('standalone') }),
     navigator: { standalone: s.standalone },
   }
+  // isNativeApp() reads window.Capacitor.isNativePlatform() at CALL time, so
+  // it picks this up without the module cache mattering.
+  if (s.native) g.window.Capacitor = { isNativePlatform: () => true }
   if (s.hasPushManager) g.window.PushManager = function () {}
   // node 24 defines `navigator` as a getter-only global, so it has to be
   // replaced with defineProperty rather than assigned.
@@ -109,6 +116,24 @@ async function main() {
   m = applyStub({ ...BASE, iOS: true, standalone: false, hasPushManager: false })
   st = await m.getPushStatus()
   check('iOS Safari, not installed -> ios-needs-install', st === 'ios-needs-install', `got ${st}`)
+
+  // ── THE SHELL, AND THE DISCRIMINATOR THAT WAS MISSING ────────────────────
+  // Identical facts to the case directly above — iOS true, standalone false —
+  // which is exactly why the old code could not tell them apart and told a
+  // person already inside the app to install it from Safari. The pair has to
+  // be asserted TOGETHER: "the shell says unsupported" passes just as happily
+  // on a build that says unsupported to everybody.
+  const safariFacts = { ...BASE, iOS: true, standalone: false, hasPushManager: false }
+  const inSafari = await applyStub({ ...safariFacts }).getPushStatus()
+  const inShell = await applyStub({ ...safariFacts, native: true }).getPushStatus()
+  check('the SHELL does not ask anyone to add Thrive to their home screen',
+    inShell !== 'ios-needs-install', `got ${inShell}`)
+  check('…it reads unsupported, which is true while APNs is unbuilt',
+    inShell === 'unsupported', `got ${inShell}`)
+  check('…and the SAME facts in a real Safari tab still say ios-needs-install',
+    inSafari === 'ios-needs-install', `got ${inSafari}`)
+  check('so the two are genuinely distinguished, not both silenced',
+    inShell !== inSafari, `${inSafari} vs ${inShell}`)
 
   m = applyStub({ ...BASE, iOS: true, standalone: true, subscription: SUB })
   st = await m.getPushStatus()
