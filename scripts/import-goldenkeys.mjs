@@ -9,6 +9,9 @@
 //   node scripts/import-goldenkeys.mjs --apply --dry-run   # plan writes, no DB changes
 //   node scripts/import-goldenkeys.mjs --apply             # backfill + upsert + reconcile
 //   node scripts/import-goldenkeys.mjs --all               # enumerate + scrape + apply
+//   node scripts/import-goldenkeys.mjs --reconcile-only --dry-run  # plan archives only
+//   node scripts/import-goldenkeys.mjs --reconcile-only    # enumerate + archive gone roles,
+//                                                          # NO scrape, NO upsert
 // Env (from .env.local): FIRECRAWL_API_KEY, NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
 
 import fs from 'fs'
@@ -29,6 +32,32 @@ const REC_FILE = path.join(SCRATCH, 'records.json')
 
 const args = new Set(process.argv.slice(2))
 const DRY = args.has('--dry-run')
+
+// RECONCILE-ONLY: retire roles that have gone, and change nothing else.
+//
+// WHY IT EXISTS. On 10 Sept 2026 a dry run showed the two halves of `--all`
+// pulling in opposite directions: the reconcile wanted to archive 135 adverts
+// that are 404 on Goldenkeys' site — unambiguously right — while the upsert
+// wanted to rewrite 89 LIVE adverts to catch exactly ONE genuine employer edit.
+// 49 of those rewrites collapsed a clean bullet list into one run-on paragraph,
+// on 23 adverts. Applying both meant degrading 23 live adverts on the public
+// board to correct one salary. This flag lets the good half run alone.
+//
+// WHAT IT KEEPS, AND WHY EACH ONE IS LOAD-BEARING:
+//   · ENUMERATE, freshly. The reconcile decides what to archive from the
+//     enumerated live set, so a run that skips it archives against a stale or
+//     empty set. That is the whole loaded gun and it is why this flag does NOT
+//     imply "just run apply".
+//   · THE SANITY GUARD, unchanged at 0.2. A short crawl must still abort.
+//   · THE BACKFILL, which matches a row with no source_url to a live URL by
+//     title and mutates it IN MEMORY before the reconcile reads it. Skip it and
+//     a live role carrying no source_url is archived. It matched 0 rows on
+//     10 Sept, so it is dormant today and it is not free to remove.
+//
+// WHAT IT SKIPS: the detail SCRAPE (98 Firecrawl calls that only ever fed the
+// upsert), the UPSERT itself, banner uploads, and the area-resolution POST that
+// only ever runs for newly inserted rows.
+const RECONCILE_ONLY = args.has('--reconcile-only')
 
 // ── env ──
 function loadEnv() {
@@ -270,7 +299,9 @@ async function existingLogo(supa) {
 
 // ── phase: backfill + upsert + reconcile ──
 async function apply() {
-  const recs = JSON.parse(fs.readFileSync(REC_FILE, 'utf8'))
+  // Under --reconcile-only there is no scrape, so there is no records file and
+  // requiring one would be a crash rather than a skip.
+  const recs = RECONCILE_ONLY ? [] : JSON.parse(fs.readFileSync(REC_FILE, 'utf8'))
   // The full LIVE set is every enumerated vacancy URL (223), NOT only the ones we
   // managed to detail-scrape — so a detail-scrape failure never marks a live role
   // "archived". Un-scraped live roles are simply imported on the next run (idempotent).
@@ -338,8 +369,15 @@ async function apply() {
   const urlToId = new Map(existing.filter(j => j.source_url).map(j => [j.source_url, j.id]))
 
   // 2) UPSERT each scraped role on source_url (update in place if known, else insert).
+  //
+  // Under --reconcile-only `recs` is empty, so this loop does not execute: no
+  // insert, no update, no banner upload, and `newIds` stays empty which in turn
+  // skips the area-resolution POST below. The skip is the ABSENCE of input
+  // rather than a branch inside the loop, so there is no path by which a write
+  // here can fire under the flag.
   let inserted = 0, updated = 0
   const newIds = []
+  if (RECONCILE_ONLY) console.log('Upsert: SKIPPED (--reconcile-only) — no inserts, no updates, no banner uploads')
   for (const r of recs) {
     const row = {
       ...r,
@@ -456,6 +494,16 @@ async function apply() {
 
 // ── main ──
 const run = async () => {
+  // --reconcile-only ALWAYS enumerates. It is not a shortcut to apply(): the
+  // reconcile archives everything absent from the enumerated set, so running it
+  // against a stale or missing urls.json is the one way this script can empty
+  // the board. The enumeration is the input, not an optimisation.
+  if (RECONCILE_ONLY) {
+    console.log('RECONCILE-ONLY: enumerate + sanity guard + backfill + reconcile. No scrape, no upsert.')
+    await enumerate()
+    await apply()
+    return
+  }
   if (args.has('--all') || args.has('--enumerate')) await enumerate()
   if (args.has('--all') || args.has('--scrape')) await scrapeDetails()
   if (args.has('--all') || args.has('--apply')) await apply()
