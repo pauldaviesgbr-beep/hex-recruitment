@@ -41,7 +41,7 @@ jobs:
       # strict `npm ci` rejects across npm major versions; matches how Vercel
       # builds this repo. A scraper cron doesn't need ci's exact pinning.
       - run: npm install --no-audit --no-fund
-      - name: Run Goldenkeys importer (--all)
+      - name: Run Goldenkeys importer (--all --no-update-existing)
         env:
           FIRECRAWL_API_KEY: ${{ secrets.FIRECRAWL_API_KEY }}
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
