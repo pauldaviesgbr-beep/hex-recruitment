@@ -316,8 +316,31 @@ async function scrapeDetails() {
     // it would be just as wasted.
     const held = new Set(data.map(j => j.source_url).filter(Boolean))
     list = enumerated.filter(item => !held.has(item.url))
-    console.log(`--no-update-existing: ${enumerated.length} enumerated, ${held.size} already held, SCRAPING ${list.length}`)
-    console.log(`  saved ~${(enumerated.length - list.length) * CREDITS_PER_PAGE} credits by not re-reading adverts we are not updating`)
+    const skipped = enumerated.length - list.length
+
+    // THE THREE NUMBERS MUST ADD UP IN FRONT OF THE READER, and `skipped` is
+    // counted FROM THE ENUMERATION rather than from the database.
+    //
+    // This line used to print `held.size` — every Goldenkeys source_url we
+    // hold, 264 of them — against an enumeration of 98. "98 enumerated, 264
+    // already held, SCRAPING 5" is three true numbers that answer a question
+    // nobody asked, and it cannot distinguish a filter that skipped 93 from
+    // one that skipped 98. The figure that matters is how many of THESE were
+    // skipped, and it is the one the reader can check: 93 + 5 = 98.
+    console.log(`--no-update-existing: ${enumerated.length} enumerated = ${skipped} already held (skipped) + ${list.length} new (scraping)`)
+    console.log(`  saved ~${skipped * CREDITS_PER_PAGE} credits by not re-reading adverts we are not updating`)
+
+    // NAME THE URLS WHEN THERE ARE FEW. On a normal week this is a handful, and
+    // seeing them is the difference between "the filter found 5 new roles" and
+    // "the filter returned a number I am choosing to believe".
+    if (list.length && list.length <= 15) for (const item of list) console.log(`    new: ${item.url}`)
+
+    // ZERO NEW IS THE EXPECTED STEADY STATE AND ALSO WHAT A BROKEN FILTER
+    // LOOKS LIKE, so it says which one it is rather than leaving a bare 0.
+    if (!list.length) {
+      console.log(`  every one of the ${enumerated.length} enumerated URLs is already held — Goldenkeys have published nothing new since the last run.`)
+      console.log('  (A filter that wrongly excluded everything would print this same line. The check is the enumeration above: if it found 0 URLs, that is the fault — not this.)')
+    }
   }
 
   // THE EXACT COST, not an estimate: by here we know precisely how many pages
