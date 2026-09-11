@@ -130,18 +130,35 @@ Employer's photograph, their words, our mark — in that order of prominence.
     the photo     the advert's own banner. NEVER generated. An invented kitchen
                   on somebody's real vacancy is true-looking and not true.
     the type      company · role · strapline · place and pay
-    the band      solid #FFE500 across the bottom, the lockup left,
-                  thrivecareer.co.uk right, both in navy
+    the mark      the Thrive tile, top-left, small
 
-**Brand second, job first.** The band sits below everything about the vacancy,
-because on Instagram the card IS the post — it gets screenshotted and reshared
-with no caption, so it has to say where the job came from on its own. **A solid
-colour is a shape and a logo is a smudge**: the band is what reads at 100px.
+**Brand second, job first.** The photograph stays full-bleed and the mark stays
+small, because the photograph is what the card is selling.
 
-**There is no floating mark on the photograph any more.** Two weak brand cues are
-worse than one strong one, and that tile was sitting on somebody else's image.
+### A yellow band across the foot was built on 11 Sept 2026 and dropped
 
-The band's lockup is `public/logo/thrive-lockup.svg` with its container tile and
-shadow plane removed — both lockups carry a #FFE500 tile that would vanish on a
-#FFE500 band. No new artwork, no new colour, and the removal is asserted rather
-than assumed.
+It carried the wordmark and `thrivecareer.co.uk`, and it did read at thumbnail
+size where a small mark does not. **It was still the wrong trade.** It took a
+strip off every card, pushed the type up, and on the 9:16 left a dead band of
+scrim between itself and the platform's UI. Seen beside the old card it was
+louder than the job.
+
+Recorded so it is not re-proposed as a fresh idea, and so the reasoning for it —
+which was sound — is not mistaken for a reason to try it again unchanged.
+
+**THE GAP THAT PROMPTED IT IS STILL OPEN.** A card reshared with no caption says
+nothing about where the job came from, because the card carries no address. That
+is a real hole and it is left open deliberately rather than closed badly.
+
+### Naming
+
+**Name the files by the job, not by the row id.** They are picked out of a folder
+by a person about to post one, and `thrive-feed-c05907b6.jpg` tells them nothing.
+
+    Sommelier - Michelin-Starred Restaurant - feed.jpg
+    Sommelier - Michelin-Starred Restaurant - story.jpg
+
+**Titles are NOT unique** — two live rows both read *"Junior Sous Chef – Luxury
+Boutique Hotel"* — so a name collision takes a numbered suffix and prints a line
+saying so, rather than quietly replacing a card that may already have been
+posted.

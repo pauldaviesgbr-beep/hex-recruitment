@@ -27,8 +27,9 @@ import { bottomSafePx } from './lib/social-formats.mjs'
 
 const JOB_ID = process.argv[2]
 if (!JOB_ID) { console.error('usage: node scripts/make-social-card.mjs <job-id> [--out <dir>] [--salary "<text>"]'); process.exit(2) }
+// Cards live with the rest of the social assets, not loose in Downloads.
 const outFlag = process.argv.indexOf('--out')
-const OUT_DIR = outFlag > -1 ? process.argv[outFlag + 1] : path.join(os.homedir(), 'Downloads')
+const OUT_DIR = outFlag > -1 ? process.argv[outFlag + 1] : path.join(os.homedir(), 'Downloads', 'thrive-social')
 
 // --salary IS PRINTED VERBATIM AND IS THE ONLY WAY TO STATE A BASE.
 //
@@ -92,51 +93,6 @@ const money = (min, max, type) => {
   return `${k(min)}–${k(max)}${per}`
 }
 
-/**
- * THE BRAND FOOTER: a solid yellow band carrying the lockup and the address.
- *
- * WHY A BAND RATHER THAN A BIGGER MARK. On Instagram the card IS the post — it
- * is screenshotted and reshared with no caption attached, so it has to say
- * where the job came from on its own. At thumbnail size a logo is a smudge and
- * a solid colour is a shape: a yellow stripe along the bottom is legible at
- * 100px, which is how these are first seen.
- *
- * IT SITS BELOW EVERYTHING ABOUT THE JOB. Brand second, job first — the eye
- * lands on the photograph, then the role, then the pay, and meets the band
- * last. Nothing about Thrive sits above anything about the vacancy.
- *
- * THE LOCKUP IS THE REPO'S OWN FILE WITH THE TILE TAKEN OUT. Both lockups carry
- * a #FFE500 rounded square behind the T, which would vanish on a #FFE500 band.
- * Dropping the container and its shadow plane leaves the navy T and the navy
- * wordmark — the existing asset, no new artwork and no new colour.
- */
-async function brandFooter(width, barH) {
-  const src = fs.readFileSync(path.join(process.cwd(), 'public', 'logo', 'thrive-lockup.svg'), 'utf8')
-  const stripped = src
-    .replace(/<rect id="container"[^>]*><\/rect>/, '')
-    .replace(/<path id="t-shadow-plane"[^>]*><\/path>/, '')
-  // ASSERT THE REMOVAL rather than announce it: a replace whose anchor missed
-  // returns the string unchanged and would silently ship a yellow-on-yellow tile.
-  if (stripped.includes('id="container"') || stripped.includes('id="t-shadow-plane"')) {
-    throw new Error('the lockup tile was not removed — the asset shape has changed, check public/logo/thrive-lockup.svg')
-  }
-  if (!stripped.includes('id="wordmark"') || !stripped.includes('id="t-face"')) {
-    throw new Error('the lockup lost its wordmark or its T — refusing to composite a partial mark')
-  }
-  // TRIM BEFORE SIZING. The lockup's viewBox was drawn around the tile, so
-  // removing it leaves that space behind as transparent padding — the lockup
-  // would sit smaller in the band than the band allows, for no reason. Render
-  // large, trim to the ink, then size.
-  const wide = await sharp(Buffer.from(stripped)).resize({ height: barH * 4 }).png().toBuffer()
-  const trimmed = await sharp(wide).trim().png().toBuffer()
-  const [a, b] = await Promise.all([sharp(wide).metadata(), sharp(trimmed).metadata()])
-  if (b.height >= a.height) {
-    throw new Error(`the lockup trim did nothing (${a.width}x${a.height} -> ${b.width}x${b.height}) — check the asset`)
-  }
-  const lockH = Math.round(barH * 0.42)
-  return sharp(trimmed).resize({ height: lockH }).png().toBuffer()
-}
-
 async function render({ job, width, height, label, platform }) {
   const res = await fetch(job.company_banner_url)
   if (!res.ok) throw new Error(`${res.status} fetching the banner`)
@@ -167,17 +123,16 @@ async function render({ job, width, height, label, platform }) {
   const roleLines = wrap(role, role.length > 34 ? 22 : 18)
   const strapLines = strap ? wrap(strap, 40).slice(0, 2) : []
 
-  // THE FLOOR THE TYPE STANDS ON, and it is no longer the bottom of the image.
+  // THE FLOOR THE TYPE STANDS ON, and it is not the bottom of the image.
   //
-  // Two things sit below it now: the platform's own UI, and the brand footer.
-  // The type is lifted above BOTH. Before this, the card laid its type up from
-  // a 4% pad off the bottom edge — which on the 9:16 output put every word of
-  // it (78–96% of the frame) underneath a UI that starts at 70%.
-  const barH = Math.round(width * 0.09)
+  // The platform's own UI sits below it. Before this, the card laid its type up
+  // from a 4% pad off the bottom edge — which on the 9:16 output put every word
+  // of it (78–96% of the frame) underneath a UI that starts at 70%. On the 4:5
+  // feed the reservation is zero, so that card is laid out exactly as it always
+  // was and this changes nothing about it.
   const safePx = bottomSafePx(platform, height)
-  const footerBottom = height - safePx
-  const footerTop = footerBottom - barH
-  let y = footerTop - Math.round(pad * 0.55)
+  const typeFloor = height - safePx
+  let y = typeFloor - pad
   const chips = []
   if (pay || where) {
     chips.push(`<text x="${pad}" y="${y}" font-family="Archivo, Helvetica, Arial, sans-serif" font-size="${metaSize}" font-weight="600" fill="#FFFFFF">${esc([where, pay].filter(Boolean).join('   ·   '))}</text>`)
@@ -226,34 +181,49 @@ async function render({ job, width, height, label, platform }) {
     ${chips.join('\n    ')}
   </svg>`
 
-  // The band and the address. The lockup is composited separately as a PNG,
-  // because an <image> inside an SVG string would need the file inlined.
-  const urlSize = Math.round(width * 0.030)
-  const footerSvg = `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
-    <rect x="0" y="${footerTop}" width="${width}" height="${barH}" fill="#FFE500"/>
-    <text x="${width - pad}" y="${footerTop + Math.round(barH * 0.5) + Math.round(urlSize * 0.36)}"
-          text-anchor="end" font-family="Archivo, Helvetica, Arial, sans-serif"
-          font-size="${urlSize}" font-weight="600" fill="#0F172A">thrivecareer.co.uk</text>
-  </svg>`
-  const lockup = await brandFooter(width, barH)
-  const lockMeta = await sharp(lockup).metadata()
-
-  // THE FLOATING TILE IS GONE FROM THE PHOTOGRAPH. It used to sit top-left, on
-  // the employer's image, as the only branding on the card. The footer carries
-  // identity properly now, and two weak brand cues are worse than one strong
-  // one — so the top of the picture goes back to the employer.
+  // The Thrive mark, top-left, small. Thrive's own account, Thrive's own post.
+  //
+  // A SOLID YELLOW BAND ACROSS THE FOOT WAS TRIED ON 11 SEPT 2026 AND DROPPED.
+  // It carried the wordmark and the address and it read well at thumbnail size,
+  // and it was still the wrong trade: it took a strip off every card, pushed the
+  // type up, and on the 9:16 left a dead band of scrim between itself and the
+  // platform's UI. The mark alone keeps the photograph full-bleed, which is the
+  // thing the card is actually selling. Brand second, job first.
+  const markSize = Math.round(width * 0.085)
+  const mark = await sharp(path.join(process.cwd(), 'public', 'logo', 'thrive-mark-512.png'))
+    .resize(markSize, markSize, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+    .toBuffer()
 
   // Ground = photograph + scrim, no type. This is what the check reads.
   const ground = await sharp(base)
     .composite([{ input: Buffer.from(svg), top: 0, left: 0 }])
     .png().toBuffer()
 
-  const file = path.join(OUT_DIR, `thrive-${label}-${JOB_ID.slice(0, 8)}.jpg`)
+  // NAMED BY THE JOB, because these are picked out of a folder by a person
+  // about to post one. `thrive-feed-c05907b6.jpg` tells them nothing.
+  //
+  // AND IT NEVER SILENTLY OVERWRITES. Titles are not unique — two live rows
+  // both read "Junior Sous Chef – Luxury Boutique Hotel" — so a title-only
+  // filename can collide with a DIFFERENT job's card. A collision gets a
+  // numbered suffix and a line saying so, rather than quietly replacing a card
+  // that may already have been posted.
+  const safeTitle = String(job.title)
+    .replace(/[‒-―]/g, '-')      // en/em dashes -> hyphen
+    .replace(/[\\/:*?"<>|]/g, '')          // illegal on Windows
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 90)
+  let file = path.join(OUT_DIR, `${safeTitle} - ${label}.jpg`)
+  let bump = 1
+  while (fs.existsSync(file)) {
+    bump++
+    file = path.join(OUT_DIR, `${safeTitle} - ${label} (${bump}).jpg`)
+  }
+  if (bump > 1) console.log(`         NOTE: "${safeTitle} - ${label}.jpg" already existed — written as (${bump})`)
   await sharp(ground)
     .composite([
       { input: Buffer.from(typeSvg), top: 0, left: 0 },
-      { input: Buffer.from(footerSvg), top: 0, left: 0 },
-      { input: lockup, top: footerTop + Math.round((barH - lockMeta.height) / 2), left: pad },
+      { input: mark, top: pad, left: pad },
     ])
     .jpeg({ quality: 92, chromaSubsampling: '4:4:4' })
     .toFile(file)
@@ -275,10 +245,9 @@ async function render({ job, width, height, label, platform }) {
   }
   let worst = Infinity
   const top = Math.max(0, Math.round(y - eyebrowSize))
-  // Scan only where the TYPE is. It used to run to the bottom edge; the band is
-  // opaque yellow and the strip below it on a story carries nothing, so
-  // including either would measure ground no white glyph ever sits on.
-  for (let row = top; row < footerTop; row += 6) {
+  // Scan only where the TYPE is. It used to run to the bottom edge, which on a
+  // story measured 384px of ground no white glyph ever sits on.
+  for (let row = top; row < typeFloor; row += 6) {
     for (let col = pad; col < width - pad; col += 12) {
       const i = (row * info.width + col) * info.channels
       const ratio = (1.0 + 0.05) / (lum(data[i], data[i + 1], data[i + 2]) + 0.05)
@@ -292,7 +261,7 @@ async function render({ job, width, height, label, platform }) {
   // a hope. The fault this replaces was invisible precisely because nothing
   // ever said where the type had landed.
   console.log(`  ${label.padEnd(6)} ${width}x${height}  ${(stat.size / 1024).toFixed(0)}kB  contrast ${worst.toFixed(1)}:1 ${verdict}`)
-  console.log(`         type ${(100 * top / height).toFixed(1)}%–${(100 * footerTop / height).toFixed(1)}%   band ${(100 * footerTop / height).toFixed(1)}%–${(100 * footerBottom / height).toFixed(1)}%   ${platform} UI from ${(100 * (height - safePx) / height).toFixed(1)}%`)
+  console.log(`         type ${(100 * top / height).toFixed(1)}%–${(100 * typeFloor / height).toFixed(1)}%   ${platform} UI from ${(100 * (height - safePx) / height).toFixed(1)}%`)
   console.log(`         ${file}`)
   if (worst < 4.5) process.exitCode = 1
   return file
