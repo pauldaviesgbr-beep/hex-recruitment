@@ -124,11 +124,34 @@ function parseSalary(txt) {
 }
 const cleanLoc = l => String(l || '').replace(/,?\s*(uk|united kingdom)\.?$/i, '').trim() || null
 // jobs.{responsibilities,requirements,benefits,work_authorization} are text[] —
-// split a scraped bullet/paragraph string into an array of items.
+// normalise whatever the scrape produced into one.
+//
+// THE ARRAY BRANCH IS THE NORMAL PATH NOW that the schema asks for arrays. The
+// string branch is kept deliberately rather than deleted: records.json files
+// written before that change still hold strings, and a re-run against an old
+// scratch file must not silently produce one-item lists — or worse, split a
+// sentence on nothing and lose it.
 function toArr(str) {
   if (!str) return null
+  if (Array.isArray(str)) {
+    const items = str.map(s => String(s).replace(/^\s*[-•*·]\s*/, '').trim()).filter(Boolean)
+    return items.length ? items : null
+  }
   const items = String(str).split(/\r?\n+/).map(s => s.replace(/^\s*[-•*·]\s*/, '').trim()).filter(Boolean)
   return items.length ? items : null
+}
+/**
+ * A scraped list field, on its way into the scratch record.
+ *
+ * Accepts what the array schema returns, and still accepts a string in case a
+ * page yields one — an empty list and an empty string both become null, so
+ * "the employer said nothing here" stays distinguishable from "they said
+ * nothing useful", which is what the advert renderers key on.
+ */
+function keepList(v) {
+  if (Array.isArray(v)) { const a = v.map(x => String(x).trim()).filter(Boolean); return a.length ? a : null }
+  const s = String(v ?? '').trim()
+  return s || null
 }
 const normTitle = t => String(t || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()
 const cleanUrl = u => { try { const x = new URL(u); return `${x.origin}${x.pathname.replace(/\/?$/, '/')}` } catch { return null } }
@@ -205,8 +228,26 @@ async function scrapeDetails() {
   const schema = { type: 'object', properties: {
     title: { type: 'string' }, location: { type: 'string' }, salary_text: { type: 'string' },
     permanent: { type: 'boolean' }, full_time: { type: 'boolean' }, job_id: { type: 'string' },
-    about: { type: 'string' }, responsibilities: { type: 'string' }, requirements: { type: 'string' },
-    benefits: { type: 'string' }, right_to_work: { type: 'boolean' },
+    about: { type: 'string' },
+    // ASK FOR A LIST AS A LIST. These three are <ul><li> on every Goldenkeys
+    // vacancy page and text[] in our own schema — so the source and the column
+    // both agree they are lists, and only this request used to disagree.
+    //
+    // WHEN IT SAID `string` THE MODEL HAD TO CHOOSE A SERIALISATION and nothing
+    // told it which: sometimes newline-separated, sometimes comma-joined prose.
+    // toArr() then split on /\r?\n+/ — A DELIMITER THE EXTRACTOR WAS NEVER TOLD
+    // TO USE — so newlines became six items and commas became one. That is the
+    // whole mechanism behind a clean bullet list arriving as a run-on
+    // paragraph, and it was never the model being flaky: we forced the choice.
+    //
+    // Proven 10 Sept 2026 on one vacancy, two calls, one variable:
+    //   string -> "£40,000 per annum plus £2,000 service charge, 40-hour
+    //              contract across 5 days, responsibility for…"   1 item
+    //   array  -> six items, matching the six <li> elements exactly
+    responsibilities: { type: 'array', items: { type: 'string' } },
+    requirements: { type: 'array', items: { type: 'string' } },
+    benefits: { type: 'array', items: { type: 'string' } },
+    right_to_work: { type: 'boolean' },
   } }
   let done = 0
   const recs = await pool(list, 5, async (item) => {
@@ -234,9 +275,14 @@ async function scrapeDetails() {
       employment_type: et,
       description: (d.about || '').trim() || null,
       full_description: (d.about || '').trim() || null,
-      responsibilities: (d.responsibilities || '').trim() || null,
-      requirements: (d.requirements || '').trim() || null,
-      benefits: (d.benefits || '').trim() || null,
+      // THESE THREE ARRIVE AS ARRAYS NOW and are carried through as arrays.
+      // They used to be `(d.x || '').trim()`, which threw the moment the schema
+      // started returning lists — loudly, at the first record, which is the
+      // right direction for a type change and the reason this consumer was
+      // found at all. toArr() in apply() still accepts either shape.
+      responsibilities: keepList(d.responsibilities),
+      requirements: keepList(d.requirements),
+      benefits: keepList(d.benefits),
       work_authorization: d.right_to_work ? 'Right to work in the UK required' : null,
       job_reference: d.job_id ? `GK-${String(d.job_id).trim()}` : null,
     }
