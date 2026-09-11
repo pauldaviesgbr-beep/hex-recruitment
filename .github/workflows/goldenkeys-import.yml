@@ -48,4 +48,10 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           SITE_URL: ${{ secrets.SITE_URL }}
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
-        run: node scripts/import-goldenkeys.mjs --all
+        # --no-update-existing: import new roles and retire dead ones, but do
+        # not rewrite an advert we already hold. Measured 10 Sept 2026 — the
+        # update path would have changed a field on 84 of 92 live adverts and a
+        # FACT on none of them, collapsing bullet lists into paragraphs on 18.
+        # A real employer edit to an existing advert is now missed until the
+        # fact-comparison version lands; see the flag's own comment.
+        run: node scripts/import-goldenkeys.mjs --all --no-update-existing
