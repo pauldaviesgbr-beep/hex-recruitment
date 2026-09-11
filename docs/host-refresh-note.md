@@ -5,6 +5,21 @@ How a Host reconcile is done, and the two entry conventions decided on
 conventions are the kind of thing that holds for one session and drifts by the
 next unless somebody writes them where the next person looks.
 
+## Caterer is Host's source of truth
+
+**Adrian told us on 11 September 2026 that Caterer is the most up to date of all
+his roles. So when the board and Caterer disagree, CATERER WINS.**
+
+That is not a judgement call anybody here has to make — the supplier has told us
+which of his own surfaces to believe. It is what makes this whole procedure
+legitimate rather than a guess, and it is why a capture is authoritative rather
+than approximate. Every day the board disagrees with Caterer is a day we are
+advertising his dead roles and hiding his live ones.
+
+**If that ever changes — a different feed, a direct export, anything he says is
+better — this line is the one to update first**, because everything below it
+assumes the capture is right and the board is wrong.
+
 ## Why this has to be done, and done regularly
 
 **NOTHING EXPIRES A HOST ADVERT ON A CLOCK. A DEAD ONE STAYS ON THE BOARD
@@ -148,6 +163,20 @@ One hyperlinked string, up to three parts:
 
     Place, Town (District), Full postcode      "The City, City of London (EC2), EC3V 3LA"
 
+**STORE THE DISTRICT, NOT THE UNIT POSTCODE.** `full_location.postcode` holds
+`EC2`, `SW10`, `SE8`, `W1C` — the district — on every Host row. That is the house
+shape and it is deliberate, not a fallback for when the capture is hard to read.
+
+> The worked example, 11 Sept 2026: capture 07's unit postcode could not be
+> resolved from the screenshot — `W1C 2J` then a character that is G or S at that
+> resolution. It was stored as `W1C`. **Adrian's listing reads `W1C 2JS`**, so the
+> answer exists; the row still holds `W1C`, because one row carrying a unit
+> postcode when twenty carry districts is the odd one out.
+>
+> **A coin-tossed letter would have been worse than an honest district, because a
+> wrong unit postcode points somewhere real.** Where a character cannot be read,
+> store the part that can be.
+
 **The parts disagree with each other on real adverts** — one carries `(SW4)` with
 `SW9 9AE`, another `(SW8)` with `SW11 8AL` — and several adverts have no postcode
 at all, just `Central London, London`. So the postcode is not reliable enough to
@@ -249,3 +278,47 @@ Nobody had ever moved any of them.
 them live is worse. It is recorded because it is the small version of what the
 Goldenkeys board did at scale, and because a count of people who applied into
 nothing is the only honest measure of what a lapsed reconcile costs.
+
+### What archiving does to an application, measured rather than assumed
+
+Checked 11 Sept 2026 against the code, because "does it disappear?" had no
+obvious answer and the consequence falls on real people.
+
+**NOTHING IS DELETED AND NOBODY IS EMAILED.** Archiving is a plain `UPDATE`;
+the only trigger on `jobs` stamps `updated_at`. All four applications survived
+with `status` still `pending`.
+
+    the candidate's /applications   KEEPS IT. That query filters on candidate_id
+                                    and never mentions job status, and the role
+                                    title is denormalised onto the application
+                                    row, so the card still reads correctly.
+    the employer's /applied inbox   KEEPS IT. It selects the employer's jobs
+                                    with no status filter.
+    the employer's /my-jobs         KEEPS IT, under All Jobs and Archived.
+    the advert itself               GONE for the candidate. /job/[id] resolves
+                                    from JobsContext, which fetches only
+                                    status='active', so it renders "Job Not
+                                    Found — this job listing may have been
+                                    removed or is no longer available."
+
+**So a candidate keeps a pending application they can no longer click through
+to.** The message they get is honest rather than a broken page, which is the
+right side to be on.
+
+#### OPEN, NOT CLOSED: the list gives no hint until they tap
+
+**Decided 11 Sept 2026 that nothing is said to anybody** — the wording is
+accurate, the roles really are gone, and both sides keep the record. **That
+decision is about the MESSAGE. It is not a finding that the behaviour is fine.**
+
+The gap is that `/applications` shows a `pending` application against a role that
+no longer exists, with nothing on the card to say so, and the candidate only
+discovers it by tapping through to a not-found page. Four people are in that
+state today.
+
+**It is left open here deliberately so a future decision can find it**, rather
+than being closed off by "nothing needs saying". It costs nothing at four
+applications and it is the kind of thing that stops being cheap quietly: the
+Goldenkeys reconcile put **51** applications into exactly this state. If it is
+ever worth fixing, the shape is a line on the card rather than an email — the
+information already exists on the row, it is simply not rendered.
