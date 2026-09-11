@@ -1420,3 +1420,23 @@ wrong reason is worse than no check, because it ends the search.
 - **AN OUTPUT IS ONLY AS DISCRIMINATING AS THE MOST INDEPENDENT THING ON IT.** The repaired log still has a hole, and it is worth stating rather than leaving somebody to believe the page is airtight: **a `held` set that was wrongly over-full would skip every URL and print exactly the same "nothing new" line as a correct run on a quiet week.** No count on that page betrays it, because every count is derived from the same faulty Set.
   - **WHAT RESCUES IT IS THE ONE FIGURE THE FILTER DID NOT PRODUCE.** The enumeration is computed before the filter exists and never consults it, so `98 enumerated` is independent evidence that the catalogue was read properly — and `98 = 98 + 0` is then at least arithmetically consistent with "nothing new". The named URLs are the other independent element: five real vacancy slugs cannot be manufactured by a broken Set.
   - **SO WHEN BUILDING OUTPUT FOR SOMEBODY TO READ UNDER PRESSURE, ASK WHICH LINE COMES FROM A DIFFERENT SOURCE THAN THE THING BEING JUDGED.** A page of numbers all derived from one computation is one computation's word repeated, however many lines it fills. Same family as two instruments agreeing while both point at the wrong thing.
+
+- **A FILE THAT EXISTS ON DISK IS NOT A FILE THAT EXISTS IN THE REPOSITORY, AND NOTHING TELLS YOU WHICH ONE YOU HAVE.** Asked on 11 Sept 2026 to put 25 supplier screenshots somewhere permanent — "a dated folder in the repo" — the obvious move is `docs/host-capture-2026-09-11/`. **`.gitignore` line 14 is `*.png`, with exceptions only for `public/**` and `app/**`.** So every one of those images would have been silently untracked: present in the working tree, absent from every clone, and looking exactly like a record in a file listing.
+  - **IT IS THE ICON FAULT AGAIN AND THE COST WAS A WHOLE BUILD LAST TIME.** `AppIcon-512@2x.png` sat on the machine, rendered locally, and never reached the runner — because the same `*.png` line was written for a Next.js repo in March and `ios/` arrived in August. **An exception list is a claim about which directories exist**, and it silently stops being true the day somebody adds one.
+  - **IT IS ALSO THE TREE-VERSUS-REFS ENTRY FROM THE OTHER DIRECTION** — Paul's framing. That one was *absence from the checkout mistaken for absence from the repository* (`ls scripts/` said a file did not exist; it was alive on an unmerged branch). This is *presence in the checkout mistaken for presence in the repository*. **Both are the same question — which of the two am I actually looking at — and `ls` cannot answer it in either direction.**
+  - **`git check-ignore -v <path>` ANSWERS IT IN ONE SECOND AND NAMES THE RULE.** It prints `.gitignore:14:*.png	docs/…/x.png`. Run it BEFORE copying files in, not after wondering why they never appeared in a diff.
+  - And the second reason that stood on its own here: **the repository is public.** Those images are a supplier's job adverts. Not a secret, and not ours to publish.
+
+- **THE SAME COLUMN HOLDS THREE DIFFERENT KINDS OF THING DEPENDING ON WHO KEYED THE ROW, AND IT IS RENDERED.** `jobs.area` is printed verbatim beside the town on every card and job page. Measured 11 Sept 2026 across the live board:
+
+      GOLDENKEYS (92)   a county or region      "County Durham", "Wiltshire",
+                                                "North West", "Bristol"
+                        — and NULL on most of them
+      HOST (19)         a POSTCODE DISTRICT     "GL56", "RG18", "SW18", "WC1",
+                                                "SE8", "TW9", "EC2", "SP11"
+      COLLINS KING (1)  a town and full-ish
+                        postcode                "London E9 5EN"
+
+  - So a Goldenkeys card reads **"Durham, County Durham"**, a Host card reads **"London, SW18"**, and Collins King reads **"London, London E9 5EN"**. Three conventions, one rendered field, on one board.
+  - **THE IMPORTER AND THE FORM BOTH BEHAVE CORRECTLY. There is no bug** — `area` is a free-text string, every value in it is true, and nothing type-checks a convention. It is the "a field that displays and a field that keys are different kinds of thing" entry one step further on: **here it is one displaying field with no agreed vocabulary, filled by two different mechanisms and a person.**
+  - **WHOEVER FIXES THIS SHOULD DECIDE THE VOCABULARY FIRST AND BACKFILL SECOND.** A county reads naturally after a town; a postcode district does not. But it is a copy decision about 112 live rows, not a data-cleaning job, and it is Paul's.
