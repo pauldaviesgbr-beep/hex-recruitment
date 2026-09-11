@@ -163,6 +163,20 @@ One hyperlinked string, up to three parts:
 
     Place, Town (District), Full postcode      "The City, City of London (EC2), EC3V 3LA"
 
+**STORE THE DISTRICT, NOT THE UNIT POSTCODE.** `full_location.postcode` holds
+`EC2`, `SW10`, `SE8`, `W1C` — the district — on every Host row. That is the house
+shape and it is deliberate, not a fallback for when the capture is hard to read.
+
+> The worked example, 11 Sept 2026: capture 07's unit postcode could not be
+> resolved from the screenshot — `W1C 2J` then a character that is G or S at that
+> resolution. It was stored as `W1C`. **Adrian's listing reads `W1C 2JS`**, so the
+> answer exists; the row still holds `W1C`, because one row carrying a unit
+> postcode when twenty carry districts is the odd one out.
+>
+> **A coin-tossed letter would have been worse than an honest district, because a
+> wrong unit postcode points somewhere real.** Where a character cannot be read,
+> store the part that can be.
+
 **The parts disagree with each other on real adverts** — one carries `(SW4)` with
 `SW9 9AE`, another `(SW8)` with `SW11 8AL` — and several adverts have no postcode
 at all, just `Central London, London`. So the postcode is not reliable enough to
@@ -289,5 +303,22 @@ with `status` still `pending`.
 
 **So a candidate keeps a pending application they can no longer click through
 to.** The message they get is honest rather than a broken page, which is the
-right side to be on — but nothing tells them in the list itself, and nothing
-tells them why. Recorded as a known consequence, not a fault to fix here.
+right side to be on.
+
+#### OPEN, NOT CLOSED: the list gives no hint until they tap
+
+**Decided 11 Sept 2026 that nothing is said to anybody** — the wording is
+accurate, the roles really are gone, and both sides keep the record. **That
+decision is about the MESSAGE. It is not a finding that the behaviour is fine.**
+
+The gap is that `/applications` shows a `pending` application against a role that
+no longer exists, with nothing on the card to say so, and the candidate only
+discovers it by tapping through to a not-found page. Four people are in that
+state today.
+
+**It is left open here deliberately so a future decision can find it**, rather
+than being closed off by "nothing needs saying". It costs nothing at four
+applications and it is the kind of thing that stops being cheap quietly: the
+Goldenkeys reconcile put **51** applications into exactly this state. If it is
+ever worth fixing, the shape is a line on the card rather than an email — the
+information already exists on the row, it is simply not rendered.

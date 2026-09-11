@@ -554,6 +554,30 @@ async function main() {
   const before = await census('BEFORE')
   console.log('')
 
+  // ── THE RE-RUN GUARD ─────────────────────────────────────────────────────
+  // THIS RECONCILE WAS APPLIED ON 11 SEPTEMBER 2026. Running it again would
+  // insert eleven DUPLICATE live adverts under a real employer's name — the
+  // archives and updates are idempotent, the inserts are not.
+  //
+  // The warning used to live only in the commit message, which is the weakest
+  // possible place for it: `git log --oneline` prints the subject line and not
+  // the body, so the sentence was invisible to exactly the casual look that
+  // precedes somebody running a script to see what it does. A sentence nobody
+  // is obliged to read is a hope; this is the mechanism.
+  const { data: already, error: alreadyErr } = await supa.from('jobs')
+    .select('job_reference').eq('company', COMPANY)
+    .in('job_reference', INSERT.map(a => a.ref))
+  if (alreadyErr) throw alreadyErr
+  if ((already?.length ?? 0) > 0) {
+    console.error(`\nREFUSING: ${already!.length} of this reconcile's ${INSERT.length} references already exist.`)
+    console.error(`  ${already!.map(r => r.job_reference).sort().join(', ')}`)
+    console.error('\nThis reconcile was applied on 11 September 2026 and is a RECORD, not a task.')
+    console.error('Re-running it would duplicate live adverts. To do a NEW reconcile, copy this')
+    console.error('file to a new date, replace the capture data, and take fresh references.')
+    process.exit(2)
+  }
+  console.log(`re-run guard: none of ${INSERT.length} references exist yet — this reconcile has not been applied\n`)
+
   // ── PHASE 1: ARCHIVE ─────────────────────────────────────────────────────
   // Counted BEFORE the write. "0 remain" afterwards would pass whether or not
   // the row ever existed, so it is not used as the evidence.
