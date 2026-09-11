@@ -5,6 +5,21 @@ How a Host reconcile is done, and the two entry conventions decided on
 conventions are the kind of thing that holds for one session and drifts by the
 next unless somebody writes them where the next person looks.
 
+## Caterer is Host's source of truth
+
+**Adrian told us on 11 September 2026 that Caterer is the most up to date of all
+his roles. So when the board and Caterer disagree, CATERER WINS.**
+
+That is not a judgement call anybody here has to make — the supplier has told us
+which of his own surfaces to believe. It is what makes this whole procedure
+legitimate rather than a guess, and it is why a capture is authoritative rather
+than approximate. Every day the board disagrees with Caterer is a day we are
+advertising his dead roles and hiding his live ones.
+
+**If that ever changes — a different feed, a direct export, anything he says is
+better — this line is the one to update first**, because everything below it
+assumes the capture is right and the board is wrong.
+
 ## Why this has to be done, and done regularly
 
 **NOTHING EXPIRES A HOST ADVERT ON A CLOCK. A DEAD ONE STAYS ON THE BOARD
@@ -249,3 +264,30 @@ Nobody had ever moved any of them.
 them live is worse. It is recorded because it is the small version of what the
 Goldenkeys board did at scale, and because a count of people who applied into
 nothing is the only honest measure of what a lapsed reconcile costs.
+
+### What archiving does to an application, measured rather than assumed
+
+Checked 11 Sept 2026 against the code, because "does it disappear?" had no
+obvious answer and the consequence falls on real people.
+
+**NOTHING IS DELETED AND NOBODY IS EMAILED.** Archiving is a plain `UPDATE`;
+the only trigger on `jobs` stamps `updated_at`. All four applications survived
+with `status` still `pending`.
+
+    the candidate's /applications   KEEPS IT. That query filters on candidate_id
+                                    and never mentions job status, and the role
+                                    title is denormalised onto the application
+                                    row, so the card still reads correctly.
+    the employer's /applied inbox   KEEPS IT. It selects the employer's jobs
+                                    with no status filter.
+    the employer's /my-jobs         KEEPS IT, under All Jobs and Archived.
+    the advert itself               GONE for the candidate. /job/[id] resolves
+                                    from JobsContext, which fetches only
+                                    status='active', so it renders "Job Not
+                                    Found — this job listing may have been
+                                    removed or is no longer available."
+
+**So a candidate keeps a pending application they can no longer click through
+to.** The message they get is honest rather than a broken page, which is the
+right side to be on — but nothing tells them in the list itself, and nothing
+tells them why. Recorded as a known consequence, not a fault to fix here.
