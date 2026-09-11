@@ -57,11 +57,19 @@ Thrive is starting in hospitality — kitchens, bars, hotels and restaurants —
 
 ### Four deliberate omissions — do not "improve" these back in
 
-- **NO NUMBER OF JOBS.** 251 is true today and false next week, and nobody
-  will remember to update a store description. The screenshots carry the
-  number and date themselves honestly.
-- **NO "the salary on every role".** It is on 249 of 251 — two imported
-  Goldenkeys rows carry a literal zero. "Pay is on the listing" is true.
+- **NO NUMBER OF JOBS.** It was 251 when this was written, 247 by 1 September
+  and **112 on 10 September** — a reconcile archived 135 Goldenkeys adverts
+  that were 404 on the agency's own site. Nobody will remember to update a
+  store description, and this omission has now been proven right by a figure
+  that more than halved in a fortnight. The screenshots carry the number and
+  date themselves honestly.
+- **NO "the salary on every role" — AND THIS ONE HAS BECOME TRUE SINCE, WHICH
+  IS NOT A REASON TO ADD IT.** It was on 249 of 251, because two imported
+  Goldenkeys rows carried a literal zero. **Both went with the 10 Sept
+  archive, so it is now 112 of 112** — measured, `salary_max <= 0` returns
+  zero live rows. Nobody chose that; it fell out of retiring dead adverts, and
+  the next import can put another zero-salary row on the board without anyone
+  noticing. "Pay is on the listing" is still the sentence to use.
 - **NO "free to use".** True today; Profile Boost is planned as an in-app
   purchase. A description that says free and then is not is worse than one
   that never said it.
