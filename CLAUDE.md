@@ -24,6 +24,22 @@ Standing rules for Claude Code on this project. These override default behaviour
 ## Saying what you actually did
 
 - **Say plainly what you DROVE and what you only READ. Never dress up one as the other.** "Verified" means a browser was pointed at it and something was clicked. If a state could not be reached — no data existed, the account was wrong, it would have touched real rows — say so and say why, rather than reasoning about the code and calling that verification. Every UI bug found on this project so far was found by a person unable to click something, never by reading.
+- **THE ROLLBACK SHA IN A MERGE MESSAGE IS DERIVED, NEVER TYPED. THIS IS THE PROCEDURE, NOT ADVICE:**
+
+      git merge --no-ff origin/<branch> -m "placeholder"
+      git commit --amend -m "Merge: …
+
+      <branch> (<sha>)
+      rollback $(git rev-parse HEAD~1)
+      …"
+
+  The shell substitutes it. **A sha produced from the commit cannot disagree with the commit** — `HEAD~1` on a merge IS the rollback target, by construction rather than by transcription. Reading it beforehand and retyping it is the step that fails; removing the step is the only fix that holds. (`HEAD^1` means the same thing and is correct in bash, but the caret is eaten by some shells on this machine — `HEAD~1` survives every layer and is the safer form to write down.)
+  - **THIS EXISTS BECAUSE I INVENTED ONE ON 11 Sept 2026, IN THE MERGE MESSAGE, HAVING JUST READ THE REAL ONE CORRECTLY.** `git rev-parse origin/main` returned `402a8a5727dd4ed8c37e9db036cc81bc664c55f3`; what went into the message was `402a8a5c3cb5ad8e37bb2b0f61b0b1de6e4c2d1b`. It points at **no object in this repository**. Caught by checking it before the push, amended, and the amended message records it.
+  - **THE FIRST SEVEN CHARACTERS MATCHED, AND THAT IS WHAT MAKES IT DANGEROUS.** A wholly wrong sha is obvious — the prefix is the part anybody glances at, so a right prefix reads as correct, survives review, and fails only at the moment somebody actually needs it. Which is, by definition, the worst moment.
+  - **THE READING WAS CORRECT AND THE TRANSCRIPTION INVENTED.** Same family as the stale timezone offset and `tail` exiting 0: a correct operation on a corrupted value, with nothing in the output announcing it. `git cat-file -e <sha>` answers it in a second and nothing else will.
+  - **AUDITED THE SAME DAY, AND THE ANSWER WAS REASSURING: 34 rollback shas quoted across every merge on `main`, 34 correct — all exist AND all are the merge's actual first parent, zero wrong.** The convention starts 3 Sept 2026; the 309 merges before it quote none, which is history rather than a lapse. One is abbreviated to seven characters (`e833d10`, in merge `4fa6e96`) and is correct.
+  - **THE AUDIT ASKED BOTH QUESTIONS, AND THE SECOND IS THE ONE THAT MATTERS MORE.** "Does it exist" and "is it the right commit" are different states: a sha that exists but points elsewhere would let `git reset --hard` **succeed** and put the tree somewhere unintended, with no error to warn anybody. Checking only existence would have felt like an audit and proved half of one.
+  - **AND THE AUDIT'S FIRST RUN SAID 0 OF 34 CORRECT, WHICH IS THE INSTRUMENT RULE ARRIVING ON SCHEDULE.** `git cat-file -e <sha>^{commit}` had its caret eaten by the shell, so every lookup failed identically. A result that absolute is the tool, not the world — and the fix was to drop `^{commit}` rather than to believe it.
 - Give rollback targets **read at the time**, not from memory.
 
 ## Live data and email
