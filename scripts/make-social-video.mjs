@@ -29,6 +29,7 @@ import os from 'node:os'
 import { execFileSync } from 'node:child_process'
 import sharp from 'sharp'
 import ffmpeg from 'ffmpeg-static'
+import { BOTTOM_SAFE } from './lib/social-formats.mjs'
 
 const SRC = process.argv[2]
 if (!SRC || !fs.existsSync(SRC)) {
@@ -67,9 +68,9 @@ const wrap = (text, perLine) => {
  * from the bottom. Text sits above it, never in it.
  */
 const FORMATS = [
-  { name: 'linkedin', w: 1080, h: 1080, bottomSafe: 0.06, perLine: 20 },
-  { name: 'instagram', w: 1080, h: 1920, bottomSafe: 0.20, perLine: 16 },
-  { name: 'tiktok', w: 1080, h: 1920, bottomSafe: 0.30, perLine: 16 },
+  { name: 'linkedin', w: 1080, h: 1080, bottomSafe: BOTTOM_SAFE.linkedin, perLine: 20 },
+  { name: 'instagram', w: 1080, h: 1920, bottomSafe: BOTTOM_SAFE.instagram_story, perLine: 16 },
+  { name: 'tiktok', w: 1080, h: 1920, bottomSafe: BOTTOM_SAFE.tiktok, perLine: 16 },
 ]
 
 async function overlay({ w, h, bottomSafe, perLine }) {
