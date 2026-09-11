@@ -9,6 +9,9 @@
 //   node scripts/import-goldenkeys.mjs --apply --dry-run   # plan writes, no DB changes
 //   node scripts/import-goldenkeys.mjs --apply             # backfill + upsert + reconcile
 //   node scripts/import-goldenkeys.mjs --all               # enumerate + scrape + apply
+//   node scripts/import-goldenkeys.mjs --all --no-update-existing
+//        # insert new roles, retire dead ones, and leave every advert we
+//        # already hold exactly as it is. This is what the weekly cron runs.
 // Env (from .env.local): FIRECRAWL_API_KEY, NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
 
 import fs from 'fs'
@@ -29,6 +32,33 @@ const REC_FILE = path.join(SCRATCH, 'records.json')
 
 const args = new Set(process.argv.slice(2))
 const DRY = args.has('--dry-run')
+
+// --no-update-existing: INSERT NEW ROLES, RETIRE DEAD ONES, AND DO NOT TOUCH
+// THE TEXT OF AN ADVERT WE ALREADY HOLD.
+//
+// WHY. Measured 10 Sept 2026 against a fresh scrape of all 98 live vacancies:
+// the upsert would have changed a field on 84 of the 92 adverts we hold — and
+// changed a FACT on ZERO of them. No title, no salary, no location, no
+// reference. Every one of those 84 rewrites was the extractor wording the same
+// advert differently on a second pass, and on 18 of them it collapsed a clean
+// bullet list into one run-on paragraph. So the weekly run was about to rewrite
+// 84 live adverts on the public board and correct nothing at all.
+//
+// THE ONE GENUINE EMPLOYER EDIT IN THAT POPULATION — a Chef de Partie whose
+// salary Goldenkeys raised from £36,240 to £42,000 on 10 Sept — was applied by
+// hand the same day, which is what made the rest pure churn.
+//
+// THE COST, AND IT IS REAL RATHER THAN THEORETICAL: a genuine employer edit to
+// an advert we ALREADY hold will no longer be picked up automatically. It is
+// worth nothing today — zero of 92 — but Goldenkeys did edit that salary, so it
+// does happen, and the next one will sit stale until somebody notices.
+//
+// THIS FLAG IS THEREFORE A STOP-GAP AND MUST NOT QUIETLY BECOME THE PERMANENT
+// ANSWER. The real fix updates a row only when a FACT changes — title, salary,
+// location, reference, work authorisation — and leaves the prose alone whatever
+// the extractor did with it that week. That is a comparison per field rather
+// than a flag, which is why it is not this change.
+const NO_UPDATE_EXISTING = args.has('--no-update-existing')
 
 // ── env ──
 function loadEnv() {
@@ -338,7 +368,7 @@ async function apply() {
   const urlToId = new Map(existing.filter(j => j.source_url).map(j => [j.source_url, j.id]))
 
   // 2) UPSERT each scraped role on source_url (update in place if known, else insert).
-  let inserted = 0, updated = 0
+  let inserted = 0, updated = 0, leftAlone = 0
   const newIds = []
   for (const r of recs) {
     const row = {
@@ -363,7 +393,13 @@ async function apply() {
     // overwritten, so anything set by hand stays put and a re-run is cheap
     // rather than re-downloading every image. That is deliberately unlike
     // scripts/import-goldenkeys-images.mjs, which reassigns every row it can.
-    const needsBanner = !id || !prior?.company_banner_url
+    //
+    // UNDER --no-update-existing THE BANNER WORK IS SKIPPED FOR EXISTING ROWS
+    // TOO, and that is not a tidy-up. bannerFor() DOWNLOADS the image and
+    // UPLOADS it into our storage bucket — a real write — and the row it would
+    // decorate is one we are about to leave alone. Gating only the database
+    // update would leave this uploading objects nothing then references.
+    const needsBanner = (!id || !prior?.company_banner_url) && !(id && NO_UPDATE_EXISTING)
     if (needsBanner && !DRY) {
       const url = await bannerFor(imageByUrl.get(r.source_url))
       if (url) row.company_banner_url = url
@@ -373,6 +409,10 @@ async function apply() {
     }
 
     if (id) {
+      // THE SKIP IS HERE AND NOWHERE ELSE, so the insert path below is provably
+      // untouched by the flag: new roles still get their banner, their logo and
+      // their area resolution, which are already gated on !id.
+      if (NO_UPDATE_EXISTING) { leftAlone++; continue }
       if (!DRY) { const { error } = await supa.from('jobs').update(row).eq('id', id); if (error) throw error }
       updated++
     } else {
@@ -385,7 +425,12 @@ async function apply() {
       inserted++
     }
   }
-  console.log(`Upsert: ${inserted} inserted, ${updated} updated in place`)
+  // `updated` IS THE NUMBER TO READ UNDER THE FLAG, and it must be 0. Printing
+  // `leftAlone` beside it makes the skip a measurement rather than an absence:
+  // 0 updated with 0 left alone would mean the loop never ran at all, which is
+  // a different and much worse state than the flag working.
+  console.log(`Upsert: ${inserted} inserted, ${updated} updated in place`
+    + (NO_UPDATE_EXISTING ? `, ${leftAlone} existing adverts LEFT ALONE (--no-update-existing)` : ''))
 
   // 2b) AREA RESOLUTION for the rows we just created. Every other path that
   // creates a listing resolves its area; this importer didn't, so a run left
@@ -451,7 +496,8 @@ async function apply() {
     }
   }
   console.log(`Reconcile: ${archived} set to archived`)
-  console.log(`\n${DRY ? '[DRY RUN] ' : ''}Done. scraped=${recs.length} inserted=${inserted} updated=${updated} backfilled=${matched} archived=${archived}`)
+  console.log(`\n${DRY ? '[DRY RUN] ' : ''}Done. scraped=${recs.length} inserted=${inserted} updated=${updated} backfilled=${matched} archived=${archived}`
+    + (NO_UPDATE_EXISTING ? ` leftAlone=${leftAlone}` : ''))
 }
 
 // ── main ──
