@@ -135,8 +135,21 @@ async function render({ job, width, height, label, platform }) {
   let y = typeFloor - pad
   const chips = []
   if (pay || where) {
-    chips.push(`<text x="${pad}" y="${y}" font-family="Archivo, Helvetica, Arial, sans-serif" font-size="${metaSize}" font-weight="600" fill="#FFFFFF">${esc([where, pay].filter(Boolean).join('   ·   '))}</text>`)
-    y -= Math.round(metaSize * 1.9)
+    // THE META LINE HAS TO WRAP, because --salary can be any length.
+    //
+    // It used to be one unwrapped <text>. That was safe only while the pay
+    // string came from money(), which is never longer than "£34,500–£38,000/year"
+    // — and the moment a person typed "£60,000 + quarterly bonus" the line ran
+    // off the right edge of the card and the pay was cut mid-word. SVG does not
+    // wrap and it does not complain; it just draws past the canvas.
+    const metaText = [where, pay].filter(Boolean).join('   ·   ')
+    const metaPerLine = Math.max(12, Math.floor((width - pad * 2) / (metaSize * 0.56)))
+    const metaLines = wrap(metaText, metaPerLine)
+    for (const line of [...metaLines].reverse()) {
+      chips.push(`<text x="${pad}" y="${y}" font-family="Archivo, Helvetica, Arial, sans-serif" font-size="${metaSize}" font-weight="600" fill="#FFFFFF">${esc(line)}</text>`)
+      y -= Math.round(metaSize * 1.35)
+    }
+    y -= Math.round(metaSize * 0.55)
   }
   for (const line of [...strapLines].reverse()) {
     chips.push(`<text x="${pad}" y="${y}" font-family="Archivo, Helvetica, Arial, sans-serif" font-size="${strapSize}" font-weight="500" fill="#FFE500" letter-spacing="1.5">${esc(line.toUpperCase())}</text>`)
@@ -308,11 +321,19 @@ async function main() {
 
   fs.mkdirSync(OUT_DIR, { recursive: true })
 
-  // Instagram only. TikTok is deliberately absent: a still card does not travel
-  // there, and the one tool that makes video is barred from employer adverts
-  // because footage nobody filmed is a claim about somebody's premises.
-  await render({ job, width: 1080, height: 1350, label: 'feed', platform: 'instagram_feed' })
-  await render({ job, width: 1080, height: 1920, label: 'story', platform: 'instagram_story' })
+  // FEED is 4:5 and serves LinkedIn, Instagram and Facebook — none of those
+  // overlay the image, so one file covers all three.
+  //
+  // STORY and TIKTOK are both 1080x1920 AND THEY ARE NOT INTERCHANGEABLE.
+  // Instagram reserves 20% at the foot, TikTok 30%. A card laid out for
+  // Instagram has its bottom line — the place and the pay — sitting inside
+  // TikTok's caption and button column. Same pixels, different furniture.
+  // THE LABEL IS THE FILENAME AND THE FILENAME IS THE INSTRUCTION. "feed" and
+  // "story" describe a shape; the person holding the phone needs to know which
+  // app it goes in, and a 4:5 that serves three platforms has to say all three.
+  await render({ job, width: 1080, height: 1350, label: 'LinkedIn, Instagram, Facebook (1080x1350)', platform: 'instagram_feed' })
+  await render({ job, width: 1080, height: 1920, label: 'Instagram Story (1080x1920)', platform: 'instagram_story' })
+  await render({ job, width: 1080, height: 1920, label: 'TikTok (1080x1920)', platform: 'tiktok' })
   console.log('')
 }
 main().catch(e => { console.error(e.message); process.exit(1) })
