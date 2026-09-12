@@ -11,13 +11,16 @@ import { formatWhen, type TempPost } from '@/lib/tempWork'
 import { useJobs } from '@/lib/JobsContext' // refreshJobs only — data fetched directly from Supabase
 import CompanyLogo from '@/components/CompanyLogo'
 import BoostModal from '@/components/BoostModal'
-import FeedCard from '@/components/FeedCard'
-import { cardModelFromPostedJob } from '@/lib/jobCard'
+// FeedCard and cardModelFromPostedJob have gone from this page. The employer
+// no longer sees the board's photographic card here -- the reasoning is in
+// components/JobAdCard.tsx. The public view is one tap away on the View action.
+import JobAdCard, { type JobAdCardModel } from '@/components/JobAdCard'
+import EmptyState from '@/components/EmptyState'
+import { Briefcase, FileText, Search, Archive } from 'lucide-react'
 import RemoveAdModal from '@/components/RemoveAdModal'
 import QuickEditJobModal, { type QuickEditValues } from '@/components/QuickEditJobModal'
 import { PAID_SURFACES_ENABLED } from '@/lib/paidSurfaces'
 import { RowInlineFields } from '@/components/RowInlineFields'
-import { MoreHorizontal } from 'lucide-react'
 import { Boost, JOB_BOOST_TIERS, getDaysRemaining, isBoostActive } from '@/lib/boostTypes'
 import styles from './page.module.css'
 import { Ico } from '@/components/icons'
@@ -56,8 +59,33 @@ interface PostedJob {
   brandColour?: string | null
   expiresDate?: string
   applicationStatuses: string[]
-  hiredCandidate?: { name: string; hiredAt: string }
+  /** Applications this employer has never opened -- `viewed_at is null`. */
+  newApplicants: number
+  /**
+   * Whether the 60-day expiry cron will ever touch this advert.
+   *
+   * IT EXCLUDES RECRUITER POSTINGS, so a countdown on one of those would be a
+   * claim nothing enforces. All three companies on the live board are
+   * agencies, which makes this the common case rather than the edge.
+   */
+  isRecruiterPosting: boolean
 }
+
+/**
+ * WHICH TAB AN ADVERT BELONGS TO -- a total function over `status`, which is
+ * what makes the three tabs a partition.
+ *
+ * The old getJobCategory keyed off the highest APPLICATION status, so one
+ * candidate reaching interview stage moved the advert to a different tab. That
+ * is why it could not be exhaustive: an advert's tab depended on rows in
+ * another table, and two of the six tabs did not render adverts at all.
+ *
+ * paused and closed sit under Live because Live means "still yours to work
+ * on", not "visible on the board" -- and the card's own status line says
+ * PAUSED or CLOSED, so nothing is claimed that is not true.
+ */
+const tabOf = (status: PostedJob['status']): 'live' | 'filled' | 'archived' =>
+  status === 'archived' ? 'archived' : status === 'filled' ? 'filled' : 'live'
 
 interface AppliedJob {
   jobId: string
@@ -96,19 +124,20 @@ function MyJobsContent() {
   const [postedJobs, setPostedJobs] = useState<PostedJob[]>([])
   const [appliedJobs, setAppliedJobs] = useState<AppliedJob[]>([])
   const [companyName, setCompanyName] = useState('')
-  const [rawInterviews, setRawInterviews] = useState<{ jobId: string; status: string; interviewDate: string; interviewTime: string; candidateName: string }[]>([])
-  const [detailedOffers, setDetailedOffers] = useState<{
-    id: string; jobId: string; jobTitle: string; candidateId: string; candidateName: string;
-    salary: string; startDate: string; contractType: string; status: string;
-    signatureName?: string; signatureTimestamp?: string; declineReason?: string; createdAt: string;
-  }[]>([])
-  const [rawOffers, setRawOffers] = useState<{ jobId: string; status: string }[]>([])
-  const [appCountsByJob, setAppCountsByJob] = useState<Record<string, Record<string, number>>>({})
+  // rawInterviews, rawOffers, detailedOffers and appCountsByJob were four
+  // pieces of state feeding three tabs that have moved to their own pages.
+  // Removed with their queries rather than left holding empty arrays, so
+  // nobody later wires a new surface to state nothing fills.
+  //
+  // ONE SEARCH FIELD, NOT TWO. Both were empty on arrival, and two empty
+  // filters above a list the employer has not seen yet is furniture. The
+  // location field went with the second; title-or-company is what people
+  // actually type. It is revealed by an icon button and is the only search.
+  const [searchOpen, setSearchOpen] = useState(false)
   const [boostModalOpen, setBoostModalOpen] = useState(false)
   const [boostTargetJob, setBoostTargetJob] = useState<PostedJob | null>(null)
   const [jobBoosts, setJobBoosts] = useState<Record<string, Boost>>({})
   const [myJobsSearch, setMyJobsSearch] = useState('')
-  const [myJobsLocationSearch, setMyJobsLocationSearch] = useState('')
   const [openMenuJobId, setOpenMenuJobId] = useState<string | null>(null)
   // THE RECRUITER FLAG IS GONE FROM THIS PAGE, and deliberately.
   //
@@ -122,10 +151,32 @@ function MyJobsContent() {
   // sees it, and a card that hides the logo for some accounts would be a
   // different object again — the exact problem the row had.
 
-  // Read filter from URL query param (e.g. /my-jobs?filter=interviewing)
+  // THREE TABS, MUTUALLY EXCLUSIVE AND EXHAUSTIVE -- `?filter=live|filled|archived`.
+  //
+  // Six tabs went because they answered two different questions at once. All
+  // Jobs / Active / Archived filtered by the ADVERT'S status; Interviewing /
+  // Offers / Hired were pipeline stages about CANDIDATES, so "Hired 3"
+  // rendered "No hires yet" and no job cards at all. One strip, two meanings,
+  // and a gate check once went looking for a filled advert under Hired and
+  // reported a fault that was really a category error.
+  //
+  // The three candidate-stage tabs now point at the pages that were already
+  // doing that job properly -- /interviews, /offers, /pipeline. Nothing is
+  // lost; it stops being in the wrong place.
+  //
+  // THE NEW SET IS A PARTITION, WHICH IS A STRONGER PROPERTY THAN THE OLD ONE
+  // COULD HAVE HAD. Every advert lands on exactly one tab, so Live + Filled +
+  // Archived sums to the total and no advert can appear twice or vanish --
+  // which is exactly the fault that produced "All Jobs 4" over an empty list.
+  // drive-my-jobs-controls asserts the sum, not just each badge.
+  //
+  // AN UNKNOWN FILTER FALLS TO 'live' RATHER THAN 404ing. Old links exist --
+  // bookmarks, the Header's archived item, and three chatbot answers that are
+  // repointed in this same commit -- and landing an employer on their working
+  // set is the right answer for a URL we no longer recognise.
   const filterParam = searchParams.get('filter')
-  const validFilters = ['all', 'active', 'interviewing', 'offers', 'hired', 'archived'] as const
-  const activeTab = validFilters.includes(filterParam as any) ? (filterParam as typeof validFilters[number]) : 'all'
+  const validFilters = ['live', 'filled', 'archived'] as const
+  const activeTab = validFilters.includes(filterParam as any) ? (filterParam as typeof validFilters[number]) : 'live'
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -179,140 +230,67 @@ function MyJobsContent() {
           brandColour: row.brand_colour ?? null,
           expiresDate: row.expires_at || undefined,
           applicationStatuses: [],
+          newApplicants: 0,
+          // Already in the row: the select above is `*`, so this costs no
+          // widening and none of the risk that comes with one.
+          isRecruiterPosting: !!row.is_recruiter_posting,
         }))
 
         // Fetch real application counts and statuses from job_applications table
         const jobIds = employerJobs.map(j => j.id)
 
         if (jobIds.length > 0) {
+          // A WIDENED SELECT IS A CHANGE TO A QUERY AND A QUERY IS NOT TYPE
+          // CHECKED. `viewed_at` was read from information_schema.columns
+          // before this line was written -- timestamptz, nullable, present --
+          // because PostgREST rejects the WHOLE request on an unknown column
+          // and the page would then show every advert with no applicants at
+          // all, which looks like a quiet week rather than a broken query.
           const { data: appData } = await supabase
             .from('job_applications')
-            .select('job_id, status')
+            .select('job_id, status, viewed_at')
             .in('job_id', jobIds)
 
           if (appData) {
             const counts: Record<string, number> = {}
+            const unopened: Record<string, number> = {}
             const statusSets: Record<string, Set<string>> = {}
-            const countsByJob: Record<string, Record<string, number>> = {}
             appData.forEach((row: any) => {
               counts[row.job_id] = (counts[row.job_id] || 0) + 1
+              // NEW MEANS NEVER OPENED, and that is the honest reading of the
+              // column. It is not "applied recently" and not "unactioned" --
+              // 9 of 119 applications have ever been opened, so anything
+              // looser would put an attention strip on almost every card and
+              // the one attention surface would become wallpaper.
+              if (!row.viewed_at) unopened[row.job_id] = (unopened[row.job_id] || 0) + 1
               if (!statusSets[row.job_id]) statusSets[row.job_id] = new Set()
               statusSets[row.job_id].add(row.status)
-              if (!countsByJob[row.job_id]) countsByJob[row.job_id] = {}
-              countsByJob[row.job_id][row.status] = (countsByJob[row.job_id][row.status] || 0) + 1
             })
             employerJobs.forEach(j => {
               j.applicationCount = counts[j.id] || 0
+              j.newApplicants = unopened[j.id] || 0
               j.applicationStatuses = statusSets[j.id] ? Array.from(statusSets[j.id]) : []
             })
-            setAppCountsByJob(countsByJob)
           }
 
-          // Fetch hired candidate names for filled/archived jobs
-          const filledJobIds = employerJobs.filter(j => j.status === 'filled' || j.status === 'archived').map(j => j.id)
-          if (filledJobIds.length > 0) {
-            const { data: hiredApps } = await supabase
-              .from('job_applications')
-              .select('job_id, updated_at, candidate_id')
-              .in('job_id', filledJobIds)
-              .eq('status', 'hired')
-
-            if (hiredApps && hiredApps.length > 0) {
-              const candidateIds = Array.from(new Set(hiredApps.map((h: any) => h.candidate_id)))
-              const { data: profileData } = await supabase
-                .from('candidate_profiles')
-                .select('user_id, full_name')
-                .in('user_id', candidateIds)
-
-              const nameMap: Record<string, string> = {}
-              profileData?.forEach((p: any) => { nameMap[p.user_id] = p.full_name })
-
-              hiredApps.forEach((h: any) => {
-                const job = employerJobs.find(j => j.id === h.job_id)
-                if (job) {
-                  job.hiredCandidate = {
-                    name: nameMap[h.candidate_id] || 'Unknown',
-                    hiredAt: h.updated_at || h.applied_at,
-                  }
-                }
-              })
-            }
-          }
-
-          // Fetch interviews with job_id for per-view filtering
-          const { data: interviewData } = await supabase
-            .from('interviews')
-            .select('job_id, status, interview_date, interview_time, candidate_id')
-            .eq('employer_id', employerId)
-
-          if (interviewData) {
-            // Resolve candidate names
-            const interviewCandidateIds = Array.from(new Set(interviewData.map((r: any) => r.candidate_id).filter(Boolean)))
-            let candidateNameMap: Record<string, string> = {}
-            if (interviewCandidateIds.length > 0) {
-              const { data: candidateProfiles } = await supabase
-                .from('candidate_profiles')
-                .select('user_id, full_name')
-                .in('user_id', interviewCandidateIds)
-              if (candidateProfiles) {
-                candidateProfiles.forEach((p: any) => { candidateNameMap[p.user_id] = p.full_name })
-              }
-            }
-
-            setRawInterviews(interviewData.map((r: any) => ({
-              jobId: r.job_id,
-              status: r.status,
-              interviewDate: r.interview_date,
-              interviewTime: r.interview_time || '',
-              candidateName: candidateNameMap[r.candidate_id] || 'Candidate',
-            })))
-          }
-
-          // Fetch offers with candidate + job details for the offers/hired tabs
-          const { data: offerData } = await supabase
-            .from('job_offers')
-            .select('id, job_id, candidate_id, salary, start_date, contract_type, status, signature_name, signature_timestamp, decline_reason, created_at, jobs ( title )')
-            .eq('employer_id', employerId)
-            .order('created_at', { ascending: false })
-
-          if (offerData) {
-            setRawOffers(offerData.map((r: any) => ({
-              jobId: r.job_id,
-              status: r.status,
-            })))
-
-            // Enrich offers with candidate names
-            const offerCandidateIds = Array.from(new Set(offerData.map((r: any) => r.candidate_id).filter(Boolean)))
-            let offerNames: Record<string, string> = {}
-            if (offerCandidateIds.length > 0) {
-              const { data: profiles } = await supabase
-                .from('candidate_profiles')
-                .select('user_id, full_name')
-                .in('user_id', offerCandidateIds)
-              for (const p of profiles || []) {
-                if (p.full_name) offerNames[p.user_id] = p.full_name
-              }
-            }
-
-            setDetailedOffers(offerData.map((r: any) => {
-              const job: any = r.jobs ? (Array.isArray(r.jobs) ? r.jobs[0] : r.jobs) : null
-              return {
-                id: r.id,
-                jobId: r.job_id,
-                jobTitle: job?.title || 'Role',
-                candidateId: r.candidate_id,
-                candidateName: offerNames[r.candidate_id] || 'Candidate',
-                salary: r.salary,
-                startDate: r.start_date,
-                contractType: r.contract_type,
-                status: r.status,
-                signatureName: r.signature_name,
-                signatureTimestamp: r.signature_timestamp,
-                declineReason: r.decline_reason,
-                createdAt: r.created_at,
-              }
-            }))
-          }
+          // THREE QUERIES USED TO SIT HERE AND ALL THREE FED SURFACES THAT
+          // ARE GONE: hired candidate names, interviews, and job offers.
+          //
+          // They were not merely unused -- two of them were computed into
+          // viewData and returned from it, so they READ as live. Nothing in
+          // the JSX had consumed todayInterviews, pendingOffers or their six
+          // siblings for some time; the Interviewing, Offers and Hired tabs
+          // rendered from detailedOffers alone, and those three tabs are now
+          // /interviews, /offers and /pipeline.
+          //
+          // THE HIRED-NAME QUERY ALSO CARRIED AN INVENTED NAME -- a hired
+          // candidate with no profile row became the string "Unknown", which
+          // nothing downstream could tell apart from somebody genuinely
+          // called that. The card now says "Hired from 6 applicants", read
+          // from applicationStatuses, and needs no name at all -- so the
+          // fallback leaves with the query rather than waiting to be found.
+          //
+          // Four round trips saved on the busiest employer page.
         }
 
         // Fetch active boosts for this employer's jobs (non-blocking — table may not exist yet)
@@ -373,31 +351,27 @@ function MyJobsContent() {
     })
   }
 
-  const formatInterviewDate = (dateStr: string, timeStr: string) => {
-    // Parse date parts directly to avoid timezone issues
-    const [year, month, day] = dateStr.split('-').map(Number)
-    const date = new Date(year, month - 1, day)
-    const datePart = date.toLocaleDateString('en-GB', {
-      weekday: 'short',
-      day: 'numeric',
-      month: 'short',
-    })
-    if (!timeStr) return datePart
-    // Format time from HH:MM to 12-hour format
-    const [h, m] = timeStr.split(':').map(Number)
-    const ampm = h >= 12 ? 'PM' : 'AM'
-    const hour12 = h % 12 || 12
-    const timePart = m === 0 ? `${hour12} ${ampm}` : `${hour12}:${String(m).padStart(2, '0')} ${ampm}`
-    return `${datePart}, ${timePart}`
-  }
-
-  const formatSalary = (min: number, max: number, period: 'hour' | 'year') => {
-    if (period === 'hour') {
-      return `£${min}-£${max}/hr`
-    }
-    // For yearly, format as "£28k-£32k/year"
-    const formatK = (n: number) => n >= 1000 ? `£${Math.round(n / 1000)}k` : `£${n}`
-    return `${formatK(min)}-${formatK(max)}/year`
+  /**
+   * PAY FOR THE CARD'S META LINE.
+   *
+   * This replaces a formatSalary that was defined, never called, and wrong in
+   * a way that would have shown: it always rendered a RANGE. 81 of the 92 live
+   * Goldenkeys rows carry salary_min === salary_max because the importer folds
+   * a total into both columns, so every one of them would have read
+   * "£37k-£37k/year" -- a range with no range in it.
+   *
+   * A ZERO IS NOT A SALARY EITHER. Two live rows carry a literal 0 in both
+   * columns, which is why the test is `> 0` rather than a null check: the home
+   * hero's "salary on every one" claim was false for exactly that reason, and
+   * "not null" passed it happily. No pay means no pay segment, not "£0".
+   */
+  const formatPay = (min: number, max: number, period: 'hour' | 'year') => {
+    const k = (n: number) => period === 'year' && n >= 1000 ? `£${Math.round(n / 1000)}k` : `£${n}`
+    const per = period === 'year' ? '/year' : '/hr'
+    if (!(min > 0) && !(max > 0)) return undefined
+    if (!(max > 0) || min === max) return `${k(min)}${per}`
+    if (!(min > 0)) return `${k(max)}${per}`
+    return `${k(min)}–${k(max)}${per}`
   }
 
   const truncateText = (text: string, maxLength: number) => {
@@ -649,187 +623,102 @@ function MyJobsContent() {
     await refreshJobs()
   }
 
-  // Categorise each job by its highest application status
-  const getJobCategory = (job: PostedJob) => {
-    if (job.status === 'archived') return 'archived'
-    const s = job.applicationStatuses
-    if (s.includes('hired')) return 'hired'
-    if (job.status === 'filled') return 'hired'
-    if (s.includes('offered')) return 'offers'
-    if (s.includes('interviewing')) return 'interviewing'
-    return 'default'
-  }
-
-  // Compute the filtered job list and view-scoped stats
+  /**
+   * THE LIST, THE COUNTS, AND THE ONE PROPERTY THAT MAKES THEM TRUSTWORTHY.
+   *
+   * The counts come from the SAME expression the list filters on. That is not
+   * tidiness -- it is the whole fix for "All Jobs 4" sitting above an empty
+   * area, where a badge counted postedJobs.length and the rows came from a
+   * different predicate. Two populations, one heading.
+   *
+   * AND THE PARTITION IS NOW ASSERTABLE. tabOf() is total over status, so
+   * live + filled + archived === postedJobs.length by construction. The drive
+   * checks that sum on a real page; the identity is the thing the six
+   * overlapping tabs could never have offered.
+   */
   const viewData = useMemo(() => {
-    const now = new Date().toISOString().split('T')[0]
-
-    // Build a map of jobId -> next upcoming interview info (for sorting & display)
-    const nextInterviewMap: Record<string, { date: string; time: string; candidateName: string }> = {}
-    rawInterviews.forEach(i => {
-      if (i.status === 'completed' || i.status === 'cancelled') return
-      const isUpcoming = i.interviewDate >= now
-      const current = nextInterviewMap[i.jobId]
-      const sortKey = i.interviewDate + (i.interviewTime || '')
-      const currentSortKey = current ? current.date + current.time : ''
-      if (isUpcoming && (!current || sortKey < currentSortKey)) {
-        nextInterviewMap[i.jobId] = { date: i.interviewDate, time: i.interviewTime, candidateName: i.candidateName }
-      }
-    })
+    const counts = { live: 0, filled: 0, archived: 0 }
+    for (const j of postedJobs) counts[tabOf(j.status)]++
 
     const filtered = postedJobs
-      .filter(job => {
-        const cat = getJobCategory(job)
-        // ALL MEANS ALL. There was no branch for 'all' here, so it fell
-        // through to `cat === 'default'` — the same set as the Active tab.
-        // 'all' is also the DEFAULT tab, so the landing view of this page
-        // silently hid every advert that had started working: one applicant
-        // reaching interview stage took the role off the only list an
-        // employer would think to look at.
-        //
-        // The badge above already counted postedJobs.length, so the number on
-        // the tab and the rows underneath it were computed from two different
-        // populations. "All Jobs 4" sat above an empty page.
-        //
-        // This ALSO fixes the filled advert, and it has to: 'filled' maps to
-        // category 'hired' in getJobCategory, and the job-row block is
-        // separately gated `activeTab !== 'offers' && !== 'hired'`, so a
-        // filled advert rendered on NO tab at all. Making All mean all is the
-        // one change that reaches it — the alternative, teaching the Hired tab
-        // to render job rows as well as offers, would put the same advert in
-        // two places and leave Hired meaning two things at once.
-        // ALL = EVERYTHING YOU ARE STILL MANAGING. Archived is excluded, and
-        // that exclusion is the whole reason "Remove ad" reads as removing
-        // something: the first version of this fix returned `true` here, so an
-        // archived advert stayed in the list and the button appeared to do
-        // nothing at all. Reported immediately — "Remove ad needs to remove
-        // from page" — and it was right.
-        //
-        // Archived is not hidden, it is FILED: its own tab, with Reactivate and
-        // Repost on every row. The distinction that matters is between adverts
-        // you are working on and adverts you have put away, not between live
-        // and not-live — which is why 'filled' stays here. A filled role is
-        // still yours to look at; an archived one you have deliberately closed.
-        if (activeTab === 'all') return cat !== 'archived'
-        if (activeTab === 'archived') return cat === 'archived'
-        if (activeTab === 'hired') return cat === 'hired'
-        if (activeTab === 'offers') return cat === 'offers'
-        if (activeTab === 'interviewing') return cat === 'interviewing'
-        return cat === 'default'
-      })
+      .filter(job => tabOf(job.status) === activeTab)
+      // ANYONE WAITING COMES FIRST, then the busiest, then the newest. The
+      // sort answers the question the page is for -- what needs me today --
+      // rather than sorting by a field that happens to be handy.
       .sort((a, b) => {
-        if (activeTab === 'interviewing') {
-          // Sort by nearest upcoming interview first; no upcoming → bottom
-          const aInt = nextInterviewMap[a.id]
-          const bInt = nextInterviewMap[b.id]
-          if (aInt && !bInt) return -1
-          if (!aInt && bInt) return 1
-          if (aInt && bInt) {
-            const aKey = aInt.date + aInt.time
-            const bKey = bInt.date + bInt.time
-            return aKey.localeCompare(bKey)
-          }
-          return new Date(b.postedDate).getTime() - new Date(a.postedDate).getTime()
-        }
-        // Default sort: jobs with applications first, then by posted date descending
-        if (a.applicationCount > 0 && b.applicationCount === 0) return -1
-        if (a.applicationCount === 0 && b.applicationCount > 0) return 1
+        if (a.newApplicants !== b.newApplicants) return b.newApplicants - a.newApplicants
+        if (a.applicationCount !== b.applicationCount) return b.applicationCount - a.applicationCount
         return new Date(b.postedDate).getTime() - new Date(a.postedDate).getTime()
       })
 
-    const jobIds = new Set(filtered.map(j => j.id))
-
-    // Interviews scoped to visible jobs
-    const visibleInterviews = rawInterviews.filter(i => jobIds.has(i.jobId))
-
-    // Today's interviews
-    const todayInterviews = visibleInterviews.filter(i =>
-      i.interviewDate === now && i.status !== 'cancelled'
-    ).length
-
-    // This week (Mon–Sun)
-    const todayDate = new Date()
-    const dayOfWeek = todayDate.getDay() // 0=Sun
-    const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek
-    const weekStart = new Date(todayDate)
-    weekStart.setDate(todayDate.getDate() + mondayOffset)
-    const weekEnd = new Date(weekStart)
-    weekEnd.setDate(weekStart.getDate() + 6)
-    const weekStartStr = weekStart.toISOString().split('T')[0]
-    const weekEndStr = weekEnd.toISOString().split('T')[0]
-    const thisWeekInterviews = visibleInterviews.filter(i =>
-      i.interviewDate >= weekStartStr && i.interviewDate <= weekEndStr && i.status !== 'cancelled'
-    ).length
-
-    // Pending confirmation (scheduled but not confirmed)
-    const pendingConfirmation = visibleInterviews.filter(i =>
-      i.status === 'scheduled' && i.interviewDate >= now
-    ).length
-
-    // Completed (status is 'completed' or date has passed and not cancelled)
-    const completedInterviews = visibleInterviews.filter(i =>
-      i.status === 'completed' || (i.interviewDate < now && i.status !== 'cancelled')
-    ).length
-
-    // Offers scoped to visible jobs
-    const visibleOffers = rawOffers.filter(o => jobIds.has(o.jobId))
-    const pendingOffers = visibleOffers.filter(o => o.status === 'pending').length
-    const acceptedOffers = visibleOffers.filter(o => o.status === 'accepted').length
-    const declinedOffers = visibleOffers.filter(o => o.status === 'declined').length
-
-    // Application counts scoped to visible jobs
-    const interviewingCandidates = filtered.reduce((sum, j) => sum + (appCountsByJob[j.id]?.['interviewing'] || 0), 0)
-    const hiredCandidates = filtered.reduce((sum, j) => sum + (appCountsByJob[j.id]?.['hired'] || 0), 0)
-
-    // Still hiring: jobs in the 'default' category (no interviewing/offered/hired applications)
-    const stillHiring = postedJobs.filter(j => getJobCategory(j) === 'default').length
-
-    const counts = {
-      // THE 'all' COUNT MUST BE THE SAME POPULATION THE 'all' LIST FILTERS, or
-      // this page is straight back to the original bug: a badge counting one
-      // set above rows drawn from another. It was postedJobs.length, which now
-      // over-counts by however many adverts are archived.
-      all: postedJobs.filter(j => getJobCategory(j) !== 'archived').length,
-      active: postedJobs.filter(j => getJobCategory(j) === 'default').length,
-      interviewing: postedJobs.filter(j => getJobCategory(j) === 'interviewing').length,
-      offers: postedJobs.filter(j => getJobCategory(j) === 'offers').length,
-      hired: postedJobs.filter(j => getJobCategory(j) === 'hired').length,
-      archived: postedJobs.filter(j => getJobCategory(j) === 'archived').length,
-    }
-
-    return {
-      filtered,
-      nextInterviewMap,
-      todayInterviews,
-      thisWeekInterviews,
-      pendingConfirmation,
-      completedInterviews,
-      pendingOffers,
-      acceptedOffers,
-      declinedOffers,
-      interviewingCandidates,
-      hiredCandidates,
-      stillHiring,
-      counts,
-    }
-  }, [postedJobs, activeTab, rawInterviews, rawOffers, appCountsByJob])
+    return { filtered, counts }
+  }, [postedJobs, activeTab])
 
   // Apply local search filter on top of viewData
   const displayJobs = useMemo(() => {
-    let jobs = viewData.filtered
-    const titleQ = myJobsSearch.trim().toLowerCase()
-    const locQ = myJobsLocationSearch.trim().toLowerCase()
-    if (titleQ) {
-      jobs = jobs.filter(j =>
-        j.title.toLowerCase().includes(titleQ) ||
-        j.company.toLowerCase().includes(titleQ)
-      )
+    const q = myJobsSearch.trim().toLowerCase()
+    if (!q) return viewData.filtered
+    // Title, company AND location in one field. The second box was removed,
+    // not the ability to search by place -- an employer typing "Bath" still
+    // gets Bath, they just do not have to know which box it goes in.
+    return viewData.filtered.filter(j =>
+      j.title.toLowerCase().includes(q) ||
+      j.company.toLowerCase().includes(q) ||
+      j.location.toLowerCase().includes(q)
+    )
+  }, [viewData.filtered, myJobsSearch])
+
+  /**
+   * THE CARD MODELS, BUILT HERE SO THE CARD PRINTS AND NEVER DECIDES.
+   *
+   * Two of these are claims and are treated as such:
+   *
+   * THE COUNTDOWN. Adverts expire at 60 days from posted_at via the daily
+   * job-expiry cron -- which EXCLUDES is_recruiter_posting, and every company
+   * on the live board is an agency. `jobs.expires_at` is null on every row
+   * and nothing writes it, so reading that column would print nothing at all
+   * and look like a styling bug. The date is computed from posted_at, and
+   * only when the cron would really act.
+   *
+   * THE FILLED DATE. The handoff draws "FILLED · 12 MAR" and there is no
+   * filled_at column to read. updated_at moves on any edit, so it would
+   * answer a different question while looking like the right one -- the same
+   * shape as area vs area_county. The word goes out without a date rather
+   * than with a wrong one.
+   */
+  const cardModels = useMemo(() => displayJobs.map(job => {
+    const state = tabOf(job.status)
+    const expiring = job.status === 'active' && !job.isRecruiterPosting
+      ? Math.ceil((new Date(job.postedDate).getTime() + 60 * 864e5 - Date.now()) / 864e5)
+      : null
+
+    const hired = job.applicationStatuses.includes('hired')
+    const n = job.applicationCount
+    const applicantLine =
+      hired && n > 0 ? `Hired from ${n} applicant${n === 1 ? '' : 's'}`
+      : n === 0 ? 'No applicants yet'
+      : `${n} applicant${n === 1 ? '' : 's'}`
+
+    return {
+      job,
+      model: {
+        id: job.id,
+        title: job.title,
+        state,
+        statusWord: getStatusLabel(job.status).label.toUpperCase(),
+        statusDetail: expiring !== null && expiring >= 0
+          ? `${expiring} day${expiring === 1 ? '' : 's'} left`.toUpperCase()
+          : undefined,
+        site: job.venue || job.location || undefined,
+        pay: formatPay(job.salaryMin, job.salaryMax, job.salaryPeriod),
+        contract: job.employmentType?.[0],
+        applicantLine,
+        // ONLY ON LIVE ADVERTS. Nobody is waiting on a filled role -- the
+        // strip would be asking for attention that cannot be acted on.
+        newApplicants: state === 'live' ? job.newApplicants : 0,
+      } satisfies JobAdCardModel,
     }
-    if (locQ) {
-      jobs = jobs.filter(j => j.location.toLowerCase().includes(locQ))
-    }
-    return jobs
-  }, [viewData.filtered, myJobsSearch, myJobsLocationSearch])
+  }), [displayJobs])
 
   // Close kebab on outside click or Escape.
   // Load this employer's shifts, separately from the jobs fetch.
@@ -883,8 +772,63 @@ function MyJobsContent() {
     }
   }, [openMenuJobId])
 
-  // Kebab popover. Lives inside a Link/Card click target, so every handler
-  // must preventDefault + stopPropagation to avoid the parent navigating.
+  /**
+   * PAUSE / RESUME -- written against the four states deliberately, which is
+   * what the note where the old toggle was deleted asked for.
+   *
+   * The one that was removed read `job.status === 'active' ? 'paused' :
+   * 'active'` -- a binary over a four-state field, so filled and archived
+   * both fell through to 'active' and a button labelled Pause would have
+   * REPUBLISHED a filled role onto the public board. It had no call site, so
+   * the fault never shipped; this one does have a call site, so it refuses
+   * the two states it has nothing sensible to say about rather than
+   * inheriting an answer from a ternary that thinks there are two.
+   */
+  const handlePauseJob = async (job: PostedJob) => {
+    if (job.status !== 'active' && job.status !== 'paused') return
+    const next = job.status === 'active' ? 'paused' : 'active'
+    const { error } = await supabase.from('jobs')
+      .update({ status: next })
+      .eq('id', job.id)
+      // BOTH HALVES OF THE CONDITION, so a row that changed underneath us
+      // is not overwritten from a stale screen.
+      .eq('status', job.status)
+    if (error) {
+      console.error('[my-jobs] pause failed:', error)
+      alert('Could not change that advert just now. Please try again.')
+      return
+    }
+    setPostedJobs(prev => prev.map(j => j.id === job.id ? { ...j, status: next } : j))
+    if (next === 'active') await ensureJobArea(job.id)
+    await refreshJobs()
+  }
+
+  // Kebab popover. Layered over the card by JobAdCard rather than rendered
+  // inside its body, because the card is `overflow: hidden` so the action
+  // bar meets its corners -- and a dropdown opened inside that is clipped.
+  //
+  // EDIT AND VIEW HAVE LEFT THIS MENU FOR THE ACTION BAR. That is the whole
+  // finding: employers believed they could not change a posted advert,
+  // because the only route to it was a control labelled with three dots. The
+  // menu keeps what is genuinely occasional.
+  //
+  // TWO DEPARTURES FROM THE HANDOFF, BOTH DELIBERATE AND BOTH FLAGGED:
+  //
+  //   DELETE IS NOT BUILT. There is no delete path for an advert anywhere in
+  //   this product, and building one here would be an irreversible write
+  //   that destroys the candidate applications underneath it. Archive is the
+  //   reversible version and already exists. A destructive control invented
+  //   to satisfy a menu is the wrong way round.
+  //
+  //   VIEW ANALYTICS STAYS. /employer/analytics/[id] is linked from exactly
+  //   one place in the entire codebase and this is it -- dropping the item
+  //   would make a whole page unreachable from the UI. Removing a control
+  //   without asking what was leaning on it is a fault this repo has already
+  //   paid for once.
+  //
+  // Reactivate survives for the same reason: nothing else brings a filled or
+  // archived advert back, and Duplicate makes a NEW row rather than
+  // restoring the one you are looking at.
   const renderKebab = (job: PostedJob, isBoosted: boolean) => {
     const isOpen = openMenuJobId === job.id
     const stop = (e: React.MouseEvent | React.KeyboardEvent) => {
@@ -902,74 +846,55 @@ function MyJobsContent() {
           className={styles.kebabBtn}
           onClick={(e) => { stop(e); setOpenMenuJobId(isOpen ? null : job.id) }}
         >
-          <MoreHorizontal size={18} aria-hidden="true" />
+          <Ico name="more-horizontal" size={20} />
         </button>
         {isOpen && (
           <div className={styles.kebabMenu} role="menu">
-            {/* Every kebab item renders a fixed-width icon slot at the
-                left so labels line up across the menu. The Boost item
-                puts the ⚡ in its slot; everyone else gets an empty
-                slot so their text starts at the same x. */}
             <button type="button" role="menuitem" className={styles.kebabItem}
-              onClick={(e) => choose(e, () => setEditTarget(job))}>
-              {/* Opens a dialog ON THIS PAGE rather than pushing to
-                  /post-job?edit=. Changing a salary used to mean leaving the
-                  list, loading the whole posting wizard, and finding the way
-                  back. The full editor is still reachable, from inside the
-                  dialog — the fast path is added, the complete one is kept. */}
-              <span className={styles.kebabItemIcon} aria-hidden="true"></span>
-              <span>Edit job</span>
+              onClick={(e) => choose(e, () => handleRepostJob(job))}>
+              <span className={styles.kebabItemIcon} aria-hidden="true"><Ico name="copy" size={16} /></span>
+              <span>Duplicate</span>
             </button>
+            {(job.status === 'active' || job.status === 'paused') && canManageJobs && (
+              <button type="button" role="menuitem" className={styles.kebabItem}
+                onClick={(e) => choose(e, () => handlePauseJob(job))}>
+                <span className={styles.kebabItemIcon} aria-hidden="true"><Ico name="pause" size={16} /></span>
+                <span>{job.status === 'active' ? 'Pause' : 'Resume'}</span>
+              </button>
+            )}
             <button type="button" role="menuitem" className={styles.kebabItem}
-              onClick={(e) => choose(e, () => router.push(`/job/${job.id}?from=my-jobs`))}>
-              <span className={styles.kebabItemIcon} aria-hidden="true"></span>
-              <span>View public job</span>
-            </button>
-            <button type="button" role="menuitem" className={styles.kebabItem}
-              onClick={(e) => choose(e, () => router.push(`/employer/analytics/${job.id}`))}>
-              <span className={styles.kebabItemIcon} aria-hidden="true"></span>
+              onClick={(e) => choose(e, () => router.push('/employer/analytics/' + job.id))}>
+              <span className={styles.kebabItemIcon} aria-hidden="true"><Ico name="bar-chart-3" size={16} /></span>
               <span>View analytics</span>
             </button>
-            {/* "Find candidates" kebab item removed: feature pending
-                post-launch GDPR + pricing decision on full-database search.
-                /candidates route still exists, gated behind subscription. */}
-            {/* Boost is a paid surface — its modal shows six prices. Hidden
-                while PAID_SURFACES_ENABLED is false. The item and the modal
-                are both gated: hiding only the item would leave the modal
-                openable by any other route into that state. */}
+            {/* Boost is a paid surface -- its modal shows six prices. Hidden
+                while PAID_SURFACES_ENABLED is false, and the item AND the
+                modal are both gated: hiding only the item would leave the
+                modal openable by any other route into that state. */}
             {PAID_SURFACES_ENABLED && job.status !== 'archived' && job.status !== 'filled' && (
               <button type="button" role="menuitem" className={styles.kebabItem}
                 onClick={(e) => choose(e, () => { setBoostTargetJob(job); setBoostModalOpen(true) })}>
-                <span className={styles.kebabItemIcon} aria-hidden="true"><Ico name="zap" size={20} /></span>
+                <span className={styles.kebabItemIcon} aria-hidden="true"><Ico name="zap" size={16} /></span>
                 <span>{isBoosted ? 'Boosted (manage)' : 'Boost this job'}</span>
               </button>
             )}
-            {/* ACTIVE ONLY, and deliberately so. 'filled' and 'archived' are
-                already off the public board (JobsContext loads status=active),
-                so offering Remove on them would be a control that appears to do
-                something and does nothing — and the menu already carries
-                Reactivate for exactly those two states. Gated on manage_jobs so
-                a member who would be refused by the endpoint is not shown the
-                door in the first place. */}
-            {job.status === 'active' && canManageJobs && (
+            {/* ARCHIVE, and only from a live advert. filled and archived are
+                already off the public board, so offering it there would be a
+                control that appears to do something and does nothing. Gated
+                on manage_jobs so a member the endpoint would refuse is not
+                shown the door in the first place. */}
+            {(job.status === 'active' || job.status === 'paused') && canManageJobs && (
               <button type="button" role="menuitem" className={styles.kebabItem}
                 onClick={(e) => choose(e, () => setRemoveTarget(job))}>
-                <span className={styles.kebabItemIcon} aria-hidden="true"></span>
-                <span>Remove ad</span>
+                <span className={styles.kebabItemIcon} aria-hidden="true"><Ico name="archive" size={16} /></span>
+                <span>Archive</span>
               </button>
             )}
             {(job.status === 'archived' || job.status === 'filled') && (
               <button type="button" role="menuitem" className={styles.kebabItem}
                 onClick={(e) => choose(e, () => handleReactivateJob(job.id))}>
-                <span className={styles.kebabItemIcon} aria-hidden="true"></span>
+                <span className={styles.kebabItemIcon} aria-hidden="true"><Ico name="refresh-cw" size={16} /></span>
                 <span>Reactivate</span>
-              </button>
-            )}
-            {job.status === 'archived' && (
-              <button type="button" role="menuitem" className={styles.kebabItem}
-                onClick={(e) => choose(e, () => handleRepostJob(job))}>
-                <span className={styles.kebabItemIcon} aria-hidden="true"></span>
-                <span>Repost job</span>
               </button>
             )}
           </div>
@@ -978,12 +903,48 @@ function MyJobsContent() {
     )
   }
 
+  // THE LOADING SCREEN GETS A SHAPE.
+  //
+  // It used to be the word "Loading..." centred in white. A blank white
+  // screen is indistinguishable from a page that failed, which is half of
+  // why the empty tab went unreported for weeks -- people read it as broken
+  // rather than as empty.
+  //
+  // NOTHING CENTRED, NO SPINNER. Three cards at opacity 1 / .72 / .4: the
+  // fade says "the list continues" without claiming a length we do not know
+  // yet. The first skeleton carries its ACTION-BAR ZONE at full height, so
+  // nothing reflows when the data lands.
+  //
+  // THE TAB STRIP IS NOT DRAWN HERE, AND THAT IS A SHORTFALL I AM NAMING
+  // RATHER THAN HIDING. The handoff wants header, tabs and bottom bar as
+  // static markup that paints instantly. The tabs cannot: this route decides
+  // employer-versus-candidate from the session, asynchronously, so on a cold
+  // load we do not yet know whose chrome to draw -- and drawing an employer
+  // tab strip at a candidate would be worse than a skeleton. Moving the role
+  // resolution onto the server is what fixes it, and that is a bigger change
+  // than this branch.
   if (loading) {
     return (
       <main>
         <Header />
         <div className={styles.container}>
-          <p className={styles.loading}>Loading...</p>
+          <div className={styles.skeletonList} aria-hidden="true">
+            {[1, 0.72, 0.4].map((opacity, i) => (
+              <div key={i} className={styles.skeletonCard} style={{ opacity }}>
+                <div className={styles.skeletonBody}>
+                  <span className={styles.skBarStatus} />
+                  <span className={styles.skBarTitle} />
+                  <span className={styles.skBarMeta} />
+                </div>
+                {i === 0 && (
+                  <div className={styles.skeletonActions}>
+                    <span /><span />
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+          <p className={styles.srOnly} role="status">Loading your job ads…</p>
         </div>
       </main>
     )
@@ -991,49 +952,167 @@ function MyJobsContent() {
 
   // Employer View
   if (isEmployer) {
+    const searching = myJobsSearch.trim().length > 0
+    const noAdvertsAtAll = postedJobs.length === 0
+
     return (
       <main>
         <Header />
 
         <div className={styles.container}>
-          <div className={styles.header}>
-            <div className={styles.headerContent}>
-              <h1 className={styles.title}>
-                {activeTab === 'interviewing' ? 'Interviews' :
-                 activeTab === 'offers' ? 'Offers' :
-                 activeTab === 'hired' ? 'Hired' :
-                 activeTab === 'archived' ? 'Archived Jobs' :
-                 'Manage Job Ads'}
-              </h1>
-              <p className={styles.subtitle}>
-                {activeTab === 'interviewing' ? 'Jobs with candidates in the interview stage' :
-                 activeTab === 'offers' ? 'Jobs with pending or completed offers' :
-                 activeTab === 'hired' ? 'Jobs where candidates have been hired' :
-                 activeTab === 'archived' ? 'Filled positions and past job listings' :
-                 `All your job adverts for ${companyName}`}
-              </p>
-            </div>
-            {activeTab !== 'interviewing' && activeTab !== 'offers' && activeTab !== 'hired' && (
-              <Link href="/post-job" className={styles.postJobBtn}>
-                + Post New Job
+          {/* ── the list header ────────────────────────────────
+              TWO EMPTY SEARCH FIELDS BECAME ONE ICON. Nobody needs a filter
+              before they have seen a list, and the pair of them pushed the
+              first advert down the page on the one screen that exists to
+              show adverts. The field is revealed, not removed. */}
+          <div className={styles.listHead}>
+            <h1 className={styles.listTitle}>Job ads</h1>
+            <div className={styles.listHeadActions}>
+              <button
+                type="button"
+                className={styles.searchToggle}
+                aria-label={searchOpen ? 'Hide search' : 'Search job ads'}
+                aria-expanded={searchOpen}
+                onClick={() => {
+                  const next = !searchOpen
+                  setSearchOpen(next)
+                  // Closing it CLEARS the query. A hidden field still
+                  // filtering the list is the /candidates fault in a new
+                  // coat: results missing, with no visible control to undo
+                  // it and nothing on screen explaining why.
+                  if (!next) setMyJobsSearch('')
+                }}
+              >
+                <Ico name="search" size={20} />
+              </button>
+              <Link href="/post-job" className={styles.newBtn}>
+                <Ico name="plus" size={16} /> New
               </Link>
-            )}
+            </div>
           </div>
 
-          {/* SHIFTS — the route to /temp-work/manage.
+          {searchOpen && (
+            <div className={styles.searchRow}>
+              <input
+                type="text"
+                autoFocus
+                className={styles.searchField}
+                placeholder="Search by title, company or place"
+                aria-label="Search job ads"
+                value={myJobsSearch}
+                onChange={(e) => setMyJobsSearch(e.target.value)}
+              />
+            </div>
+          )}
 
-              DELIBERATELY OUTSIDE the postedJobs.length === 0 ternary below.
-              That ternary is an early return: an employer with no job ads sees
-              the empty state and NOTHING else on this page. Putting this inside
-              it would hide the door from precisely the agency that needs it —
-              shifts but no full-time roles — which is Neway's exact shape, and
-              the same fault as a reply button that only appeared once someone
-              had already replied.
+          {/* ── the tabs ─────────────────────────────────────
+              THREE, AND THEY PARTITION THE ADVERTS. Every advert is on
+              exactly one, so the three counts sum to the total.
 
-              It is a ROUTE, not a second management surface. A job leads to an
-              applications pipeline; a shift leads to an available list and a
-              public thread. Forced into one list, one of them gets the wrong
-              controls. */}
+              NO overflow-x, deliberately, and this is a departure from the
+              handoff. A sideways-scrolling control row hides whole controls
+              behind an edge with no affordance, and this repo has fixed that
+              exact fault on four separate rows. The scroll was specified to
+              stop "Archived" being orphaned on a second line -- with three
+              short tabs there is no second line to be orphaned on at any
+              width this product supports, so the problem does not arise and
+              the cure is worse than it. The drive asserts they fit on one
+              row at 320, which is the narrowest phone anybody still uses. */}
+          <div className={styles.tabStrip}>
+            {([
+              { key: 'live', label: 'Live' },
+              { key: 'filled', label: 'Filled' },
+              { key: 'archived', label: 'Archived' },
+            ] as const).map(tab => (
+              <button
+                key={tab.key}
+                type="button"
+                className={tab.key === activeTab ? styles.tab + ' ' + styles.tabActive : styles.tab}
+                aria-current={activeTab === tab.key ? 'page' : undefined}
+                onClick={() => router.push('/my-jobs?filter=' + tab.key)}
+              >
+                {tab.label}
+                <span className={styles.tabCount}>{viewData.counts[tab.key]}</span>
+              </button>
+            ))}
+          </div>
+
+          {/* ── the list ─────────────────────────────────────
+              EVERY EMPTY STATE NAMES THE OBJECT, says what would put
+              something here, and offers exactly one way forward. They are
+              told apart deliberately: a search that matched nothing is the
+              employer's own filter and is fixed by clearing it; an empty tab
+              is not, and telling somebody to clear a search they never ran
+              is worse than saying nothing at all. */}
+          {noAdvertsAtAll ? (
+            <EmptyState
+              icon={FileText}
+              variant="primary"
+              title="No job ads yet"
+              description="Write one advert and it stays yours — edit it, pause it, or reuse it next time the role opens."
+              action={{ label: 'Write a job ad', href: '/post-job' }}
+              cost="Takes about four minutes"
+            />
+          ) : (
+            <div className={styles.cardList}>
+              {cardModels.length === 0 && (
+                searching ? (
+                  <EmptyState
+                    icon={Search}
+                    title={'No ads match “' + myJobsSearch.trim() + '”'}
+                    description={'Try a shorter word, or clear the search to see all ' + postedJobs.length + '.'}
+                    action={{ label: 'Clear search', onClick: () => setMyJobsSearch('') }}
+                  />
+                ) : activeTab === 'live' ? (
+                  <EmptyState
+                    icon={Briefcase}
+                    title="Nothing live right now"
+                    description={
+                      viewData.counts.filled + viewData.counts.archived > 0
+                        ? 'Your other ads are filled or archived. Reuse one, or write a new advert.'
+                        : 'Write an advert and it will appear here as soon as it is published.'
+                    }
+                    action={{ label: 'Write a job ad', href: '/post-job' }}
+                  />
+                ) : activeTab === 'filled' ? (
+                  <EmptyState
+                    icon={Briefcase}
+                    title="Nothing filled yet"
+                    description="When you mark an ad as filled it moves here, ready to reuse."
+                  />
+                ) : (
+                  <EmptyState
+                    icon={Archive}
+                    title="Nothing archived"
+                    description="Ads you archive are kept here. Nothing is deleted, and you can reuse any of them."
+                  />
+                )
+              )}
+
+              {cardModels.map(({ job, model }) => (
+                <JobAdCard
+                  key={job.id}
+                  model={model}
+                  onOpen={() => router.push('/my-jobs/' + job.id + '/applications')}
+                  onEdit={() => setEditTarget(job)}
+                  onReuse={() => handleRepostJob(job)}
+                  kebab={renderKebab(job, !!jobBoosts[job.id])}
+                />
+              ))}
+            </div>
+          )}
+
+          {/* ── shifts, at the foot ────────────────────────────
+              MOVED BELOW THE LIST and otherwise untouched. It is a ROUTE to
+              /temp-work/manage, not a second management surface: a job leads
+              to an applications pipeline, a shift leads to an available list
+              and a public thread, and forced into one list one of them gets
+              the wrong controls.
+
+              STILL OUTSIDE THE EMPTY-STATE BRANCH ABOVE. An employer with no
+              job ads must still see this door -- an agency running shifts and
+              no full-time roles is a real shape, and hiding the door from
+              exactly them is the reply-button fault again. */}
           {canManageShifts && shifts !== null && (
             <section className={styles.shiftsSection}>
               <div className={styles.shiftsHead}>
@@ -1049,15 +1128,15 @@ function MyJobsContent() {
               ) : (
                 <>
                   <ul className={styles.shiftsList}>
-                    {shifts.slice(0, 3).map(s => (
-                      <li key={s.id} className={styles.shiftRow}>
+                    {shifts.slice(0, 3).map(sh => (
+                      <li key={sh.id} className={styles.shiftRow}>
                         <Link href="/temp-work/manage" className={styles.shiftRowMain}>
-                          <span className={styles.shiftName}>{s.title}</span>
-                          <span className={styles.shiftMeta}>{formatWhen(s)}</span>
+                          <span className={styles.shiftName}>{sh.title}</span>
+                          <span className={styles.shiftMeta}>{formatWhen(sh)}</span>
                         </Link>
                         <span className={styles.shiftCounts}>
-                          <span className={styles.shiftAvail}>{s.interest_count ?? 0} available</span>
-                          {s.status !== 'open' && <span className={styles.shiftStatus}>{s.status}</span>}
+                          <span className={styles.shiftAvail}>{sh.interest_count ?? 0} available</span>
+                          {sh.status !== 'open' && <span className={styles.shiftStatus}>{sh.status}</span>}
                         </span>
                       </li>
                     ))}
@@ -1070,272 +1149,6 @@ function MyJobsContent() {
                 </>
               )}
             </section>
-          )}
-
-          {postedJobs.length > 0 && (
-            <div className={styles.filterTabs}>
-              {([
-                { key: 'all', label: 'All Jobs' },
-                { key: 'active', label: 'Active' },
-                { key: 'interviewing', label: 'Interviewing' },
-                { key: 'offers', label: 'Offers' },
-                { key: 'hired', label: 'Hired' },
-                { key: 'archived', label: 'Archived' },
-              ] as const).map(tab => (
-                <button
-                  key={tab.key}
-                  className={`${styles.filterTab} ${activeTab === tab.key ? styles.filterTabActive : ''}`}
-                  onClick={() => router.push(`/my-jobs?filter=${tab.key}`)}
-                >
-                  {tab.label}
-                  {tab.key !== 'all' && viewData.counts[tab.key] > 0 && (
-                    <span className={styles.filterTabCount}>{viewData.counts[tab.key]}</span>
-                  )}
-                  {tab.key === 'all' && (
-                    <span className={styles.filterTabCount}>{viewData.counts.all}</span>
-                  )}
-                </button>
-              ))}
-            </div>
-          )}
-
-          {postedJobs.length > 0 && (
-            <div className={styles.searchBar}>
-              <div className={styles.searchInputGroup}>
-                <svg className={styles.searchIcon} width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="11" cy="11" r="8" />
-                  <line x1="21" y1="21" x2="16.65" y2="16.65" />
-                </svg>
-                <input
-                  type="text"
-                  placeholder="Search by job title..."
-                  className={styles.searchInput}
-                  value={myJobsSearch}
-                  onChange={(e) => setMyJobsSearch(e.target.value)}
-                />
-              </div>
-              <div className={styles.searchInputGroup}>
-                <svg className={styles.searchIcon} width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                  <circle cx="12" cy="10" r="3" />
-                </svg>
-                <input
-                  type="text"
-                  placeholder="Filter by location..."
-                  className={styles.searchInput}
-                  value={myJobsLocationSearch}
-                  onChange={(e) => setMyJobsLocationSearch(e.target.value)}
-                />
-              </div>
-            </div>
-          )}
-
-          {postedJobs.length === 0 ? (
-            <div className={styles.emptyState}>
-              <span className={styles.emptyIcon}><Ico name="file-text" size={20} /></span>
-              <h2 className={styles.emptyTitle}>No jobs posted yet</h2>
-              <p className={styles.emptyText}>
-                Start posting jobs to find the perfect candidates for your team.
-              </p>
-              <Link href="/post-job" className={styles.browseBtn}>
-                Post Your First Job
-              </Link>
-            </div>
-          ) : (
-            <>
-              {/* Stat tiles removed — filter tabs above already carry the
-                  same counts. Kept the page glanceable; the rows below are
-                  the real content. */}
-
-              {/* Offers tab — show offer records instead of job cards */}
-              {activeTab === 'offers' && detailedOffers.filter(o => o.status === 'pending' || o.status === 'declined').length > 0 && (
-                <div className={styles.jobsList}>
-                  {detailedOffers
-                    .filter(o => o.status === 'pending' || o.status === 'declined')
-                    .map(offer => (
-                    <div key={offer.id} className={styles.jobCard} style={{ cursor: 'pointer' }} onClick={() => router.push(`/my-jobs/${offer.jobId}/applications`)}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                        <div>
-                          <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: '0 0 0.25rem' }}>{offer.candidateName}</h3>
-                          <p style={{ fontSize: '0.85rem', color: '#64748b', margin: 0 }}>{offer.jobTitle}</p>
-                        </div>
-                        <span style={{
-                          fontSize: '0.75rem', fontWeight: 600, padding: '0.2rem 0.6rem', borderRadius: 99,
-                          background: offer.status === 'pending' ? '#fffbeb' : '#fef2f2',
-                          color: offer.status === 'pending' ? '#d97706' : '#dc2626',
-                          border: `1px solid ${offer.status === 'pending' ? '#fde68a' : '#fecaca'}`,
-                        }}>
-                          {offer.status === 'pending' ? 'Awaiting Response' : 'Declined'}
-                        </span>
-                      </div>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem 1.5rem', marginTop: '0.75rem', fontSize: '0.85rem', color: '#334155' }}>
-                        <span><strong>Salary:</strong> {offer.salary}</span>
-                        <span><strong>Start:</strong> {new Date(offer.startDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
-                        <span><strong>Type:</strong> {offer.contractType}</span>
-                      </div>
-                      {offer.declineReason && (
-                        <p style={{ fontSize: '0.8rem', color: '#dc2626', marginTop: '0.5rem', fontStyle: 'italic' }}>Reason: {offer.declineReason}</p>
-                      )}
-                      <p style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '0.5rem' }}>
-                        Sent {new Date(offer.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              )}
-              {activeTab === 'offers' && detailedOffers.filter(o => o.status === 'pending' || o.status === 'declined').length === 0 && (
-                <div style={{ textAlign: 'center', padding: '3rem 1rem', color: '#94a3b8' }}>
-                  <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}><Ico name="file-text" size={20} /></div>
-                  <p>No pending offers. Make an offer from the applicant view.</p>
-                </div>
-              )}
-
-              {/* Hired tab — show hired records instead of job cards */}
-              {activeTab === 'hired' && detailedOffers.filter(o => o.status === 'accepted').length > 0 && (
-                <div className={styles.jobsList}>
-                  {detailedOffers
-                    .filter(o => o.status === 'accepted')
-                    .map(offer => (
-                    <div key={offer.id} className={styles.jobCard} style={{ cursor: 'pointer' }} onClick={() => router.push(`/my-jobs/${offer.jobId}/applications`)}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                        <div>
-                          <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: '0 0 0.25rem' }}>{offer.candidateName}</h3>
-                          <p style={{ fontSize: '0.85rem', color: '#64748b', margin: 0 }}>{offer.jobTitle}</p>
-                        </div>
-                        <span style={{ fontSize: '0.75rem', fontWeight: 600, padding: '0.2rem 0.6rem', borderRadius: 99, background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0' }}>
-                          Hired
-                        </span>
-                      </div>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem 1.5rem', marginTop: '0.75rem', fontSize: '0.85rem', color: '#334155' }}>
-                        <span><strong>Salary:</strong> {offer.salary}</span>
-                        <span><strong>Start:</strong> {new Date(offer.startDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
-                        <span><strong>Type:</strong> {offer.contractType}</span>
-                      </div>
-                      {offer.signatureName && (
-                        <p style={{ fontSize: '0.8rem', color: '#16a34a', marginTop: '0.5rem' }}>
-                          ✓ Signed by {offer.signatureName} on {offer.signatureTimestamp ? new Date(offer.signatureTimestamp).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : ''}
-                        </p>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-              {activeTab === 'hired' && detailedOffers.filter(o => o.status === 'accepted').length === 0 && (
-                <div style={{ textAlign: 'center', padding: '3rem 1rem', color: '#94a3b8' }}>
-                  <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}><Ico name="party-popper" size={20} /></div>
-                  <p>No hires yet. Candidates will appear here once they accept an offer.</p>
-                </div>
-              )}
-
-              {/* Job list — single dense row layout for every viewport. Whole
-                  row click → applications; secondary actions live in the kebab.
-                  Mobile (<768px) reflows .rowSide below the title via CSS. */}
-              {activeTab !== 'offers' && activeTab !== 'hired' && (
-                <div className={styles.cardGrid}>
-                  {/* A TAB WITH NOTHING IN IT MUST SAY SO. Half the original
-                      fault was that it did not: "All Jobs 4" sat above a blank
-                      area with no cards and no message, which reads as a page
-                      that failed rather than a list that is empty. The two
-                      cases are told apart deliberately — a search that matched
-                      nothing is the employer's own filter and is fixed by
-                      clearing it; an empty tab is not. */}
-                  {displayJobs.length === 0 && (
-                    <p className={styles.emptyTabNote}>
-                      {myJobsSearch.trim() || myJobsLocationSearch.trim()
-                        ? 'No adverts match your search on this tab.'
-                        : activeTab === 'all'
-                          ? 'No job adverts yet.'
-                          : 'No adverts on this tab. Try All Jobs.'}
-                    </p>
-                  )}
-                  {/* THE ADVERT AS THE CANDIDATE SEES IT, with the employer's
-                      tools welded underneath.
-
-                      This page used to render a dense one-line-per-job row. It
-                      was efficient and it hid the thing being managed: an
-                      employer could not see what their own advert looked like
-                      on the board without opening the public page. The card is
-                      the SAME FeedCard /jobs renders, through the same model
-                      builder, so the two cannot drift — if a badge or a pay
-                      line changes on the board it changes here in the same
-                      commit.
-
-                      DENSITY IS PAID FOR BY THE SEARCH AND THE TABS, which
-                      already exist above. A recruiter with 73 roles filters to
-                      the handful they are working on rather than scrolling all
-                      of them, which is what made the taller card affordable. */}
-                  {displayJobs.map(job => {
-                    const status = getStatusLabel(job.status)
-                    const isBoosted = !!jobBoosts[job.id]
-                    const interviewMeta = activeTab === 'interviewing' && viewData.nextInterviewMap[job.id]
-                      ? viewData.nextInterviewMap[job.id] : null
-                    const goToApps = () => router.push(`/my-jobs/${job.id}/applications`)
-                    const isLive = job.status === 'active'
-                    return (
-                      <div key={job.id} className={styles.cardUnit}>
-                        <FeedCard
-                          model={cardModelFromPostedJob(job)}
-                          onSelect={goToApps}
-                          boosted={isBoosted}
-                          // AN ADVERT THAT IS NO LONGER LIVE SAYS SO ON THE
-                          // PHOTO, not in a pill the eye skips. Same treatment
-                          // the board gives a filled shift: the image recedes
-                          // and the WORD does the telling.
-                          retired={isLive ? undefined : { label: status.label.toUpperCase() }}
-                          // EVERY OVERLAY SITS IN A SLOT THE BOARD ALREADY USES,
-                          // so an employer's card and a candidate's card put the
-                          // same kind of thing in the same place:
-                          //   applications  where the board puts "Applied ✓"
-                          //   interview/hired  the stamp row under "New"
-                          //   the ⋯ menu    where the board puts the bookmark
-                          stamps={<>
-                            <button
-                              type="button"
-                              className={styles.cardAppsBadge}
-                              onClick={(e) => { e.stopPropagation(); goToApps() }}
-                              aria-label={`${job.applicationCount} ${job.applicationCount === 1 ? 'application' : 'applications'}`}
-                            >
-                              <strong>{job.applicationCount}</strong>
-                              <span className={styles.cardAppsWord}>
-                                {job.applicationCount === 1 ? 'application' : 'applications'}
-                              </span>
-                              <span aria-hidden="true">→</span>
-                            </button>
-                            {interviewMeta && (
-                              <span className={styles.cardStampInfo}>
-                                <Ico name="calendar" size={16} /> {formatInterviewDate(interviewMeta.date, interviewMeta.time)}
-                              </span>
-                            )}
-                            {job.hiredCandidate && (
-                              <span className={styles.cardStampHired}>✓ Hired {job.hiredCandidate.name}</span>
-                            )}
-                          </>}
-                        />
-
-                        {/* EVERY TOOL BEHIND THE ⋯, IN THE CARD'S TOP CORNER.
-                            An earlier version put Edit and Remove in a bar
-                            welded under the card. That defeated the brief:
-                            the point is that this looks like the advert on the
-                            board, and a board card with furniture bolted
-                            underneath does not. It also split the tools across
-                            two places — some visible, some in the menu — so
-                            there were two places to look for one kind of thing.
-
-                            RENDERED HERE RATHER THAN IN FeedCard's `controls`
-                            SLOT, and that is not a style choice: .jobCard is
-                            `overflow: hidden` for the photo, so a dropdown
-                            opened inside it is CLIPPED. The button is laid over
-                            the card from the wrapper, which does not clip, so
-                            the menu can escape. */}
-                        <div className={styles.cardKebab}>
-                          {renderKebab(job, isBoosted)}
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
-            </>
           )}
         </div>
 

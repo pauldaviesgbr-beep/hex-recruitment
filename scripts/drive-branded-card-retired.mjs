@@ -1,31 +1,52 @@
-// THE BRANDED PANEL IN ITS THIRD SLOT: the employer's own Manage Job Ads page.
+// THE BRANDED PANEL UNDER THE RETIRED TREATMENT.
 //
-// The board and the detail header are driven elsewhere. This is the slot that
-// was only ever INFERRED — "it is the same component, so it must be fine" —
-// which is the reasoning the detail header disproved an hour earlier.
+// ── THIS DRIVE MOVED SURFACE, AND THAT IS NOT A URL CHANGE ──────────────
 //
-// AND THIS SLOT HAS A COMBINATION NEITHER OTHER ONE DOES. All four fixture
-// adverts are `filled`, so every card also carries the RETIRED treatment: a
-// grayscale wash over the panel and a FILLED stamp positioned in the card's
-// UPPER HALF — which is exactly where the quotation now lives. Nothing about
-// that pairing has ever been looked at, and the two were designed years apart.
+// It used to read /my-jobs, because that page rendered the board's own
+// photographic FeedCard and all four fixture adverts are `filled` -- so
+// every card there carried BOTH the branded no-photograph panel AND the
+// retired wash. That pairing was the whole point: no other slot had it, and
+// the two treatments were designed years apart without either knowing about
+// the other.
 //
-// STRICTLY READ-ONLY. It signs in, reads tabs and screenshots. It clicks no
-// kebab, no Remove, no Reactivate, no Repost, no Edit. The four adverts are
-// rows other drives assert against.
+// THE SEPTEMBER REBUILD TOOK FeedCard OFF /my-jobs ENTIRELY. The employer
+// now sees a management card, and the public view is one tap away on View.
+// So the subject of this drive did not change — it LEFT that page.
 //
-//   node scripts/drive-my-jobs-branded-card.mjs <base-url>
+// Pointing it at ?filter=live would have been the quiet failure: a drive
+// that finds no branded cards, on a page that correctly has none, reporting
+// red about a product that is right. The honest move is to follow the
+// subject, and after the rebuild there is exactly ONE `retired=` call site
+// left in the codebase -- app/temp-work/page.tsx:696, the shift feed, where
+// a retired shift gets the same wash over the same branded panel. Same two
+// treatments, same collision, same assertions.
+//
+// ── ONE ASSERTION HAD TO SOFTEN, AND HERE IS WHY ───────────────────────
+//
+// On /my-jobs the population was four known fixture adverts, so "no branded
+// cards found" could only mean the page had changed, and this file said so:
+// FAIL, not skip. On /temp-work the population is whatever shifts are live,
+// which nobody controls and which the takes routinely empty. So a run that
+// finds no retired branded card now SKIPS with exit 2 and says what it was
+// looking for.
+//
+// THAT IS A REAL LOSS OF COVERAGE AND IT IS NAMED RATHER THAN HIDDEN: a
+// skip is a check that did not run, and a check that usually skips is a
+// check nobody will notice has stopped working. If the shift feed is empty
+// for long the right answer is a fixture this drive creates and removes
+// itself, not a lower bar.
+//
+// STRICTLY READ-ONLY. It reads and screenshots. It clicks nothing.
+//
+//   node scripts/drive-branded-card-retired.mjs <base-url>
 
 import { chromium } from 'playwright'
 import { mkdirSync } from 'node:fs'
 
 const BASE = process.argv[2] || 'https://thrivecareer.co.uk'
-const EMAIL = 'pauldavies.gbr+employer@gmail.com'
-const PASSWORD = process.env.TEST_EMPLOYER_PASSWORD
 const BYPASS = process.env.VERCEL_AUTOMATION_BYPASS_SECRET
 const SHOTS = 'drive-shots'
 
-if (!PASSWORD) { console.error('SKIP  TEST_EMPLOYER_PASSWORD not in the environment'); process.exit(2) }
 if (BASE.includes('.vercel.app') && !BYPASS) { console.error('SKIP  preview target needs the bypass secret'); process.exit(2) }
 mkdirSync(SHOTS, { recursive: true })
 
@@ -43,31 +64,38 @@ const ctx = await browser.newContext({
 const page = await ctx.newPage()
 
 try {
-  await page.goto(`${BASE}/login/employer`, { waitUntil: 'domcontentloaded', timeout: 90_000 })
-  await page.fill('input[name="email"]', EMAIL)
-  await page.fill('input[name="password"]', PASSWORD)
-  await page.locator('button[type="submit"]:not([disabled])').waitFor({ timeout: 30_000 })
-  await page.click('button[type="submit"]')
-  await page.waitForURL(/\/(employer\/dashboard|my-jobs|dashboard)(\?|$|\/)/, { timeout: 60_000 })
+  // No sign-in. The shift feed is public, and a drive that needs no
+  // credential is a drive that cannot spend one.
+  await page.goto(`${BASE}/temp-work`, { waitUntil: 'domcontentloaded', timeout: 90_000 })
 
-  // ALL JOBS, not Active. The four fixtures are `filled`, and filled adverts
-  // appear under All — a rule this project got wrong for weeks and wrote down.
-  await page.goto(`${BASE}/my-jobs?filter=all`, { waitUntil: 'domcontentloaded', timeout: 90_000 })
-  await page.waitForFunction(
-    () => !/^\s*Loading\.\.\.\s*$/m.test(document.body.innerText || ''),
-    null, { timeout: 45_000 },
-  ).catch(() => {})
-  await page.locator('[class*="jobCard"]').first().waitFor({ timeout: 45_000 })
-  await page.waitForTimeout(1500)
+  // WAIT ON A PREDICATE THAT IS FALSE WHILE THE ANSWER IS MISSING. A card
+  // or an empty state -- either is a settled page; neither is "the nav has
+  // rendered", which is what a text-length threshold actually measures.
+  await page.waitForFunction(() => {
+    return document.querySelector('[class*="jobCard"]') !== null
+      || /no shifts|nothing here|no results/i.test(document.body.innerText || '')
+  }, null, { timeout: 45_000 }).catch(() => {})
+
+  // THE STATE THIS DRIVE IS ABOUT: a branded panel that is ALSO retired.
+  // Both halves, together, or there is nothing here to measure.
+  const retiredBranded = await page.evaluate(() => {
+    const els = [...document.querySelectorAll('[class*="jobCardFallback"]')]
+    return els.filter(el => el.closest('[class*="jobCard"]')?.querySelector('[class*="cardRetiredBadge"]')).length
+  })
+  if (retiredBranded === 0) {
+    console.error('SKIP  no retired branded card on the shift feed right now — this drive needs a shift that is both photo-less and retired, and the feed has none')
+    await browser.close()
+    process.exit(2)
+  }
+  console.log(`the feed shows: ${retiredBranded} retired branded card(s)`)
 
   const cards = await page.locator('[class*="jobCard"]').count()
   const branded = page.locator('[class*="jobCardFallback"]')
   const brandedCount = await branded.count()
-  check('Manage Job Ads rendered cards', cards, cards > 0)
-  // FAIL, not skip, if there are none: the whole point of this drive is that
-  // these four adverts have no banner. Zero means the page changed, not that
-  // there is nothing to check.
-  check('the fixture adverts render the branded card', brandedCount, brandedCount > 0)
+  check('the shift feed rendered cards', cards, cards > 0)
+  // Reaching here at all means the guard above found a retired branded card,
+  // so a zero now really would mean the page changed under us.
+  check('at least one shift renders the branded card', brandedCount, brandedCount > 0)
 
   if (brandedCount > 0) {
     const all = await branded.evaluateAll(els => els.map(el => {
@@ -164,13 +192,13 @@ try {
       all.filter(c => c.shows === 'quote').map(c => c.title),
       all.every(c => c.shows !== 'quote'))
 
-    await page.locator('[class*="jobCard"]').first().screenshot({ path: `${SHOTS}/myjobs-branded-card.png` })
+    await page.locator('[class*="jobCard"]').first().screenshot({ path: `${SHOTS}/tempwork-branded-card.png` })
   }
 
-  await page.screenshot({ path: `${SHOTS}/myjobs-branded.png`, fullPage: false })
+  await page.screenshot({ path: `${SHOTS}/tempwork-branded.png`, fullPage: false })
 } catch (e) {
   check('the drive completed', 'threw: ' + e.message, false)
-  await page.screenshot({ path: `${SHOTS}/myjobs-FAILED.png` }).catch(() => {})
+  await page.screenshot({ path: `${SHOTS}/tempwork-FAILED.png` }).catch(() => {})
 }
 
 await browser.close()

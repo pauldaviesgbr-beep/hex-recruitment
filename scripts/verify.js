@@ -559,6 +559,10 @@ const ALL = [
 
   { name: 'modalclose:prove', cmd: npm, args: ['run', 'modalclose:prove'] },
 
+  // THE SEPTEMBER CARD. Filesystem and pure text, so it runs everywhere and
+  // can never be a red nobody expects — the rule that keeps prove-employer-
+  // delete-gate and rlsprobe out of this list.
+  { name: 'jobadscard:prove', cmd: npm, args: ['run', 'jobadscard:prove'] },
   { name: 'sidebarz:prove', cmd: npm, args: ['run', 'sidebarz:prove'] },
 
   { name: 'reportcontrol:prove', cmd: npm, args: ['run', 'reportcontrol:prove'] },

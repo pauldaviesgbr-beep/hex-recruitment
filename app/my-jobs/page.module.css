@@ -686,3 +686,269 @@
 .shiftCounts { display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0; }
 .shiftAvail { font-size: 0.78rem; font-weight: 700; color: #166534; background: #f0fdf4; border: 1px solid #bbf7d0; padding: 0.1rem 0.45rem; border-radius: 999px; }
 .shiftStatus { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: #475569; background: #f1f5f9; padding: 0.1rem 0.45rem; border-radius: 6px; }
+
+/* ══ SEPTEMBER UPDATE — the job ads list ═══════════════════════════════
+   Appended, and the position matters. A media query adds no specificity and
+   neither do most of these selectors, so ORDER is what decides which rule
+   wins — and this repo has twice lost an hour to a correct-looking override
+   that sat above the declaration it meant to beat. Anything here that has to
+   win over a rule earlier in this file is here for that reason. */
+
+/* ── list header ─────────────────────────────────────────────────────── */
+.listHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 14px;
+  margin-bottom: 0;
+  border-bottom: 1px solid var(--rs-border);
+  background: var(--rs-bg-surface);
+}
+
+.listTitle {
+  margin: 0;
+  font-family: var(--font-bricolage), var(--font-inter), system-ui, sans-serif;
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  color: var(--rs-text);
+}
+
+.listHeadActions {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex: none;
+}
+
+/* 36px square as drawn, inside a 44px hit area. The BOX is what you see and
+   the TARGET is what you hit, and they are allowed to differ — a 36px tap
+   target is below the floor and this is how you honour both numbers. */
+.searchToggle {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--rs-bg-surface);
+  border: 1px solid var(--rs-border-strong);
+  border-radius: 10px;
+  color: var(--rs-text);
+  cursor: pointer;
+  padding: 0;
+}
+
+.searchToggle::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+}
+
+.searchToggle[aria-expanded='true'] {
+  background: var(--rs-bg-subtle);
+}
+
+.newBtn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 14px;
+  background: var(--rs-brand-yellow);
+  color: var(--rs-text);
+  border: 0;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.newBtn::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+}
+
+.searchRow {
+  padding: 12px 0 0;
+}
+
+.searchField {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 11px 13px;
+  font-size: 15px;
+  font-family: inherit;
+  color: var(--rs-text);
+  background: var(--rs-bg-surface);
+  border: 1px solid var(--rs-border-strong);
+  border-radius: 10px;
+}
+
+.searchField:focus-visible {
+  outline: 3px solid rgba(255, 229, 0, 0.35);
+  outline-offset: 2px;
+  border-color: var(--rs-text);
+}
+
+/* ── tab strip ───────────────────────────────────────────────────────────
+   STICKY UNDER THE HEADER. --nav-height is MEASURED rather than chosen: the
+   mobile header is `position: fixed` so it reserves no space, and the token
+   said 66px for weeks against a header rendering 69.19, which put three
+   sticky strips 3px underneath the thing they were meant to sit below.
+
+   NO overflow-x. See the note at the call site — a sideways-scrolling
+   control row hides whole controls behind an edge with no affordance, which
+   this product has fixed four times, and with three short tabs the wrap it
+   was guarding against cannot happen. */
+.tabStrip {
+  position: sticky;
+  top: var(--nav-height);
+  z-index: 2;
+  display: flex;
+  gap: 7px;
+  padding: 12px 0;
+  background: var(--rs-bg-page);
+}
+
+.tab {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 36px;
+  padding: 0 13px;
+  background: var(--rs-bg-surface);
+  border: 1px solid var(--rs-border);
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--rs-text-muted);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.tabActive {
+  background: var(--rs-brand-navy);
+  border-color: var(--rs-brand-navy);
+  color: #fff;
+}
+
+.tabCount {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--rs-text-soft);
+}
+
+/* The active count is the one yellow on the strip. The attention strip is the
+   other yellow on this screen, and there are deliberately no more than two. */
+.tabActive .tabCount {
+  color: var(--rs-brand-yellow);
+}
+
+.tab:focus-visible {
+  outline: 3px solid rgba(255, 229, 0, 0.35);
+  outline-offset: 2px;
+}
+
+/* ── the list ────────────────────────────────────────────────────────── */
+.cardList {
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+  padding-bottom: 8px;
+}
+
+/* ── skeleton ────────────────────────────────────────────────────────────
+   Bar widths mirror real content — status 96x11, title 216x18, meta 170x12 —
+   so the shape does not change when the data lands. The first card carries
+   its action-bar zone at full height for the same reason: NOTHING MAY
+   REFLOW, because a list that jumps once has taught the reader not to trust
+   where anything is. */
+.skeletonList {
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+  padding-top: 12px;
+}
+
+.skeletonCard {
+  background: var(--rs-bg-surface);
+  border: 1px solid var(--rs-border);
+  border-radius: 15px;
+  overflow: hidden;
+}
+
+.skeletonBody {
+  padding: 15px 16px 16px;
+}
+
+.skBarStatus,
+.skBarTitle,
+.skBarMeta {
+  display: block;
+  background: var(--rs-bg-subtle);
+  border-radius: 5px;
+}
+
+.skBarStatus { width: 96px; height: 11px; margin-bottom: 10px; }
+.skBarTitle  { width: 216px; height: 18px; margin-bottom: 10px; }
+.skBarMeta   { width: 170px; height: 12px; }
+
+.skeletonActions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border-top: 1px solid var(--rs-hairline);
+}
+
+.skeletonActions > span {
+  min-height: var(--rs-tap);
+}
+
+.skeletonActions > span + span {
+  border-left: 1px solid var(--rs-hairline);
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ── kebab, resized to the handoff ───────────────────────────────────────
+   34px box inside a 44px hit area. Later than the 28px rule above, which is
+   what makes it win. */
+.kebabBtn {
+  position: relative;
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  color: var(--rs-text-soft);
+}
+
+.kebabBtn::after {
+  content: '';
+  position: absolute;
+  inset: -5px;
+}
+
+.kebabWrap {
+  position: relative;
+}
+
+/* ── shifts, now at the foot ─────────────────────────────────────────── */
+.shiftsSection {
+  margin-top: 20px;
+  margin-bottom: 0;
+}

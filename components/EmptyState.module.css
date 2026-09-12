@@ -57,3 +57,68 @@
   border-color: var(--ds-border-strong);
   background: var(--ds-bg-subtle);
 }
+
+/* ── variant="primary" ──────────────────────────────────────────────────
+   The invitation treatment. Left aligned, because a first-run screen is read
+   rather than glanced at, and centred body copy is harder to read at length.
+
+   THESE RULES SIT AFTER THE BASE ONES ON PURPOSE. A media query adds no
+   specificity and neither does an attribute selector at this weight, so
+   order is what decides -- and this repo has lost an hour twice to a
+   correct-looking override that sat above the declaration it meant to beat. */
+.wrap[data-variant='primary'] {
+  align-items: flex-start;
+  text-align: left;
+  padding: 24px 20px 22px;
+  border-radius: 16px;
+}
+
+.wrap[data-variant='primary'] .iconWrap {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--rs-brand-yellow);
+  color: var(--rs-attn-ink);
+  margin-bottom: 14px;
+}
+
+.wrap[data-variant='primary'] .title {
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--rs-text);
+  margin: 0 0 6px;
+}
+
+.wrap[data-variant='primary'] .description {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--rs-text-muted);
+  margin: 0 0 16px;
+  max-width: 44ch;
+}
+
+/* Solid navy, full width. The only CTA on the screen, so it can afford to be. */
+.wrap[data-variant='primary'] .action {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  padding: 14px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--rs-brand-navy);
+  border: 1px solid var(--rs-brand-navy);
+  border-radius: 11px;
+}
+
+.wrap[data-variant='primary'] .action:hover {
+  background: #1e293b;
+  border-color: #1e293b;
+}
+
+.cost {
+  margin: 9px 0 0;
+  font-size: 12.5px;
+  color: var(--rs-text-muted);
+}

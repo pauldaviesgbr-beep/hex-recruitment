@@ -152,7 +152,7 @@ function PipelineSlider({ stages, stageColors, statusCounts, candidatesByStage, 
       if (!s.didMove || Math.abs(s.startX - e.changedTouches[0].clientX) < 8) {
         const idx = Math.round(s.offset / CARD_W)
         const stage = stages[idx]
-        if (stage) router.push(`/my-jobs?filter=${stage === 'interview' ? 'interviewing' : stage === 'offered' ? 'offers' : stage}`)
+        if (stage) router.push(`/pipeline#stage-${stage}`)
         return
       }
       snapTo(s.offset + s.vel * 350)
@@ -1290,7 +1290,7 @@ export default function EmployerDashboardPage() {
             <span className={styles.statPillLabel}>Applications</span>
           </button>
           <div className={styles.statPillDivider} />
-          <button className={styles.statPill} onClick={() => router.push('/my-jobs?filter=interviewing')}>
+          <button className={styles.statPill} onClick={() => router.push('/interviews')}>
             <span className={styles.statPillNum}>{statusCounts['interview'] || 0}</span>
             <span className={styles.statPillLabel}>Interviewing</span>
           </button>

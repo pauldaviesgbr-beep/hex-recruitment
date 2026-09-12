@@ -146,8 +146,8 @@ const responsePatterns: ResponsePattern[] = [
   // ── EMPLOYER: INTERVIEWS ──
   {
     keywords: ['interview', 'schedule interview', 'interview date', 'interview time', 'calendar', 'book interview'],
-    response: "Thrive makes interview scheduling easy!\n\n• Schedule interviews directly from a candidate's application\n• Set the date, time, duration, and interview type (in-person, video, or phone)\n• Add a location or video call link\n• Interviews sync with Google Calendar automatically\n• Track all upcoming interviews from the \"Interviews\" tab in the sidebar\n\nThe Interviews view shows today's, this week's, pending confirmation, and completed interviews.",
-    links: [{ text: 'View Interviews', href: '/my-jobs?filter=interviewing' }]
+    response: "Thrive makes interview scheduling easy!\n\n• Schedule interviews directly from a candidate's application\n• Set the date, time, duration, and interview type (in-person, video, or phone)\n• Add a location or video call link\n• Interviews sync with Google Calendar automatically\n• Track all upcoming interviews on the Interviews page\n\nIt shows today's, this week's, pending confirmation, and completed interviews.",
+    links: [{ text: 'View Interviews', href: '/interviews' }]
   },
   {
     keywords: ['reschedule', 'change interview', 'move interview', 'cancel interview'],
@@ -157,15 +157,15 @@ const responsePatterns: ResponsePattern[] = [
   // ── EMPLOYER: OFFERS ──
   {
     keywords: ['offer', 'job offer', 'send offer', 'make offer', 'offer letter', 'signature'],
-    response: "When you're ready to hire, you can send a formal job offer through Thrive!\n\n• Create an offer with salary, start date, and terms\n• The candidate receives a notification and can review the offer\n• Candidates can accept and sign digitally, or decline\n• Track all your pending and accepted offers from the \"Offers\" tab\n\nOffers include a digital signature system for quick acceptance.",
-    links: [{ text: 'View Offers', href: '/my-jobs?filter=offers' }]
+    response: "When you're ready to hire, you can send a formal job offer through Thrive!\n\n• Create an offer with salary, start date, and terms\n• The candidate receives a notification and can review the offer\n• Candidates can accept and sign digitally, or decline\n• Track all your pending and accepted offers on the Offers page\n\nOffers include a digital signature system for quick acceptance.",
+    links: [{ text: 'View Offers', href: '/offers' }]
   },
 
   // ── EMPLOYER: HIRED ──
   {
     keywords: ['hired', 'accepted offer', 'onboard', 'successful hire', 'filled position'],
-    response: "The \"Hired\" tab shows all candidates who have accepted your job offers. From here you can:\n\n• View the details of each successful hire\n• See which positions have been filled\n• Archive completed hires\n• Track your overall hiring success rate\n\nCongratulations on each new team member!",
-    links: [{ text: 'View Hired', href: '/my-jobs?filter=hired' }]
+    response: "The pipeline board shows every candidate who has accepted a job offer. From here you can:\n\n• View the details of each successful hire\n• See which positions have been filled\n• Archive completed hires\n• Track your overall hiring success rate\n\nCongratulations on each new team member!",
+    links: [{ text: 'View Hired', href: '/pipeline' }]
   },
 
   // ── EMPLOYER: ANALYTICS ──

@@ -60,6 +60,7 @@
     "nobrowsercopy:prove": "node scripts/prove-no-browser-in-copy.mjs",
     "cvtoolbar:prove": "node scripts/prove-cv-builder-toolbar.mjs",
     "modalclose:prove": "node scripts/prove-modal-close-clears-the-notch.mjs",
+    "jobadscard:prove": "node scripts/prove-job-ads-card.mjs",
     "sidebarz:prove": "node scripts/prove-sidebar-z-tokens.mjs",
     "reportcontrol:prove": "node scripts/prove-report-control-everywhere.mjs",
     "blockrefuses:prove": "node scripts/prove-block-refuses-messages.mjs",

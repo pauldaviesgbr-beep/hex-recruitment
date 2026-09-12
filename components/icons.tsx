@@ -17,6 +17,24 @@
 // spec maps ✓→check and ✕→x, so it will look like an unfinished job:
 // it is not. Do not "finish" it without a new decision from Paul.
 //
+// THE NEW DECISION ARRIVED AND IT IS "NO" -- Paul, 12 Sept 2026, via the
+// September design handoff (decision 6). The screening-answer MET CHIP has
+// NO ICON AT ALL: the tick is dropped rather than mapped to `check`. The
+// amber triangle on a mismatch stays, because a mismatch is the only one of
+// the two that is worth an eye.
+//
+// SO THE LINE ABOVE IS ANSWERED, NOT OVERTURNED. It asked for a decision
+// before the glyph-to-icon mapping was touched; the decision is that the
+// mapping is not wanted on that surface. Every other glyph in this file
+// keeps the 14 Aug treatment, `check` stays in the registry for the
+// surfaces that do use it, and the spec's map still reads as unfinished
+// work and still is not.
+//
+// A GREEN TICK IS ALSO A CLAIM, which is the deeper reason to be glad of
+// the answer: this repo already had to strip one from a candidate-typed
+// certification because it asserted a verification nobody performed. A met
+// chip earns its ground colour; it does not earn a tick.
+//
 // ⚠ WAS ON THAT LIST AND HAS BEEN REMOVED FROM IT — 23 Aug 2026, Paul's call,
 // because the premise above turned out to be FALSE OF THAT ONE GLYPH.
 // "They inherit currentColor already" is true of ✓ ✕ ★ ☆ ➤ in every engine.
@@ -52,11 +70,13 @@ import {
   Rocket, Search, Settings, Shield, Smartphone, Sparkles, Star, Tag, Tent,
   Timer, Trash2, TrendingUp, User, Users, UtensilsCrossed, Video, X, Zap,
   Martini,
+  Plus, ChevronRight, ChevronDown, GripVertical, Copy, Archive, Menu, MoreHorizontal,
 } from 'lucide-react'
 
 export const ICONS = {
   'alert-triangle': AlertTriangle,
   apple: Apple,
+  archive: Archive,
   'arrow-right': ArrowRight,
   ban: Ban,
   banknote: Banknote,
@@ -69,9 +89,12 @@ export const ICONS = {
   calendar: Calendar,
   camera: Camera,
   check: Check,
+  'chevron-down': ChevronDown,
+  'chevron-right': ChevronRight,
   'chef-hat': ChefHat,
   clock: Clock,
   compass: Compass,
+  copy: Copy,
   'credit-card': CreditCard,
   eye: Eye,
   file: File,
@@ -82,6 +105,7 @@ export const ICONS = {
   folder: Folder,
   gift: Gift,
   globe: Globe,
+  'grip-vertical': GripVertical,
   handshake: Handshake,
   'help-circle': HelpCircle,
   home: Home,
@@ -95,16 +119,19 @@ export const ICONS = {
   lock: Lock,
   'lock-open': LockOpen,
   mail: Mail,
+  menu: Menu,
   'map-pin': MapPin,
   martini: Martini,
   'message-square': MessageSquare,
   mic: Mic,
+  'more-horizontal': MoreHorizontal,
   package: Package,
   paperclip: Paperclip,
   'party-popper': PartyPopper,
   pause: Pause,
   pencil: Pencil,
   phone: Phone,
+  plus: Plus,
   radio: Radio,
   'refresh-cw': RefreshCw,
   rocket: Rocket,

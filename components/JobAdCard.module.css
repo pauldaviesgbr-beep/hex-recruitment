@@ -1,0 +1,237 @@
+/* THE ADVERT CARD -- three states, one structure, weight is what changes.
+
+   Every number here comes from the September handoff. Where a value looks
+   arbitrary it is not: 17.5px/-0.015em on the title and 48px on the action
+   cells are specified, and the 48 is above the 44px tap floor deliberately
+   because the bar is the primary target on this card. */
+
+.card {
+  position: relative;
+  background: var(--rs-bg-surface);
+  border: 1px solid var(--rs-border);
+  border-radius: 15px;
+  /* The action bar has to MEET the corners, which is what this buys. It is
+     also why the kebab menu is layered over the card by the list rather than
+     rendered inside it -- a dropdown opened in here is clipped. */
+  overflow: hidden;
+  box-shadow: var(--rs-shadow-card);
+}
+
+.card[data-state='filled'],
+.card[data-state='archived'] {
+  background: var(--rs-bg-subtle);
+}
+
+/* Dashed, and only on archived. A filled advert is finished; an archived one
+   has been deliberately put away, and the dash is the difference. */
+.card[data-state='archived'] {
+  border-style: dashed;
+  border-color: var(--rs-border-strong);
+}
+
+.body {
+  padding: 15px 16px 16px;
+}
+
+/* ── status ─────────────────────────────────────────────────────────────
+   6px dot plus caps. NEVER A FILLED PILL: the pill was the loudest thing on
+   a card whose whole point is that a finished advert should be quiet. */
+.status {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0 0 7px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--rs-text-muted);
+}
+
+.status[data-live] {
+  color: var(--rs-live-ink);
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--rs-dormant);
+  flex: none;
+}
+
+.status[data-live] .dot {
+  background: var(--rs-live);
+}
+
+/* ── title ──────────────────────────────────────────────────────────────
+   NO text-overflow, NO -webkit-line-clamp, NO white-space: nowrap, in any
+   state. If one of those three ever appears in this rule the card has lost
+   the thing it exists to protect. Only the compact dashboard ROW truncates,
+   because a row has a table's worth of other columns identifying it and a
+   card has almost nothing. */
+.title {
+  margin: 0 0 6px;
+  font-size: 17.5px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  line-height: 1.25;
+  color: var(--rs-text);
+}
+
+.card[data-state='filled'] .title,
+.card[data-state='archived'] .title {
+  font-size: 15.5px;
+  font-weight: 500;
+  color: var(--rs-text-muted);
+}
+
+.titleBtn {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  letter-spacing: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.titleBtn:focus-visible {
+  outline: 3px solid rgba(255, 229, 0, 0.35);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ── meta ───────────────────────────────────────────────────────────────
+   Applicant state in WORDS on its own line. "2 ->" made an employer work out
+   what the arrow meant before they knew whether anyone had applied. */
+.meta,
+.applicants {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--rs-text-muted);
+}
+
+.applicants {
+  margin-top: 2px;
+}
+
+/* ── the attention strip ────────────────────────────────────────────────
+   THE ONE ATTENTION SURFACE ON THIS SCREEN. It renders only when somebody is
+   actually waiting -- a strip that is always there is furniture, and the next
+   person to add a second yellow surface here has broken the design rather
+   than extended it. */
+.attn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: var(--rs-attn-bg);
+  border: 1px solid var(--rs-attn-border);
+  border-radius: 10px;
+  color: var(--rs-attn-ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.attnLead {
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.attnGo {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 13px;
+  font-weight: 600;
+  flex: none;
+}
+
+.attn:active {
+  background: #fff6c8;
+}
+
+.attn:focus-visible {
+  outline: 3px solid rgba(255, 229, 0, 0.35);
+  outline-offset: 2px;
+}
+
+/* ── action bar ─────────────────────────────────────────────────────────
+   Two cells over a hairline. PRESS, NOT HOVER, is the primary target here:
+   :active is the state that matters on a phone and hover is desktop garnish. */
+.actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border-top: 1px solid var(--rs-hairline);
+  background: var(--rs-bg-surface);
+}
+
+.actions[data-single='true'] {
+  grid-template-columns: 1fr;
+}
+
+.action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: var(--rs-tap);
+  border: 0;
+  background: none;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--rs-text);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.action + .action {
+  border-left: 1px solid var(--rs-hairline);
+}
+
+.action:active {
+  background: var(--rs-bg-subtle);
+}
+
+.action:focus-visible {
+  outline: 3px solid rgba(255, 229, 0, 0.35);
+  outline-offset: -3px;
+}
+
+/* The quiet states get a quieter bar to match the quieter title. */
+.card[data-state='filled'] .action,
+.card[data-state='archived'] .action {
+  color: var(--rs-text-muted);
+  font-weight: 600;
+}
+
+/* ── kebab ──────────────────────────────────────────────────────────────
+   34px box inside a 44px hit area. Painted top-right, LAST in DOM order. */
+.kebabSlot {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+}
+
+@media (hover: hover) {
+  .card:hover {
+    border-color: var(--rs-border-strong);
+    box-shadow: var(--rs-shadow-card-hover);
+  }
+  .action:hover {
+    background: var(--rs-bg-subtle);
+  }
+  .attn:hover {
+    background: #fff6c8;
+  }
+}
