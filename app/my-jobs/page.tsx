@@ -282,6 +282,28 @@ function MyJobsContent() {
           // fallback leaves with the query rather than waiting to be found.
           //
           // Four round trips saved on the busiest employer page.
+          //
+          // AND THE INTERVIEW QUERY HAS A RETURN ADDRESS, WHICH IS THE POINT
+          // OF WRITING THIS DOWN RATHER THAN JUST DELETING IT.
+          //
+          // It fed nextInterviewMap, which annotated a job card with "someone
+          // is coming in Thursday" behind the Interviewing tab. That is a
+          // REAL QUESTION -- which of my roles has somebody coming in? -- and
+          // it did not deserve a tab: there is essentially ONE interview in
+          // this product's history (119 applications, 4 ever progressed), so
+          // it was a view over data that barely exists.
+          //
+          // WHEN INTERVIEWS ACTUALLY START HAPPENING IT BELONGS IN THE
+          // ATTENTION STRIP on the advert card, beside "2 new applicants":
+          // same pattern, same place, same weight. See the strip in
+          // components/JobAdCard.tsx -- the model already carries
+          // newApplicants, and this would be the second thing that can fill
+          // it rather than a new surface.
+          //
+          // It is recorded as a CANDIDATE, not as a loss. A line saying where
+          // something goes back is worth more than a line saying it was
+          // removed -- the second one gets read as a decision nobody can
+          // reopen.
         }
 
         // Fetch active boosts for this employer's jobs (non-blocking — table may not exist yet)

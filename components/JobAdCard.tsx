@@ -54,7 +54,22 @@ export interface JobAdCardModel {
   contract?: string
   /** Applicant state IN WORDS. "No applicants yet", not "0 ->". */
   applicantLine: string
-  /** Drives the attention strip. Zero means no strip at all. */
+  /**
+   * Drives the attention strip. Zero means no strip at all.
+   *
+   * THE SECOND THING THAT SHOULD FILL THIS STRIP IS NOT BUILT YET, AND IT IS
+   * NAMED HERE SO IT IS FOUND RATHER THAN REINVENTED. The Interviewing tab
+   * used to annotate a job card with the next upcoming interview -- "someone
+   * is coming in Thursday" -- from a nextInterviewMap this branch deleted
+   * along with the tab. The question is real; the tab was not the place for
+   * it, because there is essentially one interview in this product's history.
+   *
+   * When interviews start happening, it goes HERE: same pattern as "2 new
+   * applicants", same place, same weight. Widen this to a small union rather
+   * than adding a second strip -- the moment there are two attention
+   * surfaces on this card, "the one thing asking for your attention" stops
+   * being a true sentence and the design has been lost rather than extended.
+   */
   newApplicants: number
 }
 
