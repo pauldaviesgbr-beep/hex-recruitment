@@ -32,9 +32,34 @@
 //
 // THAT IS A REAL LOSS OF COVERAGE AND IT IS NAMED RATHER THAN HIDDEN: a
 // skip is a check that did not run, and a check that usually skips is a
-// check nobody will notice has stopped working. If the shift feed is empty
-// for long the right answer is a fixture this drive creates and removes
-// itself, not a lower bar.
+// check nobody will notice has stopped working.
+//
+// ── AND IT SKIPS TODAY. DRIVEN AGAINST PRODUCTION, 12 SEPT 2026, EXIT 2 ──
+//
+// Which is worth writing down, because the reason is not "the feed is quiet"
+// and I nearly recorded it as that. temp_posts holds exactly ONE row and its
+// status is `closed`. retiredLabel() maps closed to "Closed", so the obvious
+// reading is that a retired card exists and this drive failed to see it —
+// which would make the SKIP an instrument fault, not an answer.
+//
+// IT IS NOT. The feed's own query is
+//
+//     .or('status.eq.open,and(status.eq.filled,expires_at.gt.<now>)')
+//
+// so a closed post is never FETCHED. The skip is honest.
+//
+// THE CONSEQUENCE IS BIGGER THAN THIS DRIVE. The only retired state reachable
+// on that feed is `filled` INSIDE its expiry window — a narrow window that is
+// usually empty. retiredLabel's 'closed' and 'expired' branches cannot render
+// there at all. So the branded-panel-plus-retired-wash pairing has effectively
+// lost its home, and this drive will skip most of the time.
+//
+// THREE WAYS OUT, AND THE CHOICE IS NOT A SESSION'S TO MAKE:
+//   · leave it skipping — honest, and the weakest, which is where it is now;
+//   · give it a fixture it creates and removes itself — the shape this repo
+//     already recommends, but it writes to a LIVE PUBLIC FEED, and a leaked
+//     fixture post on that feed has happened here before;
+//   · retire this drive and fold its assertions into the /temp-work drives.
 //
 // STRICTLY READ-ONLY. It reads and screenshots. It clicks nothing.
 //

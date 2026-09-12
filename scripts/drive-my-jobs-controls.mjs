@@ -67,6 +67,7 @@ import { createClient } from '@supabase/supabase-js'
 // this branch: `closed` moved from Live to Archived in the page and not here,
 // one commit apart, and neither file could have disagreed with the other.
 import { tabOf, JOB_AD_TABS } from '../lib/jobAdTabs.mjs'
+import { signInAsFixture } from './lib/browser-sign-in.mjs'
 
 const BASE = process.argv[2] || 'https://thrivecareer.co.uk'
 const EMAIL = 'pauldavies.gbr+employer@gmail.com'
@@ -146,14 +147,13 @@ async function run(width, height, tag) {
   })
   const page = await ctx.newPage()
 
-  // ── sign in ───────────────────────────────────────────────────────────
-  await page.goto(`${BASE}/login/employer`, { waitUntil: 'domcontentloaded' })
-  await page.fill('input[name="email"]', EMAIL)
-  await page.fill('input[name="password"]', PASSWORD)
-  await page.locator('button[type="submit"]:not([disabled])').waitFor({ timeout: 30000 })
-  await page.click('button[type="submit"]')
-  // NOT /employer/ — that matches "/login/employer", the page we are on.
-  await page.waitForURL(/\/(employer\/dashboard|my-jobs|dashboard)(\?|$|\/)/, { timeout: 40000 })
+  // Sign in through the shared helper. The lines that used to be here could
+  // not work: the login pages were unified, so /login/employer is a stub that
+  // redirects, the fields carry ids and NO name attribute, and a second
+  // button[type=submit] on that page belongs to the chat widget. See
+  // scripts/lib/browser-sign-in.mjs -- five other drives still carry the old
+  // version and none of them can have signed in since the unification.
+  await signInAsFixture(page, { base: BASE, email: EMAIL, password: PASSWORD })
 
   const seen = { live: null, filled: null, archived: null }
 
@@ -263,12 +263,7 @@ async function runNarrow() {
       : {}),
   })
   const page = await ctx.newPage()
-  await page.goto(`${BASE}/login/employer`, { waitUntil: 'domcontentloaded' })
-  await page.fill('input[name="email"]', EMAIL)
-  await page.fill('input[name="password"]', PASSWORD)
-  await page.locator('button[type="submit"]:not([disabled])').waitFor({ timeout: 30000 })
-  await page.click('button[type="submit"]')
-  await page.waitForURL(/\/(employer\/dashboard|my-jobs|dashboard)(\?|$|\/)/, { timeout: 40000 })
+  await signInAsFixture(page, { base: BASE, email: EMAIL, password: PASSWORD })
 
   await page.goto(`${BASE}/my-jobs?filter=live`, { waitUntil: 'domcontentloaded' })
   await page.waitForFunction(() => {
