@@ -395,7 +395,16 @@
     position: fixed;
     left: 0;
     right: 0;
-    bottom: 0;
+    /* READS THE CONSENT LANE. A body padding cannot move a fixed element, so
+       the shell's reserve does nothing here — this rule has to ask for the
+       lane itself, exactly as the chat launcher does.
+
+       THIS IS THE THIRD CONTROL THE COOKIE BANNER HAS COVERED. The Apply
+       button on 13 Aug, which cost a real candidate his application and is
+       the only reason anybody found it; the password field on the apply gate
+       on 22 Aug. Both of those were "fixed by moving the control", which is
+       the wrong fix and is recorded as such. */
+    bottom: var(--consent-h, 0px);
     z-index: 40;
     background: #fff;
     border-top: 1px solid #e2e8f0;
