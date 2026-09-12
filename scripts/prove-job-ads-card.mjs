@@ -112,25 +112,49 @@ check('.tabStrip is sticky under the MEASURED nav height',
 
 console.log('')
 
-// ── 4. exactly three filters ────────────────────────────────────────────
+// ── 4. exactly three tabs, defined ONCE ─────────────────────────────────
+// The rule moved out of the page into lib/jobAdTabs.mjs, because the drive
+// needs it too and a Playwright script cannot import a .tsx. This reads it
+// where it lives — a check pointed at the old location would have gone red
+// about a correct refactor, which is its own kind of wrong.
 const page = read('app/my-jobs/page.tsx')
-const filters = (page.match(/const validFilters = \[([^\]]*)\]/) || [])[1]
-const filterList = filters ? filters.split(',').map(s => s.trim().replace(/'/g, '')).filter(Boolean) : []
-check('validFilters is declared', filterList.length > 0, filterList.join(' '))
-check('there are exactly three, and they are live/filled/archived',
-  filterList.length === 3 && ['live', 'filled', 'archived'].every(f => filterList.includes(f)),
-  filterList.join(' '))
-check('the default is live, not a stale tab name',
-  /:\s*'live'\s*$/m.test(page) || /\}\s*:\s*'live'/.test(page),
-  'unknown ?filter= lands on the working set')
+const rule = read('lib/jobAdTabs.mjs')
 
-// tabOf must be TOTAL over status, which is what makes the partition true.
-// The assertion is that it has no branch returning anything else.
-const tabOfBody = (page.match(/const tabOf =[\s\S]{0,320}?\n\n/) || [''])[0]
-const returned = [...tabOfBody.matchAll(/'(live|filled|archived|[a-z]+)'/g)].map(m => m[1])
-check('tabOf mentions only the three tabs and the two statuses it tests',
-  returned.every(r => ['live', 'filled', 'archived'].includes(r)),
-  returned.join(' '))
+const tabs = (rule.match(/export const JOB_AD_TABS = \[([^\]]*)\]/) || [])[1]
+const tabList = tabs ? tabs.split(',').map(x => x.trim().replace(/'/g, '')).filter(Boolean) : []
+check('JOB_AD_TABS is declared in lib/jobAdTabs.mjs', tabList.length > 0, tabList.join(' '))
+check('there are exactly three, and they are live/filled/archived',
+  tabList.length === 3 && ['live', 'filled', 'archived'].every(f => tabList.includes(f)),
+  tabList.join(' '))
+
+// ── THE SECOND COPY IS THE THING BEING PREVENTED ────────────────────────
+// This branch created the duplicate and then removed it: tabOf existed in the
+// page and again in the drive, and `closed` moved from Live to Archived in one
+// of them and not the other, one commit apart. Neither file could have
+// disagreed with the other, and nothing type-checks a drive's arithmetic
+// against a page's.
+const drive = read('scripts/drive-my-jobs-controls.mjs')
+check('the page IMPORTS the rule rather than restating it',
+  /from '@\/lib\/jobAdTabs\.mjs'/.test(page) && !/const tabOf =/.test(page),
+  /const tabOf =/.test(page) ? 'page defines its own tabOf' : 'imported')
+check('the drive IMPORTS the rule rather than restating it',
+  /from '\.\.\/lib\/jobAdTabs\.mjs'/.test(drive) && !/const tabOf =/.test(drive),
+  /const tabOf =/.test(drive) ? 'drive defines its own tabOf' : 'imported')
+
+// PAUSED IS LIVE; CLOSED IS NOT — the distinction a 60-day expiry will make
+// real on a live row around 19 Oct 2026, when Collins King's advert becomes
+// `expired` and the mapper turns that into `closed`. Under the first version
+// of this rule it would have appeared on a tab labelled Live, reading CLOSED.
+check("closed files under archived, not live",
+  /status === 'archived' \|\| status === 'closed' \? 'archived'/.test(rule),
+  'an expired advert is finished, and a tab labelled Live must not hold one')
+check('paused is NOT sent to archived',
+  !/'paused'\s*\?\s*'archived'/.test(rule),
+  'the employer stopped it and means to resume it')
+
+check('the default is live, not a stale tab name',
+  /:\s*'live'/.test(page),
+  'unknown ?filter= lands on the working set')
 
 console.log('')
 

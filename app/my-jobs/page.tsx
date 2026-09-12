@@ -24,6 +24,11 @@ import { RowInlineFields } from '@/components/RowInlineFields'
 import { Boost, JOB_BOOST_TIERS, getDaysRemaining, isBoostActive } from '@/lib/boostTypes'
 import styles from './page.module.css'
 import { Ico } from '@/components/icons'
+// ONE DEFINITION OF WHICH TAB AN ADVERT IS ON, imported by this page AND by
+// the drive that asserts the tabs partition the adverts. The drive cannot
+// import a .tsx module, so the rule lives in a .mjs both can load — see the
+// note in that file for why a second copy is the thing being prevented.
+import { tabOf, JOB_AD_TABS } from '@/lib/jobAdTabs.mjs'
 
 interface PostedJob {
   id: string
@@ -71,21 +76,7 @@ interface PostedJob {
   isRecruiterPosting: boolean
 }
 
-/**
- * WHICH TAB AN ADVERT BELONGS TO -- a total function over `status`, which is
- * what makes the three tabs a partition.
- *
- * The old getJobCategory keyed off the highest APPLICATION status, so one
- * candidate reaching interview stage moved the advert to a different tab. That
- * is why it could not be exhaustive: an advert's tab depended on rows in
- * another table, and two of the six tabs did not render adverts at all.
- *
- * paused and closed sit under Live because Live means "still yours to work
- * on", not "visible on the board" -- and the card's own status line says
- * PAUSED or CLOSED, so nothing is claimed that is not true.
- */
-const tabOf = (status: PostedJob['status']): 'live' | 'filled' | 'archived' =>
-  status === 'archived' ? 'archived' : status === 'filled' ? 'filled' : 'live'
+
 
 interface AppliedJob {
   jobId: string
@@ -175,8 +166,8 @@ function MyJobsContent() {
   // repointed in this same commit -- and landing an employer on their working
   // set is the right answer for a URL we no longer recognise.
   const filterParam = searchParams.get('filter')
-  const validFilters = ['live', 'filled', 'archived'] as const
-  const activeTab = validFilters.includes(filterParam as any) ? (filterParam as typeof validFilters[number]) : 'live'
+  const validFilters = JOB_AD_TABS as readonly ('live' | 'filled' | 'archived')[]
+  const activeTab = validFilters.includes(filterParam as any) ? (filterParam as 'live' | 'filled' | 'archived') : 'live'
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -1084,7 +1075,7 @@ function MyJobsContent() {
                   <EmptyState
                     icon={Archive}
                     title="Nothing archived"
-                    description="Ads you archive are kept here. Nothing is deleted, and you can reuse any of them."
+                    description="Ads you archive are kept here, along with any that have run their 60 days. Nothing is deleted, and you can reuse any of them."
                   />
                 )
               )}

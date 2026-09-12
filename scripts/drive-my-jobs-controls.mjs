@@ -60,6 +60,13 @@
 import { chromium } from 'playwright'
 import { mkdirSync, readFileSync } from 'node:fs'
 import { createClient } from '@supabase/supabase-js'
+// IMPORTED, NOT RESTATED. The expected split below is the PAGE'S OWN RULE
+// applied to rows read straight from the database -- which is what makes this
+// a comparison of the screen against the state rather than of the page against
+// a paraphrase of itself that can drift. It HAD already drifted once inside
+// this branch: `closed` moved from Live to Archived in the page and not here,
+// one commit apart, and neither file could have disagreed with the other.
+import { tabOf, JOB_AD_TABS } from '../lib/jobAdTabs.mjs'
 
 const BASE = process.argv[2] || 'https://thrivecareer.co.uk'
 const EMAIL = 'pauldavies.gbr+employer@gmail.com'
@@ -89,7 +96,7 @@ if (!SUPA_URL || !SUPA_ANON) {
 
 mkdirSync(SHOTS, { recursive: true })
 
-const TABS = ['live', 'filled', 'archived']
+const TABS = JOB_AD_TABS
 const LABEL = { live: 'Live', filled: 'Filled', archived: 'Archived' }
 
 const results = []
@@ -115,7 +122,6 @@ const { data: rows, error: rowsErr } = await supa
   .from('jobs').select('id, status').eq('employer_id', signIn.user.id)
 if (rowsErr) { console.error(`SKIP  could not read this employer's adverts: ${rowsErr.message}`); process.exit(2) }
 
-const tabOf = (status) => status === 'archived' ? 'archived' : status === 'filled' ? 'filled' : 'live'
 const expected = { live: new Set(), filled: new Set(), archived: new Set() }
 for (const r of rows) expected[tabOf(r.status)].add(r.id)
 const TOTAL = rows.length
