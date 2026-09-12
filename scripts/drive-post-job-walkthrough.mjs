@@ -69,7 +69,13 @@ async function walk(width, height, tag) {
     inputs: document.querySelectorAll('input:not([type=hidden]):not([type=file])').length,
     selects: document.querySelectorAll('select').length,
     textareas: document.querySelectorAll('textarea').length,
-    required: document.querySelectorAll('[required]').length,
+    // NAMED FOR WHAT IT COUNTS. This is the HTML attribute, and the two
+    // fields that refuse to advance are chip GROUPS which cannot carry it —
+    // they are marked with a visible asterisk. Reported as "required: 0" this
+    // read as "nothing is marked required", which was wrong and nearly became
+    // a fix to a form that was already correct.
+    requiredAttrs: document.querySelectorAll('[required]').length,
+    markedRequired: document.querySelectorAll('label span[class*="required"]').length,
     horizontalOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
   }))
 
@@ -118,3 +124,12 @@ try {
   await browser.close()
 }
 console.log(JSON.stringify(out, null, 2))
+
+// EXIT NON-ZERO IF THE RUN DIED. It used to catch, print the message inside
+// its own JSON, and return 0 — so a run that threw halfway reported success to
+// anything reading the status. A measurement script gets the same standard as
+// a check: nothing is a pass that did not finish.
+if (out.error) {
+  console.error(`\nthe walkthrough did not finish: ${out.error.split('\n')[0]}`)
+  process.exit(1)
+}

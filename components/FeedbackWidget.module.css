@@ -1,6 +1,7 @@
 .wrapper {
   position: fixed;
-  bottom: 24px;
+  /* Same shape as the Ask Thrive launcher, which already reads the lane. */
+  bottom: calc(24px + var(--consent-h, 0px));
   right: 96px;
   z-index: var(--z-feedback);
   display: flex;
@@ -187,7 +188,7 @@
 @media (max-width: 768px) {
   .wrapper {
     position: fixed;
-    bottom: 0;
+    bottom: var(--consent-h, 0px);
     left: 0;
     right: 0;
     width: 100%;
