@@ -19,6 +19,7 @@
 // it is asserted rather than assumed.
 
 import { chromium } from 'playwright'
+import { signInAsFixture } from './lib/browser-sign-in.mjs'
 import { createClient } from '@supabase/supabase-js'
 import { readFileSync, existsSync, mkdirSync } from 'node:fs'
 import path from 'node:path'
@@ -67,12 +68,12 @@ let uploadedPath = null
 
 try {
   // ── sign in ──────────────────────────────────────────────────────────────
-  await page.goto(`${BASE}/login/employee`, { waitUntil: 'domcontentloaded' })
-  await page.fill('input[name="email"]', EMAIL)
-  await page.fill('input[name="password"]', PASSWORD)
-  await page.locator('button[type="submit"]:not([disabled])').waitFor({ timeout: 30000 })
-  await page.click('button[type="submit"]')
-  await page.waitForURL(/\/(dashboard|jobs|welcome)(\?|$|\/)/, { timeout: 40000 })
+  // /login/employee is a STUB that redirects to the unified /login, whose
+  // fields carry ids and NO name attribute — so input[name="email"] matched
+  // nothing and this drive has been unable to sign in since the pages were
+  // unified. It threw a 30-second timeout before a single assertion, which
+  // reads as a slow network rather than as a finding.
+  await signInAsFixture(page, { base: BASE, email: EMAIL, password: PASSWORD })
   check('signed in as the candidate fixture', page.url().replace(BASE, ''), !page.url().includes('/login'))
 
   // Dismiss the cookie banner — it overlays controls at the foot of the page.

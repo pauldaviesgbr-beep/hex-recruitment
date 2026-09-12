@@ -13,6 +13,7 @@
 // thing is usable at 390.
 
 import { chromium } from 'playwright'
+import { signInAsFixture } from './lib/browser-sign-in.mjs'
 import { mkdirSync } from 'node:fs'
 
 const BASE = process.argv[2] || 'https://thrivecareer.co.uk'
@@ -34,12 +35,10 @@ async function walk(width, height, tag) {
   })
   const page = await ctx.newPage()
 
-  await page.goto(`${BASE}/login/employer`, { waitUntil: 'domcontentloaded' })
-  await page.fill('input[name="email"]', EMAIL)
-  await page.fill('input[name="password"]', PASSWORD)
-  await page.locator('button[type="submit"]:not([disabled])').waitFor({ timeout: 30000 })
-  await page.click('button[type="submit"]')
-  await page.waitForURL(/\/(employer\/dashboard|my-jobs|dashboard)(\?|$|\/)/, { timeout: 40000 })
+  // See scripts/lib/browser-sign-in.mjs — the unified login broke the block
+  // that was here. The input[name="…"] selectors further down are the POST-JOB
+  // FORM and are correct; only the login block was stale.
+  await signInAsFixture(page, { base: BASE, email: EMAIL, password: PASSWORD })
 
   await page.goto(`${BASE}/post-job`, { waitUntil: 'domcontentloaded' })
   await page.waitForFunction(
