@@ -303,7 +303,7 @@ function JobAnalyticsContent() {
           <div className={styles.emptyState}>
             <p>Job not found.</p>
             <button className={styles.backLink} onClick={() => router.push(searchParams?.get('from') === 'my-jobs' ? '/my-jobs' : '/dashboard/analytics')}>
-              Back to {searchParams?.get('from') === 'my-jobs' ? 'Manage Job Ads' : 'Analytics Dashboard'}
+              Back to {searchParams?.get('from') === 'my-jobs' ? 'Job ads' : 'Analytics Dashboard'}
             </button>
           </div>
         </div>
@@ -325,7 +325,7 @@ function JobAnalyticsContent() {
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="15 18 9 12 15 6" />
           </svg>
-          {searchParams?.get('from') === 'my-jobs' ? 'Back to Manage Job Ads' : 'Back to Analytics Dashboard'}
+          {searchParams?.get('from') === 'my-jobs' ? 'Back to Job ads' : 'Back to Analytics Dashboard'}
         </button>
 
         <div className={styles.jobHeader}>

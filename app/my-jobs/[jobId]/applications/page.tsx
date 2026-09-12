@@ -736,7 +736,7 @@ export default function JobApplicationsPage() {
         <div className={styles.header}>
           <button className={styles.backLink} style={{ border: 'none', background: 'none', padding: 0, cursor: 'pointer' }} onClick={() => router.push(fromPipeline ? '/pipeline' : '/my-jobs')}>
             <span className={styles.backArrow}>←</span>
-            {fromPipeline ? 'Back to Pipeline' : 'Back to Manage Job Ads'}
+            {fromPipeline ? 'Back to Pipeline' : 'Back to Job ads'}
           </button>
 
           <div className={styles.jobInfo}>
@@ -834,7 +834,7 @@ export default function JobApplicationsPage() {
                 <Ico name="file-text" size={16} /> Copy Job Link
               </button>
               <button className={styles.backBtn} onClick={() => router.push(fromPipeline ? '/pipeline' : '/my-jobs')}>
-                {fromPipeline ? 'Back to Pipeline' : 'Back to Manage Job Ads'}
+                {fromPipeline ? 'Back to Pipeline' : 'Back to Job ads'}
               </button>
             </div>
           </div>

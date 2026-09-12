@@ -1003,7 +1003,7 @@ function MyJobsContent() {
                  activeTab === 'offers' ? 'Offers' :
                  activeTab === 'hired' ? 'Hired' :
                  activeTab === 'archived' ? 'Archived Jobs' :
-                 'Manage Job Ads'}
+                 'Job ads'}
               </h1>
               <p className={styles.subtitle}>
                 {activeTab === 'interviewing' ? 'Jobs with candidates in the interview stage' :

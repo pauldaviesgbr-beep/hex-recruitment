@@ -57,7 +57,16 @@ const check = (name: string, got: () => unknown, want: unknown) => {
 // Every `body { ... }` rule in the stylesheet, wherever it sits and whatever
 // media query it is nested in. The override that made the first version of this
 // fix do nothing was a body rule inside @media (max-width: 768px).
-const bodyRules = globals.match(/(^|[\s,{}])body\s*\{[^}]*\}/g) || []
+// STRIP COMMENTS BEFORE ISOLATING THE RULE — added 12 Sept 2026.
+//
+// This scan bounds the body rule with `[^}]*`, so a brace inside a COMMENT
+// ends the match early and the reserve reads as absent. Three of the checks
+// below went red against entirely correct CSS for exactly that reason, when
+// a comment in the body rule quoted the declaration it was warning against.
+// A check that reads comments is reading the description of the code rather
+// than the code, and this file's comments are long and quote CSS often.
+const globalsCode = globals.replace(/\/\*[\s\S]*?\*\//g, '')
+const bodyRules = globalsCode.match(/(^|[\s,{}])body\s*\{[^}]*\}/g) || []
 
 // ── THE TWO NUMBERS CANNOT DISAGREE, BECAUSE THERE IS ONE ──────────────────
 // The first version published a constant '88px' and the stylesheet drew a

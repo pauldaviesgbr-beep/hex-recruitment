@@ -24,6 +24,17 @@ export default function EmployerSidebar() {
   const sidebarRef = useRef<HTMLElement>(null)
   const [collapsed, setCollapsed] = useState(true)
   const [mobileOpen, setMobileOpen] = useState(false)
+
+  /* THE BOTTOM BAR'S "More" OPENS THIS DRAWER — it does not build a second
+   * one. There is one list of fifteen items and one place it lives; a second
+   * drawer would be a second copy of the nav, and a second copy does not stay
+   * a copy. The bar dispatches an event rather than holding a ref, because
+   * the two components are siblings under Header and neither owns the other. */
+  useEffect(() => {
+    const open = () => setMobileOpen(true)
+    document.addEventListener('thrive:open-sidebar', open)
+    return () => document.removeEventListener('thrive:open-sidebar', open)
+  }, [])
   const [mounted, setMounted] = useState(false)
   const [companyName, setCompanyName] = useState<string>('')
 
@@ -148,7 +159,7 @@ export default function EmployerSidebar() {
       ),
     },
     {
-      label: 'Manage Job Ads',
+      label: 'Job ads',
       href: '/my-jobs',
       icon: (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -174,7 +185,7 @@ export default function EmployerSidebar() {
       ),
     },
     {
-      label: 'Temp Work',
+      label: 'Shifts',
       href: '/temp-work',
       icon: (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

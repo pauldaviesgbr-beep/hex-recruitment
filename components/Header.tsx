@@ -11,6 +11,7 @@ import { isAdmin } from '@/lib/admin-client'
 import { Bot, ShieldCheck } from 'lucide-react'
 import dynamic from 'next/dynamic'
 const NotificationBell = dynamic(() => import('./NotificationBell'), { ssr: false })
+const BottomNav = dynamic(() => import('./BottomNav'), { ssr: false })
 const EmployerSidebar = dynamic(() => import('./EmployerSidebar'), { ssr: false })
 const CandidateSidebar = dynamic(() => import('./CandidateSidebar'), { ssr: false })
 import styles from './Header.module.css'
@@ -628,6 +629,12 @@ export default function Header() {
     <>
       {showSidebar && <EmployerSidebar />}
       {showCandidateSidebar && <CandidateSidebar />}
+      {/* The bottom bar rides with the sidebar: same audience, same mount
+          condition, and living in the header means it is static markup that
+          paints on every navigation rather than after each page's fetch.
+          Mobile-only is decided in CSS, not here, so the height it publishes
+          is the rendered one at whatever width the person is actually on. */}
+      {showSidebar && <BottomNav />}
       {/* headerSheetOpen: on mobile the profile menu becomes a full-screen
           sheet, but it is a CHILD of this header — which is position:fixed
           with a z-index, so it is a stacking context and the sheet can never

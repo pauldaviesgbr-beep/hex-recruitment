@@ -176,7 +176,7 @@ export default function ManageTempWorkPage() {
       <Header />
       <div style={wrap}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: '0.35rem' }}>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: C.ink }}>Your temp work</h1>
+          <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: C.ink }}>Shifts</h1>
           <Link href="/temp-work/post" style={{ padding: '9px 16px', background: C.yellow, color: C.ink, fontWeight: 700, fontSize: '0.9rem', borderRadius: 9, textDecoration: 'none' }}>+ Post</Link>
         </div>
         {/* TWO STATES, TWO SENTENCES.

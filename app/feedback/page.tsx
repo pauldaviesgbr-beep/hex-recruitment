@@ -29,7 +29,7 @@ const EMPLOYER_QUESTIONS = [
   { id: 'q6', label: 'Would you recommend Thrive to another business owner?', options: ['Yes definitely', 'Maybe', 'No'] },
 ]
 
-const EMPLOYER_FEATURES = ['Post a Job', 'Manage Job Ads', 'Find Candidates', 'Application Pipeline', 'Analytics', 'Messages', 'Boost']
+const EMPLOYER_FEATURES = ['Post a Job', 'Job ads', 'Find Candidates', 'Application Pipeline', 'Analytics', 'Messages', 'Boost']
 
 const HEARD_FROM_OPTIONS = ['Friend/colleague', 'Social media', 'Google search', 'Other']
 

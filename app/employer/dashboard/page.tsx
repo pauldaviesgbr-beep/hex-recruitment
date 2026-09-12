@@ -1314,7 +1314,7 @@ export default function EmployerDashboardPage() {
                     now carries both — /my-jobs leads on to /temp-work/manage. */}
                 <span style={{ display: 'inline-flex', gap: '0.9rem', alignItems: 'baseline' }}>
                   <Link href="/temp-work/manage" className={styles.cardLink}>Shifts</Link>
-                  <Link href="/my-jobs" className={styles.cardLink}>Manage Jobs</Link>
+                  <Link href="/my-jobs" className={styles.cardLink}>Job ads</Link>
                 </span>
               </div>
               <div className={styles.cardBody}>

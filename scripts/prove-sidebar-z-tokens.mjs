@@ -81,7 +81,38 @@ for (const f of ['components/CandidateSidebar.module.css', 'components/EmployerS
   check(`…and the family lines use the sidebar tokens`, tokens.length >= 4, `${tokens.length}`)
 }
 
+// ── THE BOTTOM BAR JOINS THE FAMILY — added 12 Sept 2026 ─────────────────
+//
+// It is NAVIGATION, so it belongs on --z-sidebar-nav with the rest of the
+// nav: above the header, and below every modal because the apply sheet is
+// modal family and must cover it. It is asserted HERE rather than in its own
+// script for the reason this file already embodies — the ordering is one
+// fact about one scale, and a second script asserting a second copy of it is
+// how the two drift. The bar's own proof covers its bottom reserve; the
+// z-scale lives here.
+console.log('')
+{
+  const f = 'components/BottomNav.module.css'
+  const css = readFileSync(f, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '')
+  const zLines = css.match(/z-index:[^;]+;/g) || []
+  const literals = zLines.filter(l => /z-index:\s*\d/.test(l))
+  // ZERO-GUARD: a fixed bar with no z-index at all is not "passing", it is a
+  // bar whose stacking is whatever the document order happens to give it.
+  check('BottomNav.module.css declares a z-index at all', zLines.length >= 1, `${zLines.length} lines`)
+  check('…zero HARDCODED z-index literals', literals.length === 0,
+    literals.length ? literals.join(' ') : '')
+  check('…and it sits on --z-sidebar-nav, with the nav family',
+    zLines.some(l => /z-index:\s*var\(--z-sidebar-nav\)/.test(l)),
+    zLines.join(' ').trim())
+  // The ordering that makes it correct, stated against the parsed numbers
+  // rather than assumed from the token's name.
+  if (nav && header && modal) {
+    check('…which is above the header and below every modal',
+      nav > header && nav < modal, `header ${header} < bar ${nav} < modal ${modal}`)
+  }
+}
+
 console.log('')
 if (bad) { console.log(`${bad} FAILED`); process.exit(1) }
-console.log('the sidebar family is on the tokens, above the header, below every modal')
+console.log('the sidebar family and the bottom bar are on the tokens, above the header, below every modal')
 process.exit(0)

@@ -128,7 +128,7 @@ export default function RemoveAdModal({ jobTitle, applicationCount, onCancel, on
               /my-jobs kebab and means nothing on the edit form — where it was
               being displayed. Naming the destination rather than the control
               survives being read from anywhere. */}
-          <li>You can restore it any time from the <strong>Archived</strong> tab in My Jobs.</li>
+          <li>You can restore it any time from the <strong>Archived</strong> tab in Job ads.</li>
         </ul>
 
         {error && (

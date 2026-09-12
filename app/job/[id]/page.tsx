@@ -296,7 +296,7 @@ export default function JobDetailPage() {
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="15 18 9 12 15 6" />
             </svg>
-            {fromParam === 'applications' ? 'Back to My Applications' : fromParam === 'saved' ? 'Back to Saved Jobs' : fromParam === 'my-jobs' ? 'Back to Manage Job Ads' : currentUserRole === 'employer' ? 'Back to Dashboard' : 'Back to Browse Jobs'}
+            {fromParam === 'applications' ? 'Back to My Applications' : fromParam === 'saved' ? 'Back to Saved Jobs' : fromParam === 'my-jobs' ? 'Back to Job ads' : currentUserRole === 'employer' ? 'Back to Dashboard' : 'Back to Browse Jobs'}
           </button>
         </div>
 

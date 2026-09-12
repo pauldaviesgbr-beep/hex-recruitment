@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Manage Job Ads - Your Job Listings',
+  title: 'Job ads',
   description: 'Manage your posted job listings, view applications and track candidates on Thrive.',
   robots: { index: false },
   alternates: {

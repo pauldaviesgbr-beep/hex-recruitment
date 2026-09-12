@@ -40,15 +40,31 @@
 // Every emoji-as-iconography in the product routes through here now. If a new
 // surface needs an icon, it gets an entry in this table — not an emoji, and
 // not a one-off import of lucide-react somewhere else.
+//
+// THE NEW DECISION THIS MODULE ASKED FOR — Paul, 12 Sept 2026, and it is the
+// opposite of what the spec mapping implied. The September handoff's "met"
+// chip on the applicant card was drawn with a tick; the tick is DROPPED. That
+// chip is colour and text only. The amber triangle on the "under the advert"
+// chip stays, because it is doing work the colour alone does not.
+//
+// So ✓→check is still NOT to be applied. The decision above stands, and this
+// is the new decision it was waiting for: it resolved by removing the tick
+// rather than by converting it. `check` stays in the registry for the surfaces
+// that legitimately use it.
+//
+// EIGHT ICONS WERE ADDED ON 12 SEPT 2026 for the September update — plus,
+// chevron-right, chevron-down, grip-vertical, copy, archive, menu,
+// more-horizontal. Sanctioned by the same decision; this is the route the
+// module asks for, rather than a one-off import at the call site.
 
 import type { LucideIcon } from 'lucide-react'
 import {
-  AlertTriangle, Apple, ArrowRight, Ban, Banknote, BarChart3, Bell, Box, Briefcase, Building2,
-  Cake, Calendar, Camera, Check, ChefHat, Clock, Compass, CreditCard, Eye,
-  File, FileText, Flag, FlaskConical, Flame, Folder, Gift, Globe, Handshake,
+  AlertTriangle, Apple, Archive, ArrowRight, Ban, Banknote, BarChart3, Bell, Box, Briefcase, Building2,
+  Cake, Calendar, Camera, Check, ChefHat, ChevronDown, ChevronRight, Clock, Compass, Copy, CreditCard, Eye,
+  File, FileText, Flag, FlaskConical, Flame, Folder, Gift, Globe, GripVertical, Handshake,
   HelpCircle, Home, Image as ImageIcon, Inbox, Info, Key, Laptop, Lightbulb,
-  Link as LinkIcon, Lock, LockOpen, Mail, MapPin, MessageSquare, Mic,
-  Package, Paperclip, PartyPopper, Pause, Pencil, Phone, Radio, RefreshCw,
+  Link as LinkIcon, Lock, LockOpen, Mail, MapPin, Menu, MessageSquare, Mic, MoreHorizontal,
+  Package, Paperclip, PartyPopper, Pause, Pencil, Phone, Plus, Radio, RefreshCw,
   Rocket, Search, Settings, Shield, Smartphone, Sparkles, Star, Tag, Tent,
   Timer, Trash2, TrendingUp, User, Users, UtensilsCrossed, Video, X, Zap,
   Martini,
@@ -57,6 +73,7 @@ import {
 export const ICONS = {
   'alert-triangle': AlertTriangle,
   apple: Apple,
+  archive: Archive,
   'arrow-right': ArrowRight,
   ban: Ban,
   banknote: Banknote,
@@ -70,8 +87,11 @@ export const ICONS = {
   camera: Camera,
   check: Check,
   'chef-hat': ChefHat,
+  'chevron-down': ChevronDown,
+  'chevron-right': ChevronRight,
   clock: Clock,
   compass: Compass,
+  copy: Copy,
   'credit-card': CreditCard,
   eye: Eye,
   file: File,
@@ -82,6 +102,7 @@ export const ICONS = {
   folder: Folder,
   gift: Gift,
   globe: Globe,
+  'grip-vertical': GripVertical,
   handshake: Handshake,
   'help-circle': HelpCircle,
   home: Home,
@@ -97,14 +118,17 @@ export const ICONS = {
   mail: Mail,
   'map-pin': MapPin,
   martini: Martini,
+  menu: Menu,
   'message-square': MessageSquare,
   mic: Mic,
+  'more-horizontal': MoreHorizontal,
   package: Package,
   paperclip: Paperclip,
   'party-popper': PartyPopper,
   pause: Pause,
   pencil: Pencil,
   phone: Phone,
+  plus: Plus,
   radio: Radio,
   'refresh-cw': RefreshCw,
   rocket: Rocket,

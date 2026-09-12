@@ -461,7 +461,7 @@ export default function InterviewsPage() {
               <p className={styles.emptyText}>
                 When you schedule interviews with candidates they will appear here.
               </p>
-              <Link href="/my-jobs" className={styles.emptyLink}>Manage Job Ads</Link>
+              <Link href="/my-jobs" className={styles.emptyLink}>Job ads</Link>
             </div>
           )
         ) : filteredUpcoming.length === 0 ? (

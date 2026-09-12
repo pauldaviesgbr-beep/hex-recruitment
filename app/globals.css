@@ -73,6 +73,42 @@
   --rs-brand-navy: #0f172a;
   --rs-brand-yellow: #FFE500;
 
+  /* ── The September update — eleven tokens, one family ──────────────────
+     EXTEND --rs-*, never start a fourth family. Added as one block rather
+     than per branch: they are the token layer, and splitting them across
+     four branches means four edits to the same lines of this file.
+
+     --rs-text-soft ABOVE IS BORDERS AND PLACEHOLDERS ONLY, NEVER TYPE. It
+     fails 4.5:1 at every size these screens use. The first design bundle
+     shipped two invented greys (#7A8494, #46536B) presented as the repo
+     ramp; #7A8494 failed contrast in nine places including every section
+     label. If either hex appears anywhere, it is stale. */
+
+  /* Status, replacing the FILLED pill. Never a filled pill: a dot and caps. */
+  --rs-live:        #12a05f;
+  --rs-live-ink:    #0a7a4b;
+  --rs-dormant:     #b6bdc9;
+
+  /* THE ONE ATTENTION SURFACE. If a second thing on a screen is this colour,
+     neither is attention any more. */
+  --rs-attn-bg:     #fffbe0;
+  --rs-attn-border: #f0e08a;
+  --rs-attn-ink:    #6b5c00;
+
+  /* Card action bar. --rs-tap is the 48px target the bar and the primary
+     buttons share; 44px is the floor everywhere else. */
+  --rs-tap:         48px;
+  --rs-hairline:    #eef0f4;
+
+  /* Screening answers. --rs-under is AMBER, NOT RED, deliberately: a
+     candidate under the advert is a mismatch, not an error, and red would
+     make the product take a view the chips are specifically not allowed to
+     take. */
+  --rs-met-bg:      #eaf7f0;
+  --rs-under:       #fff4e5;
+  --rs-under-line:  #f0d9ae;
+  --rs-under-ink:   #8a5200;
+
   /* Stage accents — preserved values from STAGES in app/pipeline/page.tsx
      so the source of truth stays in TS for behaviour and CSS only mirrors. */
   --rs-stage-reviewing:   #3b82f6;
@@ -158,8 +194,21 @@ body {
      fix: it leaves the next new screen to break the same way, and it did.
      components/CookieConsent.tsx publishes its height here while the banner is
      unanswered, and 0 the moment it is not. One rule, every page, including
-     pages nobody has written yet. */
-  padding-bottom: calc(var(--chat-clear, 0px) + var(--consent-h, 0px));
+     pages nobody has written yet.
+
+     THE EMPLOYER BOTTOM BAR IS THE THIRD TERM, ADDED 12 Sept 2026. It is
+     fixed at the foot on a phone exactly as the other two are, so it goes in
+     THIS SUM and nowhere else. components/BottomNav.tsx publishes
+     --nav-bottom-h from the rendered box and 0 on unmount. Giving the bar a
+     bottom padding of its own is the bug this comment already describes,
+     with a third path added to the two that must agree.
+
+     NO BRACES IN THIS COMMENT, deliberately. prove-consent-lane.ts isolates
+     this rule with a `[^}]*` scan, so a brace in the prose ends the match
+     early and the reserve reads as absent — three green checks went red on
+     correct CSS that way. The scan now strips comments; this stays brace-free
+     so it does not depend on that. */
+  padding-bottom: calc(var(--chat-clear, 0px) + var(--consent-h, 0px) + var(--nav-bottom-h, 0px));
 }
 
 :root {
@@ -169,6 +218,11 @@ body {
   /* The Ask Thrive launcher sits fixed at the foot on a phone and needs its
      own clearance. Zero on desktop, where it does not overlap content. */
   --chat-clear: 0px;
+  /* The employer bottom bar. Declared here so the fallback is never needed
+     and the variable is greppable from the stylesheet as well as from
+     components/BottomNav.tsx, which publishes the rendered height. Zero for
+     everyone who is not an employer on a phone. */
+  --nav-bottom-h: 0px;
 }
 
 /* ──────────────────────────────────────────────────────────

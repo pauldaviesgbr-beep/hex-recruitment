@@ -561,6 +561,10 @@ const ALL = [
 
   { name: 'sidebarz:prove', cmd: npm, args: ['run', 'sidebarz:prove'] },
 
+  // The bottom bar's bottom reserve and its nav-height token. Filesystem
+  // only, so it runs everywhere and can never be a red nobody expects.
+  { name: 'bottomnav:prove', cmd: npm, args: ['run', 'bottomnav:prove'] },
+
   { name: 'reportcontrol:prove', cmd: npm, args: ['run', 'reportcontrol:prove'] },
 
   // AND THAT THE BLOCK ACTUALLY REFUSES, through real sessions.

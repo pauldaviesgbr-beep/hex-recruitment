@@ -574,7 +574,7 @@ export default function TempWorkPage() {
               auto-placement would otherwise drop it into the filter column. */}
           <div className={styles.feedHead}>
             <div>
-              <h1 className={styles.h1}>Temp Work</h1>
+              <h1 className={styles.h1}>Shifts</h1>
               <p className={styles.h1sub}>Short-term roles and casual shifts. Apply to a role, or tell an employer you&rsquo;re available for a shift.</p>
             </div>
             {canPost && <Link href="/temp-work/post" className={styles.feedPostBtn}>+ Post</Link>}

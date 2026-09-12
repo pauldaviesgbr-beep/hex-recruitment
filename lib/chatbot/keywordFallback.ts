@@ -118,15 +118,15 @@ const responsePatterns: ResponsePattern[] = [
   },
   {
     keywords: ['edit job', 'update job', 'change job', 'modify listing'],
-    response: "You can edit any of your job listings from the \"Manage Job Ads\" page. Find the job card and click \"Edit\" to update the title, description, salary, location, or any other details. Changes go live immediately."
+    response: "You can edit any of your job listings from the \"Job ads\" page. Find the job card and click \"Edit\" to update the title, description, salary, location, or any other details. Changes go live immediately."
   },
   {
     keywords: ['pause job', 'deactivate job', 'hide job'],
-    response: "You can pause a job listing from the \"Manage Job Ads\" page. Click the \"Pause\" button on any active job card. Paused jobs are hidden from candidates but can be reactivated at any time."
+    response: "You can pause a job listing from the \"Job ads\" page. Click the \"Pause\" button on any active job card. Paused jobs are hidden from candidates but can be reactivated at any time."
   },
   {
     keywords: ['delete job', 'remove job', 'close job'],
-    response: "You can delete a job listing from the \"Manage Job Ads\" page. Click the \"Delete\" button on the job card. Please note that deleting a job will also remove all associated applications."
+    response: "You can delete a job listing from the \"Job ads\" page. Click the \"Delete\" button on the job card. Please note that deleting a job will also remove all associated applications."
   },
 
   // ── EMPLOYER: BROWSING CANDIDATES ──
@@ -139,8 +139,8 @@ const responsePatterns: ResponsePattern[] = [
   // ── EMPLOYER: MY CANDIDATES (HIRING PIPELINE) ──
   {
     keywords: ['my candidate', 'my jobs', 'application', 'applicant', 'pipeline', 'hiring pipeline', 'manage candidate'],
-    response: "The \"Manage Job Ads\" page is your central hiring dashboard! It shows all your job listings and their applicants. You can:\n\n• View all candidates who applied to your jobs\n• Review their profiles and CVs\n• Move candidates through stages: Reviewing, Interviewing, Offers, Hired\n• Filter by status to focus on what needs attention\n\nUse the sidebar links to quickly jump to Interviews, Offers, or Hired views.",
-    links: [{ text: 'Manage Job Ads', href: '/my-jobs' }]
+    response: "The \"Job ads\" page is your central hiring dashboard! It shows all your job listings and their applicants. You can:\n\n• View all candidates who applied to your jobs\n• Review their profiles and CVs\n• Move candidates through stages: Reviewing, Interviewing, Offers, Hired\n• Filter by status to focus on what needs attention\n\nUse the sidebar links to quickly jump to Interviews, Offers, or Hired views.",
+    links: [{ text: 'Job ads', href: '/my-jobs' }]
   },
 
   // ── EMPLOYER: INTERVIEWS ──

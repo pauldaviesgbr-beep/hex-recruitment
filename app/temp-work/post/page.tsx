@@ -115,7 +115,7 @@ export default function PostTempWorkPage() {
     <main><Header /><div style={{ ...wrap, textAlign: 'center' }}>
       <h1 style={{ fontSize: '1.4rem', fontWeight: 700, marginBottom: '0.5rem' }}>Post temp work</h1>
       <p style={{ color: C.sub }}>You need the “manage jobs” permission to post. Ask your account owner for access.</p>
-      <Link href="/temp-work" style={{ color: '#334155' }}>← Back to Temp Work</Link>
+      <Link href="/temp-work" style={{ color: '#334155' }}>← Back to Shifts</Link>
     </div></main>
   )
 
@@ -123,7 +123,7 @@ export default function PostTempWorkPage() {
     <main>
       <Header />
       <div style={wrap}>
-        <Link href="/temp-work" style={{ color: C.sub, fontSize: '0.85rem', textDecoration: 'none' }}>← Temp Work</Link>
+        <Link href="/temp-work" style={{ color: C.sub, fontSize: '0.85rem', textDecoration: 'none' }}>← Shifts</Link>
         <h1 style={{ fontSize: '1.5rem', fontWeight: 800, margin: '0.4rem 0 0.25rem', color: C.ink }}>Post temp work</h1>
         <p style={{ color: C.sub, fontSize: '0.9rem', marginBottom: '1.5rem' }}>Post a shift or short-term gig. Workers browse and tap “I’m available”; you take it from there.</p>
 
@@ -209,7 +209,7 @@ export default function PostTempWorkPage() {
         <FormError message={error} style={{ color: '#b91c1c', fontSize: '0.88rem', marginBottom: '0.75rem' }} />
 
         <button onClick={submit} disabled={busy} style={{ padding: '0.7rem 1.4rem', background: C.yellow, color: C.ink, fontWeight: 700, fontSize: '0.95rem', border: 'none', borderRadius: 10, cursor: 'pointer', opacity: busy ? 0.6 : 1 }}>
-          {busy ? 'Posting…' : 'Post to Temp Work'}
+          {busy ? 'Posting…' : 'Post to Shifts'}
         </button>
 
         <p style={{ marginTop: '1.5rem', fontSize: '0.78rem', lineHeight: 1.5, color: '#94a3b8' }}>{DISCLAIMER}</p>
