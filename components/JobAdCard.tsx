@@ -125,7 +125,7 @@ export default function JobAdCard({ model: m, onOpen, onEdit, onReuse, kebab }: 
           <button type="button" className={styles.action} onClick={onEdit}>
             <Ico name="pencil" size={16} /> Edit ad
           </button>
-          <Link href={'/job/' + m.id + '?from=my-jobs'} className={styles.action}>
+          <Link href={`/job/${m.id}?from=my-jobs`} className={styles.action}>
             <Ico name="eye" size={16} /> View
           </Link>
         </div>

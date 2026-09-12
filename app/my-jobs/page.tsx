@@ -863,7 +863,7 @@ function MyJobsContent() {
               </button>
             )}
             <button type="button" role="menuitem" className={styles.kebabItem}
-              onClick={(e) => choose(e, () => router.push('/employer/analytics/' + job.id))}>
+              onClick={(e) => choose(e, () => router.push(`/employer/analytics/${job.id}`))}>
               <span className={styles.kebabItemIcon} aria-hidden="true"><Ico name="bar-chart-3" size={16} /></span>
               <span>View analytics</span>
             </button>
@@ -1029,7 +1029,7 @@ function MyJobsContent() {
                 type="button"
                 className={tab.key === activeTab ? styles.tab + ' ' + styles.tabActive : styles.tab}
                 aria-current={activeTab === tab.key ? 'page' : undefined}
-                onClick={() => router.push('/my-jobs?filter=' + tab.key)}
+                onClick={() => router.push(`/my-jobs?filter=${tab.key}`)}
               >
                 {tab.label}
                 <span className={styles.tabCount}>{viewData.counts[tab.key]}</span>
@@ -1093,7 +1093,7 @@ function MyJobsContent() {
                 <JobAdCard
                   key={job.id}
                   model={model}
-                  onOpen={() => router.push('/my-jobs/' + job.id + '/applications')}
+                  onOpen={() => router.push(`/my-jobs/${job.id}/applications`)}
                   onEdit={() => setEditTarget(job)}
                   onReuse={() => handleRepostJob(job)}
                   kebab={renderKebab(job, !!jobBoosts[job.id])}
