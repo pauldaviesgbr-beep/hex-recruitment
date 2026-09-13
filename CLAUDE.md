@@ -687,6 +687,21 @@ Standing rules for Claude Code on this project. These override default behaviour
 
 ## The open list — named, dated, not touched
 
+- **SIX CLASS NAMES ON THE CANDIDATE'S "MY APPLIED JOBS" VIEW HAVE NO RULE BEHIND THEM, AND CANDIDATES HAVE BEEN LOOKING AT A PARTLY UNSTYLED PAGE.** `company`, `cardBody`, `appliedDate`, `dateIcon`, `cardFooter`, `viewJobBtn` in `app/my-jobs/page.tsx` resolve against `page.module.css`, which declares none of them. Their siblings on the same card — `.jobTitle`, `.statusBadge`, `.jobInfo` — do have rules, which is what makes it look deliberate.
+  - **A CSS-MODULE CLASS THAT DOES NOT EXIST EVALUATES TO `undefined`, React drops the attribute, and the element renders as bare unstyled text.** It compiles, type-checks and builds in silence. Nothing in the stack can see it: not `tsc`, not the build, not a grep for the class name, which finds the JSX and never asks whether the rule exists.
+  - **IT IS ON THE PAGE WHERE A CANDIDATE CHECKS WHAT THEY APPLIED FOR**, which is the one screen a person opens when they are already anxious about an outcome.
+  - Found 12 Sept 2026 while building the employer side of the same file, by a check that asserts the AGREEMENT between `styles.X` and `.X`. **Deliberately not fixed in that branch: widening a check to cover a fault you are not fixing turns it red on arrival**, and this is the candidate view rather than the work in hand.
+  - **THE FIX IS CHEAP AND THE DECISION IS NOT.** Six rules is twenty minutes; what they should LOOK like is a design question nobody has answered, because nobody has seen the page styled. Do not invent six rules and call it a fix.
+  - **AND THE CHECK SHOULD BECOME STANDING.** `jobadscard:prove` asserts the agreement for two files. Pointed at every `.tsx` with a CSS module beside it, it would find this class of fault everywhere at once — and it must be added with its existing failures already fixed or explicitly listed, or it arrives red and nobody reads it.
+
+- **TWO OF THE THREE RETIRED STATES ON THE SHIFT FEED CAN NEVER RENDER.** `retiredLabel()` returns "Filled", "Closed" or "Expired". The feed's own query is `.or('status.eq.open,and(status.eq.filled,expires_at.gt.<now>)')` — **so a `closed` or `expired` post is never fetched at all**, and only `filled`, inside its expiry window, can ever reach the retired treatment.
+  - Whoever wrote `retiredLabel` wrote two branches the page cannot reach. Nothing is wrong with either function; the FILTER and the LABELLER disagree about which states exist, and neither can see the other.
+  - **IT WAS FOUND BY A DRIVE SKIPPING**, not by a failure: `drive-branded-card-retired` looked for a branded card under the retired wash, found none, and the reason turned out not to be "the feed is quiet" — `temp_posts` held exactly one row and its status was `closed`.
+  - **DECIDED 12 Sept 2026: that drive is retired and its assertions fold into the /temp-work drives.** A check that can only ever see one of three states, and today sees none, is not a check. Not a fixture — that means writing to a live public feed, and one has leaked before.
+
+- **THE SITE HEADER OVERFLOWS AT 320.** The notification bell and the avatar run past the right edge. `components/Header`, seen 12 Sept 2026 while driving an unrelated page at that width. Recorded, not fixed — and it belongs with the tablet-width entry above: **every breakpoint in this product was written for a phone or a desktop, and 320 is the bottom edge of "phone" that nobody has actually looked at.**
+
+
 - **THE ROLES ROUNDUP EMAIL HAS NEVER ONCE SENT ON ITS SCHEDULE.** Reported to me as "failed the last three runs". It is worse and it is a different fault: **FOUR scheduled runs, 4, 11, 18 and 25 August 2026, ALL FAILED — and the schedule has a 0% success rate for its entire existence.** The only two green runs, #1 and #5, were both `workflow_dispatch` on 28 July, the day it was built.
   - **SO NOBODY BROKE IT. IT NEVER WORKED UNATTENDED.** That changes what the fix is: this is not a regression to bisect, it is something that only ever ran by hand. And the line recorded in the STATE OF PLAY reports — "the first real send went to 14 candidates on 28 Jul" — describes a MANUAL run. **THE WEEKLY EMAIL HAS NEVER ONCE REACHED A CANDIDATE ON ITS OWN.** (That claim was never in this file; it lived in the rolling draft, which is exactly the place a reassuring and wrong sentence survives longest — see the three policy contradictions that lived only in a draft for days.)
   - Found 28 Aug 2026 by reading the run list rather than the summary; **the three-versus-four difference came from counting what was on the screen instead of asking the API for the whole history.** Same shape as the emoji inventory that reported seven of thirty-seven.
@@ -1112,6 +1127,28 @@ wrong reason is worse than no check, because it ends the search.
     EXCLUDED before believing it: the LIMIT, the ORDER BY, the WHERE,
     the substring, the time window. It costs one re-run.
 
+- A RULE LEARNED ABOUT ONE INSTRUMENT DOES NOT GENERALISE TO THE
+  OTHERS BY ITSELF — Paul's line, 12 Sept 2026, and the evidence is a
+  single report. In it I corrected a miscount caused by reading a GREP
+  as behaviour — two of six files carried a stale selector only inside a
+  COMMENT written by whoever had already fixed them — restated the rule,
+  and then in the same report read a DOM QUERY as behaviour:
+  `querySelectorAll('[required]').length` returned 0, and I reported
+  that the two fields blocking the post-job form carry no required
+  marker. BOTH CARRY A VISIBLE ASTERISK. They are chip GROUPS,
+  role="group" with aria-pressed buttons, which cannot carry that
+  attribute at all.
+  - THE RULE WAS KNOWN, FRESHLY WRITTEN, AND DID NOT TRANSFER. "A grep
+    is not a count of behaviour" had just been applied. "A DOM query is
+    not a count of behaviour" is the same sentence about a different
+    tool and it did not arrive with it.
+  - AND IT CAUSED WORK TO BE ORDERED. Paul read the finding and asked
+    for the fields to be marked required — a fix to a form that was
+    already correct, on an instrument's word.
+  - THE FIX IS TO NAME THE FIELD FOR WHAT IT COUNTS. The drive reports
+    `requiredAttrs` beside `markedRequired` now, so neither of us can
+    make that reading twice. A field called `required` invites it.
+
 - A CHECK'S SELECTOR IS PART OF THE CHECK, AND IT IS THE PART THAT IS
   WRONG. When a drive comes back red, the first question is not "what
   did I break" but "is my instrument measuring what I named". Five in
@@ -1230,6 +1267,12 @@ wrong reason is worse than no check, because it ends the search.
 
 - **ABSENCE FROM THE CHECKOUT IS NOT ABSENCE FROM THE REPOSITORY.** On 3 Sept 2026 a sweep reported `create-deletion-take-candidate.ts` "does not exist in the tree" — flagged so nobody would assume a script that was not there. **The script had existed for a day**, committed and pushed on `chore/deletion-take-candidate`, never merged — and the account it creates (Jordan Ellis) was live in the database, made by running it from that branch. The sweep asked the CHECKOUT (`ls scripts/`) a question about the REPOSITORY, and the checkout answered honestly about itself.
   - It is the unmerged-branch trap from the other side. The existing entries are about work that dies with a branch ("a local commit never pushed is invisible to every question asked of the remote"; the rescue order; the aggregator SQL); this one is about work that is ALIVE on a branch and invisible to a tree listing — so the effect ran backwards: instead of losing a thing that existed, a session nearly rebuilt a thing that was not lost. **`git log --all --diff-filter=A -- '<name>'` answers "has this ever existed anywhere" in one command**, and it is the question to ask before writing a file somebody described to you.
+  - **"THE FILE" IS NOT A THING, AND THERE ARE THREE FACES OF THIS — all three met in one evening, 12 Sept 2026.** There is the file on this branch, the file on that branch, and the file in your editor's cache, and they can all differ while every one of them answers confidently.
+    - **ABSENT FROM THE CHECKOUT, PRESENT IN THE REPOSITORY** — the original: `ls scripts/` said a script did not exist; it was alive on an unmerged branch, and the account it creates was live in the database.
+    - **PRESENT IN THE CHECKOUT, BUT THE WRONG VERSION** — `grep` on main's `scripts/verify.js` counted 53 checks while reading branch 2's output saying 54. Nearly reported as a discrepancy in the harness; it was two branches.
+    - **REAL, ON A BRANCH, AND NOT IN THIS CHECKOUT** — a shared helper written on branch 2, needed by a fix branch cut from main. The run died on ENOENT for a file that genuinely exists. Copied in byte-identically and **verified with a diff rather than assumed**, so both branches now add the same file with the same content.
+    - **AND A FOURTH APPEARANCE THE SAME NIGHT, ON A RENAME:** a drive renamed on branch 2 still carries its old name on main, so "retire that file" means two different paths depending on where you are standing — and doing it on main would make the two branches fight over a file neither had finished with.
+    - **THE HABIT: WHEN A FILE QUESTION MATTERS, NAME THE REF.** `git show <ref>:<path>` and `git log --all --diff-filter=A -- '<name>'` both answer about the REPOSITORY; `ls` and an editor's diagnostics answer only about one working tree, and neither says which.
   - **AND A STALE BRANCH IS NOT ONLY MISSING THE NEW WORK — IT STILL RUNS THE OLD WORK.** The push hook runs the BRANCH'S OWN copy of every check, so pushing new commits from a branch cut before a teardown fix re-runs the broken teardown. Measured the same day: 17 origin branches still carried the wildcard `user_blocks` wipe after main was fixed — 15 of them merged refs that push nothing, and the loaded ones were the UNMERGED two, one of which was the branch holding the script the day's shoot needed. **A fixture script on an unmerged branch is a loaded push in both directions: absent where you look, and armed where you run it.**
 
 - **A PROOF THAT ONLY EVER READS ON THE MOUNT THAT WROTE IS TESTING MEMORY, NOT PERSISTENCE.** "Reported" NEVER survived a remount, on any surface, from the day the report control was built — and fourteen database assertions, a browser drive and reportcontrol:prove all passed, because every one of them read the label on the mount that wrote it. Found 3 Sept 2026 by a person re-opening an advert they had just reported, on camera, in the recording meant for Apple: the row was in the table and the button read "Report this job".
@@ -1398,6 +1441,13 @@ wrong reason is worse than no check, because it ends the search.
 - **A CONSUMER THAT THROWS IS A GIFT, AND IT IS THE EXACT OPPOSITE OF THE ICON FAULT ABOVE.** Changing three Firecrawl schema fields from `string` to `array` killed `(d.responsibilities || '').trim()` on the first record — loud, immediate, at row one, impossible to miss, and the only reason that line was ever found.
   - **COMPARE IT WITH `{meta.icon}` DIRECTLY, BECAUSE THE PAIR IS THE LESSON.** There a data change ALSO left a consumer behind, and the consumer kept working: a string is a string, so it rendered the literal word "chef-hat" for months until a human happened to read it on camera. Here the new type was structurally incompatible with what the consumer did to it, so it announced itself in seconds.
   - **THE DIFFERENCE IS NOT LUCK, IT IS WHETHER THE NEW VALUE STILL SATISFIES THE OLD OPERATION.** `String.trim()` on an array is a TypeError; interpolating a string into JSX is not. **So when changing the shape of a value, prefer the change that BREAKS its consumers over the one they will silently tolerate** — and if the two shapes are both tolerable, go and find the consumers yourself, because nothing will tell you.
+
+- **"CV MATCHING SCORES NOTHING TODAY" IS TRUE THREE TIMES OVER, FOR THREE UNRELATED REASONS, AND THE SHARED SENTENCE SENT PEOPLE TO THE WRONG ONE TWICE.** Measured 12–13 Sept 2026. **A SHARED SYMPTOM IS NOT A SHARED CAUSE**, and this project has now paid for that three times in one field.
+  - **ONE — THE PARSER WORKS AND NOTHING READS IT.** `/api/candidate/parse-cv` derives a title, a seniority rank and real skills, and has run on **32 of 90 real candidates**. `cv_derived` is referenced in exactly TWO files in the repository — the route that writes it and `ConfirmCvSkillsPrompt`. **`lib/` has zero references.** The scorer, `lib/recommendations.ts`, reads `candidate.skills` — the DECLARED array — and never touches the inference. So the parsing is fine and the matching ignores it, which is a completely different problem from "parsing does not work" and has a completely different fix.
+  - **TWO — THE BRIDGE EXISTS AND NOBODY HAS CROSSED IT.** `ConfirmCvSkillsPrompt` turns derived skills into declared ones, which the scorer DOES read. **26 of the 32 have a parsed CV and no declared skills at all**, so they score as empty while holding a full CV — and the scorer pays 10 points for having no job title and 5 for no sector, so an "empty" profile arrives with 20 points it never earned. **The six who do have both did NOT use the prompt:** their declared skills are not a subset of their derived ones, and the values are Title Case picker vocabulary ("Fine Dining", "Kitchen Management") where the parser emits lowercase free text ("aa rosette", "haccp"). The prompt has converted **zero of 32**.
+  - **THREE — NO ADVERT HAS EVER STATED A REQUIREMENT.** `jobs.skills_required` holds **0 distinct terms across all 113 live adverts**, and it is empty **BY CONSTRUCTION**: `app/post-job/page.tsx` writes `skillsRequired: []` on create, twice, and employers are never asked. `calcSkillMatch` therefore cannot match anything on any advert and returns 5 points flagged `unearned: true`, which is honest of it. **This is not "nobody filled it in" — there is no field.**
+  - **SO THERE ARE THREE VOCABULARIES AND NO TWO OF THEM MEET:** job-required (0 terms), candidate-declared (29), CV-parsed (75), with declared ∩ parsed = **7 of 29**. The scorer lowercases and compares exactly, so alignment is required and absent.
+  - **AND THE ORDER MATTERS IF ANYONE FIXES THIS.** A canonical vocabulary is worth nothing while no advert states a requirement, so three is the prerequisite for one and two. **Anything that starts with the model is starting at the wrong end.**
 
 - **THE AGENCIES SUPPLYING ALMOST EVERY ADVERT HAVE NEVER USED THRIVE TO MANAGE A CANDIDATE — NOT ONCE. Recorded 11 Sept 2026, not a task, and a different problem from the one we have been measuring.** Across all 127 applications ever made: `shortlisted_at`, `employer_notes` and `interview_interest_status` are set on **ZERO ROWS**. Nobody has ever shortlisted a candidate, written a note about one, or registered interview interest through this product. Four applications have had their status moved, ever.
   - So the reading is not "employers are slow to act". **It is that they are using Thrive as advert distribution and hiring somewhere else.** Every applicant they want arrives by email and is worked in whatever system they already had, and the pipeline we built is furniture.
