@@ -707,12 +707,34 @@ export default function EmployerDashboardPage() {
         // multi-day shifts, which this count deliberately does not expand.)
         const ymd = (d: Date) => d.toISOString().slice(0, 10)
 
+        // STATUS WAS NOT FILTERED, so a closed or filled shift counted toward
+        // "Shifts this week" exactly as an open one did. Found by reading the
+        // table rather than by a failing check: there is exactly ONE temp_post
+        // in the database and its status is `closed`, so the only row that
+        // exists is one this tile should never count.
+        //
+        // AND THE ONLY ROW THAT EXISTS WOULD ALSO HAVE BEEN MISSED FOR A
+        // SECOND, OPPOSITE REASON: it is `is_ongoing` with a NULL date_from.
+        // A `.gte('date_from', …)` filter drops NULLs silently, so an ongoing
+        // shift — which is by definition on this week — could never be counted.
+        // Two faults pointing in opposite directions on one row, and the tile
+        // would have read 0 either way, which is why neither announced itself.
+        //
+        // STATUS IS `open` OR `filled`, READ FROM THE CHECK CONSTRAINT RATHER
+        // THAN GUESSED — the column allows open/filled/closed/expired. A FILLED
+        // shift is still a shift happening this week that the employer has
+        // staffed, so it counts; closed and expired are over. Filtering to
+        // `open` alone, which is what I first wrote, would have under-reported
+        // the week the moment anybody filled anything.
+        //
+        // Ongoing shifts are counted whatever their date; dated shifts are
+        // counted when they fall in this week.
         const { data, error } = await supabase
           .from('temp_posts')
-          .select('id, date_from')
+          .select('id, date_from, is_ongoing')
           .eq('employer_id', ownerId)
-          .gte('date_from', ymd(monday))
-          .lt('date_from', ymd(sunday))
+          .in('status', ['open', 'filled'])
+          .or(`is_ongoing.eq.true,and(date_from.gte.${ymd(monday)},date_from.lt.${ymd(sunday)})`)
 
         if (cancelled) return
         setShiftsThisWeek(error ? null : (data?.length ?? 0))
@@ -892,7 +914,15 @@ export default function EmployerDashboardPage() {
             <span className={`${styles.ndTileNum} ds-display`}>{unviewedAppsCount}</span>
             <span className={styles.ndTileLabel}>New applicants</span>
           </Link>
-          <Link href="/temp-work" className={styles.ndTile}>
+          {/* /temp-work/manage, NOT /temp-work — AND THIS OVERRIDES THE
+              DESTINATION THE HANDOFF NAMES, which is the kind of thing that
+              has to be said out loud rather than discovered in a diff.
+              `/temp-work` is the CANDIDATE shift feed; the employer's own
+              shifts are at /temp-work/manage, headed "Your temp work". A tile
+              reading "Shifts this week" on the employer's dashboard that opens
+              a worker's job board is the same fault the sidebar had. One line
+              to revert if the handoff meant it. */}
+          <Link href="/temp-work/manage" className={styles.ndTile}>
             <span className={`${styles.ndTileNum} ds-display`}>
               {shiftsThisWeek === null ? '—' : shiftsThisWeek}
             </span>
