@@ -200,6 +200,20 @@ try {
     await page.screenshot({ path: `${SHOTS}/cv-5-saved.png` })
     check('the chosen skills were written as DECLARED',
       JSON.stringify(after?.skills), JSON.stringify(after?.skills) === JSON.stringify(pick))
+    // ── THE TWO COLUMNS THE PROMPT NOW WRITES ────────────────────────────
+    // WITHOUT THESE, THIS DRIVE IS GREEN WHETHER OR NOT THE CHANGE WORKS.
+    // The teardown restores both to their original values, so by the time
+    // anything is printed they are null again — the run proved the prompt
+    // RENDERS and said nothing about whether its state was recorded.
+    //
+    // seen_at is the whole point of the change: it is what makes "never saw
+    // it" distinguishable from "saw it and moved on", which is the question
+    // 26 real candidates are currently sitting behind.
+    check('the IMPRESSION was recorded when the prompt rendered',
+      String(after?.cv_skills_prompt_seen_at), !!after?.cv_skills_prompt_seen_at)
+    check('and saving recorded the DISMISSAL, so it stops asking',
+      String(after?.cv_skills_prompt_dismissed_at), !!after?.cv_skills_prompt_dismissed_at)
+
     check('cv_derived was NOT overwritten by the confirmation',
       `derivedSkills=${(after?.cv_derived?.skills || []).length}`,
       (after?.cv_derived?.skills || []).length === SEEDED.length)
