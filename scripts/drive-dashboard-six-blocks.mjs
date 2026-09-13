@@ -198,10 +198,15 @@ try {
         num: (a.querySelector('[class*="ndTileNum"]')?.textContent || '').trim(),
         href: new URL(a.href).pathname,
       })))
+  // `/temp-work/manage`, NOT the handoff's `/temp-work`. The bare route is the
+  // CANDIDATE shift feed. This expectation was changed AFTER the check caught
+  // the product: the drive went red on the tile the moment the page was fixed,
+  // which is the only direct evidence this project has that the label-to-href
+  // pair assertion can fail on a real difference rather than only pass.
   const EXPECT = [
     ['Live job ads', '/my-jobs'],
     ['New applicants', '/applied'],
-    ['Shifts this week', '/temp-work'],
+    ['Shifts this week', '/temp-work/manage'],
   ]
   check('there are three tiles', tiles.length === 3, `${tiles.length}: ` + tiles.map(t => t.label).join(', '))
   for (const [label, href] of EXPECT) {
