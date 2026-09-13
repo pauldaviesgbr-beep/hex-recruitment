@@ -46,7 +46,7 @@ const results = []
 const check = (n, got, ok) => results.push({ n, got, ok })
 
 const read = async () => (await db.from('candidate_profiles')
-  .select('user_id, cv_url, cv_file_name, skills, cv_parse_status, cv_parsed_at, cv_derived')
+  .select('user_id, cv_url, cv_file_name, skills, cv_parse_status, cv_parsed_at, cv_derived, cv_skills_prompt_seen_at, cv_skills_prompt_dismissed_at')
   .eq('email', EMAIL).single()).data
 
 // ── RECORD THE ORIGINAL, before anything is touched ────────────────────────
@@ -56,6 +56,8 @@ console.log('ORIGINAL')
 console.log(`  cv_url          ${original.cv_url ?? 'null'}`)
 console.log(`  skills          ${JSON.stringify(original.skills)}`)
 console.log(`  cv_parse_status ${original.cv_parse_status ?? 'null'}\n`)
+console.log(`  prompt seen     ${original.cv_skills_prompt_seen_at ?? 'null'}`)
+console.log(`  prompt dismissd ${original.cv_skills_prompt_dismissed_at ?? 'null'}`)
 
 const browser = await chromium.launch()
 const ctx = await browser.newContext({
@@ -224,6 +226,14 @@ await db.from('candidate_profiles').update({
   cv_parse_status: original.cv_parse_status,
   cv_parsed_at: original.cv_parsed_at,
   cv_derived: original.cv_derived,
+  // ADDED 13 SEPT 2026, WITH THE COLUMNS THEMSELVES. The prompt's state moved
+  // off localStorage onto the row, so driving it now WRITES two columns this
+  // teardown did not know about — and leaving seen_at set would quietly
+  // disarm the next run, because the impression only writes when it is null.
+  // A restore that misses a column the run touches is a teardown that makes
+  // the check weaker every time it passes.
+  cv_skills_prompt_seen_at: original.cv_skills_prompt_seen_at,
+  cv_skills_prompt_dismissed_at: original.cv_skills_prompt_dismissed_at,
 }).eq('user_id', UID)
 
 const restored = await read()
