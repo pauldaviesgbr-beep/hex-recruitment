@@ -114,9 +114,15 @@ try {
     check(`block ${b.name} is on the page`, b.present, b.present ? `top ${b.top}  h ${b.height}` : 'ABSENT')
   }
   const present = blocks.filter(b => b.present)
-  const ordered = present.every((b, i) => i === 0 || b.top >= present[i - 1].top)
+  // ALL SIX, AND IN ORDER — one predicate, because either half alone passes on
+  // a state it should not. The positive control against production caught this:
+  // with only the header present, "every present block sits below the last" is
+  // VACUOUSLY TRUE, and it printed ok on a page carrying none of this work.
+  // A check that passes on one block cannot tell you anything about six.
+  const ordered = present.length === blocks.length &&
+    present.every((b, i) => i === 0 || b.top >= present[i - 1].top)
   check('the blocks are in the handoff\'s order, top to bottom', ordered,
-    present.map(b => `${b.name}@${b.top}`).join(' < '))
+    `${present.length}/${blocks.length}  ` + present.map(b => `${b.name}@${b.top}`).join(' < '))
 
   // ── 2. EXACTLY ONE YELLOW SURFACE ───────────────────────────────────────
   // "This is the only yellow surface on the screen." Counted by the RESOLVED
@@ -281,6 +287,68 @@ try {
     return out
   })
   check('every tap target in the page body clears 44px', small.length === 0, small.slice(0, 4).join(' | '))
+
+  // ── 7b. THE CONSENT LANE, AND THE SCREENSHOT THAT NEARLY LIBELLED THE PAGE
+  //
+  // The full-page screenshot shows the cookie banner sitting squarely over the
+  // nudge, which reads as block 6 being unreachable. IT IS A CAPTURE ARTEFACT:
+  // Playwright composites a position:fixed element once, at its viewport
+  // position, over a page image that keeps going underneath it. Reporting that
+  // as a fault would be the avatar-renders-as-an-empty-yellow-square mistake
+  // again — a screenshot read as a measurement.
+  //
+  // THE REAL QUESTION IS WHETHER A PERSON CAN GET TO IT, and that is answered
+  // by scrolling to the bottom with the banner still up and asking what is
+  // PAINTED at the nudge's own centre. `body` reserves --consent-h from the
+  // shell so this should pass — but the banner has already covered the Apply
+  // button on a job post and cost a real candidate an application, so "should"
+  // is not the standard.
+  const laneOk = await page.evaluate(async () => {
+    const banner = [...document.querySelectorAll('[class*="CookieConsent"], [class*="cookie"]')]
+      .find(el => el.checkVisibility?.() && getComputedStyle(el).position === 'fixed' && el.getBoundingClientRect().height > 40)
+    // `html { scroll-behavior: smooth }` IS SET GLOBALLY IN app/globals.css, so
+    // the first version of this — scrollTo then two animation frames — measured
+    // a page that was STILL MOVING and reported the nudge as covered. That is
+    // the check-that-races-an-animation fault, in the check written to test a
+    // rule this project already learned the hard way.
+    //
+    // `behavior: 'instant'` overrides the CSS, and then the position is waited
+    // on for STABILITY rather than for a number of frames: two reads that agree
+    // and are not the starting value. "Different from the start" is not
+    // "finished" — the repair can land mid-flight as easily as the original.
+    const start = window.scrollY
+    window.scrollTo({ top: document.body.scrollHeight, behavior: 'instant' })
+    let last = -1, stable = 0
+    for (let i = 0; i < 60 && stable < 2; i++) {
+      await new Promise(r => setTimeout(r, 50))
+      const y = Math.round(window.scrollY)
+      if (y === last && y !== start) stable++; else stable = 0
+      last = y
+    }
+    const nudge = document.querySelector('[class*="ndNudge"]')
+    if (!nudge) return { skipped: 'no nudge on this account (every setup step done)' }
+    const r = nudge.getBoundingClientRect()
+    const painted = document.elementFromPoint(Math.round(r.left + r.width / 2), Math.round(r.top + r.height / 2))
+    return {
+      bannerPresent: !!banner,
+      bannerHeight: banner ? Math.round(banner.getBoundingClientRect().height) : 0,
+      consentH: getComputedStyle(document.documentElement).getPropertyValue('--consent-h').trim(),
+      bodyPadBottom: getComputedStyle(document.body).paddingBottom,
+      covered: !!(banner && painted && (painted === banner || banner.contains(painted))),
+      nudgeTop: Math.round(r.top),
+      // PRINT THE VALUE YOU WAITED FOR.
+      scrolledTo: Math.round(window.scrollY),
+      pageBottom: Math.round(document.body.scrollHeight),
+    }
+  })
+  if (laneOk.skipped) {
+    note('consent lane: ' + laneOk.skipped)
+  } else {
+    check('the last block clears the cookie banner when scrolled to the foot', !laneOk.covered,
+      `banner ${laneOk.bannerPresent ? laneOk.bannerHeight + 'px' : 'absent'}, --consent-h ${laneOk.consentH}, body pad ${laneOk.bodyPadBottom}, scrolled to ${laneOk.scrolledTo} of ${laneOk.pageBottom}, nudge top ${laneOk.nudgeTop}`)
+    if (!laneOk.bannerPresent) note('NOTE: the banner was not up, so this run did not exercise the lane at all.')
+  }
+  await page.evaluate(() => window.scrollTo(0, 0))
 
   // ── 8. WHAT IS ON THE SCREEN, PRINTED ───────────────────────────────────
   // PRINT THE VALUE YOU WAITED FOR. Every number here is a fact about the
