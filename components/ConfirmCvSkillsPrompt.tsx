@@ -39,7 +39,25 @@ import { Ico } from '@/components/icons'
   browser — a shared phone must not silence the prompt for the second person.
 */
 
-const dismissKey = (userId: string) => `thrive_cv_skills_confirmed:${userId}`
+// THE DISMISSAL USED TO LIVE IN localStorage, KEYED PER USER.
+//
+// That made it per-DEVICE, unreadable by us, and lost the moment somebody
+// changed phone — so "never saw the prompt" and "saw it and said no" were
+// indistinguishable from our side. 26 real candidates hold a parsed CV whose
+// skills the matcher cannot see, and that question could not be answered
+// because the only record of this prompt's life was on their own browser.
+//
+// It is now two columns on candidate_profiles, and the localStorage key is
+// GONE rather than kept alongside — two pieces of state that must agree need
+// ONE path that sets them, and a second store that nobody reads is how they
+// drift.
+//
+// EXISTING KEYS ARE DELIBERATELY NOT MIGRATED, and the reason is not laziness:
+// a localStorage value cannot be read server-side, so honouring it would mean
+// stamping a dismissal timestamp that is a GUESS AT WHEN, presented as data.
+// The affected population is at most the 26, the prompt is a single dismissible
+// block rather than a modal, and being asked once more is a smaller cost than a
+// column that quietly contains invented dates.
 
 interface Derived {
   skills?: string[]
@@ -62,14 +80,22 @@ export default function ConfirmCvSkillsPrompt() {
         const { data: { session } } = await supabase.auth.getSession()
         if (!session || cancelled) return
         const uid = session.user.id
-        if (typeof window !== 'undefined' && window.localStorage.getItem(dismissKey(uid))) return
 
+        // A WIDENED SELECT IS A CHANGE TO A QUERY AND A QUERY IS NOT TYPE
+        // CHECKED. Both columns were read from information_schema before this
+        // line was written, and both were added by the migration captured in
+        // 20260913065544. PostgREST rejects the WHOLE request on an unknown
+        // column, so getting this wrong would make the prompt silently never
+        // render — which looks exactly like the state we are investigating.
         const { data } = await supabase
           .from('candidate_profiles')
-          .select('skills, cv_derived')
+          .select('skills, cv_derived, cv_skills_prompt_seen_at, cv_skills_prompt_dismissed_at')
           .eq('user_id', uid)
           .maybeSingle()
         if (!data || cancelled) return
+
+        // Dismissed is dismissed, wherever they dismissed it.
+        if (data.cv_skills_prompt_dismissed_at) return
 
         // NEVER ASK SOMEONE WHO HAS ALREADY TOLD US. A candidate with declared
         // skills has answered this question; showing them a list derived from
@@ -90,14 +116,40 @@ export default function ConfirmCvSkillsPrompt() {
         // anyone actually deciding anything.
         setChosen(new Set())
         setShow(true)
+
+        // THE IMPRESSION IS RECORDED HERE AND NOWHERE ELSE — after every gate
+        // has passed, at the moment the thing is genuinely on screen. Written
+        // earlier it would count people the gate then turned away, which is
+        // the number we are trying to separate out.
+        //
+        // WRITTEN ONCE AND NEVER OVERWRITTEN, so it stays a stable fact rather
+        // than a last-seen clock. Best-effort: a failed write must never stop
+        // the prompt rendering, because the prompt is the point and the
+        // measurement is the by-product.
+        if (!data.cv_skills_prompt_seen_at) {
+          supabase
+            .from('candidate_profiles')
+            .update({ cv_skills_prompt_seen_at: new Date().toISOString() })
+            .eq('user_id', uid)
+            .then(() => {}, () => {})
+        }
       } catch { /* optional prompt: never break the dashboard */ }
     })()
     return () => { cancelled = true }
   }, [])
 
   const dismiss = () => {
+    // CLOSES IMMEDIATELY, RECORDS IN THE BACKGROUND. Making the person wait on
+    // a network round trip to dismiss a block they have decided they do not
+    // want is a worse product than a dismissal we occasionally fail to record.
+    // If the write fails they are asked once more, which is the same cost the
+    // localStorage version had in a private window.
     if (userId) {
-      try { window.localStorage.setItem(dismissKey(userId), '1') } catch { /* private mode */ }
+      supabase
+        .from('candidate_profiles')
+        .update({ cv_skills_prompt_dismissed_at: new Date().toISOString() })
+        .eq('user_id', userId)
+        .then(() => {}, () => {})
     }
     setShow(false)
   }
@@ -123,7 +175,14 @@ export default function ConfirmCvSkillsPrompt() {
         .update({ skills: Array.from(chosen) })
         .eq('user_id', userId)
       if (error) throw error
-      try { window.localStorage.setItem(dismissKey(userId), '1') } catch { /* private mode */ }
+      // Answering it IS dismissing it — the gate above would stop asking anyway
+      // once skills exist, but recording it keeps "they engaged" distinct from
+      // "they declared skills by some other route", which is exactly the
+      // distinction that made the six who crossed measurable at all.
+      await supabase
+        .from('candidate_profiles')
+        .update({ cv_skills_prompt_dismissed_at: new Date().toISOString() })
+        .eq('user_id', userId)
       setSaved(true)
       setTimeout(() => setShow(false), 1800)
     } catch {
