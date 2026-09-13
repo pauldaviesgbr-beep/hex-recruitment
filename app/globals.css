@@ -73,6 +73,35 @@
   --rs-brand-navy: #0f172a;
   --rs-brand-yellow: #FFE500;
 
+  /* -- September update: the advert card ------------------------------
+     Eleven tokens from the design handoff. The status pair replaces the
+     FILLED pill: a 6px dot plus caps, never a filled pill, because the pill
+     was the loudest thing on a card whose whole point is that a FINISHED
+     advert should be the quietest thing on the page.
+
+     --rs-attn-* is the ONE attention surface in this language. If a second
+     yellow appears on the job ads screen, one of the two is wrong. */
+  --rs-live:        #12a05f;
+  --rs-live-ink:    #0a7a4b;
+  --rs-dormant:     #b6bdc9;
+
+  --rs-attn-bg:     #fffbe0;
+  --rs-attn-border: #f0e08a;
+  --rs-attn-ink:    #6b5c00;
+
+  /* 48px, not the 44px floor. The action bar is the primary target on this
+     card and the handoff sizes it above the floor deliberately. */
+  --rs-tap:         48px;
+  --rs-hairline:    #eef0f4;
+
+  /* Screening answers -- branch 3 consumes these. Declared here so the family
+     lands in one place rather than two commits apart.
+     --rs-under is NOT red: a mismatch is not an error. */
+  --rs-met-bg:      #eaf7f0;
+  --rs-under:       #fff4e5;
+  --rs-under-line:  #f0d9ae;
+  --rs-under-ink:   #8a5200;
+
   /* Stage accents — preserved values from STAGES in app/pipeline/page.tsx
      so the source of truth stays in TS for behaviour and CSS only mirrors. */
   --rs-stage-reviewing:   #3b82f6;

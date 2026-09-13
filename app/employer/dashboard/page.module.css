@@ -967,3 +967,337 @@
      right on wide screens (they still scroll if the row is too narrow). */
   .pipeCol { flex: 1 1 0; width: auto; min-width: 190px; }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   THE REBUILT EMPLOYER DASHBOARD — six blocks
+   Claude Design handoff, thrive_handoff_13sept, README "The dashboard".
+
+   Every number here is the handoff's. Where a value is NOT in the handoff it
+   is marked, so the next person can tell a specification from a judgement.
+
+   `nd` = new dashboard. The prefix exists because this stylesheet is 32KB of
+   the previous design and a bare `.tile` or `.nudge` would be a coin toss.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.ndWrap {
+  max-width: 720px;          /* NOT in the handoff — it draws one 390 phone.
+                                Unbounded, the tiles stretch to 600px each on a
+                                desktop and the action card becomes a banner. */
+  margin: 0 auto;
+  padding: 18px 18px 40px;   /* 18px gutter, as the list spec */
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* ── BLOCK 2 — greeting ─────────────────────────────────────────────────── */
+.ndGreet { margin: 4px 0 2px; }
+
+.ndGreetCompany {
+  margin: 0 0 2px;
+  font-size: 13px;
+  color: var(--rs-text-muted);
+}
+
+.ndGreetTitle {
+  margin: 0;
+  font-family: var(--font-display, inherit);
+  font-size: 25px;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  line-height: 1.15;
+  color: var(--rs-text);
+}
+
+/* ── BLOCK 3 — the action card ──────────────────────────────────────────────
+   THE ONLY YELLOW SURFACE ON THIS SCREEN. The `clear` state is the same
+   geometry in white, so the page does not change shape when the work runs out.
+   ─────────────────────────────────────────────────────────────────────────── */
+.ndAction {
+  border-radius: 16px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.ndAction[data-state='waiting'] {
+  background: var(--rs-brand-yellow);
+}
+
+.ndAction[data-state='clear'] {
+  background: var(--rs-bg-surface);
+  border: 1px solid var(--rs-border);
+}
+
+.ndActionEyebrow {
+  margin: 0 0 6px;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  /* On yellow this is --rs-attn-ink. On the white clear-state card that ink is
+     an olive on white at ~4.0:1, so the muted grey is used instead — the two
+     grounds genuinely need two inks and one token cannot serve both. */
+  color: var(--rs-attn-ink);
+}
+
+.ndAction[data-state='clear'] .ndActionEyebrow { color: var(--rs-text-muted); }
+
+.ndActionHeadline {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  color: var(--rs-text);
+  /* WRAPS, NEVER TRUNCATES. A long advert title is allowed to make this card
+     taller; the alternative is cutting the name of the thing the card is
+     about, which is the whole point of the card. */
+  overflow-wrap: anywhere;
+}
+
+.ndActionSub {
+  margin: 8px 0 0;
+  font-size: 13.5px;
+  line-height: 1.4;
+  color: #4A4200;            /* handoff literal: ink for body copy on yellow */
+}
+
+.ndActionBtn,
+.ndActionBtnGhost {
+  margin-top: 14px;
+  width: 100%;
+  min-height: var(--rs-tap);
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 13px 16px;
+  border-radius: 10px;
+  font-size: 14.5px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.ndActionBtn {
+  background: var(--rs-brand-navy);
+  color: #fff;
+}
+
+.ndActionBtnGhost {
+  background: transparent;
+  border: 1px solid var(--rs-border-strong);
+  color: var(--rs-text);
+}
+
+.ndChev {
+  font-size: 1.15em;
+  line-height: 1;
+  opacity: 0.75;
+}
+
+/* ── BLOCK 4 — three tiles ──────────────────────────────────────────────── */
+.ndTiles {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.ndTile {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 12px;
+  min-height: var(--rs-tap);
+  background: var(--rs-bg-surface);
+  border: 1px solid var(--rs-border);
+  border-radius: 13px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.ndTileNum {
+  font-size: 23px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  color: var(--rs-text);
+}
+
+.ndTileLabel {
+  font-size: 12px;
+  line-height: 1.25;
+  color: var(--rs-text-muted);
+  /* The labels wrap to two lines at 390 — "Shifts this / week" in the handoff's
+     own frame. Controls wrap; they do not scroll and they do not clip. */
+}
+
+/* ── BLOCK 5 — your job ads ─────────────────────────────────────────────── */
+.ndAds {
+  background: var(--rs-bg-surface);
+  border: 1px solid var(--rs-border);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.ndAdsHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--rs-hairline);
+}
+
+.ndAdsTitle {
+  margin: 0;
+  font-size: 15.5px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--rs-text);
+}
+
+.ndAdsAll {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--rs-text);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.ndAdsEmpty {
+  margin: 0;
+  padding: 18px 16px;
+  font-size: 13.5px;
+  color: var(--rs-text-muted);
+}
+
+.ndAdRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 13px 16px;
+  min-height: var(--rs-tap);
+  box-sizing: border-box;
+  text-decoration: none;
+  color: inherit;
+  border-bottom: 1px solid var(--rs-hairline);
+}
+
+.ndAdRow:last-child { border-bottom: 0; }
+
+.ndAdRowMain {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  /* min-width: 0 is what lets the title actually truncate inside a flex row.
+     Without it the child's intrinsic width wins and the row overflows instead
+     — the /talent-pool fault, which wrapped and still had a child too wide. */
+  min-width: 0;
+}
+
+.ndAdRowTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--rs-text);
+  /* THE ONE PLACE A TITLE TRUNCATES. It is a list ROW, not a card, and the
+     full title is one tap away — which is exactly the condition the truncation
+     rule requires. A PREVIEW IS CONTENT. */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ndAdRowMeta {
+  font-size: 12px;
+  color: var(--rs-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ndAdStatus {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  /* NEVER A FILLED PILL — no background, no border. The pill was the loudest
+     thing on a card whose point is that a finished advert should be quiet. */
+}
+
+.ndAdStatus[data-live='yes'] { color: var(--rs-live-ink); }
+.ndAdStatus[data-live='no']  { color: var(--rs-text-muted); }
+
+.ndAdDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex: none;
+}
+
+.ndAdStatus[data-live='yes'] .ndAdDot { background: var(--rs-live); }
+.ndAdStatus[data-live='no']  .ndAdDot { background: var(--rs-dormant); }
+
+/* ── BLOCK 6 — the nudge ────────────────────────────────────────────────── */
+.ndNudge {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  min-height: var(--rs-tap);
+  box-sizing: border-box;
+  border: 1px dashed var(--rs-border-strong);
+  border-radius: 14px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.ndNudgeTick {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--rs-bg-subtle);
+  color: var(--rs-text-muted);
+}
+
+.ndNudgeText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.ndNudgeTitle {
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--rs-text);
+}
+
+.ndNudgeMeta {
+  font-size: 12.5px;
+  color: var(--rs-text-muted);
+}
+
+/* ── Loading — the six blocks' geometry, so nothing reflows ─────────────────
+   Heights are the rendered heights of the real blocks, not round numbers:
+   a skeleton that is the wrong size is a reflow with extra steps. */
+.ndSkelEyebrow { height: 13px; width: 120px; border-radius: 6px; }
+.ndSkelGreet   { height: 30px; width: 220px; border-radius: 8px; margin-bottom: 4px; }
+.ndSkelAction  { height: 186px; border-radius: 16px; }
+.ndSkelTile    { height: 78px; border-radius: 13px; }
+.ndSkelPanel   { height: 190px; border-radius: 16px; }

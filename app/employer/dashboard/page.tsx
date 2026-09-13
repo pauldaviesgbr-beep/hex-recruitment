@@ -1,32 +1,24 @@
 'use client'
 
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
+import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
 import { getCurrentEmployerOwnerId } from '@/lib/employer'
-import ExampleShowcase from '@/components/onboarding/ExampleShowcase'
-import EmployerTour from '@/components/onboarding/EmployerTour'
 import { DEV_MODE, getMockUser, getMockUserType } from '@/lib/mockAuth'
 import { useMessages } from '@/lib/MessagesContext'
 import Header from '@/components/Header'
-import SignedImage from '@/components/SignedImage'
 import { supabaseJobToJob } from '@/lib/types'
-import { STAGE_COLORS, STAGE_LABELS, stageForStatus } from '@/lib/constants/pipelineStages'
-import AnswerLine from '@/components/AnswerLine'
-import SetupStrip from '@/components/SetupStrip'
+import { STAGE_LABELS, stageForStatus } from '@/lib/constants/pipelineStages'
 // nothingLiveShort is the panel register of the sentence the answer line's row
 // 5b says in full at the top of this page. One root string, two lengths.
 import { employerAnswerLine, justPostedAnswerLine, nothingLiveShort } from '@/lib/answerLine'
 import { readJustPosted, type JustPosted } from '@/lib/justPosted'
-import PipelineRows from '@/components/PipelineRows'
 // The same function StageDurationBadge uses, so "waiting 4d" on a phone and
 // "4 days in Shortlisted" on desktop can never disagree.
 import { daysInStage } from '@/lib/stageDuration'
 import StageDurationBadge from '@/components/StageDurationBadge'
-import JobCardLink from '@/components/JobCardLink'
-import CandidateCard from '@/components/CandidateCard'
 import type { Candidate } from '@/lib/mockCandidates'
 import styles from './page.module.css'
 import { Ico } from '@/components/icons'
@@ -39,10 +31,6 @@ function getGreeting(): string {
   if (h < 12) return 'Good morning'
   if (h < 18) return 'Good afternoon'
   return 'Good evening'
-}
-
-function getInitials(name: string): string {
-  return name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)
 }
 
 function formatRelativeTime(dateString: string): string {
@@ -58,13 +46,6 @@ function formatRelativeTime(dateString: string): string {
   return new Date(dateString).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
 }
 
-function formatDate(): { day: string; full: string } {
-  const now = new Date()
-  const day = now.toLocaleDateString('en-GB', { weekday: 'long' })
-  const full = now.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
-  return { day, full }
-}
-
 const STATUS_LABELS: Record<string, string> = {
   pending: 'Applied',
   reviewing: 'Reviewing',
@@ -77,132 +58,9 @@ const STATUS_LABELS: Record<string, string> = {
 
 const PIPELINE_STAGES = ['pending', 'reviewing', 'shortlisted', 'interview', 'offered', 'hired', 'rejected'] as const
 
-function getStatusStyle(status: string): string {
-  if (status === 'pending') return 'statusPending'
-  if (status === 'reviewing' || status === 'shortlisted') return 'statusReviewing'
-  if (status === 'interview' || status === 'offered' || status === 'hired') return 'statusInterview'
-  if (status === 'rejected') return 'statusRejected'
-  return 'statusPending'
-}
-
-
-
 // ── Skeleton placeholder ────────────────────────────────
-function SkeletonCard({ height = 120 }: { height?: number }) {
-  return <div className={`${styles.skeleton} ${styles.skeletonCard}`} style={{ height }} />
-}
-
 // ═════════════════════════════════════════════════════════
 // ── Pipeline touch slider (non-passive touch listeners) ──
-function PipelineSlider({ stages, stageColors, statusCounts, candidatesByStage, styles }: {
-  stages: readonly string[]
-  stageColors: Record<string, string>
-  statusCounts: Record<string, number>
-  candidatesByStage: Record<string, any[]>
-  styles: Record<string, string>
-}) {
-  const router = useRouter()
-  const CARD_W = 163
-  const VISIBLE = 2.2
-  const maxOffset = Math.max(0, (stages.length - VISIBLE) * CARD_W)
-  const trackRef = React.useRef<HTMLDivElement>(null)
-  const state = React.useRef({ offset: 0, startX: 0, startY: 0, startOffset: 0, lastX: 0, lastT: 0, vel: 0, isHoriz: null as boolean | null, didMove: false, rafId: 0 })
-
-  const clamp = (v: number) => Math.max(0, Math.min(maxOffset, v))
-  const setTransform = (x: number) => { if (trackRef.current) trackRef.current.style.transform = `translateX(-${x}px)` }
-  const snapTo = (target: number) => {
-    const snapped = clamp(Math.round(target / CARD_W) * CARD_W)
-    let cur = state.current.offset
-    const step = () => {
-      cur += (snapped - cur) * 0.12
-      if (Math.abs(snapped - cur) < 0.5) { state.current.offset = snapped; setTransform(snapped); return }
-      state.current.offset = cur; setTransform(cur)
-      state.current.rafId = requestAnimationFrame(step)
-    }
-    state.current.rafId = requestAnimationFrame(step)
-  }
-
-  React.useEffect(() => {
-    const el = trackRef.current
-    if (!el) return
-    const s = state.current
-    const onStart = (e: TouchEvent) => {
-      cancelAnimationFrame(s.rafId)
-      s.startX = e.touches[0].clientX; s.startY = e.touches[0].clientY
-      s.startOffset = s.offset; s.lastX = s.startX; s.lastT = Date.now()
-      s.vel = 0; s.isHoriz = null; s.didMove = false
-    }
-    const onMove = (e: TouchEvent) => {
-      const dx = s.startX - e.touches[0].clientX
-      const dy = s.startY - e.touches[0].clientY
-      if (s.isHoriz === null) {
-        if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return
-        s.isHoriz = Math.abs(dx) > Math.abs(dy) * 1.2
-      }
-      if (!s.isHoriz) return
-      e.preventDefault()
-      s.didMove = true
-      const now = Date.now(); const dt = now - s.lastT
-      if (dt > 0) s.vel = (s.lastX - e.touches[0].clientX) / dt
-      s.lastX = e.touches[0].clientX; s.lastT = now
-      s.offset = clamp(s.startOffset + dx); setTransform(s.offset)
-    }
-    const onEnd = (e: TouchEvent) => {
-      if (!s.isHoriz) return
-      if (!s.didMove || Math.abs(s.startX - e.changedTouches[0].clientX) < 8) {
-        const idx = Math.round(s.offset / CARD_W)
-        const stage = stages[idx]
-        if (stage) router.push(`/my-jobs?filter=${stage === 'interview' ? 'interviewing' : stage === 'offered' ? 'offers' : stage}`)
-        return
-      }
-      snapTo(s.offset + s.vel * 350)
-    }
-    el.addEventListener('touchstart', onStart, { passive: true })
-    el.addEventListener('touchmove', onMove, { passive: false })
-    el.addEventListener('touchend', onEnd, { passive: true })
-    return () => {
-      el.removeEventListener('touchstart', onStart)
-      el.removeEventListener('touchmove', onMove)
-      el.removeEventListener('touchend', onEnd)
-    }
-  }, [maxOffset, stages, router])
-
-  return (
-    <div style={{ overflow: 'hidden', margin: '0 -1rem', padding: '0 1rem' }}>
-      <div ref={trackRef} style={{ display: 'flex', gap: '0.5rem', willChange: 'transform' }}>
-        {stages.map(s => {
-          const count = statusCounts[s] || 0
-          const candidates = candidatesByStage[s] || []
-          const hasCandidates = candidates.length > 0
-          return (
-            <Link key={s} href="/pipeline" className={`${styles.pipelineCard} ${hasCandidates ? styles.pipelineCardActive : ''}`}>
-              <div className={styles.pipelineCardTop}>
-                <span className={styles.pipelineCardCount}>{count}</span>
-                <span className={styles.pipelineCardStage}>{STATUS_LABELS[s]}</span>
-              </div>
-              <div className={styles.pipelineCardCandidates}>
-                {candidates.length === 0 ? (
-                  <span className={styles.pipelineCardEmpty}>No candidates</span>
-                ) : (
-                  candidates.slice(0, 2).map((app: any, i: number) => (
-                    <div key={i} className={styles.pipelineCardCandidate}>
-                      <span className={styles.pipelineCardName}>{app.candidate_name || 'Candidate'}</span>
-                      <span className={styles.pipelineCardJob}>{app.job_title || ''}</span>
-                    </div>
-                  ))
-                )}
-                {candidates.length > 3 && (
-                  <span className={styles.pipelineCardMore}>+{candidates.length - 3} more</span>
-                )}
-              </div>
-            </Link>
-          )
-        })}
-      </div>
-    </div>
-  )
-}
-
 // ── Active Jobs — the employer's own posts. A VERTICAL LIST on a phone, a
 // 3-up grid on desktop; nothing scrolls sideways at either. Each tile taps to
 // that post's management (its applicants view), NOT the candidate apply page.
@@ -212,22 +70,6 @@ function PipelineSlider({ stages, stageColors, statusCounts, candidatesByStage, 
 // and below 768, so they were live in a 192px band and dead everywhere else.
 // Two aria-labelled buttons that scroll nothing are worse than no buttons: a
 // screen reader still announces "Scroll jobs left".
-function ActiveJobsScroller({ jobs, styles }: { jobs: any[]; styles: Record<string, string> }) {
-  return (
-    <div className={styles.jobScrollWrap}>
-      <div className={styles.jobScroller}>
-        {jobs.map((job: any) => (
-          // The real image-led job card; tap MANAGES the post (edit), not apply.
-          // The overlay keeps the management stats (apps · views) visible.
-          <JobCardLink key={job.id} job={job} href={`/post-job?edit=${job.id}`} className={styles.jobCardItem}>
-            <span className={styles.jobOverlay}>{job.application_count || 0} apps · {job.views || 0} views</span>
-          </JobCardLink>
-        ))}
-      </div>
-    </div>
-  )
-}
-
 // ApplicantScroller lived here — the horizontal row of CandidateCards used by
 // the Recent Applicants panel. DELETED WITH ITS ONLY TWO CALL SITES rather than
 // left orphaned: an unused component that still compiles is the thing someone
@@ -236,313 +78,8 @@ function ActiveJobsScroller({ jobs, styles }: { jobs: any[]; styles: Record<stri
 // phone. Recoverable from git if the panel ever comes back.
 
 // ── Candidate profile card slider (swipe one at a time) ──
-function CandidateCardSlider({ apps, totalApplications, styles }: {
-  apps: any[]
-  totalApplications: number
-  styles: Record<string, string>
-}) {
-  const [current, setCurrent] = React.useState(0)
-  const trackRef = React.useRef<HTMLDivElement>(null)
-  const state = React.useRef({ startX: 0, startY: 0, isHoriz: null as boolean | null, didMove: false })
-  const getInitials = (name: string) => (name || '?').split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()
-  const avatarColors = ['#06b6d4','#8b5cf6','#10b981','#f59e0b','#3b82f6','#ec4899','#14b8a6','#e11d48']
-  const statusColors: Record<string, { bg: string; text: string }> = {
-    pending: { bg: '#fef3c7', text: '#92400e' }, reviewing: { bg: '#dbeafe', text: '#1e40af' },
-    shortlisted: { bg: '#ede9fe', text: '#5b21b6' }, interview: { bg: '#cffafe', text: '#0e7490' },
-    offered: { bg: '#d1fae5', text: '#065f46' }, hired: { bg: '#dcfce7', text: '#14532d' },
-    rejected: { bg: '#fee2e2', text: '#991b1b' },
-  }
-  const statusLabels: Record<string, string> = {
-    pending: 'Applied', reviewing: 'Reviewing', shortlisted: 'Shortlisted',
-    interview: 'Interview', offered: 'Offered', hired: 'Hired', rejected: 'Rejected',
-  }
-  React.useEffect(() => {
-    const el = trackRef.current; if (!el) return
-    const s = state.current
-    const onStart = (e: TouchEvent) => { s.startX = e.touches[0].clientX; s.startY = e.touches[0].clientY; s.isHoriz = null; s.didMove = false }
-    const onMove = (e: TouchEvent) => {
-      const dx = s.startX - e.touches[0].clientX; const dy = s.startY - e.touches[0].clientY
-      if (s.isHoriz === null) { if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return; s.isHoriz = Math.abs(dx) > Math.abs(dy) * 1.2 }
-      if (!s.isHoriz) return; e.preventDefault(); s.didMove = true
-    }
-    const onEnd = (e: TouchEvent) => {
-      if (!s.isHoriz || !s.didMove) return
-      const dx = s.startX - e.changedTouches[0].clientX
-      if (dx > 40 && current < apps.length - 1) setCurrent(c => c + 1)
-      if (dx < -40 && current > 0) setCurrent(c => c - 1)
-    }
-    el.addEventListener('touchstart', onStart, { passive: true })
-    el.addEventListener('touchmove', onMove, { passive: false })
-    el.addEventListener('touchend', onEnd, { passive: true })
-    return () => { el.removeEventListener('touchstart', onStart); el.removeEventListener('touchmove', onMove); el.removeEventListener('touchend', onEnd) }
-  }, [current, apps.length])
-
-  if (apps.length === 0) return null
-  const app = apps[current]
-  const initials = getInitials(app.candidate_name || 'C')
-  const bgColor = avatarColors[current % avatarColors.length]
-  const sc = statusColors[app.status] || { bg: '#f3f4f6', text: '#374151' }
-  const label = statusLabels[app.status] || app.status
-  const skills = Array.isArray(app.candidate_skills) ? app.candidate_skills.slice(0, 3) : []
-
-  return (
-    <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '0 0 0.75rem' }}>
-        <span style={{ fontSize: '0.72rem', color: '#6b7280', fontWeight: 500 }}>
-          {current + 1} of {apps.length}  &middot;  {totalApplications} total
-        </span>
-        {apps.length > 1 && (
-          <span style={{ fontSize: '0.62rem', color: '#94a3b8' }}>&larr; swipe &rarr;</span>
-        )}
-      </div>
-      <div ref={trackRef} style={{ width: '100%', maxWidth: '100%', boxSizing: 'border-box' as const, overflow: 'hidden' }}>
-        <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden', width: '100%', maxWidth: '100%', boxSizing: 'border-box' as const }}>
-          {/* ── HEADER: Photo + Name + Facts ── */}
-          <div style={{ display: 'flex', gap: '0.75rem', padding: '1.25rem 1rem 1rem', alignItems: 'flex-start' }}>
-            <div style={{ width: 64, height: 64, borderRadius: '50%', background: bgColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem', fontWeight: 700, color: '#fff', overflow: 'hidden', flexShrink: 0 }}>
-              {/* THIS WAS A RAW <img src={app.candidate_photo}>, AND THE VALUE
-                  IS A RELATIVE STORAGE PATH — photos/<uid>/<file>.jpg. A
-                  relative src resolves against thrivecareer.co.uk, the
-                  'profiles' bucket is PRIVATE, so it 404'd and the card showed
-                  a broken-image icon instead of the initials sitting right
-                  there as the else branch.
-                  SignedImage is what every other surface uses; the fallback is
-                  the initials, and it covers BOTH failure modes — signing
-                  returning nothing, and the image itself erroring. A broken
-                  image is worse than initials on any policy. */}
-              <SignedImage
-                src={app.candidate_photo}
-                alt=""
-                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                fallback={<>{initials}</>}
-              />
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: '1rem', fontWeight: 700, color: '#1e293b' }}>{app.candidate_name || 'Candidate'}</div>
-              {app.candidate_job_title && <div style={{ fontSize: '0.72rem', color: '#64748b' }}>{app.candidate_job_title}</div>}
-              <span style={{ display: 'inline-block', fontSize: '0.62rem', fontWeight: 600, padding: '0.1rem 0.4rem', borderRadius: 4, background: sc.bg, color: sc.text, marginTop: '0.2rem' }}>{label}</span>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '0.4rem', flexShrink: 0, textAlign: 'right' as const }}>
-              {app.candidate_city && <span style={{ fontSize: '0.72rem', color: '#64748b' }}><Ico name="map-pin" size={16} /> {app.candidate_city}</span>}
-              {app.candidate_years_exp && <span style={{ fontSize: '0.72rem', color: '#64748b' }}><Ico name="timer" size={16} /> {app.candidate_years_exp} yrs exp</span>}
-              {app.candidate_availability && <span style={{ fontSize: '0.72rem', color: '#64748b' }}><Ico name="check" size={16} /> {app.candidate_availability}</span>}
-              {app.candidate_sector && <span style={{ fontSize: '0.72rem', color: '#64748b' }}><Ico name="building" size={16} /> {app.candidate_sector}</span>}
-            </div>
-          </div>
-
-          {/* ── BIO ── */}
-          <div style={{ padding: '0 1rem 1rem' }}>
-            {app.candidate_bio ? (
-              <p style={{ fontSize: '0.8rem', color: '#334155', fontStyle: 'italic', lineHeight: 1.5, margin: 0, padding: '0.75rem', background: '#f8fafc', borderRadius: 8, display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical' as any, overflow: 'hidden' }}>
-                &ldquo;{app.candidate_bio.slice(0, 150)}{app.candidate_bio.length > 150 ? '...' : ''}&rdquo;
-              </p>
-            ) : (
-              <p style={{ fontSize: '0.75rem', color: '#cbd5e1', fontStyle: 'italic', margin: 0 }}>No bio added — candidate hasn&apos;t completed their profile yet</p>
-            )}
-          </div>
-
-          {/* ── SKILLS ── */}
-          {skills.length > 0 && (
-            <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap', padding: '0 1rem 0.875rem' }}>
-              {skills.map((skill: string, i: number) => (
-                <span key={i} style={{ fontSize: '0.68rem', padding: '4px 12px', borderRadius: 999, background: '#f1f5f9', color: '#475569', fontWeight: 500 }}>{skill}</span>
-              ))}
-            </div>
-          )}
-
-          {/* ── APPLIED FOR ── */}
-          <div style={{ padding: '0 1rem 1rem' }}>
-            <p style={{ fontSize: '0.68rem', color: '#94a3b8', margin: 0 }}>
-              Applied for: {app.job_title || ''} &middot; {formatRelativeTime(app.created_at)}
-            </p>
-          </div>
-
-          {/* ── ACTIONS ── */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', borderTop: '1px solid #e5e7eb' }}>
-            <Link href={`/candidates/${app.candidate_id}`} onClick={(e: any) => e.stopPropagation()} style={{ padding: '0.875rem', textAlign: 'center', fontSize: '0.82rem', fontWeight: 600, color: '#1e293b', textDecoration: 'none', borderRight: '1px solid #e5e7eb', borderBottomLeftRadius: '16px' }}>View Profile</Link>
-            <Link href={`/messages?candidate=${app.candidate_id}`} onClick={(e: any) => e.stopPropagation()} style={{ padding: '0.875rem', textAlign: 'center', fontSize: '0.82rem', fontWeight: 600, color: '#FFE500', background: '#0f172a', textDecoration: 'none', display: 'block', borderBottomRightRadius: '16px' }}>Message</Link>
-          </div>
-        </div>
-      </div>
-      <div style={{ display: 'flex', justifyContent: 'center', gap: '0.3rem', marginTop: '0.75rem' }}>
-        {apps.map((_: any, i: number) => (
-          <button key={i} onClick={() => setCurrent(i)} style={{ width: i === current ? '20px' : '7px', height: '7px', borderRadius: '4px', background: i === current ? '#0f172a' : '#cbd5e1', border: 'none', padding: 0, cursor: 'pointer', transition: 'all 0.2s' }} />
-        ))}
-      </div>
-    </div>
-  )
-}
-
 // ── Job swipe cards slider (non-passive touch) ──
-function JobSlider({ jobs }: { jobs: any[] }) {
-  const CARD_W = 176
-  const maxOffset = Math.max(0, (jobs.length - 2.2) * CARD_W)
-  const trackRef = React.useRef<HTMLDivElement>(null)
-  const state = React.useRef({ offset: 0, startX: 0, startY: 0, startOffset: 0, lastX: 0, lastT: 0, vel: 0, isHoriz: null as boolean | null, didMove: false, rafId: 0 })
-
-  const clamp = (v: number) => Math.max(0, Math.min(maxOffset, v))
-  const setTransform = (x: number) => { if (trackRef.current) trackRef.current.style.transform = `translateX(-${x}px)` }
-  const snapTo = (target: number) => {
-    const snapped = clamp(Math.round(target / CARD_W) * CARD_W)
-    let cur = state.current.offset
-    const step = () => {
-      cur += (snapped - cur) * 0.12
-      if (Math.abs(snapped - cur) < 0.5) { state.current.offset = snapped; setTransform(snapped); return }
-      state.current.offset = cur; setTransform(cur)
-      state.current.rafId = requestAnimationFrame(step)
-    }
-    state.current.rafId = requestAnimationFrame(step)
-  }
-
-  React.useEffect(() => {
-    const el = trackRef.current
-    if (!el) return
-    const s = state.current
-    const onStart = (e: TouchEvent) => {
-      cancelAnimationFrame(s.rafId)
-      s.startX = e.touches[0].clientX; s.startY = e.touches[0].clientY
-      s.startOffset = s.offset; s.lastX = s.startX; s.lastT = Date.now()
-      s.vel = 0; s.isHoriz = null; s.didMove = false
-    }
-    const onMove = (e: TouchEvent) => {
-      const dx = s.startX - e.touches[0].clientX
-      const dy = s.startY - e.touches[0].clientY
-      if (s.isHoriz === null) {
-        if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return
-        s.isHoriz = Math.abs(dx) > Math.abs(dy) * 1.2
-      }
-      if (!s.isHoriz) return
-      e.preventDefault()
-      s.didMove = true
-      const now = Date.now(); const dt = now - s.lastT
-      if (dt > 0) s.vel = (s.lastX - e.touches[0].clientX) / dt
-      s.lastX = e.touches[0].clientX; s.lastT = now
-      s.offset = clamp(s.startOffset + dx); setTransform(s.offset)
-    }
-    const onEnd = () => {
-      if (!s.isHoriz || !s.didMove) return
-      snapTo(s.offset + s.vel * 350)
-    }
-    el.addEventListener('touchstart', onStart, { passive: true })
-    el.addEventListener('touchmove', onMove, { passive: false })
-    el.addEventListener('touchend', onEnd, { passive: true })
-    return () => {
-      el.removeEventListener('touchstart', onStart)
-      el.removeEventListener('touchmove', onMove)
-      el.removeEventListener('touchend', onEnd)
-    }
-  }, [maxOffset])
-
-  return (
-    <div style={{ overflow: 'hidden', margin: '0 -1.25rem', paddingBottom: '0.75rem' }}>
-      <div ref={trackRef} style={{ display: 'flex', gap: '0.5rem', willChange: 'transform', paddingLeft: '1.25rem', paddingRight: '3rem', paddingBottom: '0.75rem' }}>
-        {jobs.map(job => {
-          const appCount = job.application_count || 0
-          const fillPct = Math.min((appCount / 20) * 100, 100)
-          return (
-            <Link key={job.id} href="/my-jobs" style={{ flex: '0 0 164px', background: '#fff', border: '1px solid #e5e7eb', borderRadius: 10, padding: '0.75rem', textDecoration: 'none', color: 'inherit', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-              <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                {job.title}
-              </div>
-              <div style={{ display: 'flex', gap: '0.75rem' }}>
-                <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: '1rem', fontWeight: 700, color: '#1e293b' }}>{job.views || 0}</div>
-                  <div style={{ fontSize: '0.6rem', color: '#94a3b8', textTransform: 'uppercase' as const }}>Views</div>
-                </div>
-                <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: '1rem', fontWeight: 700, color: '#1e293b' }}>{appCount}</div>
-                  <div style={{ fontSize: '0.6rem', color: '#94a3b8', textTransform: 'uppercase' as const }}>Apps</div>
-                </div>
-              </div>
-              <div style={{ height: 3, background: '#e2e8f0', borderRadius: 2, overflow: 'hidden' }}>
-                <div style={{ height: '100%', background: '#FFE500', borderRadius: 2, width: `${fillPct}%` }} />
-              </div>
-            </Link>
-          )
-        })}
-      </div>
-    </div>
-  )
-}
-
 // ── Messages slider ──
-function MessagesSlider({ conversations }: { conversations: any[] }) {
-  const CARD_W = 230
-  const maxOffset = Math.max(0, (conversations.length - 1.4) * CARD_W)
-  const trackRef = React.useRef<HTMLDivElement>(null)
-  const state = React.useRef({ offset: 0, startX: 0, startY: 0, startOffset: 0, lastX: 0, lastT: 0, vel: 0, isHoriz: null as boolean | null, didMove: false, rafId: 0 })
-  const clamp = (v: number) => Math.max(0, Math.min(maxOffset, v))
-  const setTransform = (x: number) => { if (trackRef.current) trackRef.current.style.transform = `translateX(-${x}px)` }
-  const snapTo = (target: number) => {
-    const snapped = clamp(Math.round(target / CARD_W) * CARD_W)
-    let cur = state.current.offset
-    const step = () => {
-      cur += (snapped - cur) * 0.12
-      if (Math.abs(snapped - cur) < 0.5) { state.current.offset = snapped; setTransform(snapped); return }
-      state.current.offset = cur; setTransform(cur)
-      state.current.rafId = requestAnimationFrame(step)
-    }
-    state.current.rafId = requestAnimationFrame(step)
-  }
-  React.useEffect(() => {
-    const el = trackRef.current
-    if (!el) return
-    const s = state.current
-    const onStart = (e: TouchEvent) => {
-      cancelAnimationFrame(s.rafId)
-      s.startX = e.touches[0].clientX; s.startY = e.touches[0].clientY
-      s.startOffset = s.offset; s.lastX = s.startX; s.lastT = Date.now()
-      s.vel = 0; s.isHoriz = null; s.didMove = false
-    }
-    const onMove = (e: TouchEvent) => {
-      const dx = s.startX - e.touches[0].clientX
-      const dy = s.startY - e.touches[0].clientY
-      if (s.isHoriz === null) { if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return; s.isHoriz = Math.abs(dx) > Math.abs(dy) * 1.2 }
-      if (!s.isHoriz) return
-      e.preventDefault(); s.didMove = true
-      const now = Date.now(); const dt = now - s.lastT
-      if (dt > 0) s.vel = (s.lastX - e.touches[0].clientX) / dt
-      s.lastX = e.touches[0].clientX; s.lastT = now
-      s.offset = clamp(s.startOffset + dx); setTransform(s.offset)
-    }
-    const onEnd = () => { if (!s.isHoriz || !s.didMove) return; snapTo(s.offset + s.vel * 350) }
-    el.addEventListener('touchstart', onStart, { passive: true })
-    el.addEventListener('touchmove', onMove, { passive: false })
-    el.addEventListener('touchend', onEnd, { passive: true })
-    return () => { el.removeEventListener('touchstart', onStart); el.removeEventListener('touchmove', onMove); el.removeEventListener('touchend', onEnd) }
-  }, [maxOffset])
-  const getInitials = (name: string) => (name || '?').split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()
-  return (
-    <div style={{ overflow: 'hidden', margin: '0 -1rem', padding: '0 1rem' }}>
-      <div ref={trackRef} style={{ display: 'flex', gap: '0.5rem', willChange: 'transform' }}>
-        {conversations.map(conv => (
-          <Link key={conv.id} href={`/messages?conversation=${conv.id}`} style={{ flex: '0 0 220px', minWidth: 220, background: conv.unreadCount > 0 ? '#fffbeb' : '#fff', border: conv.unreadCount > 0 ? '1px solid #fde68a' : '1px solid #e5e7eb', borderRadius: '12px', padding: '1rem', textDecoration: 'none', color: 'inherit', display: 'flex', flexDirection: 'column', gap: '0.5rem', boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <div style={{ position: 'relative' }}>
-                <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.72rem', fontWeight: 700, color: '#fff' }}>
-                  {getInitials(conv.participantName)}
-                </div>
-                {conv.unreadCount > 0 && (
-                  <div style={{ position: 'absolute', top: -2, right: -2, width: 16, height: 16, borderRadius: '50%', background: '#ef4444', color: '#fff', fontSize: '0.55rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid #fff' }}>
-                    {conv.unreadCount > 9 ? '9+' : conv.unreadCount}
-                  </div>
-                )}
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{conv.participantName}</div>
-                <div style={{ fontSize: '0.62rem', color: '#94a3b8' }}>{formatRelativeTime(conv.lastMessageAt)}</div>
-              </div>
-            </div>
-            <div style={{ fontSize: '0.72rem', color: '#64748b', lineHeight: 1.4, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as any, overflow: 'hidden' }}>
-              {conv.lastMessage || 'No messages yet'}
-            </div>
-          </Link>
-        ))}
-      </div>
-    </div>
-  )
-}
-
 // MAIN COMPONENT
 // ═════════════════════════════════════════════════════════
 
@@ -581,6 +118,28 @@ export default function EmployerDashboardPage() {
   // Drops automatically as they review applications, since the per-job
   // applications page auto-stamps viewed_at on open.
   const [unviewedAppsCount, setUnviewedAppsCount] = useState(0)
+
+  /**
+   * THE ONE THING THAT NEEDS THE EMPLOYER TODAY, or null.
+   *
+   * COMPUTED FROM THE FULL APPLICATION SET, NOT FROM `applications`. That state
+   * holds the most recent FIFTY for the pipeline display — using it here would
+   * undercount the moment an employer has more, and it would undercount
+   * silently, which is the whole family of fault this project keeps recording.
+   * It comes off the same query, so there is no second round trip.
+   *
+   * "Waiting" means NEVER OPENED — `viewed_at is null` — which is the same
+   * definition the applicants badge already uses, and the honest one: an
+   * employer who opened an application and closed it again has been given the
+   * chance to act. Anything looser puts the yellow card up permanently, and a
+   * card that is always there is furniture rather than an alert.
+   */
+  const [waiting, setWaiting] = useState<{ jobId: string; jobTitle: string; count: number; newest: string } | null>(null)
+
+  // Shifts this week, for the third tile. Its OWN state and its own effect —
+  // the same reasoning /my-jobs uses: a shift query failing must not be able to
+  // take the dashboard down with it.
+  const [shiftsThisWeek, setShiftsThisWeek] = useState<number | null>(null)
 
   // Data
   const [applications, setApplications] = useState<any[]>([])
@@ -752,6 +311,36 @@ export default function EmployerDashboardPage() {
                 const unviewed = appData.filter(a => !a.viewed_at).length
                 setUnviewedAppsCount(unviewed)
 
+                // THE ACTION CARD'S SUBJECT. The advert with the most people
+                // waiting; ties broken by the most recent application, so the
+                // card does not flip between two equal adverts on reload.
+                const byJob = new Map<string, { jobId: string; jobTitle: string; count: number; newest: string }>()
+                for (const a of appData as any[]) {
+                  if (a.viewed_at) continue
+                  const cur = byJob.get(a.job_id)
+                  if (cur) {
+                    cur.count++
+                    if (a.created_at > cur.newest) cur.newest = a.created_at
+                  } else {
+                    byJob.set(a.job_id, {
+                      jobId: a.job_id,
+                      // job_title is denormalised onto the application row, so
+                      // this needs no join and cannot go stale against a title
+                      // the employer has since edited — it is what they applied to.
+                      jobTitle: a.job_title || 'your advert',
+                      count: 1,
+                      newest: a.created_at,
+                    })
+                  }
+                }
+                // `Array.from`, NOT a spread. This project's tsconfig targets below
+                // ES2015 with no `downlevelIteration`, so spreading a Map iterator is
+                // a compile error (TS2802) — caught by tsc the moment it was written,
+                // which is the one class of fault the compiler is reliably good at.
+                const top = Array.from(byJob.values()).sort((x, y) =>
+                  y.count - x.count || (y.newest > x.newest ? 1 : -1))[0]
+                setWaiting(top ? { jobId: top.jobId, jobTitle: top.jobTitle, count: top.count, newest: top.newest } : null)
+
                 // Build per-job application count map for enriching jobsData
                 const appCountByJob: Record<string, number> = {}
                 appData.forEach((a: any) => {
@@ -765,6 +354,12 @@ export default function EmployerDashboardPage() {
                   ...supabaseJobToJob(j),
                   views: j.views || 0,
                   application_count: appCountByJob[j.id] || 0,
+                  // THE UNMAPPED DATE, carried alongside the mapped one on
+                  // purpose. `supabaseJobToJob` defaults postedDate to TODAY
+                  // when the column is null, so the mapped field cannot say
+                  // "no date" — it says "today", which the row would render as
+                  // "live 0 days" about an advert nobody stamped.
+                  postedAtRaw: j.posted_at ?? null,
                 }))
                 setJobsData(enrichedJobs)
 
@@ -1078,6 +673,54 @@ export default function EmployerDashboardPage() {
     })
   }, [candidatesByStage, statusCounts, lastSeenAt])
 
+  // SHIFTS THIS WEEK — its own effect, deliberately.
+  //
+  // Monday to Sunday in the VIEWER'S clock, which is right here and wrong on
+  // the admin activity chart: this number answers "what is my week", so it is a
+  // question about the employer's diary. The same figure bucketed in somebody
+  // else's zone would be a chart they cannot act on.
+  //
+  // Failure is silent and the tile shows a dash rather than a zero: an employer
+  // with shifts must never be told they have none because a query blipped, and
+  // "—" reads as "not known" where "0" reads as an answer.
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (!session || cancelled) return
+        const ownerId = (await getCurrentEmployerOwnerId(supabase)) ?? session.user.id
+
+        const now = new Date()
+        const day = now.getDay()                       // 0 = Sunday
+        const monday = new Date(now)
+        monday.setDate(now.getDate() + (day === 0 ? -6 : 1 - day))
+        monday.setHours(0, 0, 0, 0)
+        const sunday = new Date(monday)
+        sunday.setDate(monday.getDate() + 7)
+        // THE COLUMN IS `date_from` AND IT IS A DATE, NOT A TIMESTAMP. My first
+        // version asked for `starts_at`, which does not exist on this table —
+        // PostgREST rejects the WHOLE request on an unknown column, so the tile
+        // would have shown a dash for ever and looked like a quiet week. Read
+        // from information_schema before the query was written, not after.
+        // (`start_time` is a bare time-of-day; `date_to` and `is_ongoing` carry
+        // multi-day shifts, which this count deliberately does not expand.)
+        const ymd = (d: Date) => d.toISOString().slice(0, 10)
+
+        const { data, error } = await supabase
+          .from('temp_posts')
+          .select('id, date_from')
+          .eq('employer_id', ownerId)
+          .gte('date_from', ymd(monday))
+          .lt('date_from', ymd(sunday))
+
+        if (cancelled) return
+        setShiftsThisWeek(error ? null : (data?.length ?? 0))
+      } catch { /* the tile shows a dash */ }
+    })()
+    return () => { cancelled = true }
+  }, [])
+
   const activeJobsList = useMemo(() =>
     jobsData.filter(j => j.status === 'active').slice(0, 10)
   , [jobsData])
@@ -1095,34 +738,62 @@ export default function EmployerDashboardPage() {
     ).length
   }, [applications])
 
-  const dateInfo = formatDate()
+  // ── BLOCK 3's SENTENCE, and it is prose rather than a badge ──────────────
+  // `formatRelativeTime` returns "Yesterday" / "2d ago" / "12 Sep", which reads
+  // as a label rather than as the middle of a sentence — and lowercasing it
+  // blindly would turn "12 Sep" into "12 sep". So the phrase is built here.
+  const appliedPhrase = (count: number, iso: string) => {
+    const d = new Date(iso)
+    const days = Math.floor((Date.now() - d.getTime()) / 86400000)
+    const when = days <= 0 ? 'today'
+      : days === 1 ? 'yesterday'
+      : days < 7 ? `${days} days ago`
+      : `on ${d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`
+    return count === 1
+      ? `Applied ${when}. Not opened yet.`
+      : `Most recent ${when}. None opened yet.`
+  }
+
+  // ── BLOCK 5's ROWS ──────────────────────────────────────────────────────
+  // Live first, then everything else — the handoff's "ordered live → filled →
+  // archived". Three rows: the panel is a glance with "All N" beside it, not a
+  // second copy of /my-jobs.
+  const AD_RANK: Record<string, number> = { active: 0, filled: 1 }
+  const adRows = jobsData
+    .slice()
+    .sort((a: any, b: any) => (AD_RANK[a.status] ?? 2) - (AD_RANK[b.status] ?? 2))
+    .slice(0, 3)
+
+  // ── BLOCK 6's COUNT ─────────────────────────────────────────────────────
+  // The same four items the setup strip carried. The handoff's mock says "2 of
+  // 5 steps"; there are FOUR steps in this product and the number is read from
+  // them rather than copied off a picture.
+  const setupSteps = [
+    { label: 'Add your company logo', href: '/settings', done: !!companyLogo },
+    { label: 'Post your first job', href: '/post-job', done: totalJobs > 0 },
+    { label: 'Complete your company profile', href: '/settings', done: companyDescription.length > 50 },
+    { label: 'Set up interview availability', href: '/settings/availability', done: hasAvailability },
+  ]
+  const stepsDone = setupSteps.filter(s => s.done).length
+  // Points at the FIRST thing they have not done, not at a generic settings page.
+  const nextStep = setupSteps.find(s => !s.done)
 
   // ── Loading state ───────────────────────────────────────
+  // The six blocks' geometry, so the page does not reflow when the data lands.
   if (loading) {
     return (
       <main className={styles.pageBackground}>
         <Header />
-        <div className={styles.dashboardWrap}>
-          <div className={styles.welcomeHeader}>
-            <div className={styles.welcomeLeft}>
-              <div className={`${styles.skeleton} ${styles.skeletonCircle}`} />
-              <div style={{ flex: 1 }}>
-                <div className={`${styles.skeleton} ${styles.skeletonLine}`} style={{ width: '220px' }} />
-                <div className={`${styles.skeleton} ${styles.skeletonLineShort}`} style={{ width: '150px' }} />
-              </div>
-            </div>
+        <div className={styles.ndWrap}>
+          <div className={`${styles.skeleton} ${styles.ndSkelEyebrow}`} />
+          <div className={`${styles.skeleton} ${styles.ndSkelGreet}`} />
+          <div className={`${styles.skeleton} ${styles.ndSkelAction}`} />
+          <div className={styles.ndTiles}>
+            <div className={`${styles.skeleton} ${styles.ndSkelTile}`} />
+            <div className={`${styles.skeleton} ${styles.ndSkelTile}`} />
+            <div className={`${styles.skeleton} ${styles.ndSkelTile}`} />
           </div>
-          <SkeletonCard height={60} />
-          <div className={styles.grid}>
-            <div className={styles.colLeft}>
-              <SkeletonCard height={260} />
-              <SkeletonCard height={200} />
-            </div>
-            <div className={styles.colRight}>
-              <SkeletonCard height={200} />
-              <SkeletonCard height={180} />
-            </div>
-          </div>
+          <div className={`${styles.skeleton} ${styles.ndSkelPanel}`} />
         </div>
       </main>
     )
@@ -1133,340 +804,172 @@ export default function EmployerDashboardPage() {
 
   return (
     <main className={styles.pageBackground}>
+      {/* ── BLOCK 1 — THE NAVY HEADER ──────────────────────────────────────
+          The shared product header, KEPT rather than re-cut for this route.
+          It is already what the handoff draws: navy ground, the mark plus the
+          Bricolage wordmark, search and the avatar on the right.
+
+          Building a second navy bar here would give one screen its own header
+          and strand what lives inside this one — the sidebar toggle, the
+          account menu, and with them the product's routes to /interviews,
+          /offers and /pipeline, which this page no longer links to directly.
+
+          It is block 1 of six and it is counted as one. What it is NOT is
+          pixel-identical: --nav-height is 70 against the handoff's ~56, and the
+          ground is --dark-gray rather than --rs-brand-navy. Both are measured
+          and reported rather than quietly changed here — the height has
+          fourteen consumers across the product and is not this branch's to
+          move. ── */}
       <Header />
 
-      <div className={styles.dashboardWrap}>
-        {/* ── THE ANSWER LINE ────────────────────────────────
-            First thing on the page, above the greeting banner and the KPI
-            strip. The dashboard's job is to answer "what needs me today" and
-            it previously took five blocks before any news.
+      <div className={styles.ndWrap}>
 
-            Item 1 of the handoff's build order: it lands here without touching
-            anything below it, which is why it ships first and alone. The five
-            blocks it is meant to replace are still present — collapsing them is
-            item 3, deliberately a separate change. */}
-        <div style={{ marginBottom: '1rem' }}>
-          <AnswerLine model={answerLineModel} />
-        </div>
+        {/* ── BLOCK 2 — GREETING ──────────────────────────────────────────
+            Company above, greeting below. `greetingName` returns empty rather
+            than a slice of an email address, so the comma is conditional: a
+            bare "Good morning" is better than "Good morning, pauldavies.gbr".
+            Same reasoning as every invented name removed from this codebase. ── */}
+        <header className={styles.ndGreet}>
+          {companyName && <p className={styles.ndGreetCompany}>{companyName}</p>}
+          <h1 className={styles.ndGreetTitle}>
+            {getGreeting()}{displayName ? `, ${displayName}` : ''}
+          </h1>
+        </header>
 
+        {/* ── BLOCK 3 — THE ACTION CARD ───────────────────────────────────
+            THE ONLY YELLOW SURFACE ON THIS SCREEN. If a second appears, one of
+            the two is wrong.
 
-        {/* ── SETUP STRIP ────────────────────────────────
-            THREE ONBOARDING DEVICES BECOME ONE. This replaces the "Get started
-            with Thrive" checklist, the "Enable interview scheduling" banner —
-            which was already item 4 of that same checklist, so the page nagged
-            twice about one thing — and the tour button's own row.
-
-            Completed items disappear rather than showing as ticked, so the
-            strip shrinks as they work and removes itself at four of four. The
-            greeting banner is gone entirely and the KPI strip has moved below
-            the pipeline: this page is read for ninety seconds between services,
-            and none of that was news. */}
-        {!setupDismissed && (
-          <SetupStrip
-            items={[
-              { key: 'logo', label: 'Add your company logo', href: '/settings', done: !!companyLogo },
-              { key: 'job', label: 'Post your first job', href: '/post-job', done: totalJobs > 0 },
-              { key: 'profile', label: 'Complete your company profile', href: '/settings', done: companyDescription.length > 50 },
-              { key: 'availability', label: 'Set up interview availability', href: '/settings/availability', done: hasAvailability },
-            ]}
-            onDismiss={dismissSetup}
-            tour={<EmployerTour isEmpty={totalJobs === 0} />}
-          />
+            Two states, one geometry. The screen must not go actionless and it
+            must not manufacture urgency, so when nothing is waiting the same
+            box turns white and offers the one thing worth doing instead. ── */}
+        {waiting ? (
+          <section className={styles.ndAction} data-state="waiting">
+            <p className={styles.ndActionEyebrow}>Needs you today</p>
+            {/* The FULL advert title, never truncated. Cutting at the en dash
+                is right in admin and wrong here: an employer can hold two
+                "Chef de Partie – …" adverts and this card names exactly one. */}
+            <h2 className={styles.ndActionHeadline}>
+              {waiting.count} {waiting.count === 1 ? 'person applied' : 'people applied'} to {waiting.jobTitle}
+            </h2>
+            <p className={styles.ndActionSub}>{appliedPhrase(waiting.count, waiting.newest)}</p>
+            <Link href={`/my-jobs/${waiting.jobId}/applications`} className={styles.ndActionBtn}>
+              Review applicants
+              <span aria-hidden="true" className={styles.ndChev}>›</span>
+            </Link>
+          </section>
+        ) : (
+          <section className={styles.ndAction} data-state="clear">
+            <p className={styles.ndActionEyebrow}>Nothing waiting</p>
+            <h2 className={styles.ndActionHeadline}>
+              {activeJobs > 0
+                ? `All ${activeJobs} live ad${activeJobs === 1 ? '' : 's'} ${activeJobs === 1 ? 'is' : 'are'} collecting applicants.`
+                : 'No live job ads yet.'}
+            </h2>
+            <Link href="/post-job" className={styles.ndActionBtnGhost}>
+              Write a job ad
+              <span aria-hidden="true" className={styles.ndChev}>›</span>
+            </Link>
+          </section>
         )}
 
-        {/* ── EXAMPLE SHOWCASE (display-only) — teaches the empty dashboard.
-            Shown ONLY while the guided tour is running (and only for an account
-            with no jobs), so the dashboard stays clean before/after. All data is
-            fake and never touches the DB. ── */}
-        {totalJobs === 0 && showTourExamples && <ExampleShowcase />}
+        {/* ── BLOCK 4 — THREE TILES ───────────────────────────────────────
+            Destinations are Claude Design's, named in the handoff, not filled
+            in by judgement here: /my-jobs, /applied, /temp-work.
 
-        {/* ── STALE APPLICATIONS NUDGE ────────────────── */}
-        {/* Whole banner links to /applied (the "New Applications" awaiting-review
-            queue) — staleApplications counts pending apps older than 2 weeks. */}
-        {staleApplications > 0 && (
-          <Link href="/applied" className={styles.staleNudge}>
-            <span className={styles.staleNudgeIcon}><Ico name="clock" size={20} /></span>
-            <div className={styles.staleNudgeText}>
-              <strong>{staleApplications} application{staleApplications !== 1 ? 's' : ''}</strong> {staleApplications !== 1 ? 'have' : 'has'} been waiting for review for over 2 weeks.
-            </div>
-            <span className={styles.staleNudgeLink}>Review now →</span>
+            "Live job ads" counts status === 'active'. With four FILLED adverts
+            the right answer is 0, and it says 0.
+
+            Shifts shows an em dash rather than 0 when the query could not run.
+            An employer with shifts must never be told they have none because a
+            request blipped — "—" reads as not known, "0" reads as an answer. ── */}
+        <div className={styles.ndTiles}>
+          <Link href="/my-jobs" className={styles.ndTile}>
+            <span className={`${styles.ndTileNum} ds-display`}>{activeJobs}</span>
+            <span className={styles.ndTileLabel}>Live job ads</span>
+          </Link>
+          <Link href="/applied" className={styles.ndTile}>
+            <span className={`${styles.ndTileNum} ds-display`}>{unviewedAppsCount}</span>
+            <span className={styles.ndTileLabel}>New applicants</span>
+          </Link>
+          <Link href="/temp-work" className={styles.ndTile}>
+            <span className={`${styles.ndTileNum} ds-display`}>
+              {shiftsThisWeek === null ? '—' : shiftsThisWeek}
+            </span>
+            <span className={styles.ndTileLabel}>Shifts this week</span>
+          </Link>
+        </div>
+
+        {/* ── BLOCK 5 — YOUR JOB ADS ──────────────────────────────────────
+            A list ROW, not a card — so this is the one place the title
+            truncates, which is what the handoff says and why the card itself
+            never does. ── */}
+        <section className={styles.ndAds}>
+          <div className={styles.ndAdsHead}>
+            <h2 className={styles.ndAdsTitle}>Your job ads</h2>
+            <Link href="/my-jobs" className={styles.ndAdsAll}>
+              All {totalJobs}<span aria-hidden="true" className={styles.ndChev}>›</span>
+            </Link>
+          </div>
+
+          {adRows.length === 0 ? (
+            // An empty list with no message reads as a page that failed to
+            // load rather than a list that is empty.
+            <p className={styles.ndAdsEmpty}>
+              No job ads yet. <Link href="/post-job">Write your first one</Link>.
+            </p>
+          ) : adRows.map((j: any) => {
+            const live = j.status === 'active'
+            const apps = j.application_count || 0
+            // The AGE clause only exists when the row genuinely carries a date
+            // and the advert is genuinely live. `postedAtRaw` is the unmapped
+            // column precisely so this can be false — the mapped `postedDate`
+            // defaults to today and would print "live 0 days" about an advert
+            // nobody ever stamped.
+            const days = live && j.postedAtRaw
+              ? Math.max(0, Math.floor((Date.now() - new Date(j.postedAtRaw).getTime()) / 86400000))
+              : null
+            const meta = [
+              apps === 0 ? 'No applicants yet' : `${apps} applicant${apps === 1 ? '' : 's'}`,
+              days === null ? null : `live ${days} day${days === 1 ? '' : 's'}`,
+            ].filter(Boolean).join(' · ')
+            return (
+              <Link key={j.id} href={`/my-jobs/${j.id}/applications`} className={styles.ndAdRow}>
+                <span className={styles.ndAdRowMain}>
+                  <span className={styles.ndAdRowTitle}>{j.title}</span>
+                  <span className={styles.ndAdRowMeta}>{meta}</span>
+                </span>
+                {/* A 6px dot and caps, never a filled pill: a finished advert
+                    should be the quietest thing on the page. */}
+                <span className={styles.ndAdStatus} data-live={live ? 'yes' : 'no'}>
+                  <span className={styles.ndAdDot} aria-hidden="true" />
+                  {live ? 'Live' : (STATUS_LABELS[j.status] || j.status)}
+                </span>
+              </Link>
+            )
+          })}
+        </section>
+
+        {/* ── BLOCK 6 — THE NUDGE ─────────────────────────────────────────
+            Bottom, not top, and it states the cost in minutes — a checklist
+            that will not say how long it takes is why it gets ignored.
+
+            It removes itself at four of four rather than showing four ticks,
+            and it still honours the old dismissal, so anybody who has already
+            closed the setup strip does not get it handed back to them. ── */}
+        {nextStep && !setupDismissed && (
+          <Link href={nextStep.href} className={styles.ndNudge}>
+            <span className={styles.ndNudgeTick} aria-hidden="true"><Ico name="check" size={16} /></span>
+            <span className={styles.ndNudgeText}>
+              <span className={styles.ndNudgeTitle}>Finish your company profile</span>
+              <span className={styles.ndNudgeMeta}>
+                {stepsDone} of {setupSteps.length} steps · takes about 3 minutes
+              </span>
+            </span>
+            <span aria-hidden="true" className={styles.ndChev}>›</span>
           </Link>
         )}
 
-
-
-        <div className={styles.grid}>
-
-          {/* ── FULL WIDTH: Pipeline ── */}
-          <div className={styles.colFull}>
-            <div className={`${styles.card} ${styles.aBlue}`}>
-              <div className={styles.cardHeader}>
-                <h2 className={styles.cardTitle}>Application Pipeline</h2>
-                <Link href="/pipeline" className={styles.cardLink}>View All</Link>
-              </div>
-              {/* PHONE: six full-width rows. DESKTOP: the Kanban columns,
-                  untouched. Two renderings of one pipeline, switched on the
-                  same isMobile the rest of this page uses — not a CSS
-                  display:none pair, because the desktop columns mount real
-                  candidate cards and rendering both would double the work on
-                  the device least able to afford it. */}
-              <div className={styles.cardBody} style={isMobile ? { padding: 0 } : undefined}>
-                {isMobile ? (
-                  <PipelineRows rows={pipelineRows} />
-                ) : (
-                <div className={styles.pipelineScroller}>
-                  {PIPELINE_STAGES.filter(s => s !== 'rejected').map(s => {
-                    // Mirror the /pipeline board: a stage column (coloured header +
-                    // count pill) with the real candidate cards (initials avatar,
-                    // name, role, "N days in stage" badge, Review →). Read-only.
-                    const color = s === 'pending' ? '#f59e0b' : (STAGE_COLORS[s as keyof typeof STAGE_COLORS] || '#6b7280')
-                    const label = s === 'pending' ? 'Applied' : (STAGE_LABELS[s as keyof typeof STAGE_LABELS] || STATUS_LABELS[s] || s)
-                    const count = statusCounts[s] || 0
-                    const candidates = candidatesByStage[s] || []
-                    return (
-                      <div key={s} className={styles.pipeCol}>
-                        <div className={styles.pipeColHead} style={{ borderTopColor: color }}>
-                          <span className={styles.pipeColLabel}>{label}</span>
-                          <span className={styles.pipeColCount} style={{ background: `color-mix(in srgb, ${color} 14%, transparent)`, color }}>{count}</span>
-                        </div>
-                        <div className={styles.pipeColBody}>
-                          {candidates.length === 0 ? (
-                            <span className={styles.pipeColEmpty}>No candidates</span>
-                          ) : candidates.slice(0, 2).map((app: any) => (
-                            <Link key={app.id} href="/pipeline" className={styles.pipeCard}>
-                              <div className={styles.pipeCardTop}>
-                                <span className={styles.pipeAvatar} style={{ background: color }}>{getInitials(app.candidate_name || 'C')}</span>
-                                <div className={styles.pipeCardInfo}>
-                                  <span className={styles.pipeCardName}>{app.candidate_name || 'Candidate'}</span>
-                                  <span className={styles.pipeCardRole}>{app.candidate_job_title || app.job_title || ''}</span>
-                                </div>
-                              </div>
-                              {app.stage_entered_at && (
-                                <StageDurationBadge stageEnteredAt={app.stage_entered_at} stageLabel={label} stageColor={color} />
-                              )}
-                              <span className={styles.pipeReview}>Review &rarr;</span>
-                            </Link>
-                          ))}
-                          {candidates.length > 2 && <Link href="/pipeline" className={styles.pipeColMore}>+{candidates.length - 2} more</Link>}
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-
-          {/* ── KPI ROW — BELOW THE PIPELINE, NOT ABOVE IT.
-              Not deleted, demoted. These four numbers were the second thing on
-              the page and none of them is news: they are reference, and they
-              belong after the thing an employer came to look at.
-
-              HIDDEN ENTIRELY WHEN EVERY VALUE IS ZERO. Four zeroes teach a new
-              employer nothing and take a whole row to say it. ── */}
-          {(activeJobs > 0 || totalApplications > 0 || (statusCounts['interview'] || 0) > 0 || totalViews > 0) && (
-          <div className={styles.colFull}>
-        {/* ── STATS STRIP ── */}
-        <div className={styles.statsStrip} data-tour="stats">
-          <button className={styles.statPill} onClick={() => router.push('/my-jobs')}>
-            <span className={styles.statPillNum}>{activeJobs}</span>
-            <span className={styles.statPillLabel}>Active Jobs</span>
-          </button>
-          <div className={styles.statPillDivider} />
-          <button className={styles.statPill} onClick={() => router.push('/my-jobs')}>
-            <span style={{ position: 'relative', display: 'inline-block' }}>
-              <span className={styles.statPillNum}>{totalApplications}</span>
-              {unviewedAppsCount > 0 && (
-                <span
-                  title={`${unviewedAppsCount} awaiting your review`}
-                  style={{ position: 'absolute', top: -4, right: -12, minWidth: 16, height: 16, borderRadius: 8, background: '#ef4444', color: '#fff', fontSize: '0.55rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 3px', border: '2px solid #fff' }}
-                >
-                  {unviewedAppsCount > 99 ? '99+' : unviewedAppsCount}
-                </span>
-              )}
-            </span>
-            <span className={styles.statPillLabel}>Applications</span>
-          </button>
-          <div className={styles.statPillDivider} />
-          <button className={styles.statPill} onClick={() => router.push('/my-jobs?filter=interviewing')}>
-            <span className={styles.statPillNum}>{statusCounts['interview'] || 0}</span>
-            <span className={styles.statPillLabel}>Interviewing</span>
-          </button>
-          <div className={styles.statPillDivider} />
-          <button className={styles.statPill} onClick={() => router.push('/messages')}>
-            <span className={styles.statPillNum}>{totalViews}</span>
-            <span className={styles.statPillLabel}>Views</span>
-          </button>
-        </div>
-          </div>
-          )}
-
-          {/* ── Active Jobs — full width: the horizontal image-card scroller uses the
-              width well and removes the empty gap a short left column left behind. ── */}
-          <div className={styles.colFull}>
-            <div className={`${styles.card} ${styles.aYellow}`}>
-              <div className={styles.cardHeader}>
-                <h2 className={styles.cardTitle}>Active Jobs</h2>
-                {/* Shifts have never had a route from the dashboard. Rather than
-                    build a second panel here, this points at the one place that
-                    now carries both — /my-jobs leads on to /temp-work/manage. */}
-                <span style={{ display: 'inline-flex', gap: '0.9rem', alignItems: 'baseline' }}>
-                  <Link href="/temp-work/manage" className={styles.cardLink}>Shifts</Link>
-                  <Link href="/my-jobs" className={styles.cardLink}>Manage Jobs</Link>
-                </span>
-              </div>
-              <div className={styles.cardBody}>
-                {activeJobsList.length > 0 ? (
-                  <ActiveJobsScroller jobs={activeJobsList} styles={styles} />
-                ) : (
-                  /* TWO STATES, NOT ONE. "Post your first listing" was shown to
-                     every employer with nothing ACTIVE — including one with four
-                     jobs and three applicants on screen directly above it, whose
-                     roles were simply all filled.
-
-                     Telling someone who has hired to post their first job is the
-                     fifth instance of copy describing a state the account is not
-                     in, after the reply button, the /my-jobs section, the
-                     interviews empty state and the manage-page subtitle.
-
-                     totalJobs is already loaded for the tour and the checklist,
-                     so the two states were always distinguishable. */
-                  <div className={styles.emptyState}>
-                    <div className={styles.emptyIcon}><Ico name="briefcase" size={24} /></div>
-                    {totalJobs === 0 ? (
-                      <p>No active jobs. Post your first listing!</p>
-                    ) : (
-                      /* FOUR WORDS, and shorter than it used to be. The answer
-                         line at the top of this page now carries the full
-                         sentence naming the cause; this is the same fact 800px
-                         further down, and saying it twice at length is
-                         repetition on a page built to remove it. Same root
-                         string as the answer line, so they cannot drift.
-
-                         The register was already argued once here: an earlier
-                         draft added "They're still on Manage Job Ads whenever
-                         you want to repost" — true, and a three-line paragraph
-                         on a phone, pointing at a "Manage Jobs" link two
-                         centimetres above it in this card's own header. Every
-                         other empty state in this column is four words. */
-                      <p>{nothingLiveShort()}</p>
-                    )}
-                    <Link href="/post-job" className={styles.cardLink}>
-                      {totalJobs === 0 ? 'Post a Job' : 'Post another role'} &rarr;
-                    </Link>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* ── Recent Applicants — WIDE left column: the rich CandidateCard scroller
-              needs the width (it was cramped in the narrow right column), and it sits
-              under the full-width Active Jobs row. ── */}
-          {/* ── Recent Applicants: ABSORBED, NOT DELETED ──────────────────
-              The named candidate cards live inside the Applied and Shortlisted
-              columns of the pipeline above on desktop, and behind a row tap on
-              phone. This card showed the same people a second time, in a
-              second horizontal scroller.
-
-              TWO NESTED HORIZONTAL SCROLLERS ON ONE 390 SCREEN was the actual
-              failure — a sideways swipe inside a vertically scrolling page,
-              twice. Converting the pipeline to rows and leaving this one in
-              place would have halved the problem and called it fixed.
-
-              Both renderings go: this desktop column and the isMobile block
-              that used to repeat it below. ── */}
-
-          {/* ── Recent Messages — narrow right column (a list fits cleanly here) ── */}
-          <div className={styles.colRight}>
-            <div className={`${styles.card} ${styles.aCyan}`}>
-              <div className={styles.cardHeader}>
-                <h2 className={styles.cardTitle}>Recent Messages</h2>
-                <Link href="/messages" className={styles.cardLink}>View All</Link>
-              </div>
-              <div className={styles.cardBody}>
-                {recentConversations.length > 0 ? (
-                  <div className={styles.msgList}>
-                    {recentConversations.map((conv: any) => (
-                      <Link href="/messages" key={conv.id} className={styles.msgItem}>
-                        <div className={styles.msgAvatarWrap}>
-                          <div className={styles.msgAvatar}>
-                            {conv.participantName ? getInitials(conv.participantName) : '?'}
-                          </div>
-                          <span className={conv.unreadCount > 0 ? styles.msgOnline : styles.msgOffline} />
-                        </div>
-                        <div className={styles.msgContent}>
-                          <p className={styles.msgSender}>
-                            {conv.unreadCount > 0 && <span className={styles.unreadDot} />}
-                            {conv.participantName}
-                          </p>
-                          <p className={styles.msgPreview}>{conv.lastMessage}</p>
-                        </div>
-                        <span className={styles.msgTime}>{formatRelativeTime(conv.lastMessageAt)}</span>
-                      </Link>
-                    ))}
-                  </div>
-                ) : (
-                  <div className={styles.emptyState}>
-                    <div className={styles.emptyIcon}><Ico name="message-square" size={24} /></div>
-                    <p>No messages yet.</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Active Jobs is rendered once in the full-width colFull block above
-              (it spans the row on desktop as a grid, and on mobile via the same
-              .jobScroller, which is a scroller ≤960). No separate mobile block —
-              a duplicate one previously rendered Active Jobs twice on mobile. */}
-
-          {/* The mobile Candidate card slider was the SECOND of the two nested
-              horizontal scrollers. Removed with its desktop twin — see the note
-              where that column used to be. The people it showed are one tap
-              away through the pipeline rows above. */}
-
-          {/* ── MOBILE ONLY: Messages stacked list ── */}
-          {isMobile && (
-            <div className={styles.colFull}>
-              <div className={`${styles.card} ${styles.aCyan}`}>
-                <div className={styles.cardHeader}>
-                  <h2 className={styles.cardTitle}>Recent Messages</h2>
-                  <Link href="/messages" className={styles.cardLink}>View All</Link>
-                </div>
-                <div className={styles.cardBody}>
-                  {recentConversations.length > 0 ? (
-                    <div style={{ display: 'flex', flexDirection: 'column' as const, gap: '0.5rem', width: '100%' }}>
-                      {recentConversations.map((conv: any) => (
-                        <Link href="/messages" key={conv.id} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem', background: conv.unreadCount > 0 ? '#fffbeb' : '#fff', border: conv.unreadCount > 0 ? '1px solid #fde68a' : '1px solid #e5e7eb', borderRadius: '12px', textDecoration: 'none', color: 'inherit', boxSizing: 'border-box' as const, width: '100%', overflow: 'hidden' }}>
-                          <div style={{ position: 'relative' as const, flexShrink: 0 }}>
-                            <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.72rem', fontWeight: 700, color: '#fff' }}>
-                              {(conv.participantName || '?').split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}
-                            </div>
-                            {conv.unreadCount > 0 && <div style={{ position: 'absolute' as const, top: -2, right: -2, width: 14, height: 14, borderRadius: '50%', background: '#ef4444', color: '#fff', fontSize: '0.5rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid #fff' }}>{conv.unreadCount}</div>}
-                          </div>
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontSize: '0.82rem', fontWeight: 600, color: '#1e293b' }}>{conv.participantName}</div>
-                            <div style={{ fontSize: '0.7rem', color: '#6b7280', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 'calc(100vw - 140px)' }}>{conv.lastMessage || 'No messages yet'}</div>
-                          </div>
-                          <span style={{ display: 'inline-flex', alignItems: 'center', fontSize: '0.62rem', lineHeight: 1.4, padding: '0.15rem 0.45rem', borderRadius: 999, background: '#fef3c7', border: '1px solid #fde68a', color: '#92400e', fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0 }}>{formatRelativeTime(conv.lastMessageAt)}</span>
-                        </Link>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className={styles.emptyState}>
-                      <div className={styles.emptyIcon}><Ico name="message-square" size={24} /></div>
-                      <p>No messages yet.</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-
-        </div>
       </div>
     </main>
   )
