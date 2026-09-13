@@ -174,8 +174,21 @@ export default function EmployerSidebar() {
       ),
     },
     {
-      label: 'Temp Work',
-      href: '/temp-work',
+      // THE EMPLOYER'S OWN SHIFTS, NOT THE CANDIDATE FEED.
+      //
+      // This pointed at /temp-work, which is the CANDIDATE-facing shift feed —
+      // the board a worker browses. An employer's own posted shifts live at
+      // /temp-work/manage, whose heading is "Your temp work", and until now
+      // that page was reachable ONLY through a link inside the candidate feed.
+      // So the sidebar item named after an employer's shifts sent them to
+      // somebody else's screen and made their own two clicks away.
+      //
+      // The label follows the destination rather than the other way round:
+      // "Temp Work" names the feed, "My Shifts" names what this now opens.
+      // Pointing a link somewhere new and leaving its old name on it is how
+      // the next person concludes the destination is wrong.
+      label: 'My Shifts',
+      href: '/temp-work/manage',
       icon: (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <circle cx="12" cy="12" r="9" />
