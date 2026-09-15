@@ -20,7 +20,7 @@ import { getTagCategory, WORK_STYLE_TAGS } from '@/lib/jobTags'
 import { useAnalyticsTracking } from '@/hooks/useAnalyticsTracking'
 import styles from './page.module.css'
 import { Ico } from '@/components/icons'
-import { formatJobLocation } from '@/lib/jobCard'
+import { formatJobAddress, formatJobLocation } from '@/lib/jobCard'
 import ReportControl from '@/components/ReportControl'
 
 export default function RecommendedJobsPage() {
@@ -495,9 +495,7 @@ export default function RecommendedJobsPage() {
                           rel="noopener noreferrer"
                           className={styles.detailLocation}
                         >
-                          <Ico name="map-pin" size={16} /> {selectedJob.fullLocation?.addressLine1
-                            ? `${selectedJob.fullLocation.addressLine1}, ${selectedJob.fullLocation.city} ${selectedJob.fullLocation.postcode}`
-                            : [selectedJob.location, selectedJob.area].filter(Boolean).join(', ')}
+                          <Ico name="map-pin" size={16} /> {formatJobAddress(selectedJob)}
                         </a>
                         <p className={styles.detailSalary}>{formatSalaryFull(selectedJob)}</p>
                         <div className={styles.detailBadges}>

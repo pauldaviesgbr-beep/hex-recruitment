@@ -16,6 +16,7 @@ import ApplyNowModal from '@/components/ApplyNowModal'
 import ReportControl from '@/components/ReportControl'
 import styles from './JobDetailModal.module.css'
 import { Ico } from '@/components/icons'
+import { formatJobAddress, formatJobLocation } from '@/lib/jobCard'
 
 interface JobDetailModalProps {
   job: Job
@@ -304,9 +305,7 @@ export default function JobDetailModal({
                     onClick={(e) => e.stopPropagation()}
                   >
                     <span className={styles.metaIcon}><Ico name="map-pin" size={20} /></span>
-                    {job.fullLocation?.addressLine1
-                      ? `${job.fullLocation.addressLine1}, ${job.fullLocation.city} ${job.fullLocation.postcode}`
-                      : [job.location, job.area].filter(Boolean).join(', ')}
+                    {formatJobAddress(job)}
                   </a>
                   <span className={styles.salary}>{formatSalary()}</span>
                 </div>
@@ -449,7 +448,7 @@ export default function JobDetailModal({
                     )}
                   </>
                 ) : (
-                  <p>{[job.location, job.area].filter(Boolean).join(', ')}</p>
+                  <p>{formatJobLocation(job)}</p>
                 )}
               </div>
             </a>

@@ -355,6 +355,7 @@ const ALL = [
   // published height and swapping the reserve to a margin. Exit 1, three named
   // failures, the other nine still reporting.
   { name: 'consentlane:prove', cmd: npm, args: ['run', 'consentlane:prove'] },
+  { name: 'locationdisplay:prove', cmd: npm, args: ['run', 'locationdisplay:prove'] },
 
   // NO COLOUR EMOJI ON ANY SURFACE A STRANGER SEES. components/icons.tsx has
   // said this since 14 Aug 2026 and had nothing behind it; seven got in anyway

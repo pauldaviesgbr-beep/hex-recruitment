@@ -16,7 +16,7 @@ import { getTagCategory } from '@/lib/jobTags'
 import CompanyReviewsSummary from '@/components/CompanyReviewsSummary'
 import { useAnalyticsTracking } from '@/hooks/useAnalyticsTracking'
 import styles from './page.module.css'
-import { formatJobLocation } from '@/lib/jobCard'
+import { formatJobAddress, formatJobLocation } from '@/lib/jobCard'
 import ReportControl from '@/components/ReportControl'
 
 export default function SavedJobsPage() {
@@ -339,9 +339,7 @@ export default function SavedJobsPage() {
                       rel="noopener noreferrer"
                       className={styles.detailLocation}
                     >
-                      {selectedJob.fullLocation?.addressLine1
-                        ? `${selectedJob.fullLocation.addressLine1}, ${selectedJob.fullLocation.city} ${selectedJob.fullLocation.postcode}`
-                        : [selectedJob.location, selectedJob.area].filter(Boolean).join(', ')}
+                      {formatJobAddress(selectedJob)}
                     </a>
                     <p className={styles.detailSalary}>{formatSalaryFull(selectedJob)}</p>
                     <div className={styles.detailBadges}>

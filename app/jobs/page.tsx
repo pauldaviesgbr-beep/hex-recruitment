@@ -90,6 +90,7 @@ import {
   type PrefFilter,
 } from '@/lib/candidatePrefs'
 import { Ico } from '@/components/icons'
+import { formatJobAddress } from '@/lib/jobCard'
 import ReportControl from '@/components/ReportControl'
 import { isFixtureGuardError, FIXTURE_GUARD_MESSAGE } from '@/lib/applicationGuard'
 const categories = [{ id: 'all', label: 'All Jobs' }, ...sharedCategories]
@@ -1280,9 +1281,7 @@ function JobsPageContent() {
                   </a>
                 )}
                 <a href={getGoogleMapsUrl(selectedJob)} target="_blank" rel="noopener noreferrer" className={styles.detailLocation}>
-                  <Ico name="map-pin" size={16} /> {selectedJob.fullLocation?.addressLine1
-                    ? `${selectedJob.fullLocation.addressLine1}, ${selectedJob.fullLocation.city} ${selectedJob.fullLocation.postcode}`
-                    : [selectedJob.location, selectedJob.area].filter(Boolean).join(', ')}
+                  <Ico name="map-pin" size={16} /> {formatJobAddress(selectedJob)}
                 </a>
                 <p className={styles.detailSalary}>{formatSalaryFull(selectedJob)}</p>
                 {selectedJob.expiresDate && (() => {
