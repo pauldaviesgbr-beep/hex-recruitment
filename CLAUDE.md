@@ -1140,6 +1140,13 @@ wrong reason is worse than no check, because it ends the search.
     Same family as "0 jobs" at 1.5s and "Loading roles…" at 6s, and the
     third time this file has had to record it.
 
+- **A FAULT THAT IS CURRENTLY MASKED BY A CONFIGURATION IS STILL A FAULT, AND THE MASK CAN BE REMOVED BY SOMEBODY DOING SOMETHING SENSIBLE — Paul's instruction, 15 Sept 2026, to record this even though it is not what is happening.**
+  - `check-roundup-delivery.mjs` reads Resend's list of recent messages and fails the run if any bounced. **Given a SEND-ONLY Resend key, the list endpoint returns `401 restricted_api_key`, the script parses that perfectly well as JSON, finds no `data` array, and concludes that nothing failed.** It prints "0 delivered, 0 not yet known, 0 failed" and **EXITS 0**.
+  - **MEASURED, NOT REASONED: I ran the script against the real 401 body** rather than tracing what it would do. That is the whole reason it is written down with confidence — the trace and the run could easily have disagreed.
+  - **IT IS NOT FIRING TODAY** because the key GitHub Actions holds is full-access. **The day anybody rotates that secret to a send-only key — which is the SAFER-LOOKING choice, and exactly what a careful person would reach for — the check flips from failing loudly to passing silently, and a green tick would mean "we could not look".**
+  - **SO THE CHECK IS INVERTED WHERE IT MATTERS MOST.** It fails on the thing that is news about one address (a bounce) and passes on the thing that is news about the instrument (no access at all). The right shape is the opposite: **a bounce WARNS, and an inability to see Resend FAILS.**
+  - Same family as the disabled secret scanner and the empty Vercel log window — **absence of a record read as absence of the thing** — with the sharpening that here the absence is produced by a credential decision nobody would think of as touching a test.
+
 - A CHECK THAT FAILS SAFE IS THE DANGEROUS KIND. An anon insert test
   returned "violates row-level security policy" and nearly got
   reported as secure — the refusal came from reading the row back,
@@ -1405,6 +1412,11 @@ wrong reason is worse than no check, because it ends the search.
   - The load-bearing assertion is the **PAIR**: identical facts (iOS true, standalone false) must give DIFFERENT answers in the shell and in a real Safari tab. *"The shell says unsupported"* would pass on a build that said unsupported to everybody.
 
 ## Fixtures and credentials
+
+- **`auth.users.last_sign_in_at` DOES NOT MOVE WHEN SOMEBODY USES THE PRODUCT — ONLY WHEN THEY SIGN IN AFRESH. So it UNDERSTATES engagement, and "signed up and never returned" read off it is a claim the column cannot support.** Measured 15 Sept 2026: `fraser@saucehospitality.co.uk` has `last_sign_in_at` of **8 August** and moved a real application to `reviewing` on **26 August** — eighteen days of live session the column cannot see.
+  - **I NEARLY PUT "SIGNED UP, NEVER RETURNED" IN A REPORT ABOUT THREE REAL EMPLOYERS ON THE STRENGTH OF IT.** The discriminator was free and sat one table away: `application_status_events` records what somebody DID, with an actor and a timestamp.
+  - **THE SAFE READING, WHEN THAT IS ALL YOU HAVE:** "no fresh sign-in since signup, no jobs, and no recorded actions" — three absences, stated as absences. Not "never came back".
+  - This is the SECOND fault recorded against this one column. The first was using it as a COUNTER — it holds only the most recent value, so it can never represent two logins. **A single-value column is a poor instrument for any question about a period**, and both times it answered confidently.
 
 - **A CREDENTIAL THAT HAS NEVER BEEN EXERCISED IS NOT A CREDENTIAL — Paul's line, 6 Sept 2026, after a take was blocked at 8pm by a password that had never worked because nobody had ever tried it.** Thrive Demo Kitchen (`pauldavies.gbr+applereviewemployer@gmail.com`) was created on 1 September, its password generated, **printed once to a terminal, and stored nowhere**: not `.env.local`, not any script, and — as it turned out — not App Store Connect either. `auth.users.last_sign_in_at` was **NULL**.
   - **THE ROW SAID SO THE WHOLE TIME AND NOBODY ASKED IT.** `updated_at` was **78 milliseconds after** `created_at` and had not moved in five days, so the password was the one set at creation and nothing had reset it; and a NULL `last_sign_in_at` is a complete, durable statement that **the credential has never once been used.** That column is the instrument for this and it costs one query.
