@@ -1,11 +1,18 @@
 import { ImageResponse } from 'next/og'
 import { getJobForMeta, formatSalaryShort } from '@/lib/jobMeta'
+import { sniffImageType } from '@/lib/imageType'
 
 // Per-job link-preview image (1200x630).
 //   - job has a banner photo (public Storage URL) -> serve the REAL photo as the
-//     preview image. (The OG renderer can't rasterise WebP, and our banners are
-//     WebP, so we proxy the actual bytes rather than compositing a card. The role
-//     title / company / salary still show via og:title + og:description.)
+//     preview image. We proxy the actual bytes rather than compositing a card;
+//     the role title / company / salary show via og:title + og:description.
+//
+//     THE REASON GIVEN HERE USED TO BE "our banners are WebP" AND IT WAS NEVER
+//     TRUE. Measured 16 Sept 2026: 117 of 119 live adverts carry a .jpg banner
+//     and not one is WebP. That sentence is what produced the forced
+//     Content-Type below, so it is corrected rather than deleted — and it means
+//     compositing a real 1200x630 card IS possible now, which is the better fix
+//     and a separate change.
 //   - no usable photo -> a branded navy card carrying the role text (safety net).
 //
 // Edge runtime is the supported path for @vercel/og — it bundles the font inline
@@ -30,8 +37,15 @@ export default async function OgImage({ params }: Props) {
   // job-banners Storage prefix. We follow redirects (Supabase Storage may 3xx to
   // its CDN from some edge regions) but require the FINAL response to stay on a
   // supabase.co host before serving, so a redirect can't escape to an arbitrary
-  // host. Always serve as image/webp + nosniff (we only ever store WebP) — never
-  // the upstream content type.
+  // host.
+  //
+  // THE TYPE COMES FROM THE BYTES, NEVER FROM UPSTREAM AND NEVER FROM A GUESS.
+  // Trusting the upstream Content-Type is the hole 7f820f1 closed and it stays
+  // closed. Asserting a fixed 'image/webp' was the other way to get it wrong:
+  // with nosniff set a wrong type is not cosmetic, it FORBIDS the crawler from
+  // correcting us, and every link-preview card died for three months.
+  // An unrecognised file is REFUSED — we fall through to the branded card
+  // rather than serve bytes we cannot identify.
   const supaUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
   const allowedPrefix = `${supaUrl}/storage/v1/object/public/job-banners/`
   let storageHost = ''
@@ -45,9 +59,10 @@ export default async function OgImage({ params }: Props) {
       // response must still be on OUR exact project host — never another tenant.
       if (res.ok && finalHost === storageHost) {
         const buf = await res.arrayBuffer()
-        return new Response(buf, {
+        const realType = sniffImageType(buf)
+        if (realType) return new Response(buf, {
           headers: {
-            'Content-Type': 'image/webp',
+            'Content-Type': realType,
             'X-Content-Type-Options': 'nosniff',
             'Content-Security-Policy': "default-src 'none'; sandbox",
             'Cache-Control': 'public, max-age=86400, s-maxage=86400',

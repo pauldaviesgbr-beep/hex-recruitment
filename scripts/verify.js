@@ -678,6 +678,10 @@ const ALL = [
   { name: 'iosshell:prove', cmd: npm, args: ['run', 'iosshell:prove'] },
 
   // iosassets:prove EXISTS BECAUSE RUN #4 WAS REFUSED BY APPLE FOR AN ICON
+  // The link-preview image must be served as what it actually IS. A forced
+  // 'image/webp' on JPEG banners, with nosniff alongside it, killed every
+  // job-share preview from 20 Jun to 16 Sept 2026 and nothing went red.
+  { name: 'ogtype:prove', cmd: npm, args: ['run', 'ogtype:prove'] },
   // THAT HAD BEEN SITTING ON THE MACHINE ALL ALONG. .gitignore line 14 is
   // '*.png' and had exceptions for public/ and app/ but never for ios/, so
   // AppIcon-512@2x.png and three splash images were never committed.
