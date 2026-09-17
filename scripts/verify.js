@@ -682,6 +682,10 @@ const ALL = [
   // 'image/webp' on JPEG banners, with nosniff alongside it, killed every
   // job-share preview from 20 Jun to 16 Sept 2026 and nothing went red.
   { name: 'ogtype:prove', cmd: npm, args: ['run', 'ogtype:prove'] },
+  // The qualifier is EARNED per advert. Over-applying is the risk: "including
+  // service charge" on a plain base is a new false statement that understates
+  // the job. Carries the zero-guard, and SKIPs (2) without database access.
+  { name: 'salaryqualifier:prove', cmd: npm, args: ['run', 'salaryqualifier:prove'], couldNotRun: 2 },
   // THAT HAD BEEN SITTING ON THE MACHINE ALL ALONG. .gitignore line 14 is
   // '*.png' and had exceptions for public/ and app/ but never for ios/, so
   // AppIcon-512@2x.png and three splash images were never committed.
