@@ -1677,3 +1677,22 @@ wrong reason is worse than no check, because it ends the search.
 
 - **WHAT SURVIVES AS FACT, since this entry withdraws something:** the content-type mismatch was real and is fixed (production went from `image/webp` over JPEG bytes to `image/jpeg`, measured before and after, 6 of 6 sampled adverts). What is withdrawn is the claim about its effect on link previews. **A finding and its blast radius are two claims, and they need measuring separately.**
 
+## 17 September 2026 — what a reviewer can see, and two claims with dates on them
+
+- **VISIBILITY IS A PROPERTY OF THE DEPLOY, NOT THE FILE — and asking it per-file is what cost five days once already.** `capacitor.config`'s `server.url` points at the live site, so the shell LOADS PRODUCTION. **Every push to main republishes the site, and a reviewer sees whatever main is whenever they happen to look.** "Will they navigate to this file" was never the question.
+  - **THE THREE CATEGORIES, and only the first is free:**
+    - **A. DOES NOT DEPLOY AT ALL** — `.github/workflows`, `scripts/`, `CLAUDE.md`, `.gitignore`. Vercel builds these into nothing and no path reaches them. This is why the roundup fix could merge mid-freeze, **and it was safe for a reason rather than by luck.**
+    - **B. DEPLOYS BUT DOES NOT RENDER** — the OG image route is the worked example: `/job/<id>/opengraph-image` is a CRAWLER endpoint, and a human signing in as the review account never issues that request. **CHEAP, NOT FREE.** The exposure is that the push rebuilds and republishes the whole site, so the risk is a build that fails or differs — not a reviewer seeing a half-finished feature.
+    - **C. DEPLOYS AND RENDERS** — anything under `app/` or `components/` that a person looks at. The only genuinely blocked category.
+  - **THE TEST IS MECHANICAL: count the changed files under `app/`, `components/`, `lib/`, `hooks/` and `public/`.** Zero means category A. It is one command and it replaces an argument about intent with a number.
+  - **AND THE BLANKET RULE IS THE EXPENSIVE PART.** "Nothing merges during a review" is safe and it is not free: it held four branches for five days, and it did so while the review had not actually been submitted. A rule that cannot distinguish a workflow file from a rendered page will always be obeyed by stopping everything.
+
+- **A WARNING CORRECT WHEN WRITTEN IS A CLAIM WITH A DATE ON IT. Second instance, so it is a class.** `fix/goldenkeys-list-schema`'s subject reads "DO NOT MERGE YET, AND IT CARRIES ANOTHER BRANCH", and its body explains it was cut from `feat/goldenkeys-no-update-existing` so merging would drag that along. **That dependency evaporated when the no-update-existing work landed on main** — 8 occurrences in main's copy of the importer — and the branch now carries exactly ONE commit.
+  - So the loudest sentence about that branch is now false, and it is false in the direction that STOPS somebody, for a reason that no longer exists.
+  - Same family as a "NOT FIXED" entry outliving its fix, and as the stale board count: **a note about the world rots, and nothing announces it.** The first instance was in this file; this one is in a commit subject, which is worse, because a commit message cannot be edited without rewriting history.
+  - **THE CHEAP FORM IS A NEW COMMIT ON TOP, NOT AN AMEND.** `git log --oneline` shows the newest subject first, so a commit whose subject says the warning above is stale appears exactly where somebody skims — and nothing is force-pushed.
+
+- **"MY UNDERSTANDING, WHICH I WOULD RATHER YOU CORRECTED THAN CONFIRMED" IS NOT A MEASUREMENT, AND THE HEDGE MAKES AN UNCHECKED LIST FEEL CHECKED — Paul's entry, about his own brief.** He listed eight held branches from memory of the week's conversations rather than from `git branch -r`. **There are sixteen.** Two names were wrong, one was already merged, and eight were missing — half the total.
+  - **THE INSTINCT WAS RIGHT AND IT IS WHAT MAKES THE SHAPE WORTH RECORDING.** Inviting correction is exactly the correct move; the failure is that it was then written as a list of facts, and the hedge did the work that checking should have done. **Asking to be corrected transfers the cost of verification to the other side while keeping the appearance of having done it.**
+  - Belongs with the brief-is-a-claim rule, and it is the subtler cousin: there the claim is asserted, here it is hedged — and the hedged one survives longer, because it sounds careful.
+
