@@ -1491,6 +1491,24 @@ wrong reason is worse than no check, because it ends the search.
   - **THE REPAIR THAT LASTS IS THE TYPE, NOT THE RENDER.** `icon` is now `IconName` (`keyof typeof ICONS`) on both `RoleGroup` and `roleMeta`'s return, so a name that is not an icon is a compile error where it is typed. All six existing names were verified by hand that night — **which is exactly the kind of check that is true once and then quietly stops being true.** Watched failing on purpose: a bad name gives `TS2322 … is not assignable`.
   - **CARRY THE TYPE THROUGH THE RETURN, OR THE GUARANTEE DIES ONE LINE LATER.** `roleMeta` originally returned `icon: string`; leaving it would have re-widened the value at the exact point every caller receives it.
 
+## The employer job-ads redesign — a correction filed before it is built
+
+- **"0 ACTIVE JOBS" BESIDE "ALL JOBS 4" IS CORRECT, AND THE 7 SEPT DESIGN HANDOFF CALLS IT A BUG. DO NOT IMPLEMENT THAT PARAGRAPH AS WRITTEN.** `design_handoff_employer_jobs` says *"the '0 ACTIVE JOBS' / four cards mismatch is a data-source bug wearing a layout costume"* and *"If the dashboard tile keeps its own 'active jobs' field, '0 ACTIVE JOBS' comes back."* **The tile does not keep its own field, and there is no mismatch.**
+  - **BOTH NUMBERS ALREADY COME FROM ONE QUERY AND ONE PREDICATE**, in the same file:
+
+        app/employer/dashboard/page.tsx:720
+          setActiveJobs(jobs.filter(j => j.status === 'active').length)
+        app/employer/dashboard/page.tsx:1081
+          const activeJobsList = useMemo(() =>
+            jobsData.filter(j => j.status === 'active').slice(0, 10), [jobsData])
+
+    Same fetch, same `status === 'active'`. The tile and the list it sits above cannot disagree.
+  - **THEY ARE ANSWERS TO DIFFERENT QUESTIONS AND BOTH ARE TRUE.** The dashboard tile counts ACTIVE adverts. `/my-jobs`' "All Jobs 4" counts ALL adverts. Thrive Test Employer's four are every one of them `filled`, so 0 active and 4 total are simultaneously correct, and the Active Jobs card correctly renders "Nothing live right now". Driven on production 6 Sept 2026: tile 0, card empty state, 62 applications, 469 views — real rows, agreeing with each other.
+  - **WHAT THE PARAGRAPH WOULD COST IF BUILT.** The only way to make the tile "agree" with four is to stop filtering on `active` — which counts filled adverts as live, on every employer who has ever filled a role. **It would introduce the bug it is trying to prevent, on the one screen where the number is currently right.**
+  - **THE RULE IT STATES IS STILL RIGHT AND STILL WANTED — KEEP IT, AND POINT IT AT THE NEW WORK.** *Counts come from the same query as the list they sit above.* That is a real constraint on the redesign's `Live 3 · Filled 1 · Draft 0 · Archived` tab strip, which does not exist yet. It is a constraint on something to be built, not a description of something broken.
+  - **THE FAULT IT IS REACHING FOR WAS REAL AND IS FIXED.** `/my-jobs` did render "All Jobs 4" above an empty area — the badge from `postedJobs.length`, the rows from a filter. Fixed 18 Aug 2026, and the file still carries the comment at `app/my-jobs/page.tsx:789`. **A finding has a date, and a date is not a fact** — this is that rule arriving from outside the codebase, in a document written by somebody who could not have known the repair had happened.
+  - **AND `setActiveJobs(5)` AT LINE 863 IS NOT EVIDENCE FOR IT.** It sits inside `if (DEV_MODE)` beside `setTotalJobs(8)` and five invented candidates. **But note what DEV_MODE actually is** — `process.env.NEXT_PUBLIC_DEV_MODE === 'true'` (`lib/mockAuth.ts:4`), a **NEXT_PUBLIC_ flag baked in at BUILD time**, not `NODE_ENV`. "It is dev only" is a claim about where a value comes from, never about the word DEV in its name.
+  - **A BUNDLE GREP CANNOT SETTLE THAT ONE**, and it was considered and rejected: `mockUsers` is a top-level export, so its strings ship whatever the flag is. The check that *can* tell the two states apart is the product's behaviour — the mock branch returns 5 active / 34 applications / 287 views without querying, and production returned real rows.
 ## 10 September 2026 — more than half the board was dead, and what that did to every number resting on it
 
 - **135 OF 247 LIVE ADVERTS WERE 404 ON GOLDENKEYS' OWN SITE. The board is 112.** Every one of the 227 live Goldenkeys source URLs was fetched — not a sample — and 131 returned a hard 404 while 4 redirected to a URL we already held as a separate active row. 126 had no live equivalent anywhere in their catalogue; 5 could not be told apart from a similarly-titled vacancy and were archived as UNKNOWN rather than as CLOSED.
