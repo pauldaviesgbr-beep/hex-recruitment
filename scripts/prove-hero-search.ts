@@ -214,23 +214,47 @@ for (const cls of ['heroSearch', 'heroField', 'heroInput', 'heroSearchBtn', 'her
 // ── THE DESKTOP BAR AND THE PHONE STACK ────────────────────────────────────
 
 check(
-  'the divider only exists on the desktop bar',
+  'the divider only exists on the one-bar search (769 and up)',
   () => {
-    const base = css.split('@media (min-width: 900px)')[0]
-    const desktop = css.split('@media (min-width: 900px)')[1] || ''
+    const base = css.split('@media (min-width: 769px)')[0]
+    const desktop = css.split('@media (min-width: 769px)')[1] || ''
     return /\.heroFieldRule\s*\{\s*display:\s*none/.test(base) && /\.heroFieldRule\s*\{[^}]*display:\s*block/.test(desktop)
   },
   true
 )
 check(
-  'two cards at 390 and four at 1440',
+  'two cards at 390, four from 769 up',
   () => {
-    const base = css.split('@media (min-width: 900px)')[0]
-    const desktop = css.split('@media (min-width: 900px)')[1] || ''
+    const base = css.split('@media (min-width: 769px)')[0]
+    const desktop = css.split('@media (min-width: 769px)')[1] || ''
     return /\.heroRoleCardWide\s*\{\s*display:\s*none/.test(base) && /\.heroRoleCardWide\s*\{\s*display:\s*flex/.test(desktop)
   },
   true
 )
+// ── THE TABLET BLOCK ───────────────────────────────────────────────────────
+// 769-1199 was a width nobody had designed for: it took the desktop hero box,
+// the tablet headline, the MOBILE stacked search and the MOBILE one-column
+// grid at once. These two assert the block that fixed it, so the next person
+// widening a query finds out here rather than on a reviewer's iPad.
+const tablet = css.split('@media (min-width: 769px) and (max-width: 1199px)')[1] || ''
+check(
+  'the tablet block puts the four cards in a 2x2',
+  () => tablet.includes("grid-template-columns: repeat(2, 1fr)"),
+  true
+)
+check(
+  'the 2x2 reserve is declared AFTER the <=1024 rule it overrides',
+  () => {
+    // A MEDIA QUERY ADDS NO SPECIFICITY. The first attempt put this rule in the
+    // tablet block ABOVE the <=1024 one, the diff read correctly, and the
+    // computed value stayed 318px. Order is the whole assertion.
+    const i1024 = css.indexOf('min-height: 318px')
+    const i769 = css.indexOf('min-height: 385px')
+    return i1024 > -1 && i769 > -1 && i769 > i1024
+  },
+  true
+)
+
 check(
   'the fields can shrink — a flex child defaults to refusing to',
   () => /\.heroField\s*\{[^}]*min-width:\s*0/.test(css) && /\.heroInput\s*\{[^}]*min-width:\s*0/.test(css),
