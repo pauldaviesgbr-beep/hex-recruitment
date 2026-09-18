@@ -355,7 +355,17 @@
 
 /* ── 1440 ─────────────────────────────────────────────────────────────────── */
 
-@media (min-width: 900px) {
+/* WIDENED FROM 900 TO 769 ON 18 Sept 2026, AND THE CONTENTS ARE UNTOUCHED.
+   At 820 the page fell between every breakpoint that mattered: it took the
+   desktop hero box, the tablet headline, the MOBILE stacked search and the
+   MOBILE one-column card grid at once — a 788px-wide search field and two
+   788px cards, with cards 3 and 4 in the DOM and hidden. Measured on
+   production at 820x1180: the search column was 176px tall and
+   "See Thrive in action" began at y=847 on an 1180 fold, so the employer
+   pitch was ON THE FIRST SCREEN at the one width Apple reviewed on.
+   The one-bar search is right at 788px of width; the stacked column is the
+   mobile treatment on a screen wide enough for the bar. */
+@media (min-width: 769px) {
   .hero { padding: 56px 0 52px; }
   .heroInner { padding: 0 40px; }
 
@@ -421,6 +431,23 @@
   .heroRoleCardWide { display: flex; }
 }
 
+
+/* TABLET 769-1199 — the corrections the widened desktop block needs here.
+   Four cards across a 788px measure is too narrow; two per row is a card
+   proportion the design already works at. The rows are already fetched —
+   limit(4) either way, so this is a 2x2 of what the query returns. */
+@media (min-width: 769px) and (max-width: 1199px) {
+  /* THE WIDENED BLOCK BRINGS THE DESKTOP HERO BOX WITH IT, AND THAT WAS NOT
+     IN THE PLAN. 56/52 is right on a 1440 frame and costs 54px here, on the
+     one screen we are trying to shorten. The tablet value is restored
+     deliberately — measured 836 -> 782 for the section below. */
+  .hero { padding: 26px 0 28px; }
+
+  .heroRoles {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+  }
+}
 
 /* Section Shared Styles */
 .sectionInner {
@@ -816,6 +843,17 @@
   .heroTitle {
     font-size: 2rem; /* 32px */
   }
+}
+
+/* THE RESERVE FOR THE 2x2, AND IT HAS TO SIT HERE RATHER THAN IN THE TABLET
+   BLOCK ABOVE. A MEDIA QUERY ADDS NO SPECIFICITY: the <=1024 rule directly
+   above declares min-height 318px and, being later in the file than the
+   769-1199 block, it won. The first attempt put this rule up there, the diff
+   read correctly, and the computed value stayed 318 — measured, not assumed.
+   318px was measured against a ONE-COLUMN, TWO-CARD render; a 2x2 of four
+   settles at 385px at 820. Re-measured in a browser, not nudged. */
+@media (min-width: 769px) and (max-width: 1199px) {
+  .heroRolesSection { min-height: 385px; }
 }
 
 @media (max-width: 768px) {
