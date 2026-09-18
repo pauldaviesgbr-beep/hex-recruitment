@@ -75,6 +75,16 @@ check('cleartext is refused', /cleartext:\s*false/.test(cfg))
 check('webDir is NOT Next’s public/ — that would publish the offline page',
   /webDir:\s*'capacitor-shell\/www'/.test(cfg))
 
+// EXISTING IS NOT WIRED. The check above asserts the offline page is on disk;
+// for three weeks nothing pointed at it, so a cold launch with no network got
+// WKWebView's own error instead. errorPath is what makes the file reachable,
+// and asserting the two TOGETHER is the point — either alone passes on a
+// broken state.
+check('the offline page is WIRED, not merely present',
+  /errorPath:\s*'index\.html'/.test(cfg))
+check('…and errorPath names a file that exists',
+  existsSync(path.join(ROOT, 'capacitor-shell/www', 'index.html')))
+
 console.log('\n4. THE PLIST DECLARES WHAT WE DECIDED, AND NOTHING MORE')
 const plist = read(PLIST)
 const hasKey = (k) => new RegExp(`<key>${k}</key>`).test(plist)

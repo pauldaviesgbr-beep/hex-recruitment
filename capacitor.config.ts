@@ -48,6 +48,22 @@ const config: CapacitorConfig = {
     iosScheme: 'https',
     // No cleartext. Every origin this app touches is HTTPS.
     cleartext: false,
+    // THE OFFLINE PAGE EXISTED FOR THREE WEEKS AND NOTHING POINTED AT IT.
+    //
+    // capacitor-shell/www/index.html is written, styled, inset-aware and
+    // argued — its own comment explains why it carries no role count and no
+    // retry button. But with server.url set, a failed load shows WKWebView's
+    // OWN error, not webDir. Capacitor redirects to a local page on failure
+    // only when errorPath names one (@capacitor/cli declarations: "Specify
+    // path to a local html page to display in case of errors", since 4.0.0;
+    // we are on 8.5.0).
+    //
+    // So the page a reviewer on bad hotel wifi should have seen was never
+    // reachable. iosshell:prove asserted the FILE EXISTS and stopped there —
+    // which is the gap this line closes and the check below now covers.
+    //
+    // Relative to webDir, so this is capacitor-shell/www/index.html.
+    errorPath: 'index.html',
   },
 
   ios: {
