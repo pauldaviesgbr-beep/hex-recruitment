@@ -19,6 +19,7 @@
 // it is asserted rather than assumed.
 
 import { chromium } from 'playwright'
+import { signInAsFixture } from './lib/browser-sign-in.mjs'
 import { createClient } from '@supabase/supabase-js'
 import { readFileSync, existsSync, mkdirSync } from 'node:fs'
 import path from 'node:path'
@@ -45,7 +46,7 @@ const results = []
 const check = (n, got, ok) => results.push({ n, got, ok })
 
 const read = async () => (await db.from('candidate_profiles')
-  .select('user_id, cv_url, cv_file_name, skills, cv_parse_status, cv_parsed_at, cv_derived')
+  .select('user_id, cv_url, cv_file_name, skills, cv_parse_status, cv_parsed_at, cv_derived, cv_skills_prompt_seen_at, cv_skills_prompt_dismissed_at')
   .eq('email', EMAIL).single()).data
 
 // ── RECORD THE ORIGINAL, before anything is touched ────────────────────────
@@ -55,6 +56,8 @@ console.log('ORIGINAL')
 console.log(`  cv_url          ${original.cv_url ?? 'null'}`)
 console.log(`  skills          ${JSON.stringify(original.skills)}`)
 console.log(`  cv_parse_status ${original.cv_parse_status ?? 'null'}\n`)
+console.log(`  prompt seen     ${original.cv_skills_prompt_seen_at ?? 'null'}`)
+console.log(`  prompt dismissd ${original.cv_skills_prompt_dismissed_at ?? 'null'}`)
 
 const browser = await chromium.launch()
 const ctx = await browser.newContext({
@@ -67,12 +70,12 @@ let uploadedPath = null
 
 try {
   // ── sign in ──────────────────────────────────────────────────────────────
-  await page.goto(`${BASE}/login/employee`, { waitUntil: 'domcontentloaded' })
-  await page.fill('input[name="email"]', EMAIL)
-  await page.fill('input[name="password"]', PASSWORD)
-  await page.locator('button[type="submit"]:not([disabled])').waitFor({ timeout: 30000 })
-  await page.click('button[type="submit"]')
-  await page.waitForURL(/\/(dashboard|jobs|welcome)(\?|$|\/)/, { timeout: 40000 })
+  // /login/employee is a STUB that redirects to the unified /login, whose
+  // fields carry ids and NO name attribute — so input[name="email"] matched
+  // nothing and this drive has been unable to sign in since the pages were
+  // unified. It threw a 30-second timeout before a single assertion, which
+  // reads as a slow network rather than as a finding.
+  await signInAsFixture(page, { base: BASE, email: EMAIL, password: PASSWORD })
   check('signed in as the candidate fixture', page.url().replace(BASE, ''), !page.url().includes('/login'))
 
   // Dismiss the cookie banner — it overlays controls at the foot of the page.
@@ -197,6 +200,20 @@ try {
     await page.screenshot({ path: `${SHOTS}/cv-5-saved.png` })
     check('the chosen skills were written as DECLARED',
       JSON.stringify(after?.skills), JSON.stringify(after?.skills) === JSON.stringify(pick))
+    // ── THE TWO COLUMNS THE PROMPT NOW WRITES ────────────────────────────
+    // WITHOUT THESE, THIS DRIVE IS GREEN WHETHER OR NOT THE CHANGE WORKS.
+    // The teardown restores both to their original values, so by the time
+    // anything is printed they are null again — the run proved the prompt
+    // RENDERS and said nothing about whether its state was recorded.
+    //
+    // seen_at is the whole point of the change: it is what makes "never saw
+    // it" distinguishable from "saw it and moved on", which is the question
+    // 26 real candidates are currently sitting behind.
+    check('the IMPRESSION was recorded when the prompt rendered',
+      String(after?.cv_skills_prompt_seen_at), !!after?.cv_skills_prompt_seen_at)
+    check('and saving recorded the DISMISSAL, so it stops asking',
+      String(after?.cv_skills_prompt_dismissed_at), !!after?.cv_skills_prompt_dismissed_at)
+
     check('cv_derived was NOT overwritten by the confirmation',
       `derivedSkills=${(after?.cv_derived?.skills || []).length}`,
       (after?.cv_derived?.skills || []).length === SEEDED.length)
@@ -223,6 +240,14 @@ await db.from('candidate_profiles').update({
   cv_parse_status: original.cv_parse_status,
   cv_parsed_at: original.cv_parsed_at,
   cv_derived: original.cv_derived,
+  // ADDED 13 SEPT 2026, WITH THE COLUMNS THEMSELVES. The prompt's state moved
+  // off localStorage onto the row, so driving it now WRITES two columns this
+  // teardown did not know about — and leaving seen_at set would quietly
+  // disarm the next run, because the impression only writes when it is null.
+  // A restore that misses a column the run touches is a teardown that makes
+  // the check weaker every time it passes.
+  cv_skills_prompt_seen_at: original.cv_skills_prompt_seen_at,
+  cv_skills_prompt_dismissed_at: original.cv_skills_prompt_dismissed_at,
 }).eq('user_id', UID)
 
 const restored = await read()

@@ -538,7 +538,8 @@
 /* Success Toast */
 .toast {
   position: fixed;
-  bottom: 2rem;
+  /* Above the consent lane — a toast behind the banner is a message lost. */
+  bottom: calc(2rem + var(--consent-h, 0px));
   left: 50%;
   transform: translateX(-50%);
   background: #0f172a;

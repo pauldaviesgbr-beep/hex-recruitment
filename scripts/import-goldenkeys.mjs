@@ -85,6 +85,77 @@ function db() {
   return createClient(ENV.NEXT_PUBLIC_SUPABASE_URL, ENV.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } })
 }
 
+// ── firecrawl credit accounting ──
+//
+// 1 CREDIT PER PAGE, PLUS 4 FOR THE JSON FORMAT. Every call this file makes
+// uses `formats: ['json']`, so every page costs 5. Read from Firecrawl's
+// pricing page on 11 Sept 2026: "the JSON, Question, and Highlight formats add
+// 4 credits per page".
+//
+// THIS NUMBER IS WHY THE ACCOUNT WENT TO -21 AND THE ARITHMETIC LOOKED FINE.
+// Assuming 1 credit a page makes a full cycle 108 and the plan 46 runs, which
+// cannot explain an empty account — and an answer that cannot explain the
+// evidence is not an answer. At 5 it is 540 a cycle and 9 runs, which fits.
+const CREDITS_PER_PAGE = 5
+
+// THE FLOOR A MANUAL OR DIAGNOSTIC RUN MAY NOT CROSS: two full cycles.
+//
+// Sized against the WORST CASE rather than the typical one. With the scrape
+// filter above, a normal weekly run is ~75 credits — but the week Goldenkeys
+// replaces their whole catalogue is 98 new roles, 540 credits, and that is
+// exactly the week the import must not be the thing that fails. Two of those
+// leaves room for one scheduled run plus a retry.
+//
+// A SCHEDULED RUN IS NOT HELD TO IT. It refuses only if it cannot finish. The
+// point is that measurement must never starve production, not that production
+// should be cautious.
+const MANUAL_FLOOR = 1080
+
+/** True when running inside the scheduled GitHub Actions import. */
+const IS_SCHEDULED = process.env.GITHUB_ACTIONS === 'true'
+
+/**
+ * Refuse to start a scrape that cannot finish, or that would eat the reserve.
+ *
+ * ONE FREE CALL. /v1/team/credit-usage costs nothing and would have turned the
+ * whole of 10 Sept from a mystery into a sentence: a 402 arrived as "29 of 98"
+ * and read exactly like a schema change breaking extraction. **A partial scrape
+ * looks like a complete one**, which is the hazard — records.json is a valid
+ * file either way, and apply() cannot tell.
+ *
+ * IT FAILS OPEN ON A NETWORK ERROR, DELIBERATELY. If the balance cannot be
+ * read, that is not a reason to block a scheduled import — the scrape itself
+ * will fail honestly with a 402 if there is really no money. What this prevents
+ * is the KNOWN-bad start, not every bad start.
+ */
+async function assertCredits(pages, what) {
+  const needed = pages * CREDITS_PER_PAGE
+  const reserve = IS_SCHEDULED ? 0 : MANUAL_FLOOR
+  let remaining = null
+  try {
+    const r = await fetch('https://api.firecrawl.dev/v1/team/credit-usage', { headers: { Authorization: `Bearer ${FC_KEY}` } })
+    const j = await r.json()
+    remaining = j?.data?.remaining_credits
+  } catch { /* fall through — see the note above */ }
+  if (typeof remaining !== 'number') {
+    console.warn(`WARNING: could not read the Firecrawl balance. Proceeding with ${what} (${needed} credits) unchecked.`)
+    return
+  }
+  const after = remaining - needed
+  console.log(`credits: ${remaining} remaining · ${what} needs ${needed} (${pages} pages x ${CREDITS_PER_PAGE}) · ${after} after`
+    + (IS_SCHEDULED ? ' · SCHEDULED run, no reserve held' : ` · reserve ${MANUAL_FLOOR}`))
+  if (after < reserve) {
+    throw new Error(
+      `REFUSING to start ${what}: ${needed} credits needed, ${remaining} remaining` +
+      (reserve ? `, and a manual run may not take the balance below ${MANUAL_FLOOR} (two full cycles, so a scheduled import and one retry always survive).` : '.') +
+      (IS_SCHEDULED
+        ? ' A scheduled run refuses only when it cannot finish — the account is genuinely empty.'
+        : ' Run it from the scheduled workflow, or wait for the billing period to reset.') +
+      ' A HALF-FINISHED SCRAPE IS THE REAL HAZARD: records.json is a valid file with 29 of 98 records in it and nothing downstream can tell.'
+    )
+  }
+}
+
 // ── firecrawl ──
 async function fcScrape(url, schema, tries = 3) {
   for (let t = 1; t <= tries; t++) {
@@ -173,6 +244,11 @@ async function enumerate() {
   // roles are the ones that fall off the end — and we would have quietly marked
   // them archived while they were still open. A ceiling here doesn't just miss new
   // roles, it actively corrupts existing ones.
+  // THE PAGE COUNT IS NOT KNOWN UNTIL THE WALK IS DONE, so this is checked
+  // against what the last several runs have taken — 10 pages, plus headroom for
+  // the catalogue growing. It is a floor on starting, not a budget.
+  await assertCredits(15, 'the listing enumeration (~10 pages, 15 allowed for)')
+
   let pagesWalked = 0
   for (let p = 1; p <= MAX_PAGES; p++) {
     const url = p === 1 ? BASE : `${BASE}page/${p}/`
@@ -224,7 +300,77 @@ async function enumerate() {
 
 // ── phase: scrape detail pages -> normalized records ──
 async function scrapeDetails() {
-  const list = JSON.parse(fs.readFileSync(ENUM_FILE, 'utf8'))
+  const enumerated = JSON.parse(fs.readFileSync(ENUM_FILE, 'utf8'))
+
+  // UNDER --no-update-existing WE ONLY SCRAPE URLS WE DO NOT ALREADY HOLD.
+  //
+  // The flag stopped the WRITES and left the READS alone: the run was still
+  // fetching all 98 detail pages and discarding 93 of them, at 5 credits each.
+  // 490 credits a week to read adverts we had decided not to update.
+  //
+  // KEYED ON THE SAME FLAG, DELIBERATELY, SO THE TWO CANNOT DRIFT APART. If
+  // --no-update-existing is ever taken off the cron, the scrape widens again in
+  // the same breath — because "do not update existing" and "do not fetch
+  // existing" are the same decision, and a note asking someone to remember
+  // both is exactly the coupling this project keeps being bitten by.
+  //
+  // NOTHING ELSE ON THE PATH NEEDS THE DISCARDED RECORDS, read from the code
+  // rather than inferred from a run:
+  //   · RECONCILE iterates `existing` and tests membership of `liveUrls`,
+  //     which comes from ENUM_FILE. It never touches `recs`.
+  //   · BACKFILL matches on `enumList` titles, also from ENUM_FILE. Also never
+  //     touches `recs`.
+  //   · THE UPSERT is the only consumer, and under the flag its update branch
+  //     does nothing, so it only ever needs records for URLs that will INSERT.
+  //
+  // THE BLAST RADIUS OF A WRONG FILTER IS "NEW ROLES MISSED", NOT "BOARD
+  // WIPED" — the reconcile decides what to archive from the enumeration, which
+  // this does not touch. That is the reassuring direction, and it is why the
+  // database read below throws rather than degrading: scraping nothing is
+  // recoverable next week, but it must be loud.
+  let list = enumerated
+  if (NO_UPDATE_EXISTING) {
+    const { data, error } = await db()
+      .from('jobs').select('source_url').eq('employer_id', EMPLOYER_ID)
+    if (error) throw new Error(`Cannot read existing source_urls, so cannot tell new roles from held ones: ${error.message}`)
+    // ANY STATUS, matching apply()'s own urlToId, which is built from every
+    // Goldenkeys row rather than the active ones. A URL we hold as ARCHIVED is
+    // one the upsert would take down its update branch and skip, so fetching
+    // it would be just as wasted.
+    const held = new Set(data.map(j => j.source_url).filter(Boolean))
+    list = enumerated.filter(item => !held.has(item.url))
+    const skipped = enumerated.length - list.length
+
+    // THE THREE NUMBERS MUST ADD UP IN FRONT OF THE READER, and `skipped` is
+    // counted FROM THE ENUMERATION rather than from the database.
+    //
+    // This line used to print `held.size` — every Goldenkeys source_url we
+    // hold, 264 of them — against an enumeration of 98. "98 enumerated, 264
+    // already held, SCRAPING 5" is three true numbers that answer a question
+    // nobody asked, and it cannot distinguish a filter that skipped 93 from
+    // one that skipped 98. The figure that matters is how many of THESE were
+    // skipped, and it is the one the reader can check: 93 + 5 = 98.
+    console.log(`--no-update-existing: ${enumerated.length} enumerated = ${skipped} already held (skipped) + ${list.length} new (scraping)`)
+    console.log(`  saved ~${skipped * CREDITS_PER_PAGE} credits by not re-reading adverts we are not updating`)
+
+    // NAME THE URLS WHEN THERE ARE FEW. On a normal week this is a handful, and
+    // seeing them is the difference between "the filter found 5 new roles" and
+    // "the filter returned a number I am choosing to believe".
+    if (list.length && list.length <= 15) for (const item of list) console.log(`    new: ${item.url}`)
+
+    // ZERO NEW IS THE EXPECTED STEADY STATE AND ALSO WHAT A BROKEN FILTER
+    // LOOKS LIKE, so it says which one it is rather than leaving a bare 0.
+    if (!list.length) {
+      console.log(`  every one of the ${enumerated.length} enumerated URLs is already held — Goldenkeys have published nothing new since the last run.`)
+      console.log('  (A filter that wrongly excluded everything would print this same line. The check is the enumeration above: if it found 0 URLs, that is the fault — not this.)')
+    }
+  }
+
+  // THE EXACT COST, not an estimate: by here we know precisely how many pages
+  // will be fetched.
+  if (list.length) await assertCredits(list.length, `the detail scrape of ${list.length} page(s)`)
+  else console.log('nothing new to scrape — 0 credits')
+
   const schema = { type: 'object', properties: {
     title: { type: 'string' }, location: { type: 'string' }, salary_text: { type: 'string' },
     permanent: { type: 'boolean' }, full_time: { type: 'boolean' }, job_id: { type: 'string' },

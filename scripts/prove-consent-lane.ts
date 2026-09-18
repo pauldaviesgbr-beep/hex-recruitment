@@ -25,7 +25,7 @@
 // under the lane — is a browser question and lives in the drive, because a
 // stylesheet cannot tell you where a button ended up.
 
-import { readFileSync } from 'node:fs'
+import { readFileSync, readdirSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 
 const ROOT = join(__dirname, '..')
@@ -128,15 +128,97 @@ check(
 // z-index 120 against the banner's 1001, so at 1440 elementFromPoint at the
 // launcher's own centre returned the BANNER — unclickable, not just overlapped.
 
+// ── EVERY FIXED BOTTOM BAR IN THE PRODUCT, NOT JUST THE CHAT WIDGET ────────
+//
+// THIS CHECK USED TO READ components/ChatBot.module.css AND NOTHING ELSE.
+// It was written for the ONE instance that had been fixed rather than for the
+// rule, so a second fixed bottom bar anywhere in the product was invisible to
+// it — and on 12 Sept 2026 a drive found a third: the post-job step footer,
+// `position: fixed; bottom: 0; z-index: 40` against the banner's 1001, with
+// the cookie banner intercepting every tap on "Next — the advert →" at phone
+// width. A first-time employer could not advance past step 1.
+//
+// The check had never been able to see any of the three. Check for a CLASS of
+// fault, not for the instances you already know about.
+//
+// A GREP CANNOT DO THIS, which is why it is parsed. `position: fixed` and
+// `bottom:` sit on different lines and a rule can carry either without the
+// other, so each rule block is asked both questions.
+//
+// FULL-SCREEN OVERLAYS ARE NOT THE FAULT CLASS. A rule with top:0 AND bottom
+// is a modal backdrop or a drawer — it is the whole screen, and the banner
+// cannot cover it in any way that matters. Counting those would be the
+// over-count direction, which this project did once the same night.
+const laneScan = () => {
+  const roots = ['app', 'components', 'styles']
+  const files: string[] = []
+  const walk = (d: string) => {
+    const abs = join(ROOT, d)
+    if (!existsSync(abs)) return
+    for (const e of readdirSync(abs, { withFileTypes: true })) {
+      const rel = `${d}/${e.name}`
+      if (e.isDirectory()) { if (e.name !== 'node_modules' && e.name !== '.next') walk(rel) }
+      else if (e.name.endsWith('.css')) files.push(rel)
+    }
+  }
+  roots.forEach(walk)
+
+  const offenders: string[] = []
+  for (const f of files) {
+    const css = read(f).replace(/\/\*[\s\S]*?\*\//g, '')
+    const re = /([^{}]+)\{([^{}]*)\}/g
+    let m: RegExpExecArray | null
+    while ((m = re.exec(css))) {
+      const sel = m[1].trim().replace(/\s+/g, ' ')
+      const d = m[2]
+      if (!/position:\s*fixed/.test(d)) continue
+      const bot = d.match(/(^|[;\s])bottom:\s*([^;]+)/)
+      if (!bot) continue
+      if (/(^|[;\s])top:\s*0/.test(d) || /(^|[;\s])inset:\s*0/.test(d)) continue // full-screen
+      const value = bot[2].trim()
+
+      // THE THREE EXEMPTIONS, EACH WITH ITS REASON. An exemption list is a
+      // claim about which surfaces exist, so it names selectors rather than
+      // whole files — a new bar in an exempt file is still caught.
+      //
+      //   .banner        IS the cookie banner. It is the lane.
+      //   .messagesLayout is a full-height layout offset by the on-screen
+      //                  KEYBOARD (--keyboard-inset), a different concern.
+      //   .panel (feedback) is a full-width bottom SHEET, flush by design;
+      //                  moving it up would leave a gap under it, and its
+      //                  wrapper already reads the lane.
+      const short = sel.split(/[\s,>]+/).pop() || sel
+      if (['.banner', '.messagesLayout', '.panel'].includes(short)) continue
+
+      // Either variable counts. There are TWO NAMES for this lane — the
+      // banner publishes --consent-h AND --cookie-banner-height, and the job
+      // page's mobile apply bar reads the second. That duplication is a real
+      // finding and is deliberately not resolved by this check: rewiring the
+      // Apply bar is a change to the control that cost a real candidate an
+      // application, and it wants its own decision.
+      if (/--consent-h|--cookie-banner-height/.test(value)) continue
+      offenders.push(`${f} ${short} -> bottom: ${value}`)
+    }
+  }
+  return offenders
+}
+
 check(
-  'every fixed bottom offset on the chat widget reads --consent-h',
-  () => {
-    const chat = read('components/ChatBot.module.css')
-    // Any bottom offset that is still a bare pixel value is one the lane
-    // cannot move. Listing them names the offender rather than saying "false".
-    return (chat.split(/\r?\n/).filter(l => /^\s*bottom:\s*\d+px\s*;/.test(l))).map(l => l.trim())
-  },
+  'EVERY fixed bottom bar in the product reads the consent lane',
+  laneScan,
   []
+)
+
+// ZERO-GUARD. If the parser stops matching anything, the check above passes on
+// an empty scan and reports a clean product. It must find the bars it already
+// knows about.
+check(
+  'and the scan can still see the bars it is meant to police',
+  () => {
+    const roots = ['components/ChatBot.module.css', 'app/post-job/flow.module.css']
+    return roots.every(f => /position:\s*fixed/.test(read(f)) && /bottom:[^;]*--consent-h/.test(read(f)))
+  },
+  true
 )
 
 // ── THE SHELL RESERVES IT, AND NOT WITH A MARGIN ───────────────────────────

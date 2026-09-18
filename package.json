@@ -75,6 +75,7 @@
     "navheight:prove": "node scripts/prove-mobile-header-clearance.mjs",
     "iosshell:prove": "node scripts/prove-ios-shell.mjs",
     "iosassets:prove": "node scripts/prove-ios-assets.mjs",
+    "ogtype:prove": "npx tsx scripts/prove-og-content-type.ts",
     "signedimage:prove": "node scripts/prove-signed-image-fallback.mjs",
     "icons:generate": "node scripts/generate-ios-icons.mjs",
     "weboauth:prove": "npx tsx scripts/prove-web-oauth-unchanged.ts",

@@ -56,6 +56,29 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
+      # THE REPO AND NODE COME FIRST, AND THE ORDER IS LOAD-BEARING.
+      #
+      # ADDED 16 Sept 2026. There was no checkout step, so the delivery check's
+      # `node scripts/check-roundup-delivery.mjs` ran against a bare runner that
+      # had never held this repository: MODULE_NOT_FOUND, and `set -euo pipefail`
+      # turned that into a red run. Seven consecutive red scheduled runs — and
+      # the check itself HAS NEVER ONCE EXECUTED. Both the step and the script
+      # arrived in 3c8a9c7 on 29 Jul 2026; the only two green runs were the day
+      # before, on 28 July.
+      #
+      # These sit ABOVE the trigger so a checkout or node failure happens while
+      # nothing has been emailed yet. Below it, the same failure would leave real
+      # candidates mailed and the run red for a reason unconnected to the send.
+      #
+      # No `npm install`, deliberately, and no `cache: npm` with it — unlike the
+      # Goldenkeys importer this script imports nothing but `node:fs`. Installing
+      # would add a minute to buy nothing, and a cache with no install to feed is
+      # ceremony.
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
       # ONE STEP, ONE RESOLUTION, ONE READ.
       #
       # The confirmation used to live in a separate step whose `if:` read
@@ -184,13 +207,34 @@ jobs:
       - name: Check what was actually delivered
         if: env.RESOLVED_MODE == 'send' && env.SENT_COUNT != '0'
         env:
+          # TWO CAPABILITIES THAT HAVE BEEN WEARING ONE NAME.
+          #
+          # The key the PRODUCT uses is send-only, and a send-only key answers
+          # GET /emails with HTTP 401 "restricted_api_key" and no data[] —
+          # measured against the real key on 16 Sept 2026. If the repo secret holds it
+          # this step now goes red and says exactly what to do about it, which is
+          # the intended behaviour rather than a regression: set
+          # RESEND_READ_API_KEY to a key with read access and it goes green.
+          RESEND_READ_API_KEY: ${{ secrets.RESEND_READ_API_KEY }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
         run: |
           set -euo pipefail
-          if [ -z "${RESEND_API_KEY:-}" ]; then
-            echo "::warning::RESEND_API_KEY not set — skipping the delivery check."
-            exit 0
+
+          # A MISSING KEY IS BLINDNESS, AND BLINDNESS IS NOW RED.
+          # This used to warn and exit 0 — so the one condition guaranteeing the
+          # check could tell us nothing was also the one it reported as fine.
+          # News about one bounced address failed the run; news about the
+          # instrument passed it. That is now the other way round.
+          if [ -n "${RESEND_READ_API_KEY:-}" ]; then
+            KEY="$RESEND_READ_API_KEY"; KEY_NAME="RESEND_READ_API_KEY"
+          elif [ -n "${RESEND_API_KEY:-}" ]; then
+            KEY="$RESEND_API_KEY"; KEY_NAME="RESEND_API_KEY"
+          else
+            echo "::error::Neither RESEND_READ_API_KEY nor RESEND_API_KEY is set — the delivery check cannot see Resend."
+            echo "The roundup itself may well have gone out; nothing here can confirm it either way."
+            exit 1
           fi
+          echo "delivery check reading Resend with: ${KEY_NAME}"
 
           # Delivery status is asynchronous: Resend reports 'sent' the moment it
           # accepts a message and only becomes 'delivered' once the receiving
@@ -200,8 +244,21 @@ jobs:
           # failure, and treating it as one would make this step cry wolf.
           sleep 45
 
-          curl -sS "https://api.resend.com/emails?limit=100" \
-            -H "Authorization: Bearer ${RESEND_API_KEY}" -o emails.json
+          # curl EXITS 0 ON AN HTTP 400 — it fetched a page, and the page was an
+          # error. `set -e` cannot see that, so the status is read rather than
+          # assumed. The body is kept either way: the script has its own refusal
+          # for an error payload, so these are two independent guards on the same
+          # question rather than one guard restated.
+          http=$(curl -sS "https://api.resend.com/emails?limit=100" \
+            -H "Authorization: Bearer ${KEY}" -o emails.json -w '%{http_code}')
+          echo "GET /emails -> HTTP ${http}"
+          if [ "$http" -lt 200 ] || [ "$http" -ge 300 ]; then
+            echo "::error::Resend answered HTTP ${http} to the delivery check — it cannot see the messages."
+            cat emails.json
+            echo
+            echo "A send-only key answers exactly this way. Set RESEND_READ_API_KEY to a key with read access."
+            exit 1
+          fi
 
           # Node rather than python here: it is what the rest of this repo is
           # written in, it is preinstalled on the runner, and — the reason that

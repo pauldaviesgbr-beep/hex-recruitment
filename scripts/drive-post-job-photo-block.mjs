@@ -17,6 +17,7 @@
 //   node scripts/drive-post-job-photo-block.mjs <base-url>
 
 import { chromium } from 'playwright'
+import { signInAsFixture } from './lib/browser-sign-in.mjs'
 import { mkdirSync } from 'node:fs'
 
 const BASE = process.argv[2] || 'https://thrivecareer.co.uk'
@@ -52,13 +53,15 @@ try {
   // /login/employer and name= selectors, matching the drive that works. The
   // generic /login with input[type="email"] timed out -- a selector fault, not
   // a broken page.
-  await page.goto(`${BASE}/login/employer`, { waitUntil: 'domcontentloaded', timeout: 90_000 })
-  await page.fill('input[name="email"]', EMAIL)
-  await page.fill('input[name="password"]', PASSWORD)
-  await page.locator('button[type="submit"]:not([disabled])').waitFor({ timeout: 30_000 })
-  await page.click('button[type="submit"]')
-  // NOT /employer/ -- that matches "/login/employer", the page we are on.
-  await page.waitForURL(/\/(employer\/dashboard|my-jobs|dashboard)(\?|$|\/)/, { timeout: 60_000 })
+  // See scripts/lib/browser-sign-in.mjs. The block that was here could not
+  // work: /login/employer redirects to the unified /login, whose fields carry
+  // ids and no name attribute, and a second button[type=submit] on that page
+  // belongs to the chat widget.
+  //
+  // NOTE the input[name="…"] selectors further down this file are the POST-JOB
+  // FORM and are correct — that form really does use name attributes. Only the
+  // login block was stale.
+  await signInAsFixture(page, { base: BASE, email: EMAIL, password: PASSWORD })
   check('signed in as the employer fixture', page.url().replace(BASE, ''), true)
 
   await page.goto(`${BASE}/post-job`, { waitUntil: 'networkidle', timeout: 90_000 })
