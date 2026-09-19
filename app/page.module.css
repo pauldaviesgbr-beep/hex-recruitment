@@ -220,14 +220,54 @@
   box-sizing: border-box;
 }
 
+/* THE EYEBROW AND THE ROUTE OUT SHARE ONE LINE. The margin moves from the
+   label to the ROW, so the row owns the spacing and the label owns only its
+   type — otherwise the two children carry different vertical margins and the
+   baseline alignment becomes a coincidence rather than a rule. */
+.heroRolesEyebrowRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+  margin: 26px 0 10px;
+}
+
 .heroRolesEyebrow {
   font-family: ui-monospace, 'IBM Plex Mono', SFMono-Regular, Menlo, monospace;
   font-size: 12px;
   font-weight: 500;
   letter-spacing: 0.07em;
   color: #94A3B8;
-  margin: 26px 0 10px;
+  margin: 0;
   text-align: left;
+}
+
+/* NAVY, NOT YELLOW, AND THE REASON IS THE HEADER'S OWN: a yellow button beside
+   a text link is what tells somebody who has never been here which of the two
+   is meant for them. A third yellow control would give this screen a yellow
+   submit, a yellow Sign up and a yellow browse route, and the answer to "which
+   one is for me" becomes "all of them", which is no answer.
+
+   #0F172A is .heroRoleTitle's ink, so the link belongs to the board it points
+   at. 600 against the eyebrow's 12px grey is what makes one of the two read as
+   a control rather than as a caption pair.
+
+   13.5px is the smallest size already on this page (.heroUnderline). It does
+   NOT drop to 12px to match the eyebrow: at 390 the constraint is the TAP
+   TARGET, not the type — which is why the row takes a 44px minimum below,
+   the same floor the search fields are held to. */
+.heroRolesSeeAll {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #0F172A;
+  text-decoration: none;
+  padding: 6px 0;
+  white-space: nowrap;
+}
+
+.heroRolesSeeAll:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 .heroRoles {
@@ -418,7 +458,12 @@
     margin-top: 18px;
   }
 
-  .heroRolesEyebrow { text-align: center; }
+  /* THE ≥769 CENTRING IS GONE, NOT MOVED. It existed because the label was
+     alone on its line and had the full width to itself; once it has a partner
+     on the same row, space-between places both against the container edges the
+     cards already align to. Left as a flex item it would also be inert — a
+     content-sized item cannot centre its own text — so keeping it would have
+     been a rule that reads as intent and does nothing. */
 
   .heroRolesSection { padding: 34px 0; }
   .heroRolesInner { padding: 0 40px; }
@@ -862,6 +907,15 @@
      the sentence wraps to two lines. */
   .heroRolesSection { min-height: 361px; }
   .foundingStrip { min-height: 67px; }
+
+  /* THE TAP TARGET, NOT THE TYPE, IS THE CONSTRAINT AT 390. The link is 13.5px
+     with 6px of padding either side, which is a ~32px target — under the 44px
+     floor. The row carries the minimum so the target grows without the label
+     changing size. This rule sits AFTER the base .heroRolesEyebrowRow rather
+     than beside it: a media query adds no specificity, and this file has
+     already been caught once putting an override earlier in the file than the
+     declaration it was meant to beat. */
+  .heroRolesEyebrowRow { min-height: 44px; }
 
   .hero {
     min-height: auto;
