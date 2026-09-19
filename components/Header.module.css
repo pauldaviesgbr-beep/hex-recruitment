@@ -278,8 +278,54 @@
 
    AT 360 AND 375 THERE IS NOTHING SPARE — the row sits against the lockup with
    only the 8px flex gap. Treat 11.06px as zero, not as room. */
+/* JOBS IS THE BRIGHTER OF THE TWO LINKS, AND THAT IS THE WHOLE TREATMENT.
+   "Jobs Log in" read as ONE PHRASE on a handset: two quiet greys, same size,
+   same weight, 8px apart, with nothing telling the eye that one is a
+   NAVIGATION route and the other an ACCOUNT control.
+
+   The comment above explains why Sign up is a button and Log in is a link —
+   the imbalance is what tells a stranger which is for them. THAT REASONING
+   STOPPED AT THE ACCOUNT PAIR and never reached across to a nav route, which
+   is why the distinction had no visual expression at all.
+
+   Same 14.5px, same 500. ONLY the colour changes — not a button, not a chip
+   and not yellow, because a third yellow control on the first screen makes
+   "which one is for me" unanswerable. var(--white) is the only ink brighter
+   than Log in already on this header; nothing new is introduced.
+
+   The hover borrows .logo's idiom rather than inventing one: already the
+   brightest ink, so it dims slightly instead of brightening. It must sit AFTER
+   .headerLogIn:hover — equal specificity, so source order decides. */
+.headerJobs {
+  color: var(--white);
+}
+
+.headerJobs:hover {
+  color: var(--white);
+  opacity: 0.85;
+}
+
+/* 1px, AND THE HEIGHT OF THE TYPE RATHER THAN THE ROW — the row is 45px and a
+   divider that tall would fence the nav rather than separate two words.
+
+   COPIED FROM THIS HEADER'S OWN DIVIDER RATHER THAN A NEW COLOUR.
+   .searchBarDivider is 1px x 20px at rgba(255,255,255,0.2) beside 15.5px type;
+   18px is that same ratio against 14.5px type, so the weight matches a
+   separator this header already draws. --rs-border-strong was the other
+   candidate and is wrong here: #cbd5e1 is BRIGHTER than Log in's own ink, and
+   a divider louder than the text it separates is not a divider. */
+.headerNavDivider {
+  width: 1px;
+  height: 18px;
+  background: rgba(255, 255, 255, 0.2);
+  flex-shrink: 0;
+}
+
+/* BOTH GO BELOW 360, NOT JUST THE LINK. The divider costs width too, and a
+   separator with nothing on its left is a stray mark. */
 @media (max-width: 359px) {
-  .headerJobs { display: none; }
+  .headerJobs,
+  .headerNavDivider { display: none; }
 }
 
 .headerLogIn:focus-visible,

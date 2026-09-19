@@ -496,8 +496,16 @@ export default function Header() {
             spacing breaks it. Re-drive this row before adding anything to it —
             and note that a fourth control (For employers) is proposed, which
             would need driving again from scratch. */}
+        {/* THE DIVIDER SHIPS INSIDE THE SAME CONDITION AS THE LINK, NOT BESIDE
+            IT. A separator whose left-hand side is absent is a stray mark, and
+            on /jobs — where Jobs is correctly suppressed — that is exactly what
+            a separately-rendered divider would leave behind. One condition,
+            both elements, so they cannot come apart. */}
         {!onJobsPage && (
-          <Link href="/jobs" className={`${styles.headerLogIn} ${styles.headerJobs}`}>Jobs</Link>
+          <>
+            <Link href="/jobs" className={`${styles.headerLogIn} ${styles.headerJobs}`}>Jobs</Link>
+            <span className={styles.headerNavDivider} aria-hidden="true" />
+          </>
         )}
         {!onLoginPage && (
           <Link href="/login" className={styles.headerLogIn}>Log in</Link>
