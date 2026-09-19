@@ -225,7 +225,34 @@ export default function Home() {
             follows the data. */}
         {newestRoles.length > 0 && (
           <>
-            <p className={styles.heroRolesEyebrow}>{newestLabel}</p>
+            {/* THE WAY INTO THE BOARD, AND IT SITS ON THE EYEBROW'S LINE
+                RATHER THAN UNDER THE CARDS. Every navigation control on the
+                first screen was an account control — Log in and Sign up and
+                nothing else — so a reviewer enumerating this page finds two
+                account doors, a form and four cards, and concludes the product
+                wants an account before it shows anything. The count sentence
+                contradicts that and cannot fix it: a sentence is not a control.
+
+                UNDER THE CARDS WOULD NOT HAVE BEEN ON THE FIRST SCREEN. At 390
+                the cards end around y≈740-780 of 844, so the fix for "no route
+                on the first screen" would have landed below the fold — at the
+                one width where it matters most. On this line it is above the
+                cards at every width, and it costs no height: the line already
+                exists.
+
+                THE COUNT IS THE SAME liveJobs THE HERO SENTENCE USES AND IS
+                NEVER TYPED. Gated identically, so before it lands this reads
+                "See all jobs →" and never "See all 0 jobs →". JOBS, not roles:
+                it points at a page titled Browse Jobs, and a reviewer matching
+                a link to its destination should not have to translate. */}
+            <div className={styles.heroRolesEyebrowRow}>
+              <p className={styles.heroRolesEyebrow}>{newestLabel}</p>
+              <Link href="/jobs" className={styles.heroRolesSeeAll}>
+                {liveJobs !== null && liveJobs > 0
+                  ? `See all ${liveJobs.toLocaleString()} jobs →`
+                  : 'See all jobs →'}
+              </Link>
+            </div>
             <div className={styles.heroRoles}>
               {newestRoles.map((job, i) => (
                 <Link
