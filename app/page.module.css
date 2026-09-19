@@ -941,14 +941,28 @@
    318px was measured against a ONE-COLUMN, TWO-CARD render; a 2x2 of four
    settles at 385px at 820. Re-measured in a browser, not nudged. */
 @media (min-width: 769px) and (max-width: 1199px) {
-  .heroRolesSection { min-height: 385px; }
+  /* 385 -> 386. The eyebrow row gained the See-all link, and with the
+     line-height matched the row still settles 1px taller than the bare label:
+     baseline alignment unions the two boxes, so a smaller line box does not
+     guarantee a smaller row. Driven at 820: the section renders 385.56, which
+     a 385px reserve does not cover.
+
+     A RESERVE THAT IS GENEROUS AND TRUE BEATS ONE THAT IS EXACT AND FALSE.
+     386 covers the settled height, so the rendered height IS the reserve and
+     the cold load moves nothing. Re-measured at this width independently of
+     390 — the two carry different reserves and share no arithmetic. */
+  .heroRolesSection { min-height: 386px; }
 }
 
 @media (max-width: 768px) {
   /* Reserved — measured at 393px, the width the App Store recording is shot
      at. See the note above .heroUnderline. The strip is taller here because
      the sentence wraps to two lines. */
-  .heroRolesSection { min-height: 361px; }
+  /* 361 -> 362, for the same reason as 386 above and measured separately at
+     390: the section renders 361.56 with the link in the row. The two widths
+     landing on the same 0.56px residual is the row growing by the same 1px in
+     both, not one number doing duty for two — each was driven on its own. */
+  .heroRolesSection { min-height: 362px; }
   .foundingStrip { min-height: 67px; }
 
   /* NO min-height ON THIS ROW, DELIBERATELY. It carried 44px for one commit to

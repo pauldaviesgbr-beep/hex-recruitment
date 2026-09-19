@@ -248,9 +248,23 @@ check(
     // A MEDIA QUERY ADDS NO SPECIFICITY. The first attempt put this rule in the
     // tablet block ABOVE the <=1024 one, the diff read correctly, and the
     // computed value stayed 318px. Order is the whole assertion.
+    //
+    // AND IT NO LONGER PINS THE NUMBER. This used to search for the literal
+    // `min-height: 385px`, so the reserve could not be re-measured without the
+    // check going red about correct work — and re-measuring is exactly what
+    // this sheet instructs ("re-measure rather than nudging the number").
+    // A check that forbids the maintenance it depends on is the wrong check.
+    // It was 385 and is 386: the See-all link made the row 1px taller, the
+    // section settles at 385.56, and a 385 reserve no longer covered it.
+    // AND THE SEARCH STARTS FROM THE 318 RULE, NOT FROM THE TOP OF THE FILE.
+    // THERE ARE TWO 769-1199 BLOCKS — the hero padding one and this reserve —
+    // so a bare indexOf finds the FIRST, which sits above 318 and would make
+    // this assertion answer about the wrong block entirely. Caught by watching
+    // this check fail on purpose after it was reworked.
     const i1024 = css.indexOf('min-height: 318px')
-    const i769 = css.indexOf('min-height: 385px')
-    return i1024 > -1 && i769 > -1 && i769 > i1024
+    const iTablet = i1024 > -1 ? css.indexOf('@media (min-width: 769px) and (max-width: 1199px)', i1024) : -1
+    const i769 = iTablet > -1 ? css.indexOf('min-height:', iTablet) : -1
+    return i1024 > -1 && iTablet > -1 && i769 > -1 && i769 > i1024
   },
   true
 )
