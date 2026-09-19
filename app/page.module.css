@@ -267,14 +267,27 @@
 
    The padding grows the HIT AREA and the equal negative margin gives the
    height back to the layout, so the target clears 44px while the line box does
-   not grow. Measured on the anchor's own box, not inferred from this rule. */
+   not grow.
+
+   AND THE PADDING IS ASYMMETRIC BECAUSE A BORDER BOX IS NOT A TAP TARGET.
+   Symmetric `padding: 12px 0; margin: -12px 0` measured 45.59px on the anchor's
+   own box and only 43px of it took a tap: a negative margin lets the padding
+   OVERLAP its neighbours, and the first job card's own anchor paints over the
+   bottom 3px. The box said pass and the paint said fail, which is the whole
+   reason this is scanned row by row with elementFromPoint rather than read off
+   getBoundingClientRect.
+
+   So the padding goes where there is actually room. Measured: 48px of empty
+   gap above this row at 390 and 60px at 820, against only the row's 10px
+   bottom margin before the cards start. 22px up, 6px down — the 6px stays
+   inside that 10px, so nothing paints over it. */
 .heroRolesSeeAll {
   font-size: 13.5px;
   font-weight: 600;
   color: #0F172A;
   text-decoration: none;
-  padding: 12px 0;
-  margin: -12px 0;
+  padding: 22px 0 6px;
+  margin: -22px 0 -6px;
   white-space: nowrap;
 }
 
