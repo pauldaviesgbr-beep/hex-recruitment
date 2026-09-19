@@ -463,7 +463,28 @@ export default function Header() {
       pathname === '/login/employee'
     // A route to the page you are already on is not a route — the same reason
     // Sign up drops on the sign-up screens and Log in on the login screens.
+    //
+    // AND THE HOME PAGE DROPS IT TOO, FOR A DIFFERENT REASON: not because the
+    // route is pointless there, but because it is the ONE SCREEN THAT ALREADY
+    // HAS ONE. "See all 119 jobs" sits on the eyebrow row about 500px below
+    // this header and goes to the same place. Two routes to one page, on one
+    // screen, is the "board of four" fault in another costume.
+    //
+    // IT IS ONLY REDUNDANT HERE, WHICH IS WHY THE LINK ITSELF STAYS. On a job
+    // advert, on /login, on /signup and on the apply gate the eyebrow link does
+    // not exist and this is the only route to the board in the chrome — and
+    // those are the pages people actually arrive on, because every LinkedIn
+    // link, every share and every Google result lands on a single advert
+    // rather than on the home page. One route per screen; here it is the one
+    // nearer the jobs.
+    //
+    // TWO CONSTS AND A NAMED COMBINATION, rather than widening onJobsPage to
+    // mean "and also the home page". A boolean called onJobsPage that is true
+    // on `/` is a name answering a different question from the one it appears
+    // to — which is the fault this codebase keeps paying for elsewhere.
     const onJobsPage = pathname === '/jobs'
+    const onHomePage = pathname === '/'
+    const hideJobsRoute = onJobsPage || onHomePage
 
     return (
       <div className={styles.loginButtons}>
@@ -501,7 +522,7 @@ export default function Header() {
             on /jobs — where Jobs is correctly suppressed — that is exactly what
             a separately-rendered divider would leave behind. One condition,
             both elements, so they cannot come apart. */}
-        {!onJobsPage && (
+        {!hideJobsRoute && (
           <>
             <Link href="/jobs" className={`${styles.headerLogIn} ${styles.headerJobs}`}>Jobs</Link>
             <span className={styles.headerNavDivider} aria-hidden="true" />
