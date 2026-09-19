@@ -254,14 +254,27 @@
 
    13.5px is the smallest size already on this page (.heroUnderline). It does
    NOT drop to 12px to match the eyebrow: at 390 the constraint is the TAP
-   TARGET, not the type — which is why the row takes a 44px minimum below,
-   the same floor the search fields are held to. */
+   TARGET, not the type.
+
+   PADDING OUT, MARGIN BACK — AND THE FIRST ATTEMPT AT THIS COST 24px.
+   The tap target was first taken with `padding: 6px 0` plus a 44px minimum on
+   the ROW, and that was measured pushing the roles section 24.38px past its
+   361px reserve at 390 and 13.97px past 385 at 820 — the section outgrew its
+   reserve, a cold load gained a jump it did not have, and the employer pitch
+   at 820 moved 782.78 -> 796.75. The handoff had costed this line at "~2px of
+   line box" and the link's own box is 33.59px, so "it costs no height" and
+   "give the row a 44px minimum" could not both be true.
+
+   The padding grows the HIT AREA and the equal negative margin gives the
+   height back to the layout, so the target clears 44px while the line box does
+   not grow. Measured on the anchor's own box, not inferred from this rule. */
 .heroRolesSeeAll {
   font-size: 13.5px;
   font-weight: 600;
   color: #0F172A;
   text-decoration: none;
-  padding: 6px 0;
+  padding: 12px 0;
+  margin: -12px 0;
   white-space: nowrap;
 }
 
@@ -908,14 +921,12 @@
   .heroRolesSection { min-height: 361px; }
   .foundingStrip { min-height: 67px; }
 
-  /* THE TAP TARGET, NOT THE TYPE, IS THE CONSTRAINT AT 390. The link is 13.5px
-     with 6px of padding either side, which is a ~32px target — under the 44px
-     floor. The row carries the minimum so the target grows without the label
-     changing size. This rule sits AFTER the base .heroRolesEyebrowRow rather
-     than beside it: a media query adds no specificity, and this file has
-     already been caught once putting an override earlier in the file than the
-     declaration it was meant to beat. */
-  .heroRolesEyebrowRow { min-height: 44px; }
+  /* NO min-height ON THIS ROW, DELIBERATELY. It carried 44px for one commit to
+     take the tap target, and that is what pushed the section 24.38px past its
+     361px reserve — the row went from 19.19px to 44px and the whole strip grew
+     with it. The target now comes from the link's own padding with an equal
+     negative margin, so the row keeps the height it always had. If a 44px
+     minimum is ever put back here, re-measure the reserve in the same commit. */
 
   .hero {
     min-height: auto;
