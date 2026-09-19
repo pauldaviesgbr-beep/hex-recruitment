@@ -281,9 +281,26 @@
    gap above this row at 390 and 60px at 820, against only the row's 10px
    bottom margin before the cards start. 22px up, 6px down — the 6px stays
    inside that 10px, so nothing paints over it. */
+/* AND THE LINE-HEIGHT IS HERE FOR THE RESERVE, NOT FOR THE LOOK.
+   With the negative margins cancelling the padding exactly, this link's MARGIN
+   BOX is still its line box — 21.59px at normal line-height against the 12px
+   mono eyebrow's 19.19px. Baseline alignment takes the taller of the two, so
+   the row grew 19.19 -> 21.59 and the section rendered 362.97 against a 361px
+   reserve, and 386.97 against 385.
+
+   TWO PIXELS DO NOT MATTER; A RESERVE THAT IS WRONG DOES. The rule this sheet
+   already states is that a reserved value MATCHES THE SETTLED HEIGHT — it is
+   why 385 was re-measured in a browser rather than nudged. A reserve reading
+   361 on a section that renders 362.97 is a number the next person will take
+   as exact, which is precisely how "~2px of line box" was taken as exact and
+   cost 24px.
+
+   13.5 x 1.42 = 19.17px, just under the eyebrow's 19.19px, so the eyebrow
+   becomes the taller item again and the row keeps the height it always had. */
 .heroRolesSeeAll {
   font-size: 13.5px;
   font-weight: 600;
+  line-height: 1.42;
   color: #0F172A;
   text-decoration: none;
   padding: 22px 0 6px;
