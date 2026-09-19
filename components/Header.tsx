@@ -461,9 +461,44 @@ export default function Header() {
       pathname === '/login' ||
       pathname === '/login/employer' ||
       pathname === '/login/employee'
+    // A route to the page you are already on is not a route — the same reason
+    // Sign up drops on the sign-up screens and Log in on the login screens.
+    const onJobsPage = pathname === '/jobs'
 
     return (
       <div className={styles.loginButtons}>
+        {/* THE ONLY ROUTE TO THE BOARD IN THE CHROME, AND UNTIL NOW THERE WAS
+            NONE. Every navigation control here was an ACCOUNT control: Log in
+            and Sign up and nothing else. From /signup, /login, the apply gate
+            or a shared advert there was no way to the board at all — and every
+            LinkedIn link, every share and every Google result lands on a job
+            post rather than the home page, which is the same population this
+            nav was rebuilt for in the first place.
+
+            THIS IS NOT THE MENU THE COMMENT ABOVE WARNS ABOUT. That warning is
+            about two equal-weight ACCOUNT controls — Hire People and Find a Job
+            — where the two things competing were both ways of joining, so
+            neither read as the way in. Jobs does not compete with Sign up: it
+            is navigation to content beside a door. One text link, one text
+            link, one yellow button, and the button is still the only button.
+
+            IT COMPOSES .headerLogIn RATHER THAN COPYING ITS VALUES. "Identical
+            treatment to Log in" stays true when Log in changes; a second copy
+            of the same eight declarations would not, and this codebase has
+            already paid for that three times over.
+
+            HIDDEN BELOW 360, AND THE MARGIN ABOVE IT IS NOMINAL. Measured with
+            a real link in the live row: at 320 the row runs 28.94px past the
+            right edge, so it is dropped there. At 360 it fits with 11.06px
+            clear and at 375 with 26.06px — but in both cases the row is hard
+            against the lockup with only the 8px flex gap left. THAT IS NOT
+            HEADROOM: a longer word, a font fallback or different letter-
+            spacing breaks it. Re-drive this row before adding anything to it —
+            and note that a fourth control (For employers) is proposed, which
+            would need driving again from scratch. */}
+        {!onJobsPage && (
+          <Link href="/jobs" className={`${styles.headerLogIn} ${styles.headerJobs}`}>Jobs</Link>
+        )}
         {!onLoginPage && (
           <Link href="/login" className={styles.headerLogIn}>Log in</Link>
         )}

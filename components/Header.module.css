@@ -259,6 +259,29 @@
   text-decoration: none;
 }
 
+/* THE JOBS LINK CARRIES NO TREATMENT OF ITS OWN — it is mounted alongside
+   .headerLogIn so the two cannot drift. This rule exists only to take it away
+   below 360.
+
+   MEASURED, NOT COMPUTED, with a real link inserted into the live row:
+
+       320   the row would run 28.94px PAST the right edge   DROPPED
+       360   fits, 11.06px clear of the edge
+       375   fits, 26.06px clear
+       390   fits, 21.06px gap to the lockup
+
+   360 is the measured floor, not a round number. 480 was the other candidate
+   and is wrong: it would take the link off EVERY phone, and 79 of 89
+   candidates are on one — the population the link exists for. Shrinking Log in
+   or Sign up is not on the table either; the size gap between them is the
+   point of this nav.
+
+   AT 360 AND 375 THERE IS NOTHING SPARE — the row sits against the lockup with
+   only the 8px flex gap. Treat 11.06px as zero, not as room. */
+@media (max-width: 359px) {
+  .headerJobs { display: none; }
+}
+
 .headerLogIn:focus-visible,
 .headerSignUp:focus-visible {
   outline: none;
