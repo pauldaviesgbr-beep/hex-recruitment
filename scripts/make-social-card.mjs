@@ -18,8 +18,9 @@
 // Writes THREE cards — 1080x1350 for the feed, and two 1080x1920 (Instagram
 // Story and TikTok, which share a size and are not interchangeable). Reads the
 // database; writes only image files to disk. By default they land in the Drive
-// folder, each in the subfolder for its platform; --flat writes them all into
-// one directory instead.
+// folder, each in a subfolder NAMED FOR ITS LABEL — the same string that names
+// the file — so the folder and the file cannot drift apart. --flat writes them
+// all into one directory instead.
 
 import fs from 'node:fs'
 import path from 'node:path'
@@ -46,17 +47,17 @@ const outFlag = process.argv.indexOf('--out')
 const OUT_DIR = outFlag > -1 ? process.argv[outFlag + 1] : DRIVE_ROOT
 const FLAT = process.argv.includes('--flat')
 
-// ROUTED BY PLATFORM, NOT BY SIZE, and the reason is already written down
-// three lines above the renders: Story and TikTok are BOTH 1080x1920 and are
-// NOT interchangeable. Size is a consequence of the format; PLATFORM is the
-// intent, and it is already the value that decides the safe area. Routing on
-// the dimension would key on the one property this file's own comment says
-// does not determine what the card is for.
-const SUBFOLDER = {
-  instagram_feed:  'Instagram feed (1080x1080 and 1080x1350)',
-  instagram_story: 'Stories, Reels and TikTok (1080x1920)',
-  tiktok:          'Stories, Reels and TikTok (1080x1920)',
-}
+// THE FOLDER IS THE LABEL. Not a map from platform to a folder name — the
+// SAME STRING that names the file names the directory it goes in, so the two
+// can never disagree and a new format brings its own folder with it.
+//
+// It replaces a table keyed on platform, which was already better than keying
+// on the dimension (Story and TikTok are BOTH 1080x1920 and are NOT
+// interchangeable — Instagram reserves 20% at the foot, TikTok 30%). But a
+// table is still a second copy of a decision the label already carries, and a
+// second copy does not stay a copy: rename a folder and the map is silently
+// wrong, which is exactly what happened on 20 Sept 2026 when the folders were
+// renamed to these labels and the map still pointed at the old names.
 
 // --salary IS PRINTED VERBATIM AND IS THE ONLY WAY TO STATE A BASE.
 //
@@ -253,14 +254,13 @@ async function render({ job, width, height, label, platform }) {
     .replace(/\s+/g, ' ')
     .trim()
     .slice(0, 90)
-  // A PLATFORM WITH NO FOLDER IS A REFUSAL, NOT A GUESS. Falling back to the
-  // root would file a new format somewhere nobody looks and report success.
-  let destDir = OUT_DIR
-  if (!FLAT) {
-    const sub = SUBFOLDER[platform]
-    if (!sub) throw new Error(`no subfolder mapped for platform "${platform}" — add one to SUBFOLDER, or pass --flat`)
-    destDir = path.join(OUT_DIR, sub)
+  // A LABEL THAT CANNOT BE A DIRECTORY IS A REFUSAL, NOT A QUIET REWRITE.
+  // Sanitising it here would make the folder and the filename disagree, which
+  // is the one thing this arrangement exists to prevent.
+  if (/[\\/:*?"<>|]/.test(label)) {
+    throw new Error(`label "${label}" cannot be a folder name — it carries a character illegal in a path`)
   }
+  const destDir = FLAT ? OUT_DIR : path.join(OUT_DIR, label)
   fs.mkdirSync(destDir, { recursive: true })
 
   let file = path.join(destDir, `${safeTitle} - ${label}.jpg`)
