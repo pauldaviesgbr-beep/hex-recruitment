@@ -13,23 +13,50 @@
 // EVERY WORD COMES FROM THE ROW. Nothing is written for the picture: no
 // invented benefits, no "apply now", no claim the employer did not make.
 //
-//   node scripts/make-social-card.mjs <job-id> [--out <dir>]
+//   node scripts/make-social-card.mjs <job-id> [--out <dir>] [--flat]
 //
-// Writes 1080x1350 (feed) and 1080x1920 (story). Reads the database; writes
-// only image files to disk.
+// Writes THREE cards — 1080x1350 for the feed, and two 1080x1920 (Instagram
+// Story and TikTok, which share a size and are not interchangeable). Reads the
+// database; writes only image files to disk. By default they land in the Drive
+// folder, each in the subfolder for its platform; --flat writes them all into
+// one directory instead.
 
 import fs from 'node:fs'
 import path from 'node:path'
-import os from 'node:os'
 import sharp from 'sharp'
 import { createClient } from '@supabase/supabase-js'
 import { bottomSafePx } from './lib/social-formats.mjs'
 
 const JOB_ID = process.argv[2]
-if (!JOB_ID) { console.error('usage: node scripts/make-social-card.mjs <job-id> [--out <dir>] [--salary "<text>"]'); process.exit(2) }
-// Cards live with the rest of the social assets, not loose in Downloads.
+if (!JOB_ID) { console.error('usage: node scripts/make-social-card.mjs <job-id> [--out <dir>] [--flat] [--salary "<text>"]'); process.exit(2) }
+// CARDS LAND IN DRIVE AS THEY ARE GENERATED, so there is no upload step.
+//
+// G: is Google Drive for Desktop's streaming mount on this machine. A write
+// here reaches Drive on its own — measured 20 Sept 2026 at about one minute
+// from the write to the file being readable through the Drive API, which is
+// the only check that means anything: "written to G:" and "present in Drive"
+// are two different claims and only the second one is the promise.
+//
+// IT REFUSES RATHER THAN FALLING BACK TO Downloads. A silent fallback is the
+// fault this project keeps recording — you would believe the cards were in
+// Drive, they would be on one laptop, and nothing would say otherwise. The
+// remedy is named in the message, and --out still points it anywhere.
+const DRIVE_ROOT = 'G:/My Drive/Thrive Career Platform/Thrive — Marketing/Thrive Social/Job posts'
 const outFlag = process.argv.indexOf('--out')
-const OUT_DIR = outFlag > -1 ? process.argv[outFlag + 1] : path.join(os.homedir(), 'Downloads', 'thrive-social')
+const OUT_DIR = outFlag > -1 ? process.argv[outFlag + 1] : DRIVE_ROOT
+const FLAT = process.argv.includes('--flat')
+
+// ROUTED BY PLATFORM, NOT BY SIZE, and the reason is already written down
+// three lines above the renders: Story and TikTok are BOTH 1080x1920 and are
+// NOT interchangeable. Size is a consequence of the format; PLATFORM is the
+// intent, and it is already the value that decides the safe area. Routing on
+// the dimension would key on the one property this file's own comment says
+// does not determine what the card is for.
+const SUBFOLDER = {
+  instagram_feed:  'Instagram feed (1080x1080 and 1080x1350)',
+  instagram_story: 'Stories, Reels and TikTok (1080x1920)',
+  tiktok:          'Stories, Reels and TikTok (1080x1920)',
+}
 
 // --salary IS PRINTED VERBATIM AND IS THE ONLY WAY TO STATE A BASE.
 //
@@ -226,11 +253,21 @@ async function render({ job, width, height, label, platform }) {
     .replace(/\s+/g, ' ')
     .trim()
     .slice(0, 90)
-  let file = path.join(OUT_DIR, `${safeTitle} - ${label}.jpg`)
+  // A PLATFORM WITH NO FOLDER IS A REFUSAL, NOT A GUESS. Falling back to the
+  // root would file a new format somewhere nobody looks and report success.
+  let destDir = OUT_DIR
+  if (!FLAT) {
+    const sub = SUBFOLDER[platform]
+    if (!sub) throw new Error(`no subfolder mapped for platform "${platform}" — add one to SUBFOLDER, or pass --flat`)
+    destDir = path.join(OUT_DIR, sub)
+  }
+  fs.mkdirSync(destDir, { recursive: true })
+
+  let file = path.join(destDir, `${safeTitle} - ${label}.jpg`)
   let bump = 1
   while (fs.existsSync(file)) {
     bump++
-    file = path.join(OUT_DIR, `${safeTitle} - ${label} (${bump}).jpg`)
+    file = path.join(destDir, `${safeTitle} - ${label} (${bump}).jpg`)
   }
   if (bump > 1) console.log(`         NOTE: "${safeTitle} - ${label}.jpg" already existed — written as (${bump})`)
   await sharp(ground)
@@ -315,6 +352,17 @@ async function main() {
     // means "command not found". A guard whose exit status lies about why it
     // stopped is worse than no guard, because 127 reads as a broken script
     // rather than a deliberate refusal.
+    process.exitCode = 2
+    return
+  }
+
+  // THE MOUNT IS NOT ALWAYS THERE. Drive for Desktop is a streaming virtual
+  // drive, so an unmounted G: is an ordinary state rather than a broken one —
+  // and it must stop the run rather than quietly write somewhere else.
+  if (outFlag === -1 && !fs.existsSync(DRIVE_ROOT)) {
+    console.error('Google Drive is not mounted, so the cards have nowhere to land.')
+    console.error(`  expected: ${DRIVE_ROOT}`)
+    console.error('  start Google Drive for Desktop, or pass --out <dir> to write elsewhere.')
     process.exitCode = 2
     return
   }
