@@ -277,13 +277,28 @@ async function render({ job, width, height, label, platform }) {
   const destDir = FLAT ? OUT_DIR : path.join(OUT_DIR, label)
   fs.mkdirSync(destDir, { recursive: true })
 
-  let file = path.join(destDir, `${safeTitle} - ${label}.jpg`)
+  // THE FILENAME CARRIES THE JOB ID, AND IT HAS TO.
+  //
+  // TITLES ARE NOT UNIQUE ON THIS BOARD. Measured 21 Sept 2026: 117 live
+  // adverts hold 110 distinct titles, and "Chef De Partie – Luxury 5 Star
+  // Hotel" is THREE different jobs. Without the id the folder fills with
+  // "… (2).jpg" and "… (3).jpg" and nothing on the card or its name says which
+  // role it is — which defeats the point of a library you browse.
+  //
+  // Eight characters of the uuid, in brackets, after the title and before the
+  // label. The title still leads, because the marketing phrase after the dash
+  // is the only thing telling forty Chef De Partie adverts apart to a reader.
+  const stem = `${safeTitle} [${String(job.id).slice(0, 8)}]`
+  let file = path.join(destDir, `${stem} - ${label}.jpg`)
   let bump = 1
   while (fs.existsSync(file)) {
     bump++
-    file = path.join(destDir, `${safeTitle} - ${label} (${bump}).jpg`)
+    file = path.join(destDir, `${stem} - ${label} (${bump}).jpg`)
   }
-  if (bump > 1) console.log(`         NOTE: "${safeTitle} - ${label}.jpg" already existed — written as (${bump})`)
+  // A BUMP IS NOW A REAL SIGNAL RATHER THAN AN EVERYDAY COLLISION. With the id
+  // in the name, two files can only collide if the SAME job is written twice —
+  // so this says so plainly instead of shrugging.
+  if (bump > 1) console.log(`         NOTE: "${stem} - ${label}.jpg" already existed — SAME JOB ID, written as (${bump})`)
   await sharp(ground)
     .composite([
       { input: Buffer.from(typeSvg), top: 0, left: 0 },
