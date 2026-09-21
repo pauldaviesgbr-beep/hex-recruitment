@@ -27,6 +27,10 @@ import path from 'node:path'
 import sharp from 'sharp'
 import { createClient } from '@supabase/supabase-js'
 import { bottomSafePx } from './lib/social-formats.mjs'
+// THE PAY STRING IS DECIDED IN ONE PLACE, and the card library imports the same
+// function to record what each card shows. A manifest that recomputed it would
+// be a second copy of the rule.
+import { money } from './lib/social-pay.mjs'
 
 const JOB_ID = process.argv[2]
 if (!JOB_ID) { console.error('usage: node scripts/make-social-card.mjs <job-id> [--out <dir>] [--flat] [--salary "<text>"]'); process.exit(2) }
@@ -113,18 +117,28 @@ const splitTitle = title => {
   return { role: title.slice(0, i).trim(), strap: title.slice(i + 1).trim() }
 }
 
-const money = (min, max, type) => {
-  const per = type === 'annual' ? '/year' : '/hour'
-  const k = n => (type === 'annual' && n >= 1000 ? `£${Math.round(n / 1000)}k` : `£${n}`)
-  if (!min && !max) return null
-  if (!max || min === max) return `${k(min)}${per}`
-  return `${k(min)}–${k(max)}${per}`
+// money() now lives in ./lib/social-pay.mjs — imported above, so the generator
+// and the card library's manifest cannot disagree about what a card shows.
+
+// THE BANNER IS FETCHED ONCE PER JOB, NOT ONCE PER CARD.
+//
+// Three cards share one photograph. An uncached fetch inside render() is three
+// downloads of the same bytes — across a full library run that is 357 fetches
+// where 119 will do, and every one of them is somebody else's bandwidth.
+// Keyed on the URL rather than the job, so two adverts sharing a banner share
+// the download too.
+const bannerCache = new Map()
+async function banner(url) {
+  if (bannerCache.has(url)) return bannerCache.get(url)
+  const res = await fetch(url)
+  if (!res.ok) throw new Error(`${res.status} fetching the banner`)
+  const buf = Buffer.from(await res.arrayBuffer())
+  bannerCache.set(url, buf)
+  return buf
 }
 
 async function render({ job, width, height, label, platform }) {
-  const res = await fetch(job.company_banner_url)
-  if (!res.ok) throw new Error(`${res.status} fetching the banner`)
-  const photo = Buffer.from(await res.arrayBuffer())
+  const photo = await banner(job.company_banner_url)
 
   // 'attention' rather than a centre crop: these are room photographs and the
   // subject is rarely dead centre.
@@ -263,13 +277,28 @@ async function render({ job, width, height, label, platform }) {
   const destDir = FLAT ? OUT_DIR : path.join(OUT_DIR, label)
   fs.mkdirSync(destDir, { recursive: true })
 
-  let file = path.join(destDir, `${safeTitle} - ${label}.jpg`)
+  // THE FILENAME CARRIES THE JOB ID, AND IT HAS TO.
+  //
+  // TITLES ARE NOT UNIQUE ON THIS BOARD. Measured 21 Sept 2026: 117 live
+  // adverts hold 110 distinct titles, and "Chef De Partie – Luxury 5 Star
+  // Hotel" is THREE different jobs. Without the id the folder fills with
+  // "… (2).jpg" and "… (3).jpg" and nothing on the card or its name says which
+  // role it is — which defeats the point of a library you browse.
+  //
+  // Eight characters of the uuid, in brackets, after the title and before the
+  // label. The title still leads, because the marketing phrase after the dash
+  // is the only thing telling forty Chef De Partie adverts apart to a reader.
+  const stem = `${safeTitle} [${String(job.id).slice(0, 8)}]`
+  let file = path.join(destDir, `${stem} - ${label}.jpg`)
   let bump = 1
   while (fs.existsSync(file)) {
     bump++
-    file = path.join(destDir, `${safeTitle} - ${label} (${bump}).jpg`)
+    file = path.join(destDir, `${stem} - ${label} (${bump}).jpg`)
   }
-  if (bump > 1) console.log(`         NOTE: "${safeTitle} - ${label}.jpg" already existed — written as (${bump})`)
+  // A BUMP IS NOW A REAL SIGNAL RATHER THAN AN EVERYDAY COLLISION. With the id
+  // in the name, two files can only collide if the SAME job is written twice —
+  // so this says so plainly instead of shrugging.
+  if (bump > 1) console.log(`         NOTE: "${stem} - ${label}.jpg" already existed — SAME JOB ID, written as (${bump})`)
   await sharp(ground)
     .composite([
       { input: Buffer.from(typeSvg), top: 0, left: 0 },
@@ -326,35 +355,25 @@ async function main() {
 
   console.log(`\n${job.title}\n${job.company} · ${job.location} · ${job.status}\n`)
 
-  // THE GUARD: REFUSE RATHER THAN PRINT A NUMBER THAT MIGHT BE A PACKAGE.
+  // THE FOLDED-SALARY REFUSAL WAS REMOVED ON 21 Sept 2026, DELIBERATELY.
   //
-  // min === max on a Goldenkeys row is exactly the state in which the column
-  // MIGHT be a folded total and nothing in the data can say whether it is. Of
-  // the Junior Sous Chef rows alone, most are base + service charge folded
-  // together, and a few ("£42,931 per annum", "Up to £39,000") genuinely are
-  // flat. THEY ARE INDISTINGUISHABLE FROM THE COLUMNS. So the refusal is not a
-  // claim that this row is wrong — it is a refusal to guess which kind it is,
-  // and the fix is for a person to read the advert.
-  const folded = job.company === 'Goldenkeys Recruitment'
-    && Number(job.salary_min) === Number(job.salary_max)
-    && Number(job.salary_min) > 0
-  if (folded && !SALARY_OVERRIDE) {
-    console.error(`REFUSING: this row holds salary_min = salary_max = ${Number(job.salary_min)}.`)
-    console.error('On a Goldenkeys advert that is usually the FOLDED TOTAL — base plus service')
-    console.error('charge — and the base exists only in the benefits prose, not in any column.')
-    console.error('Printing it would advertise a package as a guaranteed salary.')
-    console.error('\nRead the advert and pass what it actually says, e.g.')
-    console.error('  --salary "£35,000 + service charge"')
-    console.error(`\nThe benefits line on this row reads:\n  ${(job.benefits || []).join(' | ').slice(0, 300) || '(empty)'}`)
-    // SET THE CODE AND RETURN, never process.exit() here. The supabase client
-    // still holds an open socket, and exiting under it on Windows trips a libuv
-    // assertion — which replaces the refusal's exit 2 with 127, the code that
-    // means "command not found". A guard whose exit status lies about why it
-    // stopped is worse than no guard, because 127 reads as a broken script
-    // rather than a deliberate refusal.
-    process.exitCode = 2
-    return
-  }
+  // It refused any Goldenkeys row holding salary_min === salary_max > 0, on the
+  // grounds that such a row is usually base plus service charge folded together
+  // and printing it would advertise a package as a guaranteed salary. That
+  // reasoning was correct about the DATA and it is superseded by a decision
+  // about what the card is FOR.
+  //
+  // THE DECISION: the card shows the full package figure and nothing else, and
+  // the breakdown goes in the post caption beside it. Goldenkeys and Host both
+  // advertise their own roles that way — Adrian McLeod, 17 Sept 2026: "Likely
+  // the bigger number is OTE (we would always advertise the max earning
+  // potential)". So printing the stored figure IS the intent now, and a guard
+  // that stopped 87 of 119 adverts would stop the library run it exists inside.
+  //
+  // WHAT STILL PROTECTS THE CLAIM: the caption carries the advert's own wording
+  // for the breakdown, taken verbatim and never composed — see
+  // scripts/build-card-library.mjs, which refuses to invent one and flags the
+  // role as thin instead. --salary still overrides the figure on the card.
 
   // THE MOUNT IS NOT ALWAYS THERE. Drive for Desktop is a streaming virtual
   // drive, so an unmounted G: is an ordinary state rather than a broken one —
