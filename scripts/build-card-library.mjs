@@ -266,9 +266,31 @@ async function main() {
     }
 
     fs.mkdirSync(CAPTION_DIR, { recursive: true })
-    const captionFile = path.join(CAPTION_DIR, `${stem} - posts.md`)
-    fs.writeFileSync(captionFile, captionFor(job, entry, sentences))
-    entry.captionFile = captionFile
+
+    // THE CAPTION NAME CARRIES THE JOB ID, AND IT HAS TO.
+    //
+    // Titles are NOT unique on this board: 117 live adverts hold 110 distinct
+    // titles, and "Chef De Partie – Luxury 5 Star Hotel" is three different
+    // jobs. Naming a caption from the title alone therefore made later roles
+    // overwrite earlier ones — 8 captions lost on the first full run, 21 Sept
+    // 2026. The cards survive that because the generator bumps to "(2)"; the
+    // captions did not, because this wrote straight over them.
+    const captionFile = path.join(CAPTION_DIR, `${stem} [${job.id.slice(0, 8)}] - posts.md`)
+
+    // AND IT NEVER WRITES OVER A FILE IT DID NOT WRITE.
+    //
+    // A hand-written caption sat in this folder under a name this script would
+    // have chosen, and the first run destroyed it. The manifest is the record of
+    // what belongs to the library; anything else in here is somebody's work.
+    const knownCaptions = new Set(Object.values(manifest).map(e => e && e.captionFile).filter(Boolean))
+    if (fs.existsSync(captionFile) && !knownCaptions.has(captionFile)) {
+      console.log(`      caption NOT written — a file this script did not create already holds that name:`)
+      console.log(`      ${captionFile}`)
+      entry.captionSkipped = true
+    } else {
+      fs.writeFileSync(captionFile, captionFor(job, entry, sentences))
+      entry.captionFile = captionFile
+    }
 
     // Written after EVERY advert, not once at the end. A run that dies at
     // advert 80 has still built 79 sets, and a manifest that only exists on a
