@@ -49,6 +49,19 @@
   text-decoration: underline;
 }
 
+/* "See what we set" opens the panel, so it is a BUTTON that must read as a
+   link — a <button> is what actually does the job, and styling it as anything
+   else would hide the only route to the cookie list from the banner. */
+.bannerLinkBtn {
+  color: #FFE500;
+  text-decoration: underline;
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+}
+
 .bannerActions {
   display: flex;
   gap: 10px;
@@ -185,6 +198,30 @@
   font-size: 0.8rem;
   color: #64748b;
   line-height: 1.4;
+}
+
+/* The named cookies. The whole point of the panel now is that a person can
+   read the actual list and end up less worried than they started, so it has to
+   be legible rather than tucked away. */
+.cookieList {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  font-size: 0.78rem;
+  color: #64748b;
+  line-height: 1.5;
+}
+
+.cookieList li {
+  margin-bottom: 3px;
+}
+
+.cookieList code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.95em;
+  color: #334155;
+  background: #f1f5f9;
+  padding: 1px 4px;
+  border-radius: 3px;
 }
 
 /* Toggle Switch */
