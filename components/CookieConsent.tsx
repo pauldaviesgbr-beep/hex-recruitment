@@ -6,8 +6,11 @@ import {
   getCookieConsent,
   setCookieConsent,
   acceptAllCookies,
+  rejectNonEssentialCookies,
+  clearNonEssentialCookies,
   type CookieConsent as CookieConsentType,
 } from '@/lib/cookies'
+import { captureFirstTouch } from '@/lib/firstTouch'
 import styles from './CookieConsent.module.css'
 
 export default function CookieConsent() {
@@ -15,7 +18,6 @@ export default function CookieConsent() {
   const [showBanner, setShowBanner] = useState(false)
   const [showModal, setShowModal] = useState(false)
   const [functional, setFunctional] = useState(true)
-  const [analytics, setAnalytics] = useState(false)
 
   useEffect(() => {
     const consent = getCookieConsent()
@@ -23,7 +25,6 @@ export default function CookieConsent() {
       setShowBanner(true)
     } else {
       setFunctional(consent.functional)
-      setAnalytics(consent.analytics)
     }
   }, [])
 
@@ -70,28 +71,44 @@ export default function CookieConsent() {
     }
   }, [showBanner])
 
+  // ACCEPT IS ALSO THE MOMENT WE CAPTURE.
+  //
+  // Nothing optional was stored before this — the gate in lib/cookies treats
+  // undecided as no. So the tagged URL and the referrer the visitor arrived on
+  // are still right here in the browser, and this is the only point at which
+  // capturing them is both possible and permitted. Capture on mount instead
+  // and every tagged arrival is thrown away before anyone can agree to it.
   const handleAcceptAll = useCallback(() => {
     acceptAllCookies()
+    captureFirstTouch()
+    setFunctional(true)
+    setShowBanner(false)
+    setShowModal(false)
+  }, [])
+
+  // DECLINE DELETES AS WELL AS REFUSING. `thrive_country` may already be on the
+  // browser from an earlier request — it is set at the edge — and a refusal
+  // that leaves it there is not a refusal.
+  const handleRejectAll = useCallback(() => {
+    rejectNonEssentialCookies()
+    setFunctional(false)
     setShowBanner(false)
     setShowModal(false)
   }, [])
 
   const handleSavePreferences = useCallback(() => {
-    const consent: CookieConsentType = {
-      essential: true,
-      functional,
-      analytics,
-    }
+    const consent: CookieConsentType = { essential: true, functional }
     setCookieConsent(consent)
+    if (functional) captureFirstTouch()
+    else clearNonEssentialCookies()
     setShowBanner(false)
     setShowModal(false)
-  }, [functional, analytics])
+  }, [functional])
 
   const handleOpenPreferences = useCallback(() => {
     const consent = getCookieConsent()
     if (consent) {
       setFunctional(consent.functional)
-      setAnalytics(consent.analytics)
     }
     setShowModal(true)
   }, [])
@@ -152,17 +169,26 @@ export default function CookieConsent() {
           <div className={styles.bannerInner}>
             <div className={styles.bannerText}>
               <p>
-                We use cookies to improve your experience. Essential cookies are required for the site to work.
-                You can choose to accept optional cookies or manage your preferences.{' '}
-                <Link href="/privacy-policy" className={styles.bannerLink}>Learn more</Link>
+                <strong>We do not track you.</strong> Thrive sets no advertising cookies and no
+                third-party cookies — every cookie here is set by this site and read only by us.
+                Essential ones keep you signed in. Optional ones remember your country, your
+                timezone, and which Thrive link brought you here.{' '}
+                <button onClick={handleOpenPreferences} className={styles.bannerLinkBtn}>
+                  See what we set
+                </button>
+                {' · '}
+                <Link href="/privacy-policy" className={styles.bannerLink}>Privacy policy</Link>
               </p>
             </div>
             <div className={styles.bannerActions}>
-              <button onClick={handleOpenPreferences} className={styles.manageBtn}>
-                Manage Preferences
+              {/* DECLINE COSTS THE SAME AS ACCEPT — one tap, same row, same
+                  weight of control. It used to take three: Manage Preferences,
+                  a toggle, then Save. */}
+              <button onClick={handleRejectAll} className={styles.manageBtn}>
+                Decline optional
               </button>
               <button onClick={handleAcceptAll} className={styles.acceptBtn}>
-                Accept All
+                Accept
               </button>
             </div>
           </div>
@@ -182,17 +208,24 @@ export default function CookieConsent() {
 
             <div className={styles.modalBody}>
               <p className={styles.modalDesc}>
-                Choose which cookies you want to allow. Essential cookies cannot be disabled as they are
-                required for the site to function properly.
+                <strong>We do not track users.</strong> Thrive sets no advertising cookies, no
+                third-party cookies and no analytics cookies, and shares nothing with advertisers
+                or data brokers. Every cookie below is set by this site and read only by us. This
+                is the complete list.
               </p>
 
               {/* Essential */}
               <div className={styles.cookieRow}>
                 <div className={styles.cookieInfo}>
-                  <h3 className={styles.cookieName}>Essential Cookies</h3>
+                  <h3 className={styles.cookieName}>Essential</h3>
                   <p className={styles.cookieDesc}>
-                    Required for the website to function. These include authentication, security, and basic functionality.
+                    Needed for the site to work at all. Without these you cannot stay signed in.
                   </p>
+                  <ul className={styles.cookieList}>
+                    <li><code>sb-…-auth-token</code> — keeps you signed in</li>
+                    <li><code>hex_session_started</code> — marks that a browsing session has begun</li>
+                    <li><code>hex_cookie_consent</code> — this choice, so we stop asking</li>
+                  </ul>
                 </div>
                 <label className={`${styles.toggle} ${styles.toggleDisabled}`}>
                   <input type="checkbox" checked disabled />
@@ -201,12 +234,24 @@ export default function CookieConsent() {
                 </label>
               </div>
 
-              {/* Functional */}
+              {/* Optional — the only real choice on this panel, and it is wired.
+                  There is no Analytics row any more: no analytics cookie has
+                  ever been set on this site, so the toggle controlled nothing. */}
               <div className={styles.cookieRow}>
                 <div className={styles.cookieInfo}>
-                  <h3 className={styles.cookieName}>Functional Cookies</h3>
+                  <h3 className={styles.cookieName}>Optional</h3>
                   <p className={styles.cookieDesc}>
-                    Enable personalised features such as saved preferences, recent searches, and layout settings.
+                    Help us see which of our own job posts bring people here, and show times and
+                    places correctly. Never shared with anyone.
+                  </p>
+                  <ul className={styles.cookieList}>
+                    <li><code>thrive_country</code> — the two-letter country your connection came from</li>
+                    <li><code>thrive_tz</code> — your timezone, so times read correctly</li>
+                    <li><code>thrive_attr</code> — which Thrive link you followed, e.g. <code>li</code> for LinkedIn</li>
+                  </ul>
+                  <p className={styles.cookieDesc}>
+                    Turn this off and none of the three are stored. Any already on your browser are
+                    deleted when you save.
                   </p>
                 </div>
                 <label className={styles.toggle}>
@@ -218,32 +263,14 @@ export default function CookieConsent() {
                   <span className={styles.toggleSlider} />
                 </label>
               </div>
-
-              {/* Analytics */}
-              <div className={styles.cookieRow}>
-                <div className={styles.cookieInfo}>
-                  <h3 className={styles.cookieName}>Analytics Cookies</h3>
-                  <p className={styles.cookieDesc}>
-                    Help us understand how visitors use the site so we can improve it. Data is anonymised.
-                  </p>
-                </div>
-                <label className={styles.toggle}>
-                  <input
-                    type="checkbox"
-                    checked={analytics}
-                    onChange={e => setAnalytics(e.target.checked)}
-                  />
-                  <span className={styles.toggleSlider} />
-                </label>
-              </div>
             </div>
 
             <div className={styles.modalFooter}>
               <button onClick={handleSavePreferences} className={styles.saveBtn}>
-                Save Preferences
+                Save
               </button>
               <button onClick={handleAcceptAll} className={styles.acceptAllBtn}>
-                Accept All
+                Accept
               </button>
             </div>
           </div>

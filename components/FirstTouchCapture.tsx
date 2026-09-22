@@ -1,8 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
-import { captureFromSearch } from '@/lib/attribution'
-import { storeTimezone } from '@/lib/geo'
+import { captureFirstTouch } from '@/lib/firstTouch'
 
 // EVERYTHING WE CAN ONLY LEARN FROM THE BROWSER, ON THE FIRST PAGE THEY SEE.
 // Renders nothing.
@@ -22,8 +21,11 @@ import { storeTimezone } from '@/lib/geo'
 // callbacks), which have no browser to ask.
 export default function FirstTouchCapture() {
   useEffect(() => {
-    captureFromSearch(window.location.search)
-    storeTimezone()
+    // DOES NOTHING UNTIL SOMEBODY HAS CONSENTED, WHICH ON A FIRST VISIT IS
+    // ALWAYS. The capture that matters happens in CookieConsent the moment
+    // Accept is pressed, from the same URL and referrer. This call is for the
+    // visits AFTER that, where the choice is already stored.
+    captureFirstTouch()
   }, [])
   return null
 }

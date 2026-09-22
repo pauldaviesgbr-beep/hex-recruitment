@@ -1,6 +1,7 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import { countryFromHeaders, COUNTRY_COOKIE, COUNTRY_MAX_AGE_DAYS } from '@/lib/geo'
+import { nonEssentialAllowedFromHeader } from '@/lib/cookies'
 
 // Keeps the SSR auth cookie in step with the browser's localStorage session.
 //
@@ -43,10 +44,25 @@ export async function middleware(request: NextRequest) {
   // the Supabase cookie adapters below, so anything set on the original object
   // is discarded. And there is an early return above them.
   const country = countryFromHeaders(request.headers)
+  // AND ONLY IF THEY SAID YES.
+  //
+  // This cookie is not essential — nothing breaks without it, it fills in a
+  // signup column — so a visitor who declines optional cookies must not get
+  // it. The check has to live HERE rather than in the client gate because
+  // this is the edge, running before any component has mounted: it was
+  // stamping `thrive_country` on the very first request, before the banner
+  // had even rendered, which is the one write a refusal could never have
+  // caught. Same cookie, same rule as the client, one parser
+  // (nonEssentialAllowedFromHeader).
+  //
+  // UNDECIDED IS A NO, so nothing is written until they choose — and on
+  // Accept it appears on the NEXT request rather than instantly, because only
+  // the edge can read the country header.
+  const mayStore = nonEssentialAllowedFromHeader(request.headers.get('cookie'))
   const withCountry = (res: NextResponse) => {
     // Absent header means local development, not "unknown" — write nothing,
     // or a dev session looks like a real signup from nowhere.
-    if (country) {
+    if (country && mayStore) {
       res.cookies.set(COUNTRY_COOKIE, country, {
         path: '/',
         maxAge: COUNTRY_MAX_AGE_DAYS * 86400,
