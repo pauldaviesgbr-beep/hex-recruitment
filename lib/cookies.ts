@@ -1,5 +1,6 @@
 import { COUNTRY_COOKIE, TZ_COOKIE } from './geo'
 import { ATTR_COOKIE } from './attribution'
+import { isNativeApp } from './nativeShell'
 
 /**
  * WHAT CONSENT MEANS HERE, AND WHY THERE ARE ONLY TWO CATEGORIES.
@@ -99,7 +100,32 @@ export function hasConsentBeenGiven(): boolean {
  * writing that we break.
  */
 export function nonEssentialAllowed(): boolean {
+  // THE APP SETS NOTHING OPTIONAL, WHATEVER THE JAR SAYS. Apple rejected the
+  // build twice under 5.1.2 for cookies "tracking users for marketing". The
+  // three optional cookies do no work in the app — attribution is about which
+  // link brought someone to the WEBSITE, and an app user came from the App
+  // Store — so in the app the answer is simply no, and there is no prompt.
+  if (isNativeApp()) return false
   return getCookieConsent()?.functional === true
+}
+
+/**
+ * RUN ON EVERY APP LOAD: remove anything optional already in the app's jar,
+ * AND the consent record itself.
+ *
+ * The consent cookie is the half that matters. An Accept tapped in the app
+ * before this change is still in its jar, and the EDGE reads that cookie to
+ * decide whether to stamp `thrive_country` — the client gate above cannot
+ * reach the edge. Delete the record and the edge's own rule ("undecided is a
+ * no") does the rest, on every request after this one.
+ *
+ * Returns whether it ran, so a check can tell "cleared" from "not in the app".
+ */
+export function enforceAppCookiePolicy(): boolean {
+  if (typeof document === 'undefined' || !isNativeApp()) return false
+  clearNonEssentialCookies()
+  document.cookie = `${COOKIE_NAME}=; path=/; max-age=0; SameSite=Lax`
+  return true
 }
 
 /**

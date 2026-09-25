@@ -11,6 +11,7 @@ import {
   type CookieConsent as CookieConsentType,
 } from '@/lib/cookies'
 import { captureFirstTouch } from '@/lib/firstTouch'
+import { isNativeApp } from '@/lib/nativeShell'
 import styles from './CookieConsent.module.css'
 
 export default function CookieConsent() {
@@ -18,8 +19,14 @@ export default function CookieConsent() {
   const [showBanner, setShowBanner] = useState(false)
   const [showModal, setShowModal] = useState(false)
   const [functional, setFunctional] = useState(true)
+  const [inApp, setInApp] = useState(false)
 
   useEffect(() => {
+    // NO PROMPT IN THE APP. The app sets nothing optional (lib/cookies), so a
+    // prompt there would ask permission for nothing — and Apple's first 5.1.2
+    // notice offered "remove the cookie prompts" as a resolution. The website
+    // keeps its banner exactly as it was.
+    if (isNativeApp()) { setInApp(true); return }
     const consent = getCookieConsent()
     if (!consent) {
       setShowBanner(true)
@@ -115,13 +122,16 @@ export default function CookieConsent() {
 
   // Expose a global function to reopen preferences from footer link
   useEffect(() => {
+    // In the app there is nothing to open, and the footer's Cookie Settings
+    // control is not rendered there (components/CookieSettingsButton).
+    if (inApp) return;
     (window as any).__openCookiePreferences = () => {
       handleOpenPreferences()
     }
     return () => {
       delete (window as any).__openCookiePreferences
     }
-  }, [handleOpenPreferences])
+  }, [handleOpenPreferences, inApp])
 
   /**
    * PUBLISH THE BANNER'S HEIGHT so other fixed-bottom bars can sit above it.
@@ -159,6 +169,7 @@ export default function CookieConsent() {
     }
   }, [showBanner, showModal])
 
+  if (inApp) return null
   if (!showBanner && !showModal) return null
 
   return (

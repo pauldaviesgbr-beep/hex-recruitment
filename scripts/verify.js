@@ -745,6 +745,19 @@ const ALL = [
   // named failures, exit 1, green on restore.
   { name: 'weboauth:prove', cmd: npm, args: ['run', 'weboauth:prove'] },
 
+  // appcookies:prove — THE APP SETS NOTHING OPTIONAL, AND THE WEBSITE IS
+  // UNCHANGED. Apple rejected 5.1.2 twice over cookies. The real gate and the
+  // real clear from lib/cookies run against a document.cookie-shaped jar:
+  // inside the app (a STUBBED window.Capacitor) the gate is closed and a
+  // SEEDED jar is emptied of the three optional cookies and the consent record
+  // while the sign-in cookie survives; on the website Accept and Decline behave
+  // exactly as before. Filesystem and imports only.
+  //
+  // Watched failing on purpose twice: gate line removed gives two named
+  // failures (the capture wrote thrive_attr and thrive_tz in the app); consent
+  // clear removed gives one. Green on restore.
+  { name: 'appcookies:prove', cmd: npm, args: ['run', 'appcookies:prove'] },
+
   // deletegate:prove IS DELIBERATELY NOT IN THIS LIST, the same way
   // rlsprobe:prove is not.
   //
