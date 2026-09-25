@@ -68,22 +68,12 @@ export const NATIVE_CALLBACK_SCHEME = 'uk.co.thrivecareer.app'
 export const NATIVE_CALLBACK_URL = `${NATIVE_CALLBACK_SCHEME}://auth/callback`
 
 /**
- * Are we inside the iOS shell?
- *
- * Deliberately a `window` property read and NOT an import of
- * @capacitor/core. Importing would pull the runtime into the web bundle for
- * every visitor to a site that will never use it, and would make "the web is
- * unaffected" a claim rather than a fact.
+ * Are we inside the iOS shell? Defined ONCE in lib/nativeShell, which has no
+ * imports, because lib/cookies needs the same answer and lib/cookies is also
+ * bundled into middleware at the edge. Re-exported here so existing callers
+ * keep their import.
  */
-export function isNativeApp(): boolean {
-  if (typeof window === 'undefined') return false
-  const cap = (window as unknown as { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor
-  try {
-    return Boolean(cap?.isNativePlatform?.())
-  } catch {
-    return false
-  }
-}
+export { isNativeApp } from './nativeShell'
 
 export type NativeOAuthOutcome =
   | { kind: 'signed-in' }

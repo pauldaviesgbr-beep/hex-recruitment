@@ -14,6 +14,7 @@ import { EMPLOYER_COHORT_CAP } from '@/lib/constants/cohort'
 import { BRAND_NAME, BRAND_TAGLINE } from '@/lib/constants/brand'
 import { foundingPhraseShort } from '@/lib/trialUtils'
 import styles from './page.module.css'
+import CookieSettingsButton from '@/components/CookieSettingsButton'
 
 // Product demo clips (muted screen-captures) hosted in Supabase storage.
 const DEMO_BASE = 'https://aaljufxcniacfggqiuls.supabase.co/storage/v1/object/public/job-banners/site'
@@ -472,7 +473,7 @@ export default function Home() {
           <div className={styles.footerLinks}>
             <Link href="/terms" className={styles.footerLink}>Terms of Service</Link>
             <Link href="/privacy-policy" className={styles.footerLink}>Privacy Policy</Link>
-            <button onClick={() => (window as any).__openCookiePreferences?.()} className={styles.footerLink} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, font: 'inherit' }}>Cookie Settings</button>
+            <CookieSettingsButton className={styles.footerLink} />
             <Link href="/jobs" className={styles.footerLink}>Browse Jobs</Link>
             <Link href="/support" className={styles.footerLink}>Support</Link>
           </div>

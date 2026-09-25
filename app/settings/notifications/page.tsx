@@ -24,7 +24,6 @@ const CANDIDATE_EMAIL: Row[] = [
   { key: 'job_digest', name: 'Job digest', desc: 'Receive a periodic summary of new job opportunities' },
   { key: 'application_updates', name: 'Application updates', desc: 'Get notified when your application status changes' },
   { key: 'new_messages', name: 'New messages', desc: 'Get notified when you receive a new message' },
-  { key: 'marketing', name: 'Marketing emails', desc: 'Receive tips, news, and product updates' },
 ]
 const CANDIDATE_SMS: Row[] = [
   { key: 'new_messages', name: 'New messages', desc: 'Get a text when you receive an important message' },
@@ -35,7 +34,6 @@ const EMPLOYER_EMAIL: Row[] = [
   { key: 'application_updates', name: 'Application updates', desc: 'Get notified when an application status changes' },
   { key: 'new_messages', name: 'New messages', desc: 'Get notified when you receive a new message' },
   { key: 'job_views', name: 'Job views & saves', desc: 'Get notified when your jobs are viewed or saved' },
-  { key: 'marketing', name: 'Marketing emails', desc: 'Receive tips, news, and product updates' },
 ]
 const EMPLOYER_SMS: Row[] = [
   { key: 'new_messages', name: 'New messages', desc: 'Get a text when you receive an important message' },

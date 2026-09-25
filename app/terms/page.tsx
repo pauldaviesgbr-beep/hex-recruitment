@@ -4,6 +4,7 @@ import Link from 'next/link'
 import Header from '@/components/Header'
 import ThriveMark from '@/components/ThriveMark'
 import styles from './page.module.css'
+import CookieSettingsButton from '@/components/CookieSettingsButton'
 
 const sections = [
   { id: 'overview', label: 'Overview' },
@@ -441,7 +442,7 @@ export default function TermsPage() {
           <div className={styles.footerLinks}>
             <Link href="/terms" className={styles.footerLinkActive}>Terms of Service</Link>
             <Link href="/privacy-policy" className={styles.footerLink}>Privacy Policy</Link>
-            <button onClick={() => (window as any).__openCookiePreferences?.()} className={styles.footerLink} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, font: 'inherit' }}>Cookie Settings</button>
+            <CookieSettingsButton className={styles.footerLink} />
             <Link href="/support" className={styles.footerLink}>Support</Link>
           </div>
           <p className={styles.footerCopyright}>

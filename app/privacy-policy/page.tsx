@@ -5,6 +5,7 @@ import Header from '@/components/Header'
 import ThriveMark from '@/components/ThriveMark'
 import styles from './page.module.css'
 import { Ico } from '@/components/icons'
+import CookieSettingsButton from '@/components/CookieSettingsButton'
 
 const sections = [
   { id: 'data-we-collect', label: 'Data We Collect' },
@@ -534,33 +535,46 @@ export default function PrivacyPolicyPage() {
               <span className={styles.sectionNumber}>9</span>
               Cookies
             </h2>
+            {/* THIS SECTION DESCRIBED "Analytics Cookies ... anonymised data"
+                UNTIL 25 Sept 2026 — the same false claim removed from the
+                cookie banner on 22 Sept, left standing here. No analytics
+                cookie has ever been set on this site. Every cookie below is
+                named, so the list can be checked against the product. */}
             <p>
-              We use cookies and similar technologies to provide, protect, and improve the Platform.
-              Cookies are small text files stored on your device when you visit our website.
+              Cookies are small text files stored on your device. Every cookie Thrive sets is set by
+              Thrive and read only by Thrive. We set no advertising cookies, no analytics cookies and
+              no third-party cookies, and we share nothing with advertisers or data brokers.
             </p>
 
-            <h3 className={styles.subTitle}>Essential Cookies</h3>
+            <h3 className={styles.subTitle}>Essential cookies</h3>
             <p>
-              Required for the Platform to function. These include authentication tokens, session
-              management, and security cookies. These cannot be disabled.
+              Needed for the Platform to work, so they cannot be switched off:
+              the sign-in cookie that keeps you logged in (named <code>sb-…-auth-token</code>);
+              a short-lived cookie used only while you sign in with Google, Apple or LinkedIn
+              (<code>sb-…-auth-token-code-verifier</code> and <code>oauth_intended_role</code>);
+              a session marker (<code>hex_session_started</code>); and, on the website, a record of
+              your cookie choice (<code>hex_cookie_consent</code>) so we stop asking.
             </p>
 
-            <h3 className={styles.subTitle}>Functional Cookies</h3>
+            <h3 className={styles.subTitle}>Optional cookies (website only)</h3>
             <p>
-              Remember your preferences and settings (e.g., search filters, notification preferences).
-              These improve your experience but are not strictly necessary.
+              On the website, and only if you accept them: <code>thrive_country</code> (the country your
+              connection came from), <code>thrive_tz</code> (your timezone, so times read correctly) and{' '}
+              <code>thrive_attr</code> (which Thrive link brought you here). If you decline, none of them
+              are stored, and any already on your browser are deleted.
             </p>
 
-            <h3 className={styles.subTitle}>Analytics Cookies</h3>
+            <h3 className={styles.subTitle}>In the Thrive app</h3>
             <p>
-              Help us understand how users interact with the Platform so we can improve it. These
-              collect anonymised data about page visits, features used, and navigation patterns.
+              The iOS app sets only the essential cookies above. It sets no optional cookies at all,
+              which is why it does not show a cookie prompt: there is nothing optional to agree to.
             </p>
 
             <p>
-              You can manage cookie preferences through your browser settings. Note that disabling
-              essential cookies may affect Platform functionality. We do not use advertising or
-              third-party tracking cookies.
+              We also keep a few settings in your browser&apos;s local storage, such as whether you
+              chose to stay signed in and which notices you have dismissed. These stay on your device.
+              How we use the job views and searches you make on Thrive is described in the sections
+              above; none of it relies on cookies.
             </p>
           </section>
 
@@ -797,7 +811,7 @@ export default function PrivacyPolicyPage() {
             <Link href="/terms" className={styles.footerLink}>Terms of Service</Link>
             <Link href="/privacy-policy" className={styles.footerLinkActive}>Privacy Policy</Link>
             <Link href="/support" className={styles.footerLink}>Support</Link>
-            <button onClick={() => (window as any).__openCookiePreferences?.()} className={styles.footerLink} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, font: 'inherit' }}>Cookie Settings</button>
+            <CookieSettingsButton className={styles.footerLink} />
             <a href="mailto:contact@thrivecareer.co.uk" className={styles.footerLink}>Contact</a>
           </div>
           <p className={styles.footerCopyright}>
