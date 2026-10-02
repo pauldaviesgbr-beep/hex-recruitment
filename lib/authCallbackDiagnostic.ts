@@ -63,3 +63,36 @@ export function logCallbackCookieNames(
       }),
   )
 }
+
+/**
+ * TEMPORARY DIAGNOSTIC, ADDED 2 OCT 2026 — REMOVE WITH THE REST OF THIS FILE.
+ *
+ * THE QUESTION. On a first in-app Google sign-in, Supabase answers our
+ * exchange with `flow_state_not_found`, while the flow row it issued a code
+ * for still exists, has its user set, and was written exactly once. Supabase
+ * finds a flow ONLY by `auth_code = ?`, so the code that reaches this route
+ * is not that row's code — or it is, and the fault is on Supabase's side.
+ * Comparing this prefix with the surviving row's `left(auth_code, 8)` settles
+ * which.
+ *
+ * WHY A PREFIX OF THE CODE IS ACCEPTABLE WHEN NO COOKIE VALUE EVER IS. The
+ * rule above protects bearer secrets: the verifier and the session. The auth
+ * code is different in kind — single-use, short-lived, and unredeemable
+ * without the verifier, which never leaves the browser's cookie jar. Eight
+ * characters of a 36-character code cannot be redeemed by anyone. It is still
+ * capped at eight, by slice, in this one expression, and nothing else from
+ * the URL is logged.
+ *
+ * `x-vercel-id` is the request identifier, so a line can be paired with the
+ * Vercel request and the redirect that followed it.
+ */
+export function logCallbackCodePrefix(
+  request: NextRequest,
+  route: 'employee' | 'employer',
+): void {
+  const code8 = new URL(request.url).searchParams.get('code')?.slice(0, 8) ?? null
+  console.log(
+    '[code-diagnostic] ' +
+      JSON.stringify({ route, code8, requestId: request.headers.get('x-vercel-id') }),
+  )
+}

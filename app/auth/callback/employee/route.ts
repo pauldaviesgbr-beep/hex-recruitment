@@ -2,7 +2,7 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { safeInternalPath } from '@/lib/safeRedirect'
-import { logCallbackCookieNames } from '@/lib/authCallbackDiagnostic'
+import { logCallbackCookieNames, logCallbackCodePrefix } from '@/lib/authCallbackDiagnostic'
 import { parseAttrCookie, attributionColumns } from '@/lib/attribution'
 import { geoColumnsFromRequest } from '@/lib/geo'
 import { applyDuplicateHold } from '@/lib/applyDuplicateHold'
@@ -22,6 +22,7 @@ export async function GET(request: NextRequest) {
   // no-code branches below that return before anything else runs. Names
   // only; it cannot reach a cookie value.
   logCallbackCookieNames(request, 'employee')
+  logCallbackCodePrefix(request, 'employee')
 
   const origin = getOrigin(request)
   const { searchParams } = new URL(request.url)

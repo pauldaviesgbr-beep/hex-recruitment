@@ -5,7 +5,7 @@ import { FREE_FOUNDING_MODE } from '@/lib/constants/cohort'
 import { provisionFoundingEmployer } from '@/lib/foundingSignup'
 import type { EmailClass } from '@/lib/emailDomains'
 import { safeInternalPath } from '@/lib/safeRedirect'
-import { logCallbackCookieNames } from '@/lib/authCallbackDiagnostic'
+import { logCallbackCookieNames, logCallbackCodePrefix } from '@/lib/authCallbackDiagnostic'
 import { parseAttrCookie, attributionColumns } from '@/lib/attribution'
 import { geoColumnsFromRequest } from '@/lib/geo'
 import { nameFromAuth } from '@/lib/displayName'
@@ -35,6 +35,7 @@ export async function GET(request: NextRequest) {
   // no-code branches below that return before anything else runs. Names
   // only; it cannot reach a cookie value.
   logCallbackCookieNames(request, 'employer')
+  logCallbackCodePrefix(request, 'employer')
 
   const origin = getOrigin(request)
   const { searchParams } = new URL(request.url)
