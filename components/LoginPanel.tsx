@@ -34,6 +34,8 @@ import { callbackErrorCopy } from '@/lib/loginErrors'
 import GoogleSignInButton from '@/components/GoogleSignInButton'
 import LinkedInSignInButton from '@/components/LinkedInSignInButton'
 import AppleSignInButton from '@/components/AppleSignInButton'
+import { isNativeApp } from '@/lib/nativeShell'
+import { shouldAutoRetry, claimRetry, FINISHING_COPY, type RetryableProvider } from '@/lib/oauthRetry'
 import { safeInternalPath } from '@/lib/safeRedirect'
 import { loginErrorCopy } from '@/lib/loginErrors'
 import { getPendingConfirm, setPendingConfirm, clearPendingConfirm } from '@/lib/pendingConfirm'
@@ -44,11 +46,16 @@ export default function LoginPanel({
   authError,
   have,
   justRegistered,
+  retry,
+  retryRole,
 }: {
   returnTo?: string | null
   authError?: string | null
   have?: string | null
   justRegistered?: boolean
+  /** Set by an OAuth callback that is offering ONE retry — lib/oauthRetry.ts. */
+  retry?: string | null
+  retryRole?: string | null
 }) {
   const router = useRouter()
   const safeReturn = safeInternalPath(returnTo)
@@ -104,7 +111,41 @@ export default function LoginPanel({
   // provider error passed through — arrived and displayed nothing at all. A
   // candidate saw a login page and no reason, which is indistinguishable
   // from a dead button. One place decides the words: lib/loginErrors.ts.
-  const callbackNotice = callbackErrorCopy(authError)
+  //
+  // …EXCEPT WHILE THE ONE AUTOMATIC RETRY IS RUNNING. A callback that offers a
+  // retry still sends error=exchange-failed, so a page that declines the offer
+  // shows exactly what it always showed. While the decision is being made the
+  // error is held back (one tick, no flash of red); while the retry runs the
+  // page says FINISHING_COPY; the error appears only if it does not succeed.
+  const offeredRole = retryRole === 'employer' || retryRole === 'employee' ? retryRole : null
+  const [retryState, setRetryState] = useState<
+    | { phase: 'deciding' }
+    | { phase: 'running'; provider: RetryableProvider; role: 'employer' | 'employee' }
+    | { phase: 'none' }
+  >(retry ? { phase: 'deciding' } : { phase: 'none' })
+  useEffect(() => {
+    if (!retry) return
+    const provider = offeredRole
+      ? shouldAutoRetry({
+          retryParam: retry,
+          native: isNativeApp(),
+          visible: typeof document !== 'undefined' && document.visibilityState === 'visible',
+          claim: () => {
+            let store: Storage | null = null
+            try { store = window.sessionStorage } catch { store = null }
+            return claimRetry(store, Date.now())
+          },
+        })
+      : null
+    setRetryState(provider && offeredRole ? { phase: 'running', provider, role: offeredRole } : { phase: 'none' })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+  const retryEnded = () => setRetryState({ phase: 'none' })
+  const autoRetryFor = (p: RetryableProvider) =>
+    retryState.phase === 'running' && retryState.provider === p
+      ? { role: retryState.role, onEnded: retryEnded }
+      : undefined
+  const callbackNotice = retryState.phase === 'none' ? callbackErrorCopy(authError) : null
   const handleResend = async () => {
     if (!pendingEmail) return
     setResend('sending')
@@ -181,6 +222,7 @@ export default function LoginPanel({
 
       {roleNotice && <p className={styles.notice}>{roleNotice}</p>}
       {callbackNotice && <p className={styles.error}>{callbackNotice}</p>}
+      {retryState.phase === 'running' && <p className={styles.notice} role="status">{FINISHING_COPY}</p>}
 
       {pendingEmail && (
         <div className={styles.pending}>
@@ -227,10 +269,10 @@ export default function LoginPanel({
           a sibling. A gap on the PARENT cannot be wrong about a fourth
           provider, which is the point of moving it. */}
       <div className={styles.oauthStack}>
-        <LinkedInSignInButton role="employee" className={styles.oauth} label="Continue with LinkedIn" next={safeReturn || undefined} />
+        <LinkedInSignInButton role="employee" className={styles.oauth} label="Continue with LinkedIn" next={safeReturn || undefined} autoRetry={autoRetryFor('linkedin_oidc')} />
         {/* Hidden until the provider is configured — lib/appleSignIn.ts. */}
-        <AppleSignInButton role="employee" className={styles.oauth} label="Continue with Apple" next={safeReturn || undefined} />
-        <GoogleSignInButton role="employee" className={styles.oauth} label="Continue with Google" next={safeReturn || undefined} />
+        <AppleSignInButton role="employee" className={styles.oauth} label="Continue with Apple" next={safeReturn || undefined} autoRetry={autoRetryFor('apple')} />
+        <GoogleSignInButton role="employee" className={styles.oauth} label="Continue with Google" next={safeReturn || undefined} autoRetry={autoRetryFor('google')} />
       </div>
 
       {inAppBrowser && (

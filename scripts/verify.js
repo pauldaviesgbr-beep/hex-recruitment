@@ -758,6 +758,17 @@ const ALL = [
   // clear removed gives one. Green on restore.
   { name: 'appcookies:prove', cmd: npm, args: ['run', 'appcookies:prove'] },
 
+  // oauthretry:prove — THE ONE-SHOT SIGN-IN RETRY RETRIES ONCE, FOR ONE ERROR,
+  // IN THE APP ONLY. The real lib/oauthRetry functions, imported, plus the
+  // structure that keeps a cancel from ever reaching the callback (it
+  // navigates nowhere) and the provider each button tags its callback with.
+  // Filesystem and imports only.
+  //
+  // Watched failing on purpose three times: the server's attempt guard
+  // removed gives three named failures; the client claim's window removed
+  // gives three; a cancel made to navigate gives two. Restored byte-identical.
+  { name: 'oauthretry:prove', cmd: npm, args: ['run', 'oauthretry:prove'] },
+
   // deletegate:prove IS DELIBERATELY NOT IN THIS LIST, the same way
   // rlsprobe:prove is not.
   //
