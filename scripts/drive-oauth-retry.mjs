@@ -17,8 +17,9 @@
 // CLIENT HALF — A STUBBED APP. window.Capacitor is injected before any page
 // script, as the shell's bridge does. It is still a desktop browser. The
 // provider page is BLOCKED at the network, so no flow is ever started at
-// Supabase or Google and no row is written anywhere. Closing the blocked popup
-// stands in for the user cancelling the second sheet.
+// Supabase or Google and no row is written anywhere. The retry is let run to
+// its 180s timeout, because the web Browser plugin never fires the cancel
+// event — see the note at that step.
 //
 // Writes nothing. No sign-in completes. No email is sent.
 
@@ -121,11 +122,18 @@ const OFFER_URL = `${BASE}/login?error=exchange-failed&retry=google&retry_role=e
   check('app: the retry restarts GOOGLE (the provider the callback named)', au?.searchParams.get('provider') === 'google', au?.searchParams.get('provider') || 'no authorize request seen')
   check('app: …as a fresh flow to the app scheme, with a new PKCE challenge',
     !!au && (au.searchParams.get('redirect_to') || '').startsWith('uk.co.thrivecareer.app://') && !!au.searchParams.get('code_challenge'))
-  // Stand-in for the user cancelling the second sheet.
+  // A CLOSED POPUP IS NOT A CANCEL HERE. @capacitor/browser's WEB build
+  // (dist/esm/web.js) only calls window.open and never fires browserFinished,
+  // so nothing on the web can stand in for the native cancel event. Measured
+  // on the first run of this drive: the popup closed and the page stayed on
+  // "Finishing sign-in…". The end path that DOES run on the web is
+  // runNativeOAuth's own 180s timeout, which resolves 'failed' and hands
+  // back — so that is what this waits on, and says so.
   if (popup) await popup.close()
-  const ended = await page.waitForFunction((t) => document.body.innerText.includes(t), ERROR_COPY, { timeout: 15000 }).then(() => true, () => false)
+  const t0 = Date.now()
+  const ended = await page.waitForFunction((t) => document.body.innerText.includes(t), ERROR_COPY, { timeout: 200000 }).then(() => true, () => false)
   const t2 = await textOf(page)
-  check('app: when the retry does not complete, the honest error appears', ended, popup ? 'popup closed' : 'no popup was opened')
+  check('app: when the retry does not complete (180s timeout path), the honest error appears', ended, `after ${((Date.now() - t0) / 1000).toFixed(1)}s`)
   check('app: …and "Finishing sign-in…" is gone', !t2.includes(FINISHING))
 
   // SAME WEBVIEW, A SECOND OFFER (as if the retry's own callback had offered
@@ -155,5 +163,6 @@ const OFFER_URL = `${BASE}/login?error=exchange-failed&retry=google&retry_role=e
 await browser.close()
 console.log(bad ? `\n${bad} FAILED` : '\nall passed')
 console.log('  SERVER half: real deployed route, real Supabase 404 for a code it never issued.')
-console.log('  CLIENT half: a STUBBED bridge in a desktop browser; the provider page was blocked; a closed popup stood in for a cancel.')
+console.log('  CLIENT half: a STUBBED bridge in a desktop browser; the provider page was blocked; the retry ended by its 180s timeout.')
+console.log('  NOT DRIVEN: a native cancel (browserFinished) and a real silent second trip — those need the device.')
 process.exitCode = bad ? 1 : 0
