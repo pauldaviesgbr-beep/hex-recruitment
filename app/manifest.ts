@@ -8,13 +8,13 @@ export default function manifest(): MetadataRoute.Manifest {
     start_url: '/',
     display: 'standalone',
     // Long-press the home-screen icon to reach these. Android and desktop
-    // honour them; iOS currently ignores shortcuts entirely, which is why the
-    // push test ALSO has a plain link from Settings → Notifications. A route
-    // that only exists behind a feature one platform ignores is a route that
-    // does not exist on that platform.
+    // honour them; iOS ignores shortcuts entirely.
+    //
+    // The "Push test" shortcut was removed 14 Oct 2026: the manifest is the
+    // same for everyone, so it put a debugging page in front of every user.
+    // The admin reaches /diag-push from Settings → Notifications instead.
     shortcuts: [
       { name: 'Notification settings', url: '/settings/notifications' },
-      { name: 'Push test', url: '/diag-push' },
     ],
     background_color: '#0A1628',
     theme_color: '#0A1628',

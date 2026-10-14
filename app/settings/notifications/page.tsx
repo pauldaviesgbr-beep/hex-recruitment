@@ -11,6 +11,7 @@ import {
   defaultsFor, normalisePrefs,
 } from '@/lib/notificationPrefs'
 import PushToggle from '@/components/PushToggle'
+import { isAdmin } from '@/lib/admin-client'
 import styles from './page.module.css'
 import { Ico } from '@/components/icons'
 
@@ -53,6 +54,9 @@ export default function NotificationsSettingsPage() {
   const [userType, setUserType] = useState<Role | null>(null)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [preferences, setPreferences] = useState<NotificationPrefs>(defaultsFor('employee'))
+  // The push test is a diagnostic page, not a feature. Admin only, so an App
+  // Store reviewer or a real user never lands on a debugging screen.
+  const [showPushTest, setShowPushTest] = useState(false)
 
   useEffect(() => {
     const loadPreferences = async () => {
@@ -72,6 +76,7 @@ export default function NotificationsSettingsPage() {
 
       const role: Role = session.user.user_metadata?.role === 'employer' ? 'employer' : 'employee'
       setUserType(role)
+      setShowPushTest(isAdmin(session.user.email))
 
       try {
         const tableName = role === 'employer' ? 'employer_profiles' : 'candidate_profiles'
@@ -249,14 +254,20 @@ export default function NotificationsSettingsPage() {
             works — the page built for the job could not be opened for the job.
             A link from here is the fix: settings is reachable from the app's
             own navigation.
+
+            ADMIN ONLY SINCE 14 Oct 2026. It was shown to everyone, so an App
+            Store reviewer was one tap from a debugging page. Decided from the
+            signed-in email via lib/admin-client, the same list the header uses.
           */}
-          <p style={{ margin: '0.85rem 0 0', fontSize: '0.82rem', color: '#94a3b8' }}>
-            Not working?{' '}
-            <Link href="/diag-push" style={{ color: '#16a34a', fontWeight: 600 }}>
-              Run the push test
-            </Link>{' '}
-            to see exactly where it stops.
-          </p>
+          {showPushTest && (
+            <p style={{ margin: '0.85rem 0 0', fontSize: '0.82rem', color: '#94a3b8' }}>
+              Not working?{' '}
+              <Link href="/diag-push" style={{ color: '#16a34a', fontWeight: 600 }}>
+                Run the push test
+              </Link>{' '}
+              to see exactly where it stops.
+            </p>
+          )}
         </div>
 
         <form onSubmit={handleSubmit} className={styles.form}>

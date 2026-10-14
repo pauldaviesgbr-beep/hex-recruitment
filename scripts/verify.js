@@ -769,6 +769,11 @@ const ALL = [
   // gives three; a cancel made to navigate gives two. Restored byte-identical.
   { name: 'oauthretry:prove', cmd: npm, args: ['run', 'oauthretry:prove'] },
 
+  // pushtest:prove — THE PUSH TEST PAGE IS ADMIN ONLY. The settings link sits
+  // behind isAdmin(email) and the manifest offers no shortcut to it, so a
+  // reviewer cannot land on a debugging screen. Filesystem and imports only.
+  { name: 'pushtest:prove', cmd: npm, args: ['run', 'pushtest:prove'] },
+
   // deletegate:prove IS DELIBERATELY NOT IN THIS LIST, the same way
   // rlsprobe:prove is not.
   //
