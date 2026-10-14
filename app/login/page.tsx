@@ -25,6 +25,8 @@ function LoginPageContent() {
         authError={searchParams.get('error')}
         have={searchParams.get('have')}
         justRegistered={searchParams.get('registered') === 'true'}
+        retry={searchParams.get('retry')}
+        retryRole={searchParams.get('retry_role')}
       />
     </main>
   )

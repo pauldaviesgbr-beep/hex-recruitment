@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { safeInternalPath } from '@/lib/safeRedirect'
 import { logCallbackCookieNames, logCallbackCodePrefix } from '@/lib/authCallbackDiagnostic'
+import { retryContextFrom, retryOffer, exchangeFailedLoginUrl, logRetry } from '@/lib/oauthRetry'
 import { parseAttrCookie, attributionColumns } from '@/lib/attribution'
 import { geoColumnsFromRequest } from '@/lib/geo'
 import { applyDuplicateHold } from '@/lib/applyDuplicateHold'
@@ -65,7 +66,25 @@ export async function GET(request: NextRequest) {
 
   if (exchangeError || !data.session?.user) {
     console.error('[employee-callback] exchange failed', exchangeError?.message)
-    return NextResponse.redirect(`${origin}/login/employee?error=exchange-failed`)
+    // ONE AUTOMATIC RETRY, FOR ONE ERROR CODE, IN THE APP ONLY — lib/oauthRetry.ts.
+    // Without an offer this is exactly the URL this branch always sent.
+    const retryCtx = retryContextFrom(searchParams)
+    const errorCode = (exchangeError as { code?: string } | null)?.code ?? null
+    const offer = retryOffer(errorCode, retryCtx)
+    if (retryCtx.native === '1') {
+      logRetry({
+        event: retryCtx.attempt === '2' ? 'outcome' : offer ? 'offered' : 'not-offered',
+        route: 'employee', provider: retryCtx.provider, attempt: retryCtx.attempt,
+        ...(retryCtx.attempt === '2' ? { result: 'failed' as const } : {}),
+        errorCode,
+      })
+    }
+    return NextResponse.redirect(exchangeFailedLoginUrl(origin, 'employee', offer, safeNext))
+  }
+
+  // THE OTHER HALF OF THE COUNTER: a retried sign-in that got through.
+  if (searchParams.get('attempt') === '2' && searchParams.get('native') === '1') {
+    logRetry({ event: 'outcome', route: 'employee', provider: searchParams.get('provider'), attempt: '2', result: 'succeeded' })
   }
 
   const user = data.session.user

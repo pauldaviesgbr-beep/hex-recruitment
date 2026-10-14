@@ -6,6 +6,7 @@ import { provisionFoundingEmployer } from '@/lib/foundingSignup'
 import type { EmailClass } from '@/lib/emailDomains'
 import { safeInternalPath } from '@/lib/safeRedirect'
 import { logCallbackCookieNames, logCallbackCodePrefix } from '@/lib/authCallbackDiagnostic'
+import { retryContextFrom, retryOffer, exchangeFailedLoginUrl, logRetry } from '@/lib/oauthRetry'
 import { parseAttrCookie, attributionColumns } from '@/lib/attribution'
 import { geoColumnsFromRequest } from '@/lib/geo'
 import { nameFromAuth } from '@/lib/displayName'
@@ -88,7 +89,25 @@ export async function GET(request: NextRequest) {
     // before it. It also made the set of possible values infinite, so
     // "handle every value the routes can produce" was unanswerable.
     // The real message is still logged above, where it is useful and private.
-    return NextResponse.redirect(`${origin}/login/employer?error=exchange-failed`)
+    // ONE AUTOMATIC RETRY, FOR ONE ERROR CODE, IN THE APP ONLY — lib/oauthRetry.ts.
+    // Without an offer this is exactly the URL this branch always sent.
+    const retryCtx = retryContextFrom(searchParams)
+    const errorCode = (exchangeError as { code?: string } | null)?.code ?? null
+    const offer = retryOffer(errorCode, retryCtx)
+    if (retryCtx.native === '1') {
+      logRetry({
+        event: retryCtx.attempt === '2' ? 'outcome' : offer ? 'offered' : 'not-offered',
+        route: 'employer', provider: retryCtx.provider, attempt: retryCtx.attempt,
+        ...(retryCtx.attempt === '2' ? { result: 'failed' as const } : {}),
+        errorCode,
+      })
+    }
+    return NextResponse.redirect(exchangeFailedLoginUrl(origin, 'employer', offer, safeNext))
+  }
+
+  // THE OTHER HALF OF THE COUNTER: a retried sign-in that got through.
+  if (searchParams.get('attempt') === '2' && searchParams.get('native') === '1') {
+    logRetry({ event: 'outcome', route: 'employer', provider: searchParams.get('provider'), attempt: '2', result: 'succeeded' })
   }
 
   const user = data.session.user

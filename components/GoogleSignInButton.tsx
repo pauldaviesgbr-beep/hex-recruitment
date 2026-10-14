@@ -1,9 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { safeInternalPath } from '@/lib/safeRedirect'
 import { isNativeApp, runNativeOAuth, NATIVE_CALLBACK_URL } from '@/lib/nativeOAuth'
+import { nativeFinishSuffix } from '@/lib/oauthRetry'
 
 interface GoogleSignInButtonProps {
   role: 'employer' | 'employee'
@@ -23,11 +24,16 @@ interface GoogleSignInButtonProps {
  * URL so /auth/callback can stamp the right user_metadata.role and
  * create the matching profile row for first-time sign-ins.
  */
-export default function GoogleSignInButton({ role, className, label, next }: GoogleSignInButtonProps) {
+export default function GoogleSignInButton({ role, className, label, next, autoRetry }: GoogleSignInButtonProps & {
+  /** Set only by LoginPanel, only in the app, only once — lib/oauthRetry.ts. */
+  autoRetry?: { role: 'employer' | 'employee'; onEnded: () => void }
+}) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  const handleClick = async () => {
+  // attempt 1 is a tap; attempt 2 is the one automatic retry. The role is a
+  // parameter because the retry restarts the role the failed callback named.
+  const start = async (role: 'employer' | 'employee', attempt: 1 | 2) => {
     setError('')
     setLoading(true)
     try {
@@ -78,13 +84,14 @@ export default function GoogleSignInButton({ role, className, label, next }: Goo
 
         const outcome = await runNativeOAuth(data.url, (code) =>
           `${siteUrl}/auth/callback/${role}?code=${encodeURIComponent(code)}` +
-          (safeNext ? `&next=${encodeURIComponent(safeNext)}` : ''),
+          (safeNext ? `&next=${encodeURIComponent(safeNext)}` : '') +
+          nativeFinishSuffix('google', attempt),
         )
 
         // EVERY OUTCOME IS VISIBLE. The worst failure this design has is
         // silence — the sheet closes and nothing happens — so there is no
         // path here that leaves the button spinning or the screen unchanged.
-        if (outcome.kind === 'signed-in') return           // navigation under way
+        if (outcome.kind === 'signed-in') { navigatingRef.current = true; return } // navigation under way
         if (outcome.kind === 'cancelled') { setLoading(false); return }
         setError(outcome.reason)
         setLoading(false)
@@ -109,11 +116,29 @@ export default function GoogleSignInButton({ role, className, label, next }: Goo
     }
   }
 
+  // THE ONE AUTOMATIC RETRY — lib/oauthRetry.ts. The login page passes
+  // autoRetry only after it has checked the app bridge, visibility and the
+  // one-retry claim; this presses the button once, as attempt 2. Anything
+  // other than a navigation hands control back so the page can show the
+  // honest error instead of "Finishing sign-in…" for ever.
+  const retriedRef = useRef(false)
+  const navigatingRef = useRef(false)
+  useEffect(() => {
+    if (!autoRetry || retriedRef.current) return
+    retriedRef.current = true
+    void start(autoRetry.role, 2).finally(() => {
+      if (!navigatingRef.current) autoRetry.onEnded()
+    })
+    // Keyed on presence: the page decides one tick after this mounts, so
+    // autoRetry arrives on a re-render. retriedRef keeps it to one press.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [Boolean(autoRetry)])
+
   return (
     <>
       <button
         type="button"
-        onClick={handleClick}
+        onClick={() => { void start(role, 1) }}
         disabled={loading}
         className={className}
         aria-label="Continue with Google"
