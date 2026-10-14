@@ -35,7 +35,17 @@ class ThriveBridgeViewController: CAPBridgeViewController, WKHTTPCookieStoreObse
     override func capacitorDidLoad() {
         super.capacitorDidLoad()
         webView?.configuration.websiteDataStore.httpCookieStore.add(self)
-        addProbeButton()
+    }
+
+    // The button goes on once the view exists: capacitorDidLoad runs before
+    // the web view is in the view hierarchy (Capacitor's own note).
+    private var probeButtonAdded = false
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        if !probeButtonAdded {
+            probeButtonAdded = true
+            addProbeButton()
+        }
     }
 
     // MARK: - The button (spike build only)
@@ -50,11 +60,15 @@ class ThriveBridgeViewController: CAPBridgeViewController, WKHTTPCookieStoreObse
         button.contentEdgeInsets = UIEdgeInsets(top: 0, left: 18, bottom: 0, right: 18)
         button.translatesAutoresizingMaskIntoConstraints = false
         button.addTarget(self, action: #selector(runProbe), for: .touchUpInside)
-        view.addSubview(button)
+        // On the WINDOW, not the web view: the controller's view IS the web
+        // view, and a subview of it can be scrolled or covered by the page.
+        let host: UIView = view.window ?? view
+        host.addSubview(button)
+        host.bringSubviewToFront(button)
         NSLayoutConstraint.activate([
             button.heightAnchor.constraint(equalToConstant: 44),
-            button.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -16),
-            button.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -90),
+            button.trailingAnchor.constraint(equalTo: host.safeAreaLayoutGuide.trailingAnchor, constant: -16),
+            button.bottomAnchor.constraint(equalTo: host.safeAreaLayoutGuide.bottomAnchor, constant: -90),
         ])
     }
 
