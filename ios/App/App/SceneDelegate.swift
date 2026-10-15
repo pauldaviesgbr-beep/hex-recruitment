@@ -8,11 +8,11 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         guard let windowScene = scene as? UIWindowScene else { return }
 
         window = UIWindow(windowScene: windowScene)
-        // ThriveBridgeViewController, not the plain CAPBridgeViewController:
-        // the main screen is built HERE in code, so Main.storyboard's class is
+        // The main screen is built HERE in code, so Main.storyboard's class is
         // never used. (The 14 Oct spike build changed only the storyboard and
-        // its button never appeared.)
-        window?.rootViewController = ThriveBridgeViewController()
+        // its button never appeared.) ThriveRootViewController holds the web
+        // view (ThriveBridgeViewController) above a native tab bar.
+        window?.rootViewController = ThriveRootViewController()
         window?.makeKeyAndVisible()
 
         SceneDelegateProxy.shared.scene(scene, willConnectTo: session, options: connectionOptions)
