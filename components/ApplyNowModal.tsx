@@ -10,7 +10,7 @@ import PushPriming from '@/components/PushPriming'
 import type { Conversation } from '@/lib/mockMessages'
 import styles from './ApplyNowModal.module.css'
 import { Ico } from '@/components/icons'
-import { isFixtureGuardError, FIXTURE_GUARD_MESSAGE } from '@/lib/applicationGuard'
+import { isFixtureGuardError, FIXTURE_GUARD_MESSAGE, isCvRequiredError, CV_REQUIRED_MESSAGE, CV_UPLOAD_PATH } from '@/lib/applicationGuard'
 
 interface ApplyNowModalProps {
   job: Job
@@ -33,7 +33,13 @@ export default function ApplyNowModal({ job, isOpen, onClose, onSuccess }: Apply
   const [screeningAnswers, setScreeningAnswers] = useState<Record<string, string>>({})
 
   const coverLetterRequired = (job.tags || []).includes('Cover letter required')
-  const cvRequired = (job.tags || []).includes('CV required')
+  // A CV is required by the advert's tag OR by its employer (employer_profiles.
+  // requires_cv, Goldenkeys from 16 Oct 2026). The employer half is asked of
+  // the database's own rule, job_requires_cv(), so this screen cannot disagree
+  // with the trigger that enforces it. Until it answers, the tag alone decides;
+  // the trigger refuses regardless.
+  const [employerRequiresCv, setEmployerRequiresCv] = useState(false)
+  const cvRequired = (job.tags || []).includes('CV required') || employerRequiresCv
   const questions = job.screeningQuestions || []
 
   // Reset state when modal opens for a different job
@@ -43,6 +49,17 @@ export default function ApplyNowModal({ job, isOpen, onClose, onSuccess }: Apply
       setSubmitted(false)
       setScreeningAnswers({})
     }
+  }, [isOpen, job.id])
+
+  useEffect(() => {
+    if (!isOpen) return
+    let cancelled = false
+    setEmployerRequiresCv(false)
+    ;(supabase as any).rpc('job_requires_cv', { p_job: job.id }).then(
+      ({ data }: { data: boolean | null }) => { if (!cancelled) setEmployerRequiresCv(data === true) },
+      () => {},
+    )
+    return () => { cancelled = true }
   }, [isOpen, job.id])
 
   // Fetch candidate CV info
@@ -168,6 +185,13 @@ export default function ApplyNowModal({ job, isOpen, onClose, onSuccess }: Apply
           // and "try again" is actively wrong advice for a refusal that can
           // never succeed. The requirement was that it say WHY.
           alert(FIXTURE_GUARD_MESSAGE)
+          return
+        }
+        // The database refused for want of a CV. Same reason as above for
+        // alerting rather than throwing: "please try again" cannot work.
+        if (isCvRequiredError(insertError)) {
+          setEmployerRequiresCv(true)
+          alert(CV_REQUIRED_MESSAGE)
           return
         }
         if (insertError.code === '23505') {
@@ -333,7 +357,7 @@ export default function ApplyNowModal({ job, isOpen, onClose, onSuccess }: Apply
                           <p className={styles.cvWarningTitle}>No CV saved</p>
                           <p className={styles.cvWarningText}>
                             This employer requires a CV.{' '}
-                            <Link href="/cv-builder" className={styles.cvLink}>Upload your CV</Link>
+                            <Link href={CV_UPLOAD_PATH} className={styles.cvLink}>Upload your CV</Link>
                             {' '}before applying.
                           </p>
                         </div>

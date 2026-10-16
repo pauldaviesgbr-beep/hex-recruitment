@@ -26,7 +26,37 @@ export const FIXTURE_GUARD_MESSAGE =
 
 /** Did this error come from the guard? Shape-tolerant: callers hold varied types. */
 export function isFixtureGuardError(err: unknown): boolean {
+  return hasMarker(err, FIXTURE_GUARD_MARKER)
+}
+
+// ── A CV IS REQUIRED ──────────────────────────────────────────────────────
+//
+// THE RULE lives in the database too: `application_cv_refusal()`, called by a
+// BEFORE INSERT trigger on `job_applications`. An advert needs a CV when its
+// employer has `employer_profiles.requires_cv` set (Goldenkeys, from 16 Oct
+// 2026, at Toby's request) or the advert carries the "CV required" tag. Every
+// apply path is covered because the trigger sits under all of them; the
+// /jobs board's own Apply never checked the tag at all.
+//
+// `job_requires_cv(job)` lets a screen ASK before the person fills anything in.
+// It is the same rule, not a copy of it.
+
+export const CV_REQUIRED_MARKER = 'THRIVE_CV_REQUIRED'
+
+/** What the person reads when they have no CV on their profile. */
+export const CV_REQUIRED_MESSAGE =
+  'This employer needs a CV with every application. Add yours to your profile, then apply.'
+
+/** Where they add one. /cv-builder is the page that WRITES candidate_profiles.cv_url
+ *  (the upload at app/cv-builder/page.tsx); /profile only reads it. */
+export const CV_UPLOAD_PATH = '/cv-builder'
+
+export function isCvRequiredError(err: unknown): boolean {
+  return hasMarker(err, CV_REQUIRED_MARKER)
+}
+
+function hasMarker(err: unknown, marker: string): boolean {
   if (!err) return false
   const m = (err as { message?: unknown }).message
-  return typeof m === 'string' && m.includes(FIXTURE_GUARD_MARKER)
+  return typeof m === 'string' && m.includes(marker)
 }
