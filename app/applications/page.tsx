@@ -13,7 +13,7 @@ import { Interview, Offer } from '@/lib/types'
 import styles from './page.module.css'
 import { Ico, type IconName } from '@/components/icons'
 
-type ApplicationStatus = 'applied' | 'viewed' | 'shortlisted' | 'interview' | 'offer' | 'hired' | 'rejected' | 'withdrawn'
+import { type ApplicationStatus, APPLICATION_STATUS_LABELS, normalizeApplicationStatus } from '@/lib/applicationStatus'
 
 interface JobApplication {
   id: string
@@ -32,14 +32,14 @@ interface JobApplication {
 }
 
 const STATUS_CONFIG: Record<ApplicationStatus, { label: string; icon: string; className: string }> = {
-  applied: { label: 'Applied', icon: 'inbox', className: 'statusApplied' },
-  viewed: { label: 'Viewed', icon: 'eye', className: 'statusViewed' },
-  shortlisted: { label: 'Shortlisted', icon: 'star', className: 'statusShortlisted' },
-  interview: { label: 'Interview Scheduled', icon: '', className: 'statusInterview' },
-  offer: { label: 'Offer Received', icon: 'file-text', className: 'statusOffer' },
-  hired: { label: 'Hired', icon: 'check', className: 'statusHired' },
-  rejected: { label: 'Rejected', icon: 'x', className: 'statusRejected' },
-  withdrawn: { label: 'Withdrawn', icon: '', className: 'statusWithdrawn' },
+  applied: { label: APPLICATION_STATUS_LABELS.applied, icon: 'inbox', className: 'statusApplied' },
+  viewed: { label: APPLICATION_STATUS_LABELS.viewed, icon: 'eye', className: 'statusViewed' },
+  shortlisted: { label: APPLICATION_STATUS_LABELS.shortlisted, icon: 'star', className: 'statusShortlisted' },
+  interview: { label: APPLICATION_STATUS_LABELS.interview, icon: '', className: 'statusInterview' },
+  offer: { label: APPLICATION_STATUS_LABELS.offer, icon: 'file-text', className: 'statusOffer' },
+  hired: { label: APPLICATION_STATUS_LABELS.hired, icon: 'check', className: 'statusHired' },
+  rejected: { label: APPLICATION_STATUS_LABELS.rejected, icon: 'x', className: 'statusRejected' },
+  withdrawn: { label: APPLICATION_STATUS_LABELS.withdrawn, icon: '', className: 'statusWithdrawn' },
 }
 
 export default function MyJobsPage() {
@@ -217,18 +217,7 @@ export default function MyJobsPage() {
     setLoading(false)
   }
 
-  const normalizeStatus = (status: string | undefined): ApplicationStatus => {
-    const s = (status || 'applied').toLowerCase()
-    if (['applied', 'viewed', 'shortlisted', 'interview', 'offer', 'hired', 'rejected', 'withdrawn'].includes(s)) {
-      return s as ApplicationStatus
-    }
-    if (s === 'pending' || s === 'pending review') return 'applied'
-    if (s === 'reviewing' || s === 'under review') return 'viewed'
-    if (s === 'interviewing') return 'interview'
-    if (s === 'offered') return 'offer'
-    if (s === 'hired') return 'hired'
-    return 'applied'
-  }
+  const normalizeStatus = (status: string | undefined): ApplicationStatus => normalizeApplicationStatus(status)
 
   const getStepperSteps = (app: JobApplication): { key: string; label: string; reached: boolean; active: boolean }[] => {
     const STATUS_ORDER: ApplicationStatus[] = ['applied', 'viewed', 'shortlisted', 'interview', 'offer', 'hired']
