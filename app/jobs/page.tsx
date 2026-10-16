@@ -91,7 +91,7 @@ import {
 } from '@/lib/candidatePrefs'
 import { Ico } from '@/components/icons'
 import ReportControl from '@/components/ReportControl'
-import { isFixtureGuardError, FIXTURE_GUARD_MESSAGE } from '@/lib/applicationGuard'
+import { isFixtureGuardError, FIXTURE_GUARD_MESSAGE, isCvRequiredError, CV_REQUIRED_MESSAGE, CV_UPLOAD_PATH } from '@/lib/applicationGuard'
 const categories = [{ id: 'all', label: 'All Jobs' }, ...sharedCategories]
 
 // getJobSector now lives in lib/jobSector.ts — the preference resolver needs it too.
@@ -123,6 +123,10 @@ function JobsPageContent() {
   // Apply flow state
   const [showApplyModal, setShowApplyModal] = useState(false)
   const [coverLetter, setCoverLetter] = useState('')
+  // The candidate's profile CV and whether this advert needs one. Read when the
+  // apply box opens. undefined = still loading; null = no CV on the profile.
+  const [applyCvUrl, setApplyCvUrl] = useState<string | null | undefined>(undefined)
+  const [applyCvRequired, setApplyCvRequired] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [applicationSubmitted, setApplicationSubmitted] = useState(false)
   const [screeningAnswers, setScreeningAnswers] = useState<Record<string, string>>({})
@@ -647,7 +651,36 @@ function JobsPageContent() {
     if (hasApplied) return
     trackClickEvent(selectedJob.id, 'apply_click')
     setScreeningAnswers({})
+    setApplyCvUrl(undefined)
+    setApplyCvRequired((selectedJob.tags || []).includes('CV required'))
     setShowApplyModal(true)
+    void loadApplyCv(selectedJob.id)
+  }
+
+  // THIS PATH NEVER CHECKED FOR A CV, and never attached one, while telling the
+  // candidate "Your profile CV will be attached automatically". It now does
+  // both. Whether the advert needs a CV is asked of the database's own rule
+  // (job_requires_cv), the same one the trigger enforces — see
+  // lib/applicationGuard.ts.
+  // If this lookup fails, the box must not sit on "Checking your CV…" with
+  // Submit locked for ever: it falls back to "no CV known", and the database
+  // trigger still refuses a CV-less application to an employer that needs one.
+  const loadApplyCv = async (jobId: string) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) { setApplyCvUrl(null); return }
+      const [{ data: profile }, required] = await Promise.all([
+        supabase.from('candidate_profiles').select('cv_url').eq('user_id', session.user.id).maybeSingle(),
+        (supabase as any).rpc('job_requires_cv', { p_job: jobId }).then(
+          ({ data }: { data: boolean | null }) => data === true,
+          () => false,
+        ),
+      ])
+      setApplyCvUrl((profile as { cv_url?: string | null } | null)?.cv_url || null)
+      if (required) setApplyCvRequired(true)
+    } catch {
+      setApplyCvUrl(null)
+    }
   }
 
   const submitApplication = async () => {
@@ -689,6 +722,8 @@ function JobsPageContent() {
           job_title: selectedJob.title,
           company: selectedJob.company,
           screening_answers: answersPayload.length > 0 ? answersPayload : null,
+          // The box below promises the profile CV is attached; now it is.
+          cv_url: applyCvUrl || null,
         })
       // ── A FAILED INSERT USED TO CARRY ON REGARDLESS, AND THAT DEFEATS THE
       //    GUARD ENTIRELY. This was `console.warn` and nothing else, so steps
@@ -701,6 +736,11 @@ function JobsPageContent() {
       if (insertError) {
         if (isFixtureGuardError(insertError)) {
           alert(FIXTURE_GUARD_MESSAGE)
+          return
+        }
+        if (isCvRequiredError(insertError)) {
+          setApplyCvRequired(true)
+          alert(CV_REQUIRED_MESSAGE)
           return
         }
         // 23505 is the unique constraint: they have already applied. Treated as
@@ -1457,12 +1497,28 @@ function JobsPageContent() {
                   )}
 
                   <div className={styles.applyCvSection}>
-                    <p className={styles.applyCvNote}>Your profile CV will be attached automatically. Make sure it&apos;s up to date!</p>
-                    <Link href="/cv-builder" className={styles.applyUpdateCvLink}>Update your CV →</Link>
+                    {applyCvUrl === undefined ? (
+                      <p className={styles.applyCvNote}>Checking your CV…</p>
+                    ) : applyCvUrl ? (
+                      <>
+                        <p className={styles.applyCvNote}>Your profile CV will be attached. Make sure it&apos;s up to date!</p>
+                        <Link href="/cv-builder" className={styles.applyUpdateCvLink}>Update your CV →</Link>
+                      </>
+                    ) : applyCvRequired ? (
+                      <>
+                        <p className={styles.applyCvNote} role="alert"><strong>{CV_REQUIRED_MESSAGE}</strong></p>
+                        <Link href={CV_UPLOAD_PATH} className={styles.applyUpdateCvLink}>Upload your CV →</Link>
+                      </>
+                    ) : (
+                      <>
+                        <p className={styles.applyCvNote}>No CV on your profile yet. Adding one strengthens your application.</p>
+                        <Link href="/cv-builder" className={styles.applyUpdateCvLink}>Add a CV →</Link>
+                      </>
+                    )}
                   </div>
                 </div>
                 <div className={styles.applyFooter}>
-                  <button className={styles.applySubmitBtn} onClick={submitApplication} disabled={isSubmitting}>
+                  <button className={styles.applySubmitBtn} onClick={submitApplication} disabled={isSubmitting || applyCvUrl === undefined || (applyCvRequired && !applyCvUrl)}>
                     {isSubmitting ? 'Submitting...' : 'Submit Application'}
                   </button>
                 </div>
