@@ -35,8 +35,22 @@ try {
     ...(isPreview ? { extraHTTPHeaders: { 'x-vercel-protection-bypass': BYPASS, 'x-vercel-set-bypass-cookie': 'true' } } : {}),
   })
   // Stand in for the app's document-start script on every load.
+  //
+  // PLAYWRIGHT'S INIT SCRIPT RUNS BEFORE <html> EXISTS (measured: it saw no
+  // documentElement), so the first version of this line could never add the
+  // class and the drive failed three checks about a product that was fine.
+  // WKWebView's .atDocumentStart runs AFTER the document element is created
+  // (Apple's documentation), so the app does not have this problem. Here we
+  // wait for the element, which still lands before the page's scripts run and
+  // so still tests that the class survives React starting up.
   await ctx.addInitScript(() => {
-    try { if (sessionStorage.getItem('thriveNativeNav') === '1') document.documentElement.classList.add('native-nav') } catch {}
+    const apply = () => {
+      try { if (sessionStorage.getItem('thriveNativeNav') === '1') document.documentElement.classList.add('native-nav') } catch {}
+    }
+    if (document.documentElement) { apply(); return }
+    new MutationObserver((_, obs) => {
+      if (document.documentElement) { obs.disconnect(); apply() }
+    }).observe(document, { childList: true })
   })
   const page = await ctx.newPage()
   const url = target.replace(/\/$/, '') + '/jobs'
