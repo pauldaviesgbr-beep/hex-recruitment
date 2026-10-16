@@ -93,7 +93,10 @@ function postedLabel(iso: string | null): string {
   const days = Math.round((startOf(today) - startOf(d)) / 86_400_000)
   if (days <= 0) return 'Today'
   if (days === 1) return 'Yesterday'
-  return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'Europe/London' })
+  // A card is scanned, not read: "3 days ago" says how fresh it is at a
+  // glance; "Tue 13 Oct" makes the reader do the sum.
+  if (days < 7) return `${days} days ago`
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'Europe/London' })
 }
 
 /** Dates for the app: ISO 8601 UTC with milliseconds ("2026-10-16T08:12:00.000Z").

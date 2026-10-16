@@ -358,8 +358,8 @@ struct SignedOutTab: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-                HStack { Spacer(); SignInTopButton(store: store) }.padding(.horizontal, 12)
-                LargeTitle(title: title, subline: nil)
+                LargeTitle(title: title, subline: nil, trailing: AnyView(SignInTopButton(store: store)))
+                    .padding(.top, 8)
                 EmptyState(symbol: symbol, heading: heading, message: message) {
                     PrimaryButton(title: "Sign in or create an account") { store.requireSignIn() }
                     OutlineButton(title: store.jobs.isEmpty ? "Browse jobs" : "Browse \(store.jobs.count) jobs") { store.selectTab(0) }
@@ -384,13 +384,13 @@ struct SignInTopButton: View {
 struct SignedOutPromptCard: View {
     @ObservedObject var store: ThriveStore
     var body: some View {
+        // Half the height it was: on a phone the full card pushed the jobs
+        // below the fold for every signed-out visitor, a reviewer included.
         VStack(alignment: .leading, spacing: 10) {
-            Text("Save jobs and apply in a minute").font(.system(size: 19, weight: .semibold)).foregroundColor(TC.navy)
-            Text("Browse as much as you like. You only need an account to save a job or apply.")
-                .font(.system(size: 16)).foregroundColor(TC.ink2).fixedSize(horizontal: false, vertical: true)
-            PrimaryButton(title: "Sign in or create an account") { store.requireSignIn() }
+            Text("Save jobs and apply in a minute").font(.system(size: 17, weight: .semibold)).foregroundColor(TC.navy)
+            PrimaryButton(title: "Sign in or create an account", height: 44) { store.requireSignIn() }
         }
-        .padding(18).frame(maxWidth: .infinity, alignment: .leading)
+        .padding(14).frame(maxWidth: .infinity, alignment: .leading)
         .background(Color.white).cornerRadius(16)
         .overlay(RoundedRectangle(cornerRadius: 16).stroke(TC.navy, lineWidth: 1.5))
         .padding(.horizontal, 16).padding(.bottom, 10)

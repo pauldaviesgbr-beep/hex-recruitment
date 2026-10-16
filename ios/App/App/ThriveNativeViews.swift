@@ -43,9 +43,16 @@ func statusColours(_ status: String) -> (bg: Color, fg: Color) {
 struct LargeTitle: View {
     let title: String
     let subline: String?
+    /// Something on the title's own row, right-aligned (e.g. "Sign in"),
+    /// so it does not cost a row of its own above the title.
+    var trailing: AnyView? = nil
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(title).font(.system(size: 32, weight: .bold)).tracking(-0.8).foregroundColor(TC.navy)
+            HStack(alignment: .firstTextBaseline) {
+                Text(title).font(.system(size: 32, weight: .bold)).tracking(-0.8).foregroundColor(TC.navy)
+                Spacer(minLength: 8)
+                if let trailing = trailing { trailing }
+            }
             if let s = subline, !s.isEmpty {
                 Text(s).font(.system(size: 16)).foregroundColor(TC.ink2)
             }
@@ -78,11 +85,12 @@ struct NavyBanner: View {
 struct PrimaryButton: View {
     let title: String
     var yellow = false
+    var height: CGFloat = 52
     let action: () -> Void
     var body: some View {
         Button(action: action) {
             Text(title).font(.system(size: 17, weight: .semibold))
-                .frame(maxWidth: .infinity, minHeight: 52)
+                .frame(maxWidth: .infinity, minHeight: height)
                 .foregroundColor(yellow ? TC.navy : .white)
                 .background(yellow ? TC.yellow : TC.navy).cornerRadius(14)
         }.buttonStyle(.plain)
@@ -200,25 +208,36 @@ struct JobCard: View {
     var selected = false
     var showBookmark = true
     var body: some View {
+        // TEXT-LED, LIKE THE WEBSITE'S NEW CARDS (design handoff 17): the role,
+        // then pay as the second-loudest thing, then a quiet line saying who
+        // and how fresh. "Full time" is left to the job page: 115 of 119 live
+        // jobs say it, so on a card it tells nobody anything.
         Card(selected: selected) {
             HStack(alignment: .top, spacing: 8) {
-                VStack(alignment: .leading, spacing: 5) {
-                    HStack(spacing: 8) {
-                        Text(job.title).font(.system(size: 18, weight: .semibold)).foregroundColor(TC.navy)
-                            .fixedSize(horizontal: false, vertical: true)
+                VStack(alignment: .leading, spacing: 6) {
+                    if job.isNew {
+                        Text("NEW").font(.system(size: 13, weight: .semibold)).tracking(0.8).foregroundColor(TC.navy)
+                            .padding(.horizontal, 7).padding(.vertical, 3)
+                            .background(TC.hairline).cornerRadius(6)
                     }
-                    Text("\(job.company) · \(job.place)").font(.system(size: 16)).foregroundColor(TC.ink2)
-                    HStack(spacing: 6) {
-                        if job.isNew {
-                            Text("New").font(.system(size: 16, weight: .semibold)).foregroundColor(TC.navy)
-                        }
-                        Text(jobMeta(job)).font(.system(size: 16)).foregroundColor(TC.muted)
-                    }
+                    Text(job.title).font(.system(size: 18, weight: .semibold)).foregroundColor(TC.navy)
+                        .fixedSize(horizontal: false, vertical: true)
+                    payAndPlace
+                    Text([job.company, job.postedLabel].filter { !$0.isEmpty }.joined(separator: " · "))
+                        .font(.system(size: 16)).foregroundColor(TC.muted)
                 }
                 Spacer(minLength: 0)
                 if showBookmark { BookmarkButton(store: store, job: job).padding(.top, -10).padding(.trailing, -10) }
             }
         }
+    }
+
+    private var payAndPlace: Text {
+        if let pay = job.pay {
+            return Text(pay).font(.system(size: 17, weight: .bold)).foregroundColor(TC.navy)
+                + Text(" · \(job.place)").font(.system(size: 16)).foregroundColor(TC.ink2)
+        }
+        return Text(job.place).font(.system(size: 16)).foregroundColor(TC.ink2)
     }
 }
 
@@ -272,10 +291,9 @@ struct JobsScreen: View {
 
     private var sidebar: some View {
         List(selection: $selection) {
-            if !store.signedIn {
-                HStack { Spacer(); SignInTopButton(store: store) }.padding(.horizontal, 12).plainRow()
-            }
-            LargeTitle(title: "Jobs", subline: subline).plainRow()
+            LargeTitle(title: "Jobs", subline: subline,
+                       trailing: store.signedIn ? nil : AnyView(SignInTopButton(store: store)))
+                .padding(.top, 8).plainRow()
 
             if !store.online || (store.jobsLoad == .failed && !store.jobs.isEmpty) {
                 NavyBanner(
