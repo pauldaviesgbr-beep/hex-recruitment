@@ -31,6 +31,30 @@ final class ThriveStore: ObservableObject {
     @Published var online = true
     @Published var hideTabBar = false
 
+    // MARK: Signed out (design G1, G9) and the sign-in sheet (G2)
+
+    /// Set by the root from the web page's session cookie.
+    @Published var signedIn = false
+    /// Raised to open the native sign-in sheet; the root presents it.
+    @Published var signInRequested = false
+
+    /// What to finish once they have signed in (G1: "the action completes").
+    enum PendingAction { case save(AppJob), apply(AppJob) }
+    var pendingAfterSignIn: PendingAction?
+
+    /// Signing in is asked for only when it is needed: the bookmark, Apply,
+    /// or the button on an account tab. Never on its own.
+    func requireSignIn(then action: PendingAction? = nil) {
+        pendingAfterSignIn = action
+        signInRequested = true
+    }
+
+    /// Supplied by the root: the page's sign-in functions, and a provider start.
+    var callAuth: (_ name: String, _ args: KeyValuePairs<String, Any>, _ done: @escaping ([String: Any]?) -> Void) -> Void = { _, _, done in done(nil) }
+    var startProvider: (_ provider: String) -> Void = { _ in }
+    /// How a provider sign-in ended, from the page: ("cancelled" | "failed", message?).
+    @Published var providerOutcome: (how: String, message: String?)?
+
     /// The "Where" choice, remembered on the device between launches (A6).
     @Published var placeKey: String? {
         didSet { UserDefaults.standard.set(placeKey, forKey: "thrive.where") }
@@ -142,6 +166,7 @@ final class ThriveStore: ObservableObject {
     /// Design A1: a light haptic, the job is in the offline set at once, and the
     /// save goes to the server now or when signal returns.
     func toggleSave(_ job: AppJob) {
+        guard signedIn else { requireSignIn(then: .save(job)); return }
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
         let want = !isSaved(job.id)
         pending[job.id] = want

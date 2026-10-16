@@ -272,6 +272,9 @@ struct JobsScreen: View {
 
     private var sidebar: some View {
         List(selection: $selection) {
+            if !store.signedIn {
+                HStack { Spacer(); SignInTopButton(store: store) }.padding(.horizontal, 12).plainRow()
+            }
             LargeTitle(title: "Jobs", subline: subline).plainRow()
 
             if !store.online || (store.jobsLoad == .failed && !store.jobs.isEmpty) {
@@ -283,6 +286,7 @@ struct JobsScreen: View {
 
             if store.online && !store.jobs.isEmpty {
                 searchAndWhere.plainRow()
+                if !store.signedIn { SignedOutPromptCard(store: store).plainRow() }
             } else if !store.jobs.isEmpty {
                 whereButton.padding(.horizontal, 16).padding(.bottom, 10).plainRow()
             }
@@ -529,7 +533,8 @@ struct JobDetailScreen: View {
             .padding(16).background(TC.page).cornerRadius(14)
         } else {
             PrimaryButton(title: "Apply", yellow: true) {
-                store.openWeb("/job/\(job.id)?apply=1", backTitle)
+                if store.signedIn { store.openWeb("/job/\(job.id)?apply=1", backTitle) }
+                else { store.requireSignIn(then: .apply(job)) }
             }
         }
     }
@@ -565,6 +570,14 @@ struct SavedScreen: View {
     @State private var selection: String?
 
     var body: some View {
+        if store.signedIn { signedInBody } else {
+            SignedOutTab(store: store, title: "Saved", symbol: "bookmark",
+                         heading: "Sign in to see your saved jobs",
+                         message: "Saved jobs stay on this \(ThriveDates.deviceWord), so you can read them with no signal.")
+        }
+    }
+
+    private var signedInBody: some View {
         NavigationSplitView {
             sidebar
                 .navigationTitle("Saved")
@@ -646,6 +659,14 @@ struct ApplicationsScreen: View {
     @State private var selection: String?
 
     var body: some View {
+        if store.signedIn { signedInBody } else {
+            SignedOutTab(store: store, title: "Applications", symbol: "doc.text",
+                         heading: "Sign in to see your applications",
+                         message: "Every job you apply for shows here, with what the employer has done with it.")
+        }
+    }
+
+    private var signedInBody: some View {
         NavigationSplitView {
             sidebar
                 .navigationTitle("Applications")

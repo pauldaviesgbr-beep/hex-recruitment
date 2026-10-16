@@ -22,6 +22,7 @@
 		9582B68B2FE993A70072D4EC /* ThriveAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9582B68C2FE993A50072D4EC /* ThriveAPI.swift */; };
 		9582B68D2FE993A70072D4ED /* ThriveStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9582B68E2FE993A50072D4ED /* ThriveStore.swift */; };
 		9582B68F2FE993A70072D4EE /* ThriveNativeViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9582B6902FE993A50072D4EE /* ThriveNativeViews.swift */; };
+		9582B6912FE993A70072D4EF /* ThriveSignIn.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9582B6922FE993A50072D4EF /* ThriveSignIn.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -41,6 +42,7 @@
 		9582B68C2FE993A50072D4EC /* ThriveAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThriveAPI.swift; sourceTree = "<group>"; };
 		9582B68E2FE993A50072D4ED /* ThriveStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThriveStore.swift; sourceTree = "<group>"; };
 		9582B6902FE993A50072D4EE /* ThriveNativeViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThriveNativeViews.swift; sourceTree = "<group>"; };
+		9582B6922FE993A50072D4EF /* ThriveSignIn.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThriveSignIn.swift; sourceTree = "<group>"; };
 		958DCC722DB07C7200EA8C5F /* debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = debug.xcconfig; path = ../debug.xcconfig; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
@@ -83,6 +85,7 @@
 				9582B68C2FE993A50072D4EC /* ThriveAPI.swift */,
 				9582B68E2FE993A50072D4ED /* ThriveStore.swift */,
 				9582B6902FE993A50072D4EE /* ThriveNativeViews.swift */,
+				9582B6922FE993A50072D4EF /* ThriveSignIn.swift */,
 				50379B222058CBB4000EE86E /* capacitor.config.json */,
 				504EC3071FED79650016851F /* AppDelegate.swift */,
 				504EC30B1FED79650016851F /* Main.storyboard */,
@@ -184,6 +187,7 @@
 				9582B68B2FE993A70072D4EC /* ThriveAPI.swift in Sources */,
 				9582B68D2FE993A70072D4ED /* ThriveStore.swift in Sources */,
 				9582B68F2FE993A70072D4EE /* ThriveNativeViews.swift in Sources */,
+				9582B6912FE993A70072D4EF /* ThriveSignIn.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

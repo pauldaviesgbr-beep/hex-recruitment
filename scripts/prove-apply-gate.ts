@@ -94,10 +94,19 @@ check(
   () => read('components/CandidateSignupForm.tsx').includes('signInWithPassword'),
   false
 )
+// The sign-up steps moved into lib/candidateSignup.ts on 16 Oct 2026, shared
+// with the iOS app's native sheet. So the form must CALL it, and the shared
+// function must sign up and must not sign anybody in.
 check(
-  'the panel DOES sign people up',
-  () => read('components/CandidateSignupForm.tsx').includes('supabase.auth.signUp'),
+  'the panel DOES sign people up (through the shared function)',
+  () => read('components/CandidateSignupForm.tsx').includes('signUpCandidate(') &&
+        read('lib/candidateSignup.ts').includes('supabase.auth.signUp'),
   true
+)
+check(
+  'and the shared sign-up never calls signInWithPassword',
+  () => read('lib/candidateSignup.ts').includes('signInWithPassword'),
+  false
 )
 check(
   'the gate route renders the panel, not a login form',

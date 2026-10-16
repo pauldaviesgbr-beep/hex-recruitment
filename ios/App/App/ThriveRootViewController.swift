@@ -127,6 +127,52 @@ class ThriveRootViewController: UIViewController, UITabBarDelegate {
             DispatchQueue.main.async { self?.updateBar() }
         }.store(in: &cancellables)
 
+        // THE SIGN-IN SHEET (ThriveSignIn.swift). Native to look at; the website
+        // does the signing in, on the page hidden behind the native screens.
+        store.callAuth = { [weak self] name, args, done in
+            guard let self = self else { done(nil); return }
+            self.bridge.callAuth(name, args) { result in
+                switch result {
+                case .success(let answer): done(answer)
+                case .failure(.notReady):
+                    // The hidden page has not loaded the site yet: load the
+                    // login page (which carries the auth bridge) and try once more.
+                    self.bridge.go(to: "/login")
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
+                        self.bridge.callAuth(name, args) { retry in
+                            if case .success(let answer) = retry { done(answer) } else { done(nil) }
+                        }
+                    }
+                case .failure: done(nil)
+                }
+            }
+        }
+        // A provider opens the system browser sheet, and iOS presents one sheet
+        // at a time, so ours steps aside first (keeping the waiting action) and
+        // comes back if that sign-in is cancelled or fails.
+        store.startProvider = { [weak self] provider in
+            guard let self = self else { return }
+            let go = { self.bridge.go(to: "/login?native_start=\(provider)") }
+            if let sheet = self.signInSheet {
+                self.signInSheet = nil
+                sheet.dismiss(animated: true, completion: go)
+            } else {
+                go()
+            }
+        }
+        bridge.onPageMessage = { [weak self] message in
+            guard let self = self, message["event"] as? String == "signin-ended", self.session == nil else { return }
+            self.store.providerOutcome = (how: message["how"] as? String ?? "failed", message: message["message"] as? String)
+            // The new sheet reads the outcome as it opens (a @Published value
+            // is delivered to a new subscriber straight away).
+            self.presentSignIn()
+        }
+        store.$signInRequested.receive(on: DispatchQueue.main).sink { [weak self] requested in
+            guard requested else { return }
+            self?.store.signInRequested = false
+            self?.presentSignIn()
+        }.store(in: &cancellables)
+
         bridge.onCookiesChanged = { [weak self] in self?.refreshSession() }
         bridge.onPathChanged = { [weak self] path in self?.pathChanged(path) }
         refreshSession()
@@ -143,6 +189,14 @@ class ThriveRootViewController: UIViewController, UITabBarDelegate {
             AnyView(JobsScreen(store: store)),
             AnyView(SavedScreen(store: store)),
             AnyView(ApplicationsScreen(store: store)),
+            // 3 and 4: Messages and Profile while SIGNED OUT (design G9). Signed
+            // in, those two tabs are still the website.
+            AnyView(SignedOutTab(store: store, title: "Messages", symbol: "bubble.left",
+                                 heading: "Sign in to message employers",
+                                 message: "Your conversations with employers about the jobs you apply for show here.")),
+            AnyView(SignedOutTab(store: store, title: "Profile", symbol: "person",
+                                 heading: "Sign in to build your profile",
+                                 message: "Your CV and details, ready to send with every application.")),
         ]
         for screen in screens {
             let host = UIHostingController(rootView: screen)
@@ -192,12 +246,61 @@ class ThriveRootViewController: UIViewController, UITabBarDelegate {
 
     private func selectTab(_ index: Int) {
         guard index >= 0, index < tabs.count else { return }
+        // Signed out (G1, G9): every candidate tab is native. Jobs is the board;
+        // the other four explain what is inside and offer sign-in. Their host
+        // indices are the tab indices.
+        if session == nil {
+            showNative(index)
+            return
+        }
         let tab = tabs[index]
         if let n = tab.native, role == .candidate {
             showNative(n)
         } else if let path = tab.path {
             bridge.go(to: path)
             showWeb(openedFrom: nil)
+        }
+    }
+
+    // MARK: - The sign-in sheet (G2)
+
+    private weak var signInSheet: UIViewController?
+
+    private func presentSignIn() {
+        guard signInSheet == nil, session == nil else { return }
+        let host = UIHostingController(rootView: SignInSheet(store: store, close: { [weak self] in
+            self?.dismissSignIn(cancelled: true)
+        }))
+        // A large sheet on a phone; a 540pt form sheet on iPad (P10).
+        host.modalPresentationStyle = UIDeviceIdiom.isPad ? .formSheet : .pageSheet
+        host.preferredContentSize = CGSize(width: 540, height: 720)
+        if let sheet = host.sheetPresentationController {
+            sheet.detents = [.large()]
+            sheet.prefersGrabberVisible = true
+        }
+        signInSheet = host
+        // Present from whatever is on top (a Where sheet may already be up).
+        var top: UIViewController = self
+        while let next = top.presentedViewController { top = next }
+        top.present(host, animated: true)
+    }
+
+    private func dismissSignIn(cancelled: Bool = false) {
+        if cancelled { store.pendingAfterSignIn = nil }
+        signInSheet?.dismiss(animated: true)
+        signInSheet = nil
+    }
+
+    /// G1: "the action completes after sign-in" — the job is saved, or the
+    /// apply sheet opens.
+    private func finishPendingAction() {
+        guard let action = store.pendingAfterSignIn else { return }
+        store.pendingAfterSignIn = nil
+        switch action {
+        case .save(let job):
+            if !store.isSaved(job.id) { store.toggleSave(job) }
+        case .apply(let job):
+            openWebFromNative("/job/\(job.id)?apply=1")
         }
     }
 
@@ -240,7 +343,7 @@ class ThriveRootViewController: UIViewController, UITabBarDelegate {
 
     private func setBackBarVisible(_ visible: Bool) {
         if let from = webOpenedFrom, visible {
-            let title = ["Jobs", "Saved", "Applications"][min(from, 2)]
+            let title = ["Jobs", "Saved", "Applications", "Messages", "Profile"][min(max(from, 0), 4)]
             backButton.setTitle(" \(title)", for: .normal)
         }
         backBar.isHidden = !visible
@@ -272,16 +375,20 @@ class ThriveRootViewController: UIViewController, UITabBarDelegate {
             if session != nil || role != nil {
                 // Signed out: clear everything the phone holds (design rule).
                 store.clearForSignOut()
-                if nativeIndex != nil { showWeb(openedFrom: nil) }
             }
             session = nil
             role = nil
             roleUserId = nil
-            updateBar()
+            store.signedIn = false
+            tabs = ThriveRootViewController.candidateTabs
+            // G1: signed out, the app is native Jobs, not a sign-in wall. A web
+            // page opened from a native screen (the terms, say) is left alone.
+            if nativeIndex == nil && webOpenedFrom == nil { showNative(0) } else { updateBar() }
             return
         }
         let previousToken = session?.accessToken
         session = newSession
+        store.signedIn = true
         if roleUserId == newSession.userId, role != nil {
             // A fresh token (the web page refreshed it): send any saves waiting on it.
             if newSession.accessToken != previousToken { store.syncPending() }
@@ -303,10 +410,26 @@ class ThriveRootViewController: UIViewController, UITabBarDelegate {
             self.role = rows.isEmpty ? .candidate : .employer
             self.roleUserId = userId
             if self.role == .candidate && previous != .candidate {
-                // Design A1: Jobs, native, is the first screen after sign-in.
                 self.store.refreshAll()
                 self.tabs = ThriveRootViewController.candidateTabs
-                self.showNative(0)
+                self.dismissSignIn()
+                // G2: an existing candidate goes back to the screen they came
+                // from. Messages and Profile were placeholders while signed out;
+                // signed in they are the website. First launch: Jobs (A1).
+                let back = self.nativeIndex
+                if let b = back, b >= 3 { self.selectTab(b) } else { self.showNative(back ?? 0) }
+                self.finishPendingAction()
+            } else if self.role == .employer && previous != .employer {
+                // G8: an employer gets the four employer tabs, all website.
+                self.dismissSignIn()
+                self.store.pendingAfterSignIn = nil
+                self.tabs = ThriveRootViewController.employerTabs
+                if self.nativeIndex != nil {
+                    self.bridge.go(to: "/employer/dashboard")
+                    self.showWeb(openedFrom: nil)
+                } else {
+                    self.updateBar()
+                }
             } else {
                 self.updateBar()
             }
@@ -336,7 +459,9 @@ class ThriveRootViewController: UIViewController, UITabBarDelegate {
     private func updateBar() {
         let onNoBarPage = nativeIndex == nil &&
             ThriveRootViewController.noBarPrefixes.contains { currentPath.hasPrefix($0) }
-        guard session != nil, let role = role, !onNoBarPage else {
+        // Signed out, the bar shows the candidate tabs (G1). Signed in, it waits
+        // for the role, which comes from a row, never from user_metadata.
+        guard session == nil || role != nil, !onNoBarPage else {
             setBarVisible(false)
             bridge.setNativeNav(false, force: true)
             return
@@ -352,7 +477,8 @@ class ThriveRootViewController: UIViewController, UITabBarDelegate {
         }
         let match: Int?
         if let n = nativeIndex {
-            match = tabs.firstIndex { $0.native == n }
+            // Hosts 3 and 4 (signed-out Messages and Profile) sit at their tab index.
+            match = n >= 3 ? n : tabs.firstIndex { $0.native == n }
         } else if let from = webOpenedFrom {
             match = tabs.firstIndex { $0.native == from }
         } else {
