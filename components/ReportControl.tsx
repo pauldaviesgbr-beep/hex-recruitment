@@ -169,14 +169,26 @@ export default function ReportControl({
       }
       // reporter_id is set explicitly AND enforced by RLS (reporter_id =
       // auth.uid()). Sending it is not the security boundary — the policy is.
-      const { error: insErr } = await supabase.from('content_reports').insert({
+      const { data: filed, error: insErr } = await supabase.from('content_reports').insert({
         reporter_id: session.user.id,
         target_type: targetType,
         target_id: targetId,
         reason,
         detail: detail.trim() || null,
-      })
+      }).select('id').single()
       if (insErr) throw insErr
+      // TELL A PERSON. Until 16 Oct 2026 a report was saved and nobody was
+      // told. This emails Thrive now; if it fails, the daily sweep
+      // (/api/cron/report-alerts) sends it instead, so the report is saved
+      // either way and the person is not shown an error for our email.
+      if (filed?.id) {
+        fetch('/api/report/alert', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+          body: JSON.stringify({ reportId: filed.id }),
+          keepalive: true,
+        }).catch(() => {})
+      }
       setDone(true)
       setJustSent(true)
     } catch (e: any) {
