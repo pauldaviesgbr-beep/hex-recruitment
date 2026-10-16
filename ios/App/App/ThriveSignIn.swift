@@ -356,10 +356,11 @@ struct SignedOutTab: View {
     let message: String
 
     var body: some View {
+        VStack(spacing: 0) {
+        BrandBar { SignInTopButton(store: store, onNavy: true) }
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-                LargeTitle(title: title, subline: nil, trailing: AnyView(SignInTopButton(store: store)))
-                    .padding(.top, 8)
+                BrandBand(title: title, subline: nil) { EmptyView() }
                 EmptyState(symbol: symbol, heading: heading, message: message) {
                     PrimaryButton(title: "Sign in or create an account") { store.requireSignIn() }
                     OutlineButton(title: store.jobs.isEmpty ? "Browse jobs" : "Browse \(store.jobs.count) jobs") { store.selectTab(0) }
@@ -367,15 +368,18 @@ struct SignedOutTab: View {
             }
         }
         .background(TC.page)
+        }
     }
 }
 
 /// The "Sign in" text button where the bell goes (G1, G9).
 struct SignInTopButton: View {
     @ObservedObject var store: ThriveStore
+    /// White on the navy bar.
+    var onNavy = false
     var body: some View {
         Button("Sign in") { store.requireSignIn() }
-            .font(.system(size: 17, weight: .semibold)).foregroundColor(TC.navy)
+            .font(.system(size: 17, weight: .semibold)).foregroundColor(onNavy ? .white : TC.navy)
             .frame(minWidth: 44, minHeight: 44)
     }
 }

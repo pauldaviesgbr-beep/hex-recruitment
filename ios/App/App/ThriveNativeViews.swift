@@ -40,6 +40,48 @@ func statusColours(_ status: String) -> (bg: Color, fg: Color) {
 
 // MARK: - Shared pieces
 
+/// THE BRAND, AS ON THE WEBSITE. Paul on build 15: "we lost the colours and
+/// the branding". The design kept the native screens pale; the website has a
+/// navy header with the white Thrive lockup and a navy band under it. This is
+/// that header: fixed at the top, navy behind the status bar too (a Color
+/// background extends into the safe area by default).
+struct BrandBar<Trailing: View>: View {
+    @ViewBuilder var trailing: () -> Trailing
+    var body: some View {
+        HStack {
+            Image("ThriveLockupWhite").resizable().scaledToFit().frame(height: 30)
+                .accessibilityLabel("Thrive")
+            Spacer()
+            trailing()
+        }
+        .padding(.horizontal, 16)
+        .frame(maxWidth: .infinity, minHeight: 52)
+        .background(TC.navy)
+    }
+}
+
+/// The navy band under the bar: the screen's title, its subline, and on Jobs
+/// the search and Where controls. It scrolls with the list.
+struct BrandBand<Content: View>: View {
+    let title: String
+    let subline: String?
+    @ViewBuilder var content: () -> Content
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title).font(.system(size: 32, weight: .bold)).tracking(-0.8).foregroundColor(.white)
+                if let s = subline, !s.isEmpty {
+                    Text(s).font(.system(size: 16)).foregroundColor(TC.bannerText)
+                }
+            }
+            content()
+        }
+        .padding(.horizontal, 16).padding(.top, 4).padding(.bottom, 18)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(TC.navy)
+    }
+}
+
 struct LargeTitle: View {
     let title: String
     let subline: String?
@@ -290,10 +332,14 @@ struct JobsScreen: View {
     }
 
     private var sidebar: some View {
+        VStack(spacing: 0) {
+        BrandBar { if !store.signedIn { SignInTopButton(store: store, onNavy: true) } }
         List(selection: $selection) {
-            LargeTitle(title: "Jobs", subline: subline,
-                       trailing: store.signedIn ? nil : AnyView(SignInTopButton(store: store)))
-                .padding(.top, 8).plainRow()
+            BrandBand(title: "Jobs", subline: subline) {
+                if !store.jobs.isEmpty {
+                    if store.online { searchAndWhere } else { whereButton }
+                }
+            }.plainRow()
 
             if !store.online || (store.jobsLoad == .failed && !store.jobs.isEmpty) {
                 NavyBanner(
@@ -302,11 +348,8 @@ struct JobsScreen: View {
                 ).plainRow()
             }
 
-            if store.online && !store.jobs.isEmpty {
-                searchAndWhere.plainRow()
-                if !store.signedIn { SignedOutPromptCard(store: store).plainRow() }
-            } else if !store.jobs.isEmpty {
-                whereButton.padding(.horizontal, 16).padding(.bottom, 10).plainRow()
+            if store.online && !store.jobs.isEmpty && !store.signedIn {
+                SignedOutPromptCard(store: store).padding(.top, 12).plainRow()
             }
 
             if store.jobs.isEmpty {
@@ -335,6 +378,7 @@ struct JobsScreen: View {
         .scrollContentBackground(.hidden)
         .background(TC.page)
         .refreshable { store.refreshJobs() }
+        }
     }
 
     private var searchAndWhere: some View {
@@ -355,15 +399,14 @@ struct JobsScreen: View {
             .padding(.leading, 14)
             .frame(minHeight: 48)
             .background(Color.white).cornerRadius(12)
-            .overlay(RoundedRectangle(cornerRadius: 12).stroke(TC.border, lineWidth: 1))
             whereButton
         }
-        .padding(.horizontal, 16).padding(.bottom, 10)
     }
 
     @ViewBuilder private var whereButton: some View {
         if let place = store.placeLabel {
-            // A6: navy, pin + place, and a separate ✕ segment that clears it.
+            // A6, on the navy band: a place that is picked is the brand yellow,
+            // pin + place, with a separate ✕ segment that clears it.
             HStack(spacing: 0) {
                 Button { showWhere = true } label: {
                     HStack(spacing: 8) {
@@ -371,24 +414,25 @@ struct JobsScreen: View {
                         Text(place).font(.system(size: 16, weight: .semibold))
                         Spacer(minLength: 0)
                     }
-                    .foregroundColor(.white).padding(.horizontal, 14).frame(minHeight: 44)
+                    .foregroundColor(TC.navy).padding(.horizontal, 14).frame(minHeight: 44)
                 }.buttonStyle(.borderless)
-                Rectangle().fill(Color.white.opacity(0.25)).frame(width: 1, height: 28)
+                Rectangle().fill(TC.navy.opacity(0.2)).frame(width: 1, height: 28)
                 Button { store.placeKey = nil } label: {
-                    Image(systemName: "xmark").foregroundColor(.white).frame(width: 44, height: 44)
+                    Image(systemName: "xmark").foregroundColor(TC.navy).frame(width: 44, height: 44)
                 }.buttonStyle(.borderless).accessibilityLabel("Show jobs anywhere in the UK")
             }
-            .background(TC.navy).cornerRadius(12)
+            .background(TC.yellow).cornerRadius(12)
         } else {
             Button { showWhere = true } label: {
                 HStack(spacing: 8) {
+                    Image(systemName: "mappin.and.ellipse")
                     Text("Anywhere in the UK").font(.system(size: 16, weight: .semibold))
                     Image(systemName: "chevron.down").font(.system(size: 14, weight: .semibold))
                     Spacer(minLength: 0)
                 }
-                .foregroundColor(TC.navy).padding(.horizontal, 14).frame(minHeight: 44)
-                .background(Color.white).cornerRadius(12)
-                .overlay(RoundedRectangle(cornerRadius: 12).stroke(TC.navy, lineWidth: 1.5))
+                .foregroundColor(.white).padding(.horizontal, 14).frame(minHeight: 44)
+                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.white.opacity(0.55), lineWidth: 1.5))
+                .contentShape(RoundedRectangle(cornerRadius: 12))
             }.buttonStyle(.borderless)
         }
     }
