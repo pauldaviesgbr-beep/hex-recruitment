@@ -43,13 +43,21 @@ export function isFixtureGuardError(err: unknown): boolean {
 
 export const CV_REQUIRED_MARKER = 'THRIVE_CV_REQUIRED'
 
-/** What the person reads when they have no CV on their profile. */
+/** What the person reads when they have no CV on their profile. It RECOMMENDS
+ *  building one here (Paul, 16 Oct 2026): most candidates have no CV file, and
+ *  a CV built in Thrive now counts — "Use this CV for applications" saves it to
+ *  the profile as a PDF. */
 export const CV_REQUIRED_MESSAGE =
-  'This employer needs a CV with every application. Add yours to your profile, then apply.'
+  'This employer needs a CV with every application. Build one in a few minutes with Thrive’s CV Builder, or upload one you already have.'
 
 /** Where they add one. /cv-builder is the page that WRITES candidate_profiles.cv_url
- *  (the upload at app/cv-builder/page.tsx); /profile only reads it. */
+ *  (the upload, and "Use this CV for applications"); /profile only reads it. */
 export const CV_UPLOAD_PATH = '/cv-builder'
+
+/** The CV Builder, with a way back to the advert once the CV is saved. */
+export function cvBuilderLink(returnTo: string): string {
+  return `${CV_UPLOAD_PATH}?return=${encodeURIComponent(returnTo)}`
+}
 
 export function isCvRequiredError(err: unknown): boolean {
   return hasMarker(err, CV_REQUIRED_MARKER)

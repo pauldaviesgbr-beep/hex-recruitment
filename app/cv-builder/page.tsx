@@ -9,6 +9,7 @@ import { saveAs } from 'file-saver'
 import Header from '@/components/Header'
 import { supabase } from '@/lib/supabase'
 import { isNativeApp } from '@/lib/nativeOAuth'
+import { safeInternalPath } from '@/lib/safeRedirect'
 import { DEV_MODE } from '@/lib/mockAuth'
 import styles from './page.module.css'
 import { Ico } from '@/components/icons'
@@ -324,6 +325,11 @@ export default function CVBuilderPage() {
       // CV did not upload, because it did.
       fetch('/api/candidate/parse-cv', { method: 'POST' }).catch(() => {})
 
+      // Arrived from an advert that needs a CV? Their CV is now on the profile,
+      // so take them straight back to apply.
+      const back = safeInternalPath(new URLSearchParams(window.location.search).get('return'))
+      if (back) { router.push(back); return }
+
       setUploadMode('build')
     } catch (err: any) {
       setUploadError(err.message || 'Upload failed. Please try again.')
@@ -451,9 +457,23 @@ export default function CVBuilderPage() {
     </div>`
   }
 
+  // ONE PDF, TWO DESTINATIONS. buildPdf makes it; exportPDF downloads it and
+  // useForApplications saves it to the profile, so the CV an employer receives
+  // is the same document the candidate can download.
   const exportPDF = async () => {
     setExporting(true)
     try {
+      const { pdf, fileName } = await buildPdf()
+      pdf.save(fileName)
+    } catch {
+      alert('Failed to export PDF. Please try again.')
+    } finally {
+      setExporting(false)
+    }
+  }
+
+  const buildPdf = async (): Promise<{ pdf: jsPDF; fileName: string }> => {
+    {
       const pd = cvData.personalDetails
       const margin = 15 // mm
       const pageWidth = 210
@@ -611,13 +631,50 @@ export default function CVBuilderPage() {
       }
       await addSection(buildSectionHtml('References', refsContent))
 
-      // Download
       const fileName = pd.fullName ? `${pd.fullName.replace(/\s+/g, '_')}_CV.pdf` : 'My_CV.pdf'
-      pdf.save(fileName)
+      return { pdf, fileName }
+    }
+  }
+
+  // ─── Use this CV for applications ───
+  //
+  // A CV BUILT HERE USED TO REACH NO EMPLOYER. It lived only as form data in
+  // candidate_cvs, read by this page and nothing else, so an employer that
+  // requires a CV (employer_profiles.requires_cv, Goldenkeys from 16 Oct 2026)
+  // saw nothing. This turns it into the same thing an upload is: a PDF in the
+  // profiles bucket, recorded as candidate_profiles.cv_url. The database rule
+  // then needs no change — a built CV becomes an attached one.
+  //
+  // It is an UPLOAD, not a download, so unlike Export it works in the iOS app.
+  // If they arrived from an advert (?return=), they go straight back to it.
+  const [savingToProfile, setSavingToProfile] = useState(false)
+  const [savedToProfile, setSavedToProfile] = useState(false)
+  const useForApplications = async () => {
+    if (!userId) return
+    setSavingToProfile(true)
+    try {
+      const { pdf } = await buildPdf()
+      const blob = pdf.output('blob')
+      const path = `${userId}/cv-built-${Date.now()}.pdf`
+      const { error: storageErr } = await supabase.storage
+        .from('profiles')
+        .upload(path, blob, { upsert: true, contentType: 'application/pdf' })
+      if (storageErr) throw storageErr
+      const name = cvData.personalDetails.fullName?.trim()
+      const { error: profileErr } = await supabase
+        .from('candidate_profiles')
+        .update({ cv_url: path, cv_file_name: name ? `CV - ${name}.pdf` : 'CV.pdf' })
+        .eq('user_id', userId)
+      if (profileErr) throw profileErr
+      setSavedToProfile(true)
+      const back = typeof window !== 'undefined'
+        ? safeInternalPath(new URLSearchParams(window.location.search).get('return'))
+        : null
+      if (back) router.push(back)
     } catch {
-      alert('Failed to export PDF. Please try again.')
+      alert('Your CV could not be saved to your profile. Check your connection and try again.')
     } finally {
-      setExporting(false)
+      setSavingToProfile(false)
     }
   }
 
@@ -1214,6 +1271,9 @@ export default function CVBuilderPage() {
             <button className={styles.previewToggle} onClick={() => setShowPreview(!showPreview)}>
               {showPreview ? 'Edit' : 'Preview'}
             </button>
+            <button className={styles.saveBtn} onClick={useForApplications} disabled={savingToProfile || !userId}>
+              {savingToProfile ? 'Saving to profile…' : savedToProfile ? 'Used for applications ✓' : 'Use this CV for applications'}
+            </button>
             {!nativeShell && (
               <>
                 <button className={styles.exportBtn} onClick={exportPDF} disabled={exporting}>
@@ -1300,16 +1360,23 @@ export default function CVBuilderPage() {
                  row with Back alone — checked before doing it, and Save CV
                  and Preview remain in the toolbar above, so the step is not a
                  dead end. */
-              !nativeShell && (
-                <div className={styles.exportBtns}>
-                  <button className={styles.nextBtn} onClick={exportPDF} disabled={exporting}>
-                    {exporting ? 'Exporting...' : 'Export PDF'}
-                  </button>
-                  <button className={styles.nextBtn} onClick={exportWord} disabled={exportingWord}>
-                    {exportingWord ? 'Creating...' : 'Download Word'}
-                  </button>
-                </div>
-              )
+              <div className={styles.exportBtns}>
+                {/* The finish line: available on every platform, because it
+                    uploads rather than downloads. */}
+                <button className={styles.nextBtn} onClick={useForApplications} disabled={savingToProfile || !userId}>
+                  {savingToProfile ? 'Saving to profile…' : savedToProfile ? 'Used for applications ✓' : 'Use this CV for applications'}
+                </button>
+                {!nativeShell && (
+                  <>
+                    <button className={styles.nextBtn} onClick={exportPDF} disabled={exporting}>
+                      {exporting ? 'Exporting...' : 'Export PDF'}
+                    </button>
+                    <button className={styles.nextBtn} onClick={exportWord} disabled={exportingWord}>
+                      {exportingWord ? 'Creating...' : 'Download Word'}
+                    </button>
+                  </>
+                )}
+              </div>
             )}
           </div>
         </div>
