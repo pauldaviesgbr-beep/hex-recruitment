@@ -338,8 +338,11 @@ class ThriveRootViewController: UIViewController, UITabBarDelegate {
             ThriveRootViewController.noBarPrefixes.contains { currentPath.hasPrefix($0) }
         guard session != nil, let role = role, !onNoBarPage else {
             setBarVisible(false)
+            bridge.setNativeNav(false, force: true)
             return
         }
+        // The app is providing navigation: the website hides its own.
+        bridge.setNativeNav(true, force: true)
         let wanted = role == .employer ? ThriveRootViewController.employerTabs : ThriveRootViewController.candidateTabs
         if wanted.map({ $0.title }) != (tabBar.items ?? []).map({ $0.title ?? "" }) {
             tabs = wanted
