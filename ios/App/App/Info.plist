@@ -15,6 +15,14 @@
 	     actool still did not write this key. Declaring it here does not
 	     depend on knowing why: Apple asks for icons in an asset catalogue
 	     AND this key, and AppIcon is the set that exists. -->
+	<key>UIAppFonts</key>
+	<array>
+		<string>Inter-Regular.ttf</string>
+		<string>Inter-Medium.ttf</string>
+		<string>Inter-SemiBold.ttf</string>
+		<string>Inter-Bold.ttf</string>
+		<string>Inter-ExtraBold.ttf</string>
+	</array>
 	<key>CFBundleIconName</key>
 	<string>AppIcon</string>
 	<key>CFBundleIdentifier</key>

@@ -57,6 +57,7 @@ class ThriveRootViewController: UIViewController, UITabBarDelegate {
     private let content = UIView()
     private let backBar = UIView()
     private let backButton = UIButton(type: .system)
+    private let webTitle = UILabel()
     private var contentBottomToBar: NSLayoutConstraint!
     private var contentBottomToEdge: NSLayoutConstraint!
     private var webTopToContent: NSLayoutConstraint!
@@ -89,6 +90,7 @@ class ThriveRootViewController: UIViewController, UITabBarDelegate {
         content.addSubview(bridge.view)
         bridge.didMove(toParent: self)
 
+        ThriveTheme.applyNavigationBarAppearance()
         buildBackBar()
         buildNativeHosts()
 
@@ -178,15 +180,16 @@ class ThriveRootViewController: UIViewController, UITabBarDelegate {
         refreshSession()
     }
 
-    override var childForStatusBarStyle: UIViewController? { return nativeIndex == nil ? bridge : nil }
-    override var childForStatusBarHidden: UIViewController? { return nativeIndex == nil ? bridge : nil }
-    override var preferredStatusBarStyle: UIStatusBarStyle { return .darkContent }
+    // Brand pass: navy above the content on every screen, so the status bar
+    // is always light. Web pages inside the app sit under a navy bar too, so
+    // the web page no longer decides the status bar.
+    override var preferredStatusBarStyle: UIStatusBarStyle { return .lightContent }
 
     // MARK: - Native screens
 
     private func buildNativeHosts() {
         let screens: [AnyView] = [
-            AnyView(JobsScreen(store: store)),
+            AnyView(JobsTab(store: store)),   // the home (H1–H3) and the full list (H4)
             AnyView(SavedScreen(store: store)),
             AnyView(ApplicationsScreen(store: store)),
             // 3 and 4: Messages and Profile while SIGNED OUT (design G9). Signed
@@ -231,7 +234,7 @@ class ThriveRootViewController: UIViewController, UITabBarDelegate {
         webOpenedFrom = openedFrom
         nativeHosts.forEach { $0.view.isHidden = true }
         bridge.view.isHidden = false
-        setBackBarVisible(openedFrom != nil)
+        setBackBarVisible(true)
         setNeedsStatusBarAppearanceUpdate()
         updateBar()
     }
@@ -308,21 +311,24 @@ class ThriveRootViewController: UIViewController, UITabBarDelegate {
 
     private func buildBackBar() {
         backBar.translatesAutoresizingMaskIntoConstraints = false
-        backBar.backgroundColor = .white
+        backBar.backgroundColor = ThriveTheme.navyUI
         content.addSubview(backBar)
 
         backButton.translatesAutoresizingMaskIntoConstraints = false
         backButton.setImage(UIImage(systemName: "chevron.left"), for: .normal)
-        backButton.titleLabel?.font = UIFont.systemFont(ofSize: 17)
-        backButton.tintColor = UIColor(red: 15/255, green: 23/255, blue: 42/255, alpha: 1)
+        backButton.titleLabel?.font = UIFont(name: "Inter-Medium", size: 17) ?? .systemFont(ofSize: 17)
+        backButton.tintColor = .white
+        backButton.setTitleColor(.white, for: .normal)
+
+        webTitle.translatesAutoresizingMaskIntoConstraints = false
+        webTitle.font = UIFont(name: "Inter-SemiBold", size: 17) ?? .systemFont(ofSize: 17, weight: .semibold)
+        webTitle.textColor = .white
+        webTitle.textAlignment = .center
+        backBar.addSubview(webTitle)
         backButton.contentHorizontalAlignment = .leading
         backButton.addTarget(self, action: #selector(backTapped), for: .touchUpInside)
         backBar.addSubview(backButton)
 
-        let hairline = UIView()
-        hairline.translatesAutoresizingMaskIntoConstraints = false
-        hairline.backgroundColor = UIColor(red: 238/255, green: 240/255, blue: 244/255, alpha: 1)
-        backBar.addSubview(hairline)
 
         NSLayoutConstraint.activate([
             backBar.topAnchor.constraint(equalTo: content.topAnchor),
@@ -333,10 +339,9 @@ class ThriveRootViewController: UIViewController, UITabBarDelegate {
             backButton.bottomAnchor.constraint(equalTo: backBar.bottomAnchor),
             backButton.heightAnchor.constraint(equalToConstant: 44),
             backButton.widthAnchor.constraint(greaterThanOrEqualToConstant: 44),
-            hairline.leadingAnchor.constraint(equalTo: backBar.leadingAnchor),
-            hairline.trailingAnchor.constraint(equalTo: backBar.trailingAnchor),
-            hairline.bottomAnchor.constraint(equalTo: backBar.bottomAnchor),
-            hairline.heightAnchor.constraint(equalToConstant: 1),
+            webTitle.centerXAnchor.constraint(equalTo: backBar.centerXAnchor),
+            webTitle.centerYAnchor.constraint(equalTo: backButton.centerYAnchor),
+            webTitle.widthAnchor.constraint(lessThanOrEqualTo: backBar.widthAnchor, multiplier: 0.6),
         ])
         backBar.isHidden = true
     }
@@ -346,6 +351,9 @@ class ThriveRootViewController: UIViewController, UITabBarDelegate {
             let title = ["Jobs", "Saved", "Applications", "Messages", "Profile"][min(max(from, 0), 4)]
             backButton.setTitle(" \(title)", for: .normal)
         }
+        // A web TAB (Messages, Profile, the employer pages) has no back: its
+        // navy bar carries its title instead (design E2).
+        backButton.isHidden = webOpenedFrom == nil
         backBar.isHidden = !visible
         webTopToContent.isActive = false
         webTopToBackBar.isActive = false
@@ -464,8 +472,11 @@ class ThriveRootViewController: UIViewController, UITabBarDelegate {
         guard session == nil || role != nil, !onNoBarPage else {
             setBarVisible(false)
             bridge.setNativeNav(false, force: true)
+            // Sign-in pages and the like: no app navigation, so no navy bar.
+            if nativeIndex == nil && webOpenedFrom == nil { setBackBarVisible(false) }
             return
         }
+        if nativeIndex == nil && backBar.isHidden { setBackBarVisible(true) }
         // The app is providing navigation: the website hides its own.
         bridge.setNativeNav(true, force: true)
         let wanted = role == .employer ? ThriveRootViewController.employerTabs : ThriveRootViewController.candidateTabs
@@ -485,6 +496,8 @@ class ThriveRootViewController: UIViewController, UITabBarDelegate {
             match = tabs.firstIndex { tab in tab.matches.contains { currentPath.hasPrefix($0) } }
         }
         tabBar.selectedItem = match.flatMap { tabBar.items?[$0] }
+        // The navy bar over a web tab names it.
+        webTitle.text = (nativeIndex == nil && webOpenedFrom == nil) ? match.map { tabs[$0].title } : nil
         // The bar hides on job detail so Apply is never covered (design A2).
         setBarVisible(!(nativeIndex != nil && store.hideTabBar))
     }

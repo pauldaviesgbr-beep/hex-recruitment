@@ -32,6 +32,11 @@ async function main() {
   const withFigure = rows.filter((r: any) => Number(r.salary_min) > 0 || Number(r.salary_max) > 0).length
   check(jobs.filter(j => j.pay).length === withFigure, `pay present exactly where the row has a figure: ${withFigure}`)
   check(jobs.every(j => j.place.length > 0), 'every job has a place')
+  // Brand pass: the card's short pay and the job page's long pay, written out.
+  check(jobs.every(j => (j.payShort === null) === (j.pay === null) && (j.payLong === null) === (j.pay === null)),
+    `short and long pay exist exactly where pay does (e.g. ${jobs[0]?.payShort} / ${jobs[0]?.payLong})`)
+  check(jobs.every(j => !j.payLong || / a year$| an hour$/.test(j.payLong)), 'long pay names its period in words')
+  check(jobs.every(j => Array.isArray(j.facts)), 'every job carries its facts (type, contract)')
   // iOS parses three fractional digits reliably; Postgres gives six.
   check(jobs.every(j => j.postedAt === null || /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}Z$/.test(j.postedAt)),
     `every date is ISO with milliseconds, e.g. ${jobs[0]?.postedAt}`)

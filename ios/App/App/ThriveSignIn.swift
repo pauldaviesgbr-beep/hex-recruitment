@@ -44,7 +44,7 @@ struct SignInSheet: View {
                     if let p = panel {
                         HStack(alignment: .top, spacing: 10) {
                             Image(systemName: "exclamationmark.triangle").foregroundColor(TC.warning)
-                            Text(p).font(.system(size: 16)).foregroundColor(TC.navy).fixedSize(horizontal: false, vertical: true)
+                            Text(p).font(.inter(16)).foregroundColor(TC.navy).fixedSize(horizontal: false, vertical: true)
                         }
                         .padding(14).frame(maxWidth: .infinity, alignment: .leading)
                         .background(Color(red: 1, green: 247/255, blue: 230/255))
@@ -104,7 +104,7 @@ struct SignInSheet: View {
 
             HStack(spacing: 12) {
                 Rectangle().fill(TC.border).frame(height: 1)
-                Text("or with email").font(.system(size: 16)).foregroundColor(TC.muted).fixedSize()
+                Text("or with email").font(.inter(16)).foregroundColor(TC.muted).fixedSize()
                 Rectangle().fill(TC.border).frame(height: 1)
             }.padding(.vertical, 6)
 
@@ -116,7 +116,7 @@ struct SignInSheet: View {
             if showResetOffer {
                 if resetSent {
                     Text("Sent. Check \(email) for a link to reset your password.")
-                        .font(.system(size: 16)).foregroundColor(TC.ink2)
+                        .font(.inter(16)).foregroundColor(TC.ink2)
                 } else {
                     OutlineButton(title: "Email me a link to reset it") { sendReset() }
                 }
@@ -132,10 +132,10 @@ struct SignInSheet: View {
                     showResetOffer = true
                     resetSent = false
                 }
-                .font(.system(size: 17, weight: .semibold)).foregroundColor(TC.navy).frame(minHeight: 44)
+                .font(.inter(17, .semibold)).foregroundColor(TC.navy).frame(minHeight: 44)
                 Spacer()
                 Button("Create an account") { panel = nil; fieldError = nil; mode = .signUp }
-                    .font(.system(size: 17, weight: .semibold)).foregroundColor(TC.navy).frame(minHeight: 44)
+                    .font(.inter(17, .semibold)).foregroundColor(TC.navy).frame(minHeight: 44)
             }
         }
     }
@@ -144,7 +144,7 @@ struct SignInSheet: View {
         Button { startProvider(provider) } label: {
             HStack(spacing: 10) {
                 Image(image).resizable().frame(width: 20, height: 20)
-                Text(busy == provider ? "Opening…" : title).font(.system(size: 17, weight: .semibold)).foregroundColor(TC.navy)
+                Text(busy == provider ? "Opening…" : title).font(.inter(17, .semibold)).foregroundColor(TC.navy)
             }
             .frame(maxWidth: .infinity, minHeight: 52)
             .background(Color.white)
@@ -216,20 +216,20 @@ struct SignInSheet: View {
             }
             label("Password")
             secureField($password, content: .newPassword)
-            Text("At least 8 characters.").font(.system(size: 16)).foregroundColor(TC.muted)
+            Text("At least 8 characters.").font(.inter(16)).foregroundColor(TC.muted)
             if let fe = fieldError, fe.field == "password" { errorLine(fe.message) }
 
             PrimaryButton(title: busy == "email" ? "Creating your account…" : "Create account") { signUp() }
                 .disabled(busy != nil).padding(.top, 4)
 
             HStack(spacing: 0) {
-                Text("By creating an account you agree to our ").font(.system(size: 16)).foregroundColor(TC.ink2)
+                Text("By creating an account you agree to our ").font(.inter(16)).foregroundColor(TC.ink2)
             }
             HStack(spacing: 12) {
                 Button("Terms") { close(); store.openWeb("/terms", "Jobs") }
                 Button("Privacy policy") { close(); store.openWeb("/privacy-policy", "Jobs") }
             }
-            .font(.system(size: 16, weight: .semibold)).foregroundColor(TC.navy).frame(minHeight: 44)
+            .font(.inter(16, .semibold)).foregroundColor(TC.navy).frame(minHeight: 44)
         }
     }
 
@@ -253,14 +253,14 @@ struct SignInSheet: View {
     private func checkEmail(_ e: String, afterSignUp: Bool) -> some View {
         VStack(alignment: .leading, spacing: 14) {
             if afterSignUp {
-                Text("We sent a link to \(e).").font(.system(size: 17)).foregroundColor(TC.navy)
+                Text("We sent a link to \(e).").font(.inter(17)).foregroundColor(TC.navy)
                 Text("1. Open it on this \(ThriveDates.deviceWord). It opens in Safari and confirms your account.")
-                    .font(.system(size: 16)).foregroundColor(TC.ink2).fixedSize(horizontal: false, vertical: true)
+                    .font(.inter(16)).foregroundColor(TC.ink2).fixedSize(horizontal: false, vertical: true)
                 Text("2. Come back to Thrive and sign in.")
-                    .font(.system(size: 16)).foregroundColor(TC.ink2)
+                    .font(.inter(16)).foregroundColor(TC.ink2)
             } else {
                 Text("We sent a link to \(e). Open it, then come back here and sign in.")
-                    .font(.system(size: 17)).foregroundColor(TC.navy).fixedSize(horizontal: false, vertical: true)
+                    .font(.inter(17)).foregroundColor(TC.navy).fixedSize(horizontal: false, vertical: true)
             }
             PrimaryButton(title: "Open Mail") {
                 if let url = URL(string: "message://") { UIApplication.shared.open(url) }
@@ -275,11 +275,11 @@ struct SignInSheet: View {
                     else { panel = "That didn't send. Please try again." }
                 }
             }
-            .font(.system(size: 17, weight: .semibold)).foregroundColor(TC.navy).frame(minHeight: 44)
+            .font(.inter(17, .semibold)).foregroundColor(TC.navy).frame(minHeight: 44)
             .disabled(resendWait > 0)
             if !afterSignUp {
                 Button("Use a different email") { email = ""; password = ""; mode = .signIn; focus = .email }
-                    .font(.system(size: 17, weight: .semibold)).foregroundColor(TC.navy).frame(minHeight: 44)
+                    .font(.inter(17, .semibold)).foregroundColor(TC.navy).frame(minHeight: 44)
             }
         }
     }
@@ -287,19 +287,19 @@ struct SignInSheet: View {
     // MARK: - Pieces
 
     private func label(_ s: String) -> some View {
-        Text(s).font(.system(size: 17, weight: .semibold)).foregroundColor(TC.navy).padding(.top, 4)
+        Text(s).font(.inter(17, .semibold)).foregroundColor(TC.navy).padding(.top, 4)
     }
 
     private func errorLine(_ s: String) -> some View {
         HStack(alignment: .top, spacing: 8) {
             Image(systemName: "exclamationmark.circle").foregroundColor(TC.warning)
-            Text(s).font(.system(size: 16)).foregroundColor(TC.warning).fixedSize(horizontal: false, vertical: true)
+            Text(s).font(.inter(16)).foregroundColor(TC.warning).fixedSize(horizontal: false, vertical: true)
         }
     }
 
     private func field(_ placeholder: String, text: Binding<String>, focus f: Field, keyboard: UIKeyboardType, content: UITextContentType) -> some View {
         TextField(placeholder, text: text)
-            .font(.system(size: 17))
+            .font(.inter(17))
             .keyboardType(keyboard)
             .textContentType(content)
             .textInputAutocapitalization(f == .name ? .words : .never)
@@ -314,7 +314,7 @@ struct SignInSheet: View {
             Group {
                 if showPassword { TextField("", text: text) } else { SecureField("", text: text) }
             }
-            .font(.system(size: 17))
+            .font(.inter(17))
             .textContentType(content)
             .textInputAutocapitalization(.never)
             .disableAutocorrection(true)
@@ -356,14 +356,14 @@ struct SignedOutTab: View {
     let message: String
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 0) {
-                LargeTitle(title: title, subline: nil, trailing: AnyView(SignInTopButton(store: store)))
-                    .padding(.top, 8)
+        VStack(spacing: 0) {
+            NavyTitleBand(title: title) { SignInTopButton(store: store, onNavy: true) }
+            ScrollView {
                 EmptyState(symbol: symbol, heading: heading, message: message) {
                     PrimaryButton(title: "Sign in or create an account") { store.requireSignIn() }
                     OutlineButton(title: store.jobs.isEmpty ? "Browse jobs" : "Browse \(store.jobs.count) jobs") { store.selectTab(0) }
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
         .background(TC.page)
@@ -373,9 +373,11 @@ struct SignedOutTab: View {
 /// The "Sign in" text button where the bell goes (G1, G9).
 struct SignInTopButton: View {
     @ObservedObject var store: ThriveStore
+    /// White on the navy bars.
+    var onNavy = false
     var body: some View {
         Button("Sign in") { store.requireSignIn() }
-            .font(.system(size: 17, weight: .semibold)).foregroundColor(TC.navy)
+            .font(.inter(17, .semibold)).foregroundColor(onNavy ? .white : TC.navy)
             .frame(minWidth: 44, minHeight: 44)
     }
 }
@@ -387,7 +389,7 @@ struct SignedOutPromptCard: View {
         // Half the height it was: on a phone the full card pushed the jobs
         // below the fold for every signed-out visitor, a reviewer included.
         VStack(alignment: .leading, spacing: 10) {
-            Text("Save jobs and apply in a minute").font(.system(size: 17, weight: .semibold)).foregroundColor(TC.navy)
+            Text("Save jobs and apply in a minute").font(.inter(17, .semibold)).foregroundColor(TC.navy)
             PrimaryButton(title: "Sign in or create an account", height: 44) { store.requireSignIn() }
         }
         .padding(14).frame(maxWidth: .infinity, alignment: .leading)

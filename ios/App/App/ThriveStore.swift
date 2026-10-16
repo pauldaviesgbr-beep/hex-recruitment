@@ -31,6 +31,37 @@ final class ThriveStore: ObservableObject {
     @Published var online = true
     @Published var hideTabBar = false
 
+    // MARK: The Jobs home (design H1–H3)
+    @Published var profile: AppProfile?
+    @Published var shiftsOpen: Int?
+
+    func refreshHome() {
+        ThriveAPI.get("/shifts", token: nil, as: ShiftsResponse.self) { [weak self] r in
+            if case .success(let s) = r { self?.shiftsOpen = s.open }
+        }
+        guard let token = token() else { profile = nil; return }
+        ThriveAPI.get("/me/profile", token: token, as: AppProfile.self) { [weak self] r in
+            if case .success(let p) = r { self?.profile = p }
+        }
+    }
+
+    /// For you (H3): jobs matching the job title on their profile. The whole
+    /// title first ("Sous Chef"); if that finds fewer than three, its most
+    /// specific word ("Chef"), never a seniority word on its own.
+    func forYou(placeKey: String?) -> [AppJob] {
+        guard let title = profile?.jobTitle?.lowercased(), !title.isEmpty else { return [] }
+        let pool = filteredJobs(query: "", placeKey: placeKey)
+        var hits = pool.filter { $0.title.lowercased().contains(title) }
+        if hits.count < 3 {
+            let generic: Set<String> = ["senior", "junior", "head", "assistant", "deputy", "trainee", "commis", "and", "the", "of"]
+            let words = title.split(separator: " ").map(String.init).filter { $0.count > 3 && !generic.contains($0) }
+            if let key = words.last {
+                for j in pool where !hits.contains(j) && j.title.lowercased().contains(key) { hits.append(j) }
+            }
+        }
+        return Array(hits.prefix(3))
+    }
+
     // MARK: Signed out (design G1, G9) and the sign-in sheet (G2)
 
     /// Set by the root from the web page's session cookie.
@@ -94,6 +125,7 @@ final class ThriveStore: ObservableObject {
         refreshJobs()
         refreshSaved()
         refreshApplications()
+        refreshHome()
         syncPending()
     }
 
@@ -207,6 +239,7 @@ final class ThriveStore: ObservableObject {
         saved = []; savedUpdatedAt = nil; savedLoad = .idle
         applications = []; applicationsUpdatedAt = nil; applicationsLoad = .idle
         pending = [:]
+        profile = nil
         persistPending()
         try? FileManager.default.removeItem(at: ThriveStore.cacheDir)
     }

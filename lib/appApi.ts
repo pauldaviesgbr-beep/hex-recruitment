@@ -16,6 +16,7 @@ import type { NextRequest } from 'next/server'
 import { supabaseJobToJob } from '@/lib/types'
 import { formatJobSalary, formatJobLocation } from '@/lib/jobCard'
 import { resolveJobArea, regionName } from '@/lib/areas'
+import { formatMoney } from '@/lib/money'
 
 const URL_ = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -66,6 +67,10 @@ export type AppJob = {
   requirements: string[]
   benefits: string[]
   url: string
+  // Brand pass (design H1–H5): pay as the cards and the job page write it.
+  payShort: string | null  // "£63k", "£55k–£62k", "£12.50 an hour"
+  payLong: string | null   // "£63,000 a year", "£12.50 an hour"
+  facts: string[]          // ["Full time", "Permanent"], from employment_type
 }
 
 // Regions resolved from a place name are cached per server instance: the
@@ -123,6 +128,26 @@ export function plainText(s: string | null | undefined): string {
     .trim()
 }
 
+/** Pay for the app's cards and job page (design H1, H5). Same rounding as the
+ *  website's formatJobSalary (whole thousands a year) and the same pounds-and-
+ *  pence formatter, with the period in words as the website's new cards write it. */
+export function appPay(row: any): { payShort: string | null; payLong: string | null } {
+  const min = Number(row.salary_min) || 0
+  const max = Number(row.salary_max) || 0
+  if (min <= 0 && max <= 0) return { payShort: null, payLong: null }
+  const lo = min > 0 ? min : max
+  const single = max <= 0 || min <= 0 || min === max
+  if (row.salary_type === 'annual') {
+    const k = (n: number) => `£${(n / 1000).toFixed(0)}k`
+    const full = (n: number) => `£${Math.round(n).toLocaleString('en-GB')}`
+    return single
+      ? { payShort: k(lo), payLong: `${full(lo)} a year` }
+      : { payShort: `${k(min)}–${k(max)}`, payLong: `${full(min)}–${full(max)} a year` }
+  }
+  const text = single ? `${formatMoney(lo)} an hour` : `${formatMoney(min)}–${formatMoney(max)} an hour`
+  return { payShort: text, payLong: text }
+}
+
 function typeOf(row: any): string | null {
   const t = Array.isArray(row.employment_type) ? row.employment_type[0] : row.employment_type
   return t ? String(t).replace('-', ' ') : null
@@ -150,5 +175,9 @@ export async function toAppJob(row: any): Promise<AppJob> {
     requirements: (row.requirements || []).map(plainText).filter(Boolean),
     benefits: (row.benefits || []).map(plainText).filter(Boolean),
     url: `https://thrivecareer.co.uk/job/${row.id}`,
+    ...appPay(row),
+    facts: (Array.isArray(row.employment_type) ? row.employment_type : [row.employment_type])
+      .filter(Boolean)
+      .map((t: string) => String(t).replace('-', ' ')),
   }
 }
