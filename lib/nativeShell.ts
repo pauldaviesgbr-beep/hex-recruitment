@@ -30,3 +30,19 @@ export function isNativeApp(): boolean {
     return false
   }
 }
+
+/**
+ * TELL THE APP SOMETHING. The iOS shell registers a `thrive` message handler
+ * (ThriveBridgeViewController). Used by the native sign-in sheet to hear how a
+ * sign-in it started on this page ended. In a browser there is no handler and
+ * this does nothing. Never pass a token or a password through it.
+ */
+export function postToApp(message: Record<string, unknown>): void {
+  if (typeof window === 'undefined') return
+  try {
+    const w = window as unknown as { webkit?: { messageHandlers?: { thrive?: { postMessage: (m: unknown) => void } } } }
+    w.webkit?.messageHandlers?.thrive?.postMessage(message)
+  } catch {
+    // No app, or the handler is gone. Nothing to do.
+  }
+}

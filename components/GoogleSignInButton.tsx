@@ -26,7 +26,7 @@ interface GoogleSignInButtonProps {
  */
 export default function GoogleSignInButton({ role, className, label, next, autoRetry }: GoogleSignInButtonProps & {
   /** Set only by LoginPanel, only in the app, only once — lib/oauthRetry.ts. */
-  autoRetry?: { role: 'employer' | 'employee'; onEnded: () => void }
+  autoRetry?: { role: 'employer' | 'employee'; onEnded: (how?: 'cancelled' | 'failed') => void; attempt?: 1 | 2 }
 }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -92,7 +92,7 @@ export default function GoogleSignInButton({ role, className, label, next, autoR
         // silence — the sheet closes and nothing happens — so there is no
         // path here that leaves the button spinning or the screen unchanged.
         if (outcome.kind === 'signed-in') { navigatingRef.current = true; return } // navigation under way
-        if (outcome.kind === 'cancelled') { setLoading(false); return }
+        if (outcome.kind === 'cancelled') { cancelledRef.current = true; setLoading(false); return }
         setError(outcome.reason)
         setLoading(false)
         return
@@ -123,11 +123,12 @@ export default function GoogleSignInButton({ role, className, label, next, autoR
   // honest error instead of "Finishing sign-in…" for ever.
   const retriedRef = useRef(false)
   const navigatingRef = useRef(false)
+  const cancelledRef = useRef(false)
   useEffect(() => {
     if (!autoRetry || retriedRef.current) return
     retriedRef.current = true
-    void start(autoRetry.role, 2).finally(() => {
-      if (!navigatingRef.current) autoRetry.onEnded()
+    void start(autoRetry.role, autoRetry.attempt ?? 2).finally(() => {
+      if (!navigatingRef.current) autoRetry.onEnded(cancelledRef.current ? 'cancelled' : 'failed')
     })
     // Keyed on presence: the page decides one tick after this mounts, so
     // autoRetry arrives on a re-render. retriedRef keeps it to one press.

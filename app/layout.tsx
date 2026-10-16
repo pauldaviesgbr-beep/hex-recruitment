@@ -3,6 +3,7 @@ const FeedbackWidget = dynamic(() => import('@/components/FeedbackWidget'), { ss
 import ScrollToTop from '@/components/ScrollToTop'
 import FirstTouchCapture from '@/components/FirstTouchCapture'
 import SessionGuard from '@/components/SessionGuard'
+import NativeAuthBridge from '@/components/NativeAuthBridge'
 import { MessagesProvider } from '@/lib/MessagesContext'
 import type { Metadata, Viewport } from 'next'
 import { Inter, Dancing_Script, Fraunces } from 'next/font/google'
@@ -148,6 +149,7 @@ export default function RootLayout({
             <ScrollToTop />
             <FirstTouchCapture />
             <SessionGuard />
+            <NativeAuthBridge />
             {children}
             <FeedbackWidget />
           </MessagesProvider>
