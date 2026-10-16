@@ -10,7 +10,7 @@ import PushPriming from '@/components/PushPriming'
 import type { Conversation } from '@/lib/mockMessages'
 import styles from './ApplyNowModal.module.css'
 import { Ico } from '@/components/icons'
-import { isFixtureGuardError, FIXTURE_GUARD_MESSAGE, isCvRequiredError, CV_REQUIRED_MESSAGE, CV_UPLOAD_PATH } from '@/lib/applicationGuard'
+import { isFixtureGuardError, FIXTURE_GUARD_MESSAGE, isCvRequiredError, CV_REQUIRED_MESSAGE, cvBuilderLink } from '@/lib/applicationGuard'
 
 interface ApplyNowModalProps {
   job: Job
@@ -356,9 +356,8 @@ export default function ApplyNowModal({ job, isOpen, onClose, onSuccess }: Apply
                         <div>
                           <p className={styles.cvWarningTitle}>No CV saved</p>
                           <p className={styles.cvWarningText}>
-                            This employer requires a CV.{' '}
-                            <Link href={CV_UPLOAD_PATH} className={styles.cvLink}>Upload your CV</Link>
-                            {' '}before applying.
+                            {CV_REQUIRED_MESSAGE}{' '}
+                            <Link href={cvBuilderLink(`/job/${job.id}`)} className={styles.cvLink}>Build or upload your CV</Link>
                           </p>
                         </div>
                       </>

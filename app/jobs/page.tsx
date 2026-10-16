@@ -91,7 +91,7 @@ import {
 } from '@/lib/candidatePrefs'
 import { Ico } from '@/components/icons'
 import ReportControl from '@/components/ReportControl'
-import { isFixtureGuardError, FIXTURE_GUARD_MESSAGE, isCvRequiredError, CV_REQUIRED_MESSAGE, CV_UPLOAD_PATH } from '@/lib/applicationGuard'
+import { isFixtureGuardError, FIXTURE_GUARD_MESSAGE, isCvRequiredError, CV_REQUIRED_MESSAGE, cvBuilderLink } from '@/lib/applicationGuard'
 const categories = [{ id: 'all', label: 'All Jobs' }, ...sharedCategories]
 
 // getJobSector now lives in lib/jobSector.ts — the preference resolver needs it too.
@@ -1507,7 +1507,7 @@ function JobsPageContent() {
                     ) : applyCvRequired ? (
                       <>
                         <p className={styles.applyCvNote} role="alert"><strong>{CV_REQUIRED_MESSAGE}</strong></p>
-                        <Link href={CV_UPLOAD_PATH} className={styles.applyUpdateCvLink}>Upload your CV →</Link>
+                        <Link href={cvBuilderLink(`/jobs?id=${selectedJob.id}`)} className={styles.applyUpdateCvLink}>Build or upload your CV →</Link>
                       </>
                     ) : (
                       <>
