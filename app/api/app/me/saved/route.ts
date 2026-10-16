@@ -3,7 +3,8 @@
 // has since closed is still returned, marked isClosed, until they remove it.
 
 import { NextRequest, NextResponse } from 'next/server'
-import { userFromRequest, toAppJob, isoDate, APP_JOB_COLUMNS } from '@/lib/appApi'
+import { userFromRequest, toAppJob, isoDate } from '@/lib/appApi'
+import { advertsForOwnRows } from '@/lib/appApiAdverts'
 
 export const dynamic = 'force-dynamic'
 
@@ -21,8 +22,8 @@ export async function GET(req: NextRequest) {
   const ids = (saved || []).map(s => s.job_id)
   if (ids.length === 0) return NextResponse.json({ saved: [], fetchedAt: new Date().toISOString() })
 
-  const { data: rows } = await me.client.from('jobs').select(APP_JOB_COLUMNS).in('id', ids)
-  const byId = new Map((rows || []).map((r: any) => [r.id, r]))
+  // ids come from the user's own saved_jobs rows, read as them above.
+  const byId = await advertsForOwnRows(ids)
   const out = []
   for (const s of saved || []) {
     const row = byId.get(s.job_id)

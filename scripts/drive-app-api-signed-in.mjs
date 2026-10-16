@@ -62,6 +62,10 @@ async function main() {
     `applications match the table: ${got.length} returned, ${dbApps.length} in the table`)
   check((apps.body?.applications || []).every(a => a.statusLabel && a.stages?.length >= 1 && a.stages[0].key === 'applied'),
     'every application has a label and starts at Applied')
+  // A closed job is hidden from candidates by RLS on `jobs`; the app must still
+  // get the advert for its own applications, or "View the job" has nothing.
+  check((apps.body?.applications || []).every(a => a.job && a.job.id),
+    `every application carries its advert, closed or not (${(apps.body?.applications || []).filter(a => a.job?.isClosed).length} closed)`)
   const iso = v => v === null || /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}Z$/.test(v)
   check((apps.body?.applications || []).every(a => iso(a.appliedAt) && a.stages.every(st => iso(st.at))),
     'every application date is ISO with milliseconds (what iOS parses)')
@@ -72,7 +76,7 @@ async function main() {
   const saved0 = await call('GET', '/me/saved', s.token)
   check(saved0.status === 200, `saved 200 (got ${saved0.status})`)
   check(JSON.stringify((saved0.body?.saved || []).map(x => x.job.id).sort()) === JSON.stringify(before),
-    `saved matches the table: ${before.length}`)
+    `saved matches the table: ${before.length} in the table, ${(saved0.body?.saved || []).length} returned, ${(saved0.body?.saved || []).filter(x => x.job.isClosed).length} of them closed`)
 
   // A live job the fixture has not saved. Saving is not applying: nobody is told.
   const live = await rest(`jobs?select=id,title&status=eq.active&limit=50`)

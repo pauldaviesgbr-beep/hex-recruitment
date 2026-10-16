@@ -7,7 +7,8 @@
 // application so "View the job" works offline.
 
 import { NextRequest, NextResponse } from 'next/server'
-import { userFromRequest, toAppJob, isoDate, APP_JOB_COLUMNS } from '@/lib/appApi'
+import { userFromRequest, toAppJob, isoDate } from '@/lib/appApi'
+import { advertsForOwnRows } from '@/lib/appApiAdverts'
 import { APPLICATION_STATUS_LABELS, normalizeApplicationStatus } from '@/lib/applicationStatus'
 
 export const dynamic = 'force-dynamic'
@@ -24,10 +25,8 @@ export async function GET(req: NextRequest) {
   if (error) return NextResponse.json({ error: 'applications_unavailable' }, { status: 503 })
 
   const ids = Array.from(new Set((apps || []).map(a => a.job_id).filter(Boolean)))
-  const { data: rows } = ids.length
-    ? await me.client.from('jobs').select(APP_JOB_COLUMNS).in('id', ids)
-    : { data: [] as any[] }
-  const byId = new Map((rows || []).map((r: any) => [r.id, r]))
+  // ids come from the user's own job_applications rows, read as them above.
+  const byId = await advertsForOwnRows(ids)
 
   const out = []
   for (const a of apps || []) {
@@ -49,7 +48,7 @@ export async function GET(req: NextRequest) {
       stages,
       title: row?.title || a.job_title || '',
       company: row?.company || a.company || '',
-      employerId: (a as any).jobs?.employer_id ?? null,
+      employerId: row?.employer_id ?? (a as any).jobs?.employer_id ?? null,
       job: row ? await toAppJob(row) : null,
     })
   }
