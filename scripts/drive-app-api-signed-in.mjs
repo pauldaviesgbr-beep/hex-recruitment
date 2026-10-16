@@ -62,6 +62,9 @@ async function main() {
     `applications match the table: ${got.length} returned, ${dbApps.length} in the table`)
   check((apps.body?.applications || []).every(a => a.statusLabel && a.stages?.length >= 1 && a.stages[0].key === 'applied'),
     'every application has a label and starts at Applied')
+  const iso = v => v === null || /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}Z$/.test(v)
+  check((apps.body?.applications || []).every(a => iso(a.appliedAt) && a.stages.every(st => iso(st.at))),
+    'every application date is ISO with milliseconds (what iOS parses)')
   for (const a of apps.body?.applications || []) console.log(`     ${a.statusLabel.padEnd(12)} ${a.title} · ${a.company}${a.job?.isClosed ? ' (closed)' : ''}`)
 
   // Saved: read, add one, add it again, remove it, and end where we started.

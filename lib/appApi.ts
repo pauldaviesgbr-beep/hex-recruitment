@@ -96,6 +96,15 @@ function postedLabel(iso: string | null): string {
   return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'Europe/London' })
 }
 
+/** Dates for the app: ISO 8601 UTC with milliseconds ("2026-10-16T08:12:00.000Z").
+ *  Postgres gives microseconds and an offset, which iOS's ISO8601DateFormatter
+ *  does not reliably parse beyond three fractional digits. */
+export function isoDate(s: string | null | undefined): string | null {
+  if (!s) return null
+  const d = new Date(s)
+  return isNaN(d.getTime()) ? null : d.toISOString()
+}
+
 // The native screens show plain text. One live advert carries HTML (measured
 // 16 Oct 2026: 1 of 119), so tags become line breaks or nothing and the common
 // entities are decoded, rather than the app printing "<p>".
@@ -120,7 +129,7 @@ export async function toAppJob(row: any): Promise<AppJob> {
   const job = supabaseJobToJob(row)
   const hasPay = Number(row.salary_min) > 0 || Number(row.salary_max) > 0
   const regionKey = await regionFor(row)
-  const posted = row.posted_at || row.created_at || null
+  const posted = isoDate(row.posted_at || row.created_at)
   return {
     id: row.id,
     title: row.title,

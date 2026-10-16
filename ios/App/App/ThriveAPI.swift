@@ -38,8 +38,8 @@ enum ThriveAPI {
         URLSession.shared.dataTask(with: req) { data, response, error in
             let status = (response as? HTTPURLResponse)?.statusCode ?? 0
             let result: Result<Data, Failure>
-            if let urlError = error as? URLError,
-               [.notConnectedToInternet, .networkConnectionLost, .dataNotAllowed].contains(urlError.code) {
+            let offlineCodes: [URLError.Code] = [.notConnectedToInternet, .networkConnectionLost, .dataNotAllowed]
+            if let urlError = error as? URLError, offlineCodes.contains(urlError.code) {
                 result = .failure(.offline)
             } else if status == 401 {
                 result = .failure(.signedOut)

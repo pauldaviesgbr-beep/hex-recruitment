@@ -32,6 +32,9 @@ async function main() {
   const withFigure = rows.filter((r: any) => Number(r.salary_min) > 0 || Number(r.salary_max) > 0).length
   check(jobs.filter(j => j.pay).length === withFigure, `pay present exactly where the row has a figure: ${withFigure}`)
   check(jobs.every(j => j.place.length > 0), 'every job has a place')
+  // iOS parses three fractional digits reliably; Postgres gives six.
+  check(jobs.every(j => j.postedAt === null || /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}Z$/.test(j.postedAt)),
+    `every date is ISO with milliseconds, e.g. ${jobs[0]?.postedAt}`)
   const tag = /<[a-z/][^>]*>/i
   const rawHtml = rows.filter((r: any) => tag.test(r.full_description || r.description || '')).length
   check(jobs.every(j => !tag.test(j.about) && ![...j.responsibilities, ...j.requirements, ...j.benefits].some(t => tag.test(t))),

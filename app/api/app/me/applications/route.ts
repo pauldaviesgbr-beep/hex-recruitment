@@ -7,7 +7,7 @@
 // application so "View the job" works offline.
 
 import { NextRequest, NextResponse } from 'next/server'
-import { userFromRequest, toAppJob, APP_JOB_COLUMNS } from '@/lib/appApi'
+import { userFromRequest, toAppJob, isoDate, APP_JOB_COLUMNS } from '@/lib/appApi'
 import { APPLICATION_STATUS_LABELS, normalizeApplicationStatus } from '@/lib/applicationStatus'
 
 export const dynamic = 'force-dynamic'
@@ -33,10 +33,10 @@ export async function GET(req: NextRequest) {
   for (const a of apps || []) {
     const status = normalizeApplicationStatus(a.status)
     const stages: { key: string; label: string; at: string | null }[] = [
-      { key: 'applied', label: APPLICATION_STATUS_LABELS.applied, at: a.applied_at },
+      { key: 'applied', label: APPLICATION_STATUS_LABELS.applied, at: isoDate(a.applied_at) },
     ]
-    if (a.viewed_at || status !== 'applied') stages.push({ key: 'viewed', label: APPLICATION_STATUS_LABELS.viewed, at: a.viewed_at })
-    if (a.shortlisted_at) stages.push({ key: 'shortlisted', label: APPLICATION_STATUS_LABELS.shortlisted, at: a.shortlisted_at })
+    if (a.viewed_at || status !== 'applied') stages.push({ key: 'viewed', label: APPLICATION_STATUS_LABELS.viewed, at: isoDate(a.viewed_at) })
+    if (a.shortlisted_at) stages.push({ key: 'shortlisted', label: APPLICATION_STATUS_LABELS.shortlisted, at: isoDate(a.shortlisted_at) })
     if (!['applied', 'viewed', 'shortlisted'].includes(status)) {
       stages.push({ key: status, label: APPLICATION_STATUS_LABELS[status], at: null })
     }
@@ -45,7 +45,7 @@ export async function GET(req: NextRequest) {
       id: a.id,
       status,
       statusLabel: APPLICATION_STATUS_LABELS[status],
-      appliedAt: a.applied_at,
+      appliedAt: isoDate(a.applied_at),
       stages,
       title: row?.title || a.job_title || '',
       company: row?.company || a.company || '',

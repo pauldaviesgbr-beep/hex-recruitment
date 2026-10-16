@@ -3,7 +3,7 @@
 // has since closed is still returned, marked isClosed, until they remove it.
 
 import { NextRequest, NextResponse } from 'next/server'
-import { userFromRequest, toAppJob, APP_JOB_COLUMNS } from '@/lib/appApi'
+import { userFromRequest, toAppJob, isoDate, APP_JOB_COLUMNS } from '@/lib/appApi'
 
 export const dynamic = 'force-dynamic'
 
@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
   for (const s of saved || []) {
     const row = byId.get(s.job_id)
     if (!row) continue
-    out.push({ savedAt: s.saved_at, job: await toAppJob(row) })
+    out.push({ savedAt: isoDate(s.saved_at), job: await toAppJob(row) })
   }
   return NextResponse.json({ saved: out, fetchedAt: new Date().toISOString() }, { headers: { 'Cache-Control': 'no-store' } })
 }
