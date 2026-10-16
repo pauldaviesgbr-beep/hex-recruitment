@@ -84,7 +84,8 @@
     "pushtest:prove": "npx tsx scripts/prove-push-test-hidden.ts",
     "appstore:capture": "node scripts/capture-app-store-shots.mjs",
     "board": "node scripts/board-count.mjs",
-    "democrop:prove": "node scripts/prove-demo-crop.mjs"
+    "democrop:prove": "node scripts/prove-demo-crop.mjs",
+    "appapi:prove": "tsx scripts/prove-app-api.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.98.0",
