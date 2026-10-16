@@ -259,7 +259,6 @@ export function cardModelFromJob(job: Job): FeedCardModel {
   const employmentBadges = Array.isArray(job.employmentType)
     ? job.employmentType.slice(0, 2)
     : (job.employmentType ? [job.employmentType] : [])
-  const easyApply = !job.tags?.includes('CV required') && !job.tags?.includes('Cover letter required')
 
   return {
     id: job.id,
@@ -295,7 +294,13 @@ export function cardModelFromJob(job: Job): FeedCardModel {
       //
       // IT WOULD EARN ITS PLACE AGAIN the day applying becomes possible from
       // the card itself — that is the condition to re-check, not the ratio.
-      ...(easyApply ? [{ label: 'Easy apply', accent: true }] : []),
+      // "EASY APPLY" WAS REMOVED 16 Oct 2026. Nothing set it: it showed on any
+      // advert WITHOUT a "CV required" / "Cover letter required" tag, which was
+      // all 119 live adverts, so it distinguished nothing. Then Goldenkeys
+      // started requiring a CV through employer_profiles.requires_cv, which
+      // tags cannot see, and the badge became FALSE on all 98 of their cards.
+      // The job-cards redesign drops it too. If it ever comes back it must ask
+      // job_requires_cv(), not the tags.
     ],
 
     // THE NO-PHOTOGRAPH PANEL. Computed here rather than in the card because
