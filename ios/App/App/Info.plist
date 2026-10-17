@@ -102,7 +102,7 @@
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Thrive needs access to your photos so you can add a profile picture or an image to a shift you are posting.</string>
 	<key>NSCameraUsageDescription</key>
-	<string>Thrive needs access to your camera so you can take a profile picture or photograph an image for a shift you are posting.</string>
+	<string>Thrive uses your camera to scan a paper CV onto your profile, take a profile picture, or photograph an image for a shift you are posting. Scans are not saved to your Photos.</string>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>

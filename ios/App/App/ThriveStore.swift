@@ -47,13 +47,31 @@ final class ThriveStore: ObservableObject {
     @Published var profile: AppProfile?
     @Published var shiftsOpen: Int?
 
+    // MARK: Native Profile (build 17 review, D6/D7) — logic in ThriveProfile.swift
+    @Published var profileLoad: Load = .idle
+    @Published var scan: ScanState = .none
+    @Published var cvAddedAt: Date?          // shows "CV added" for a few seconds
+    /// Thumbnails of the pages just scanned (D3). The PDF itself is a file in
+    /// the app's private storage (ThriveStore.pendingScanFile), never Photos.
+    var scanPages: [UIImage] = []
+    var scanUpload: URLSessionUploadTask?
+    var scanProgress: NSKeyValueObservation?
+
     func refreshHome() {
         ThriveAPI.get("/shifts", token: nil, as: ShiftsResponse.self) { [weak self] r in
             if case .success(let s) = r { self?.shiftsOpen = s.open }
         }
-        guard let token = token() else { profile = nil; return }
+        refreshProfile()
+    }
+
+    func refreshProfile() {
+        guard let token = token() else { profile = nil; profileLoad = .idle; return }
+        if profile == nil { profileLoad = .loading }
         ThriveAPI.get("/me/profile", token: token, as: AppProfile.self) { [weak self] r in
-            if case .success(let p) = r { self?.profile = p }
+            switch r {
+            case .success(let p): self?.profile = p; self?.profileLoad = .loaded
+            case .failure: if self?.profile == nil { self?.profileLoad = .failed }
+            }
         }
     }
 
@@ -267,7 +285,10 @@ final class ThriveStore: ObservableObject {
         saved = []; savedUpdatedAt = nil; savedLoad = .idle
         applications = []; applicationsUpdatedAt = nil; applicationsLoad = .idle
         pending = [:]
-        profile = nil
+        profile = nil; profileLoad = .idle
+        // A waiting scan goes too (design rule); its file is in cacheDir.
+        scanUpload?.cancel(); scanUpload = nil; scanProgress = nil
+        scanPages = []; scan = .none; cvAddedAt = nil
         persistPending()
         try? FileManager.default.removeItem(at: ThriveStore.cacheDir)
     }
@@ -284,7 +305,7 @@ final class ThriveStore: ObservableObject {
         var applicationsUpdatedAt: Date?
     }
 
-    private static var cacheDir: URL {
+    static var cacheDir: URL {
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         return base.appendingPathComponent("thrive-cache", isDirectory: true)
     }
