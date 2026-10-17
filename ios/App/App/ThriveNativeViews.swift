@@ -252,14 +252,21 @@ struct JobsScreen: View {
     @ObservedObject var store: ThriveStore
     /// H4 is opened from the home with its search text, and goes back to it.
     var initialQuery: String = ""
+    /// Opened from the home's Shifts row: temp work only (the Shifts chip toggles it).
+    var initialShiftsOnly = false
     var back: (() -> Void)? = nil
     @Environment(\.horizontalSizeClass) private var hSize
     @State private var query = ""
     @State private var seeded = false
+    @State private var shiftsOnly = false
     @State private var selection: String?
     @State private var showWhere = false
 
-    private var list: [AppJob] { store.filteredJobs(query: store.online ? query : "", placeKey: store.placeKey) }
+    private var list: [AppJob] {
+        let all = store.filteredJobs(query: store.online ? query : "", placeKey: store.placeKey)
+        // Temp work, as the website's /temp-work counts it: adverts marked Temporary.
+        return shiftsOnly ? all.filter { ($0.facts ?? []).contains("Temporary") } : all
+    }
 
     private var subline: String {
         if let place = store.placeLabel { return "\(list.count) \(list.count == 1 ? "job" : "jobs") in \(place)" }
@@ -284,7 +291,7 @@ struct JobsScreen: View {
         }
         .navigationSplitViewStyle(.balanced)
         .onAppear {
-            if !seeded { query = initialQuery; seeded = true }
+            if !seeded { query = initialQuery; shiftsOnly = initialShiftsOnly; seeded = true }
             if store.jobs.isEmpty || store.jobsLoad != .loaded { store.refreshJobs() }
             openFirstOnPad()
         }
@@ -301,7 +308,9 @@ struct JobsScreen: View {
 
     /// H4's count line: "119 jobs · newest first", or "14 jobs in London".
     private var countLine: String {
-        let n = "\(list.count) \(list.count == 1 ? "job" : "jobs")"
+        let n = shiftsOnly
+            ? "\(list.count) temp \(list.count == 1 ? "job" : "jobs")"
+            : "\(list.count) \(list.count == 1 ? "job" : "jobs")"
         if let place = store.placeLabel { return "\(n) in \(place)" }
         return "\(n) · newest first"
     }
@@ -328,6 +337,12 @@ struct JobsScreen: View {
                 } else {
                     SkeletonCards().plainRow()
                 }
+            } else if list.isEmpty && shiftsOnly && query.isEmpty && store.placeKey == nil {
+                // F1: none open. No example shifts and no "notify me".
+                EmptyState(symbol: "calendar", heading: "No shifts open right now",
+                           message: "Short-notice and temp shifts from local employers appear here, with the day and hours up front.") {
+                    OutlineButton(title: "See \(store.jobs.count) jobs") { shiftsOnly = false }
+                }.plainRow()
             } else if list.isEmpty {
                 noResults.plainRow()
             } else {
@@ -378,12 +393,20 @@ struct JobsScreen: View {
             if !store.jobs.isEmpty {
                 HStack(spacing: 10) {
                     whereButton
-                    Button { store.openWeb("/temp-work", "Jobs") } label: {
-                        Text("Shifts").font(.inter(16, .semibold)).foregroundColor(.white)
-                            .padding(.horizontal, 16).frame(minHeight: 44)
-                            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.white.opacity(0.4), lineWidth: 1))
-                            .contentShape(RoundedRectangle(cornerRadius: 12))
+                    // H4: Shifts toggles a filter. On, it is a soft white chip with a tick.
+                    Button { shiftsOnly.toggle() } label: {
+                        HStack(spacing: 6) {
+                            if shiftsOnly { Image(systemName: "checkmark").font(.system(size: 13, weight: .bold)) }
+                            Text("Shifts").font(.inter(16, .semibold))
+                        }
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 16).frame(minHeight: 44)
+                        .background(shiftsOnly ? Color.white.opacity(0.12) : Color.clear)
+                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.white.opacity(shiftsOnly ? 0 : 0.4), lineWidth: 1))
+                        .cornerRadius(12)
+                        .contentShape(RoundedRectangle(cornerRadius: 12))
                     }
+                    .accessibilityAddTraits(shiftsOnly ? .isSelected : [])
                     .buttonStyle(.plain)
                     Spacer(minLength: 0)
                 }

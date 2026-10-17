@@ -66,6 +66,8 @@ struct HomeScreen: View {
     @ObservedObject var store: ThriveStore
     /// Push the full list (H4) with this search text.
     let openAll: (String) -> Void
+    /// The full list filtered to temp work (H2's Shifts row).
+    let openShifts: () -> Void
     let openJob: (AppJob) -> Void
 
     @State private var query = ""
@@ -92,6 +94,11 @@ struct HomeScreen: View {
                     }
                 }
                 .coordinateSpace(name: "home")
+                .safeAreaInset(edge: .top, spacing: 0) {
+                    // Paints the status bar area navy (the background extends
+                    // into the safe area), so the band never slides under the clock.
+                    Color.clear.frame(height: 0).background(TC.navy)
+                }
                 .onPreferenceChange(BandBottomKey.self) { bandGone = $0 < 40 }
                 .refreshable { store.refreshJobs(); store.refreshHome() }
                 // Navy behind the status bar and above the band, including the
@@ -283,7 +290,7 @@ struct HomeScreen: View {
     }
 
     private var shiftsRow: some View {
-        Button { store.openWeb("/temp-work", "Jobs") } label: {
+        Button { openShifts() } label: {
             HStack(spacing: 14) {
                 Image(systemName: "calendar").font(.system(size: 20, weight: .semibold)).foregroundColor(.white)
                     .frame(width: 44, height: 44).background(TC.navy).cornerRadius(10)
@@ -351,15 +358,17 @@ struct JobsTab: View {
     @ObservedObject var store: ThriveStore
     @State private var showAll = false
     @State private var allQuery = ""
+    @State private var shiftsOnly = false
     @State private var path: [AppJob] = []
 
     var body: some View {
         if showAll {
-            JobsScreen(store: store, initialQuery: allQuery, back: { showAll = false })
+            JobsScreen(store: store, initialQuery: allQuery, initialShiftsOnly: shiftsOnly, back: { showAll = false })
         } else {
             NavigationStack(path: $path) {
                 HomeScreen(store: store,
-                           openAll: { q in allQuery = q; showAll = true },
+                           openAll: { q in allQuery = q; shiftsOnly = false; showAll = true },
+                           openShifts: { allQuery = ""; shiftsOnly = true; showAll = true },
                            openJob: { job in path.append(job) })
                     .navigationDestination(for: AppJob.self) { job in
                         JobDetailScreen(store: store, job: job, backTitle: "Jobs")
