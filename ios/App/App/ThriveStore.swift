@@ -57,6 +57,13 @@ final class ThriveStore: ObservableObject {
     var scanUpload: URLSessionUploadTask?
     var scanProgress: NSKeyValueObservation?
 
+    // MARK: Native Settings (design S1–S3) — logic in ThriveSettings.swift
+    @Published var settings: AppSettings?
+    @Published var settingsFailed = false
+    /// Signs out through the website (root sets it). true = the account was
+    /// just deleted, so Jobs says so.
+    var signOut: (_ deleted: Bool) -> Void = { _ in }
+
     func refreshHome() {
         ThriveAPI.get("/shifts", token: nil, as: ShiftsResponse.self) { [weak self] r in
             if case .success(let s) = r { self?.shiftsOpen = s.open }
@@ -289,6 +296,7 @@ final class ThriveStore: ObservableObject {
         // A waiting scan goes too (design rule); its file is in cacheDir.
         scanUpload?.cancel(); scanUpload = nil; scanProgress = nil
         scanPages = []; scan = .none; cvAddedAt = nil
+        settings = nil; settingsFailed = false
         persistPending()
         try? FileManager.default.removeItem(at: ThriveStore.cacheDir)
     }

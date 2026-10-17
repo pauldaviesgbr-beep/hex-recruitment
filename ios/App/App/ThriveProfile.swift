@@ -157,10 +157,20 @@ struct ProfileScreen: View {
     @State private var showScanSheet = false
     @State private var showReplace = false
     @State private var opening = false
+    @State private var showSettings = false
 
     private var p: AppProfile? { store.profile }
 
     var body: some View {
+        NavigationStack {
+            content
+                .toolbar(.hidden, for: .navigationBar)
+                .navigationDestination(isPresented: $showSettings) { SettingsScreen(store: store) }
+        }
+        .onChange(of: store.signedIn) { s in if !s { showSettings = false } }
+    }
+
+    private var content: some View {
         VStack(spacing: 0) {
             band
             ScrollView {
@@ -188,7 +198,7 @@ struct ProfileScreen: View {
                             Divider().background(TC.hairline).padding(.leading, 16)
                             plainRow("Company reviews") { store.openWeb("/reviews", "Profile") }
                             Divider().background(TC.hairline).padding(.leading, 16)
-                            plainRow("Settings") { store.openWeb("/settings", "Profile") }
+                            plainRow("Settings") { showSettings = true }
                         }
                         .background(Color.white).cornerRadius(16)
                         .overlay(RoundedRectangle(cornerRadius: 16).stroke(TC.border, lineWidth: 1))
