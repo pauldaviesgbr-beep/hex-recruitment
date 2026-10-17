@@ -34,8 +34,8 @@ import { callbackErrorCopy } from '@/lib/loginErrors'
 import GoogleSignInButton from '@/components/GoogleSignInButton'
 import LinkedInSignInButton from '@/components/LinkedInSignInButton'
 import AppleSignInButton from '@/components/AppleSignInButton'
-import { isNativeApp } from '@/lib/nativeShell'
-import { shouldAutoRetry, claimRetry, FINISHING_COPY, type RetryableProvider } from '@/lib/oauthRetry'
+import { isNativeApp, postToApp } from '@/lib/nativeShell'
+import { shouldAutoRetry, claimRetry, FINISHING_COPY, RETRYABLE_PROVIDERS, type RetryableProvider } from '@/lib/oauthRetry'
 import { safeInternalPath } from '@/lib/safeRedirect'
 import { loginErrorCopy } from '@/lib/loginErrors'
 import { getPendingConfirm, setPendingConfirm, clearPendingConfirm } from '@/lib/pendingConfirm'
@@ -141,11 +141,47 @@ export default function LoginPanel({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
   const retryEnded = () => setRetryState({ phase: 'none' })
+
+  // THE APP'S NATIVE SIGN-IN SHEET (iOS, design G2). Its Apple, Google and
+  // LinkedIn buttons load this page, hidden behind the native screen, with
+  // ?native_start=<provider>, and this presses the same button a person would
+  // — attempt 1, the proven path, nothing re-implemented. Only inside the app;
+  // the parameter is removed at once so a reload cannot start a second flow.
+  // How it ended goes back to the sheet through postToApp.
+  const [nativeStart, setNativeStart] = useState<RetryableProvider | null>(null)
+  useEffect(() => {
+    if (!isNativeApp()) return
+    const url = new URL(window.location.href)
+    const p = url.searchParams.get('native_start')
+    if (!p) return
+    url.searchParams.delete('native_start')
+    window.history.replaceState(null, '', url.pathname + url.search)
+    if ((RETRYABLE_PROVIDERS as readonly string[]).includes(p)) setNativeStart(p as RetryableProvider)
+  }, [])
+
   const autoRetryFor = (p: RetryableProvider) =>
     retryState.phase === 'running' && retryState.provider === p
       ? { role: retryState.role, onEnded: retryEnded }
+      : nativeStart === p
+      ? {
+          role: 'employee' as const,
+          attempt: 1 as const,
+          onEnded: (how?: 'cancelled' | 'failed') => {
+            setNativeStart(null)
+            postToApp({ event: 'signin-ended', how: how || 'failed' })
+          },
+        }
       : undefined
   const callbackNotice = retryState.phase === 'none' ? callbackErrorCopy(authError) : null
+
+  // A provider sign-in that failed at our callback lands here with ?error=.
+  // In the app the page is hidden behind the sheet, so the sheet is told the
+  // site's own sentence for it.
+  useEffect(() => {
+    if (!isNativeApp()) return
+    if (callbackNotice) postToApp({ event: 'signin-ended', how: 'failed', message: callbackNotice })
+    else if (roleNotice) postToApp({ event: 'signin-ended', how: 'failed', message: roleNotice })
+  }, [callbackNotice, roleNotice])
   const handleResend = async () => {
     if (!pendingEmail) return
     setResend('sending')

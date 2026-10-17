@@ -290,6 +290,7 @@ export default function EmployerSidebar() {
       {!hideHamburger && (
         <button
           className={styles.mobileToggle}
+          data-sidebar-toggle=""
           onClick={() => setMobileOpen(true)}
           aria-label="Open navigation"
         >

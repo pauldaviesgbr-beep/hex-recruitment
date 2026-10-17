@@ -109,7 +109,9 @@ async function main() {
   // The retry's callback carries attempt=2, so its own failure cannot offer.
   for (const f of ['Google', 'Apple', 'LinkedIn']) {
     const src = code(`components/${f}SignInButton.tsx`)
-    check(`${f}: the automatic press is attempt 2`, /void start\(autoRetry\.role, 2\)/.test(src))
+    // The press is autoRetry.attempt, DEFAULTING to 2. Only the app's native
+    // sign-in sheet passes 1 (its first press is a first attempt) — asserted in 5.
+    check(`${f}: the automatic press is attempt 2 unless told otherwise`, /void start\(autoRetry\.role, autoRetry\.attempt \?\? 2\)/.test(src))
     check(`${f}: a tap is attempt 1`, /onClick=\{\(\) => \{ void start\(role, 1\) \}\}/.test(src))
     check(`${f}: a ref holds the automatic press to one`, /if \(!autoRetry \|\| retriedRef\.current\) return\s*\n\s*retriedRef\.current = true/.test(src))
   }
@@ -172,9 +174,16 @@ async function main() {
   check('every non-navigating end of the retry hands back (onEnded)',
     ['Google', 'Apple', 'LinkedIn'].every(f => {
       const src = code(`components/${f}SignInButton.tsx`)
-      return /\.finally\(\(\) => \{\s*\n\s*if \(!navigatingRef\.current\) autoRetry\.onEnded\(\)/.test(src) &&
+      return /\.finally\(\(\) => \{\s*\n\s*if \(!navigatingRef\.current\) autoRetry\.onEnded\(cancelledRef\.current \? 'cancelled' : 'failed'\)/.test(src) &&
         /if \(outcome\.kind === 'signed-in'\) \{ navigatingRef\.current = true; return \}/.test(src)
     }))
+  // THE RETRY ITSELF STAYS ATTEMPT 2: its autoRetry object names no attempt,
+  // and the only `attempt: 1` on the page belongs to the native sheet's start.
+  check('the retry passes no attempt, so it presses as attempt 2',
+    /\? \{ role: retryState\.role, onEnded: retryEnded \}/.test(panel))
+  check('attempt 1 appears once, in the native sheet branch only',
+    (panel.match(/attempt: 1 as const/g) || []).length === 1 &&
+    /: nativeStart === p\s*\r?\n\s*\? \{\s*\r?\n\s*role: 'employee' as const,\s*\r?\n\s*attempt: 1 as const/.test(panel))
   check('Apple switched off hands back at once rather than spinning',
     /if \(!appleSignInEnabled\(\)\) \{ autoRetry\.onEnded\(\); return \}/.test(code('components/AppleSignInButton.tsx')))
 

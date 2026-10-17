@@ -700,6 +700,7 @@ export default function Header() {
           sat on top of the sheet, over the avatar. The header's own context
           is what has to move, and only while it is hosting the sheet. */}
       <header
+        data-site-header=""
         className={`${styles.header} ${(showSidebar || showCandidateSidebar) ? styles.headerEmployer : ''} ${showProfileMenu ? styles.headerSheetOpen : ''}`}
         style={DEV_MODE ? { marginTop: '40px' } : undefined}
       >

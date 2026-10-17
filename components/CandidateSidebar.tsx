@@ -159,6 +159,7 @@ export default function CandidateSidebar() {
       {!hideHamburger && (
         <button
           className={styles.mobileToggle}
+          data-sidebar-toggle=""
           onClick={() => setMobileOpen(prev => !prev)}
           aria-label={mobileOpen ? 'Close navigation' : 'Open navigation'}
         >
@@ -187,7 +188,7 @@ export default function CandidateSidebar() {
         />
       )}
 
-      <aside ref={sidebarRef} className={`${styles.sidebar} ${collapsed ? styles.collapsed : styles.expanded} ${mobileOpen ? styles.mobileOpen : ''}`}>
+      <aside ref={sidebarRef} data-candidate-rail="" className={`${styles.sidebar} ${collapsed ? styles.collapsed : styles.expanded} ${mobileOpen ? styles.mobileOpen : ''}`}>
         <div className={styles.navSpacer} />
         <div className={styles.header}>
           <span className={styles.menuLabel}>Menu</span>

@@ -43,11 +43,18 @@ func statusColours(_ status: String) -> (bg: Color, fg: Color) {
 struct LargeTitle: View {
     let title: String
     let subline: String?
+    /// Something on the title's own row, right-aligned (e.g. "Sign in"),
+    /// so it does not cost a row of its own above the title.
+    var trailing: AnyView? = nil
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(title).font(.system(size: 32, weight: .bold)).tracking(-0.8).foregroundColor(TC.navy)
+            HStack(alignment: .firstTextBaseline) {
+                Text(title).font(.inter(32, .bold)).tracking(-0.8).foregroundColor(TC.navy)
+                Spacer(minLength: 8)
+                if let trailing = trailing { trailing }
+            }
             if let s = subline, !s.isEmpty {
-                Text(s).font(.system(size: 16)).foregroundColor(TC.ink2)
+                Text(s).font(.inter(16)).foregroundColor(TC.ink2)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -63,8 +70,8 @@ struct NavyBanner: View {
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: "wifi.slash").font(.system(size: 20, weight: .semibold)).foregroundColor(.white)
             VStack(alignment: .leading, spacing: 4) {
-                Text(heading).font(.system(size: 17, weight: .semibold)).foregroundColor(.white)
-                Text(message).font(.system(size: 16)).foregroundColor(TC.bannerText)
+                Text(heading).font(.inter(17, .semibold)).foregroundColor(.white)
+                Text(message).font(.inter(16)).foregroundColor(TC.bannerText)
                     .fixedSize(horizontal: false, vertical: true)
             }
             Spacer(minLength: 0)
@@ -78,11 +85,12 @@ struct NavyBanner: View {
 struct PrimaryButton: View {
     let title: String
     var yellow = false
+    var height: CGFloat = 52
     let action: () -> Void
     var body: some View {
         Button(action: action) {
-            Text(title).font(.system(size: 17, weight: .semibold))
-                .frame(maxWidth: .infinity, minHeight: 52)
+            Text(title).font(.inter(17, .semibold))
+                .frame(maxWidth: .infinity, minHeight: height)
                 .foregroundColor(yellow ? TC.navy : .white)
                 .background(yellow ? TC.yellow : TC.navy).cornerRadius(14)
         }.buttonStyle(.plain)
@@ -94,7 +102,7 @@ struct OutlineButton: View {
     let action: () -> Void
     var body: some View {
         Button(action: action) {
-            Text(title).font(.system(size: 17, weight: .semibold)).foregroundColor(TC.navy)
+            Text(title).font(.inter(17, .semibold)).foregroundColor(TC.navy)
                 .frame(maxWidth: .infinity, minHeight: 52)
                 .background(Color.white)
                 .overlay(RoundedRectangle(cornerRadius: 14).stroke(TC.navy, lineWidth: 1.5))
@@ -112,8 +120,8 @@ struct EmptyState<Buttons: View>: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Image(systemName: symbol).font(.system(size: 28, weight: .semibold)).foregroundColor(symbolColour)
-            Text(heading).font(.system(size: 22, weight: .semibold)).foregroundColor(TC.navy)
-            Text(message).font(.system(size: 16)).foregroundColor(TC.ink2).fixedSize(horizontal: false, vertical: true)
+            Text(heading).font(.inter(22, .semibold)).foregroundColor(TC.navy)
+            Text(message).font(.inter(16)).foregroundColor(TC.ink2).fixedSize(horizontal: false, vertical: true)
             VStack(spacing: 10) { buttons() }.padding(.top, 6)
         }
         .padding(20)
@@ -169,20 +177,25 @@ struct Card<Content: View>: View {
             .cornerRadius(16)
             .overlay(
                 RoundedRectangle(cornerRadius: 16)
-                    .stroke(selected ? TC.navy : (closed ? TC.soft : TC.border),
-                            style: StrokeStyle(lineWidth: selected ? 1.5 : 1, dash: closed ? [5, 4] : []))
+                    .stroke(selected ? TC.navy : TC.border, lineWidth: selected ? 1.5 : 1)
             )
+            // H6: a closed job carries a 3px warning edge on the left.
+            .overlay(alignment: .leading) {
+                if closed { Rectangle().fill(TC.warning).frame(width: 3).padding(.vertical, 1) }
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 16))
     }
 }
 
 struct BookmarkButton: View {
     @ObservedObject var store: ThriveStore
     let job: AppJob
+    var tint: Color = TC.navy
     var body: some View {
         let on = store.isSaved(job.id)
         Button { store.toggleSave(job) } label: {
             Image(systemName: on ? "bookmark.fill" : "bookmark")
-                .font(.system(size: 22, weight: .regular)).foregroundColor(TC.navy)
+                .font(.inter(22, .regular)).foregroundColor(tint)
                 .frame(width: 44, height: 44)
         }
         .buttonStyle(.borderless)
@@ -200,25 +213,36 @@ struct JobCard: View {
     var selected = false
     var showBookmark = true
     var body: some View {
+        // TEXT-LED, LIKE THE WEBSITE'S NEW CARDS (design handoff 17): the role,
+        // then pay as the second-loudest thing, then a quiet line saying who
+        // and how fresh. "Full time" is left to the job page: 115 of 119 live
+        // jobs say it, so on a card it tells nobody anything.
         Card(selected: selected) {
             HStack(alignment: .top, spacing: 8) {
-                VStack(alignment: .leading, spacing: 5) {
-                    HStack(spacing: 8) {
-                        Text(job.title).font(.system(size: 18, weight: .semibold)).foregroundColor(TC.navy)
-                            .fixedSize(horizontal: false, vertical: true)
+                VStack(alignment: .leading, spacing: 6) {
+                    if job.isNew {
+                        Text("NEW").font(.inter(13, .semibold)).tracking(0.8).foregroundColor(TC.navy)
+                            .padding(.horizontal, 7).padding(.vertical, 3)
+                            .background(TC.hairline).cornerRadius(6)
                     }
-                    Text("\(job.company) · \(job.place)").font(.system(size: 16)).foregroundColor(TC.ink2)
-                    HStack(spacing: 6) {
-                        if job.isNew {
-                            Text("New").font(.system(size: 16, weight: .semibold)).foregroundColor(TC.navy)
-                        }
-                        Text(jobMeta(job)).font(.system(size: 16)).foregroundColor(TC.muted)
-                    }
+                    Text(job.title).font(.inter(18, .semibold)).foregroundColor(TC.navy)
+                        .fixedSize(horizontal: false, vertical: true)
+                    payAndPlace
+                    Text([job.company, job.postedLabel].filter { !$0.isEmpty }.joined(separator: " · "))
+                        .font(.inter(16)).foregroundColor(TC.muted)
                 }
                 Spacer(minLength: 0)
                 if showBookmark { BookmarkButton(store: store, job: job).padding(.top, -10).padding(.trailing, -10) }
             }
         }
+    }
+
+    private var payAndPlace: Text {
+        if let pay = job.pay {
+            return Text(pay).font(.inter(17, .bold)).foregroundColor(TC.navy)
+                + Text(" · \(job.place)").font(.inter(16)).foregroundColor(TC.ink2)
+        }
+        return Text(job.place).font(.inter(16)).foregroundColor(TC.ink2)
     }
 }
 
@@ -226,8 +250,12 @@ struct JobCard: View {
 
 struct JobsScreen: View {
     @ObservedObject var store: ThriveStore
+    /// H4 is opened from the home with its search text, and goes back to it.
+    var initialQuery: String = ""
+    var back: (() -> Void)? = nil
     @Environment(\.horizontalSizeClass) private var hSize
     @State private var query = ""
+    @State private var seeded = false
     @State private var selection: String?
     @State private var showWhere = false
 
@@ -242,7 +270,7 @@ struct JobsScreen: View {
     var body: some View {
         NavigationSplitView {
             sidebar
-                .navigationTitle("Jobs")
+                .navigationTitle("All jobs")
                 .toolbar(.hidden, for: .navigationBar)
                 .navigationSplitViewColumnWidth(min: 340, ideal: 400, max: 420)
         } detail: {
@@ -256,6 +284,7 @@ struct JobsScreen: View {
         }
         .navigationSplitViewStyle(.balanced)
         .onAppear {
+            if !seeded { query = initialQuery; seeded = true }
             if store.jobs.isEmpty || store.jobsLoad != .loaded { store.refreshJobs() }
             openFirstOnPad()
         }
@@ -270,21 +299,22 @@ struct JobsScreen: View {
         if hSize == .regular, selection == nil { selection = list.first?.id }
     }
 
+    /// H4's count line: "119 jobs · newest first", or "14 jobs in London".
+    private var countLine: String {
+        let n = "\(list.count) \(list.count == 1 ? "job" : "jobs")"
+        if let place = store.placeLabel { return "\(n) in \(place)" }
+        return "\(n) · newest first"
+    }
+
     private var sidebar: some View {
+        VStack(spacing: 0) {
+        allJobsHeader
         List(selection: $selection) {
-            LargeTitle(title: "Jobs", subline: subline).plainRow()
-
-            if !store.online || (store.jobsLoad == .failed && !store.jobs.isEmpty) {
-                NavyBanner(
-                    heading: store.online ? "Thrive didn't answer" : "No signal",
-                    message: "These are the \(store.jobs.count) jobs this \(ThriveDates.deviceWord) loaded at \(store.jobsUpdatedAt.map(ThriveDates.updated) ?? "an earlier time"). Some may have closed since."
-                ).plainRow()
-            }
-
-            if store.online && !store.jobs.isEmpty {
-                searchAndWhere.plainRow()
-            } else if !store.jobs.isEmpty {
-                whereButton.padding(.horizontal, 16).padding(.bottom, 10).plainRow()
+            if !store.jobs.isEmpty && !list.isEmpty {
+                Text(countLine).font(.inter(16, .medium)).foregroundColor(TC.ink2)
+                    .padding(.horizontal, 18).padding(.vertical, 12)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .plainRow()
             }
 
             if store.jobs.isEmpty {
@@ -301,72 +331,125 @@ struct JobsScreen: View {
             } else if list.isEmpty {
                 noResults.plainRow()
             } else {
+                // H4: the dense list, edge to edge, white, hairlines between.
                 ForEach(list) { job in
-                    JobCard(store: store, job: job, selected: hSize == .regular && selection == job.id,
-                            showBookmark: hSize != .regular)
+                    DenseJobRow(store: store, job: job, showBookmark: hSize != .regular)
+                        .overlay(alignment: .leading) {
+                            if hSize == .regular && selection == job.id { Rectangle().fill(TC.navy).frame(width: 3) }
+                        }
                         .tag(job.id)
-                        .cardRow()
+                        .listRowInsets(EdgeInsets())
+                        .listRowBackground(Color.white)
+                        .listRowSeparatorTint(TC.hairline)
                 }
             }
         }
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
-        .background(TC.page)
+        .background(Color.white)
         .refreshable { store.refreshJobs() }
+        }
     }
 
-    private var searchAndWhere: some View {
-        VStack(spacing: 10) {
-            HStack(spacing: 8) {
-                Image(systemName: "magnifyingglass").foregroundColor(TC.muted)
-                TextField("Job title or place", text: $query)
-                    .font(.system(size: 17))
-                    .textInputAutocapitalization(.never)
-                    .disableAutocorrection(true)
-                    .submitLabel(.search)
-                if !query.isEmpty {
-                    Button { query = "" } label: {
-                        Image(systemName: "xmark.circle.fill").foregroundColor(TC.muted).frame(width: 44, height: 44)
-                    }.buttonStyle(.borderless).accessibilityLabel("Clear search")
+    /// H4's navy header: back to the home, the title, search, then Where and
+    /// Shifts as chips. Offline, the banner is a line here (H6's rule).
+    private var allJobsHeader: some View {
+        VStack(spacing: 12) {
+            ZStack {
+                Text("All jobs").font(.inter(17, .semibold)).foregroundColor(.white)
+                HStack {
+                    if let back = back {
+                        Button(action: back) {
+                            HStack(spacing: 4) {
+                                Image(systemName: "chevron.left").font(.system(size: 17, weight: .semibold))
+                                Text("Jobs").font(.inter(17, .medium))
+                            }
+                            .foregroundColor(.white).frame(minHeight: 44)
+                        }
+                        .accessibilityLabel("Back to Jobs")
+                    }
+                    Spacer()
                 }
             }
-            .padding(.leading, 14)
-            .frame(minHeight: 48)
-            .background(Color.white).cornerRadius(12)
-            .overlay(RoundedRectangle(cornerRadius: 12).stroke(TC.border, lineWidth: 1))
-            whereButton
-        }
-        .padding(.horizontal, 16).padding(.bottom, 10)
-    }
+            .frame(height: 44)
 
-    @ViewBuilder private var whereButton: some View {
-        if let place = store.placeLabel {
-            // A6: navy, pin + place, and a separate ✕ segment that clears it.
-            HStack(spacing: 0) {
-                Button { showWhere = true } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: "mappin.and.ellipse")
-                        Text(place).font(.system(size: 16, weight: .semibold))
-                        Spacer(minLength: 0)
+            if store.online && !store.jobs.isEmpty { searchField }
+
+            if !store.jobs.isEmpty {
+                HStack(spacing: 10) {
+                    whereButton
+                    Button { store.openWeb("/temp-work", "Jobs") } label: {
+                        Text("Shifts").font(.inter(16, .semibold)).foregroundColor(.white)
+                            .padding(.horizontal, 16).frame(minHeight: 44)
+                            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.white.opacity(0.4), lineWidth: 1))
+                            .contentShape(RoundedRectangle(cornerRadius: 12))
                     }
-                    .foregroundColor(.white).padding(.horizontal, 14).frame(minHeight: 44)
-                }.buttonStyle(.borderless)
-                Rectangle().fill(Color.white.opacity(0.25)).frame(width: 1, height: 28)
-                Button { store.placeKey = nil } label: {
-                    Image(systemName: "xmark").foregroundColor(.white).frame(width: 44, height: 44)
-                }.buttonStyle(.borderless).accessibilityLabel("Show jobs anywhere in the UK")
-            }
-            .background(TC.navy).cornerRadius(12)
-        } else {
-            Button { showWhere = true } label: {
-                HStack(spacing: 8) {
-                    Text("Anywhere in the UK").font(.system(size: 16, weight: .semibold))
-                    Image(systemName: "chevron.down").font(.system(size: 14, weight: .semibold))
+                    .buttonStyle(.plain)
                     Spacer(minLength: 0)
                 }
-                .foregroundColor(TC.navy).padding(.horizontal, 14).frame(minHeight: 44)
-                .background(Color.white).cornerRadius(12)
-                .overlay(RoundedRectangle(cornerRadius: 12).stroke(TC.navy, lineWidth: 1.5))
+            }
+
+            if !store.online || (store.jobsLoad == .failed && !store.jobs.isEmpty) {
+                HStack(alignment: .top, spacing: 8) {
+                    Image(systemName: "wifi.slash")
+                    Text("\(store.online ? "Thrive didn't answer" : "No signal") · these are the \(store.jobs.count) jobs this \(ThriveDates.deviceWord) loaded at \(store.jobsUpdatedAt.map(ThriveDates.updated) ?? "an earlier time"). Some may have closed since.")
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .font(.inter(16, .medium)).foregroundColor(TC.bannerText)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+        .padding(.horizontal, 16).padding(.bottom, 14)
+        .background(TC.navy.ignoresSafeArea(edges: .top))
+    }
+
+    private var searchField: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "magnifyingglass").foregroundColor(TC.muted)
+            TextField("Job title or keyword", text: $query)
+                .font(.inter(17))
+                .foregroundColor(TC.navy)
+                .textInputAutocapitalization(.never)
+                .disableAutocorrection(true)
+                .submitLabel(.search)
+            if !query.isEmpty {
+                Button { query = "" } label: {
+                    Image(systemName: "xmark.circle.fill").foregroundColor(TC.muted).frame(width: 44, height: 44)
+                }.buttonStyle(.borderless).accessibilityLabel("Clear search")
+            }
+        }
+        .padding(.leading, 14)
+        .frame(minHeight: 48)
+        .background(Color.white).cornerRadius(12)
+    }
+
+    /// Where, as a chip on navy (H4). A picked place is a soft white chip with
+    /// its own ✕; this screen has no yellow (the home's Search has it).
+    @ViewBuilder private var whereButton: some View {
+        if let place = store.placeLabel {
+            HStack(spacing: 0) {
+                Button { showWhere = true } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "mappin.and.ellipse")
+                        Text(place).font(.inter(16, .semibold)).lineLimit(1)
+                    }
+                    .foregroundColor(.white).padding(.leading, 14).padding(.trailing, 6).frame(minHeight: 44)
+                }.buttonStyle(.borderless)
+                Button { store.placeKey = nil } label: {
+                    Image(systemName: "xmark").font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(.white).frame(width: 40, height: 44)
+                }.buttonStyle(.borderless).accessibilityLabel("Show jobs anywhere in the UK")
+            }
+            .background(Color.white.opacity(0.12)).cornerRadius(12)
+        } else {
+            Button { showWhere = true } label: {
+                HStack(spacing: 6) {
+                    Text("Anywhere in the UK").font(.inter(16, .semibold))
+                    Image(systemName: "chevron.down").font(.system(size: 13, weight: .semibold))
+                }
+                .foregroundColor(.white).padding(.horizontal, 14).frame(minHeight: 44)
+                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.white.opacity(0.4), lineWidth: 1))
+                .contentShape(RoundedRectangle(cornerRadius: 12))
             }.buttonStyle(.borderless)
         }
     }
@@ -400,18 +483,18 @@ struct WhereSheet: View {
         let shown = filter.isEmpty ? all : all.filter { $0.label.lowercased().contains(filter.lowercased()) }
         VStack(spacing: 0) {
             HStack {
-                Text("Where").font(.system(size: 20, weight: .semibold)).foregroundColor(TC.navy)
+                Text("Where").font(.inter(20, .semibold)).foregroundColor(TC.navy)
                 Spacer()
-                Button("Done") { isPresented = false }.font(.system(size: 17, weight: .semibold)).frame(minHeight: 44)
+                Button("Done") { isPresented = false }.font(.inter(17, .semibold)).frame(minHeight: 44)
             }
             .padding(.horizontal, 20).padding(.top, 14)
             if !store.online {
                 Text("From the \(store.jobs.count) jobs on this \(ThriveDates.deviceWord)")
-                    .font(.system(size: 16)).foregroundColor(TC.muted)
+                    .font(.inter(16)).foregroundColor(TC.muted)
                     .frame(maxWidth: .infinity, alignment: .leading).padding(.horizontal, 20)
             }
             TextField("Town or city", text: $filter)
-                .font(.system(size: 17)).padding(.horizontal, 14).frame(minHeight: 48)
+                .font(.inter(17)).padding(.horizontal, 14).frame(minHeight: 48)
                 .background(Color.white).cornerRadius(12)
                 .overlay(RoundedRectangle(cornerRadius: 12).stroke(TC.border, lineWidth: 1))
                 .padding(.horizontal, 16).padding(.vertical, 10)
@@ -432,8 +515,8 @@ struct WhereSheet: View {
             isPresented = false
         } label: {
             HStack {
-                Text(label).font(.system(size: 17, weight: picked ? .semibold : .regular)).foregroundColor(TC.navy)
-                Text("\(count)").font(.system(size: 16)).foregroundColor(TC.muted)
+                Text(label).font(.inter(17, picked ? .semibold : .regular)).foregroundColor(TC.navy)
+                Text("\(count)").font(.inter(16)).foregroundColor(TC.muted)
                 Spacer()
                 if picked { Image(systemName: "checkmark").foregroundColor(TC.navy) }
             }
@@ -455,20 +538,31 @@ struct JobDetailScreen: View {
     var body: some View {
         VStack(spacing: 0) {
             ScrollView {
-                VStack(alignment: .leading, spacing: 0) {
-                    Text(job.title).font(.system(size: hSize == .regular ? 32 : 30, weight: .bold)).tracking(-0.75)
-                        .foregroundColor(TC.navy).fixedSize(horizontal: false, vertical: true)
-                    Text("\(job.company) · \(job.place)").font(.system(size: 17, weight: .medium)).foregroundColor(TC.ink2)
-                        .padding(.top, 8)
-                    Text(detailMeta).font(.system(size: 16)).foregroundColor(TC.muted).padding(.top, 4)
-                    if job.isClosed {
-                        Text("This job has closed").font(.system(size: 16, weight: .semibold)).foregroundColor(TC.warning)
-                            .padding(.top, 8)
+                VStack(spacing: 0) {
+                // H5: the website's dark header, made native. Title, who and
+                // where, pay written out large, then the facts as soft chips.
+                VStack(alignment: .leading, spacing: 10) {
+                    Text(job.title).font(.inter(26, .heavy)).tracking(-0.5)
+                        .foregroundColor(.white).fixedSize(horizontal: false, vertical: true)
+                    Text("\(job.company) · \(job.place)").font(.inter(16, .medium)).foregroundColor(TC.bannerText)
+                    if let pay = job.payLong ?? job.pay {
+                        Text(pay).font(.inter(22, .heavy)).foregroundColor(.white).padding(.top, 2)
                     }
-                    if hSize == .regular { applyArea.frame(width: 240).padding(.top, 16) }
+                    if !chips.isEmpty {
+                        FlowChips(items: chips).padding(.top, 2)
+                    }
+                    if job.isClosed {
+                        Text("This job has closed").font(.inter(16, .semibold)).foregroundColor(Color(red: 1, green: 0.78, blue: 0.5))
+                    }
+                    if hSize == .regular { applyArea.frame(width: 240).padding(.top, 6) }
+                }
+                .frame(maxWidth: 640, alignment: .leading)
+                .padding(.horizontal, hSize == .regular ? 32 : 20)
+                .padding(.top, 8).padding(.bottom, 22)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(TC.navy)
 
-                    Rectangle().fill(TC.hairline).frame(height: 1).padding(.vertical, 18)
-
+                VStack(alignment: .leading, spacing: 0) {
                     section("About the job", text: job.about)
                     bullets("What you'll be doing", job.responsibilities)
                     bullets("What they're looking for", job.requirements)
@@ -476,9 +570,12 @@ struct JobDetailScreen: View {
                 }
                 .frame(maxWidth: 640, alignment: .leading)
                 .padding(.horizontal, hSize == .regular ? 32 : 20)
-                .padding(.top, 8).padding(.bottom, 24)
+                .padding(.top, 22).padding(.bottom, 24)
                 .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color.white)
+                }
             }
+            .background(alignment: .top) { TC.navy.frame(height: 400) }
             if hSize != .regular {
                 applyArea
                     .padding(.horizontal, 16).padding(.top, 12).padding(.bottom, 12)
@@ -493,63 +590,65 @@ struct JobDetailScreen: View {
             ToolbarItemGroup(placement: .navigationBarTrailing) {
                 if let url = URL(string: job.url) {
                     ShareLink(item: url, subject: Text(job.title), message: Text("\(job.title) at \(job.company)")) {
-                        Image(systemName: "square.and.arrow.up").frame(width: 44, height: 44)
+                        Image(systemName: "square.and.arrow.up").foregroundColor(.white).frame(width: 44, height: 44)
                     }.accessibilityLabel("Share this job")
                 }
-                BookmarkButton(store: store, job: job)
+                BookmarkButton(store: store, job: job, tint: .white)
             }
         }
         .onAppear { if hSize != .regular { store.hideTabBar = true } }
         .onDisappear { store.hideTabBar = false }
     }
 
-    private var detailMeta: String {
-        let posted = job.postedLabel.isEmpty ? nil : (["Today", "Yesterday"].contains(job.postedLabel)
-            ? "Posted \(job.postedLabel.lowercased())" : "Posted \(job.postedLabel)")
-        return [job.pay, job.type, posted].compactMap { $0 }.joined(separator: " · ")
+    /// Type, contract and age (H5).
+    private var chips: [String] {
+        var c = job.facts ?? (job.type.map { [$0] } ?? [])
+        if !job.postedLabel.isEmpty { c.append(job.postedLabel) }
+        return c
     }
 
     /// Apply, or the sentence that replaces it. Never a greyed-out button.
     @ViewBuilder private var applyArea: some View {
         if job.isClosed {
             Text("This job has closed, so it can't take applications.")
-                .font(.system(size: 16)).foregroundColor(TC.ink2).frame(maxWidth: .infinity, alignment: .leading)
+                .font(.inter(16)).foregroundColor(TC.ink2).frame(maxWidth: .infinity, alignment: .leading)
         } else if !store.online {
             HStack(alignment: .top, spacing: 12) {
                 Image(systemName: "wifi.slash").foregroundColor(TC.navy)
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Applying needs signal").font(.system(size: 17, weight: .semibold)).foregroundColor(TC.navy)
+                    Text("Applying needs signal").font(.inter(17, .semibold)).foregroundColor(TC.navy)
                     Text(store.isSaved(job.id)
                          ? "This job stays in Saved\(savedAt.map { ". Saved on this \(ThriveDates.deviceWord) at \(ThriveDates.updated($0))" } ?? "")."
                          : "Save it and it stays on this \(ThriveDates.deviceWord) until you have signal.")
-                        .font(.system(size: 16)).foregroundColor(TC.ink2).fixedSize(horizontal: false, vertical: true)
+                        .font(.inter(16)).foregroundColor(TC.ink2).fixedSize(horizontal: false, vertical: true)
                 }
                 Spacer(minLength: 0)
             }
             .padding(16).background(TC.page).cornerRadius(14)
         } else {
-            PrimaryButton(title: "Apply", yellow: true) {
-                store.openWeb("/job/\(job.id)?apply=1", backTitle)
+            PrimaryButton(title: "Apply now", yellow: true) {
+                if store.signedIn { store.openWeb("/job/\(job.id)?apply=1", backTitle) }
+                else { store.requireSignIn(then: .apply(job)) }
             }
         }
     }
 
     @ViewBuilder private func section(_ heading: String, text: String) -> some View {
         if !text.isEmpty {
-            Text(heading).font(.system(size: 20, weight: .semibold)).foregroundColor(TC.navy).padding(.bottom, 8)
-            Text(text).font(.system(size: 16)).lineSpacing(5).foregroundColor(TC.navy)
+            Text(heading).font(.inter(19, .heavy)).foregroundColor(TC.navy).padding(.bottom, 8)
+            Text(text).font(.inter(16)).lineSpacing(6).foregroundColor(TC.ink2)
                 .fixedSize(horizontal: false, vertical: true).padding(.bottom, 20)
         }
     }
 
     @ViewBuilder private func bullets(_ heading: String, _ items: [String]) -> some View {
         if !items.isEmpty {
-            Text(heading).font(.system(size: 20, weight: .semibold)).foregroundColor(TC.navy).padding(.bottom, 8)
+            Text(heading).font(.inter(19, .heavy)).foregroundColor(TC.navy).padding(.bottom, 8)
             VStack(alignment: .leading, spacing: 8) {
                 ForEach(Array(items.enumerated()), id: \.offset) { _, item in
                     HStack(alignment: .top, spacing: 10) {
-                        Text("•").font(.system(size: 16)).foregroundColor(TC.muted)
-                        Text(item).font(.system(size: 16)).foregroundColor(TC.navy).fixedSize(horizontal: false, vertical: true)
+                        Text("•").font(.inter(16)).foregroundColor(TC.muted)
+                        Text(item).font(.inter(16)).lineSpacing(4).foregroundColor(TC.ink2).fixedSize(horizontal: false, vertical: true)
                     }
                 }
             }.padding(.bottom, 20)
@@ -565,6 +664,14 @@ struct SavedScreen: View {
     @State private var selection: String?
 
     var body: some View {
+        if store.signedIn { signedInBody } else {
+            SignedOutTab(store: store, title: "Saved", symbol: "bookmark",
+                         heading: "Sign in to see your saved jobs",
+                         message: "Saved jobs stay on this \(ThriveDates.deviceWord), so you can read them with no signal.")
+        }
+    }
+
+    private var signedInBody: some View {
         NavigationSplitView {
             sidebar
                 .navigationTitle("Saved")
@@ -590,14 +697,19 @@ struct SavedScreen: View {
         "On this \(ThriveDates.deviceWord)" + (store.savedUpdatedAt.map { " · updated \(ThriveDates.updated($0))" } ?? "")
     }
 
+    private var bandLine: String? {
+        if store.saved.isEmpty { return nil }
+        if !store.online {
+            return "No signal · these are the \(store.saved.count) jobs saved on this \(ThriveDates.deviceWord). Some may have closed since."
+        }
+        let n = "\(store.saved.count) \(store.saved.count == 1 ? "job" : "jobs") on this \(ThriveDates.deviceWord)"
+        return n + (store.savedUpdatedAt.map { " · updated \(ThriveDates.updated($0))" } ?? "")
+    }
+
     private var sidebar: some View {
+        VStack(spacing: 0) {
+        NavyTitleBand(title: "Saved", line: bandLine, offline: !store.online) { EmptyView() }
         List(selection: $selection) {
-            LargeTitle(title: "Saved", subline: store.saved.isEmpty ? nil : subline).plainRow()
-            if !store.online && !store.saved.isEmpty {
-                NavyBanner(heading: "No signal",
-                           message: "These are the \(store.saved.count) jobs saved on this \(ThriveDates.deviceWord). Some may have closed since.")
-                    .plainRow()
-            }
             if store.saved.isEmpty {
                 if store.savedLoad == .loading && store.savedUpdatedAt == nil {
                     SkeletonCards().plainRow()
@@ -611,15 +723,15 @@ struct SavedScreen: View {
                 ForEach(store.saved) { item in
                     Card(selected: hSize == .regular && selection == item.id, closed: item.job.isClosed) {
                         VStack(alignment: .leading, spacing: 5) {
-                            Text(item.job.title).font(.system(size: 18, weight: .semibold))
+                            Text(item.job.title).font(.inter(18, .semibold))
                                 .foregroundColor(item.job.isClosed ? TC.ink2 : TC.navy)
                                 .fixedSize(horizontal: false, vertical: true)
-                            Text("\(item.job.company) · \(item.job.place)").font(.system(size: 16)).foregroundColor(TC.ink2)
+                            Text("\(item.job.company) · \(item.job.place)").font(.inter(16)).foregroundColor(TC.ink2)
                             if item.job.isClosed {
-                                Text("This job has closed").font(.system(size: 16, weight: .semibold)).foregroundColor(TC.warning)
+                                Text("This job has closed").font(.inter(16, .semibold)).foregroundColor(TC.warning)
                             } else {
                                 Text("Saved \(ThriveDates.day(ThriveDates.parse(item.savedAt)))")
-                                    .font(.system(size: 16)).foregroundColor(TC.muted)
+                                    .font(.inter(16)).foregroundColor(TC.muted)
                             }
                         }
                     }
@@ -635,6 +747,7 @@ struct SavedScreen: View {
         .scrollContentBackground(.hidden)
         .background(TC.page)
         .refreshable { store.refreshSaved() }
+        }
     }
 }
 
@@ -646,6 +759,14 @@ struct ApplicationsScreen: View {
     @State private var selection: String?
 
     var body: some View {
+        if store.signedIn { signedInBody } else {
+            SignedOutTab(store: store, title: "Applications", symbol: "doc.text",
+                         heading: "Sign in to see your applications",
+                         message: "Every job you apply for shows here, with what the employer has done with it.")
+        }
+    }
+
+    private var signedInBody: some View {
         NavigationSplitView {
             sidebar
                 .navigationTitle("Applications")
@@ -667,14 +788,18 @@ struct ApplicationsScreen: View {
         }
     }
 
+    private var bandLine: String? {
+        if store.applications.isEmpty { return nil }
+        if !store.online {
+            return "No signal · statuses as of \(store.applicationsUpdatedAt.map(ThriveDates.updated) ?? "an earlier time"). An employer may have replied since."
+        }
+        return store.applicationsUpdatedAt.map { "Updated \(ThriveDates.updated($0))" }
+    }
+
     private var sidebar: some View {
+        VStack(spacing: 0) {
+        NavyTitleBand(title: "Applications", line: bandLine, offline: !store.online) { EmptyView() }
         List(selection: $selection) {
-            LargeTitle(title: "Applications", subline: nil).plainRow()
-            if !store.online && !store.applications.isEmpty {
-                NavyBanner(heading: "No signal",
-                           message: "Statuses as of \(store.applicationsUpdatedAt.map(ThriveDates.updated) ?? "an earlier time"). An employer may have replied since.")
-                    .plainRow()
-            }
             if store.applications.isEmpty {
                 if store.applicationsLoad == .loading && store.applicationsUpdatedAt == nil {
                     SkeletonCards().plainRow()
@@ -688,14 +813,14 @@ struct ApplicationsScreen: View {
                 ForEach(store.applications) { app in
                     Card(selected: hSize == .regular && selection == app.id) {
                         VStack(alignment: .leading, spacing: 6) {
-                            Text(app.title).font(.system(size: 18, weight: .semibold)).foregroundColor(TC.navy)
+                            Text(app.title).font(.inter(18, .semibold)).foregroundColor(TC.navy)
                                 .fixedSize(horizontal: false, vertical: true)
                             Text([app.company, app.job?.place].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " · "))
-                                .font(.system(size: 16)).foregroundColor(TC.ink2)
+                                .font(.inter(16)).foregroundColor(TC.ink2)
                             HStack(spacing: 10) {
                                 StatusPill(status: app.status, label: app.statusLabel)
                                 Text("Applied \(ThriveDates.day(ThriveDates.parse(app.appliedAt)))")
-                                    .font(.system(size: 16)).foregroundColor(TC.muted)
+                                    .font(.inter(16)).foregroundColor(TC.muted)
                             }.padding(.top, 2)
                         }
                     }
@@ -708,6 +833,7 @@ struct ApplicationsScreen: View {
         .scrollContentBackground(.hidden)
         .background(TC.page)
         .refreshable { store.refreshApplications() }
+        }
     }
 }
 
@@ -716,7 +842,7 @@ struct StatusPill: View {
     let label: String
     var body: some View {
         let c = statusColours(status)
-        Text(label).font(.system(size: 16, weight: .semibold)).foregroundColor(c.fg)
+        Text(label).font(.inter(16, .semibold)).foregroundColor(c.fg)
             .padding(.vertical, 7).padding(.horizontal, 10).background(c.bg).cornerRadius(8)
     }
 }
@@ -735,13 +861,13 @@ struct ApplicationDetailScreen: View {
                                    message: "As of \(store.applicationsUpdatedAt.map(ThriveDates.updated) ?? "an earlier time"). They may have replied since.")
                             .padding(.horizontal, -16)
                     }
-                    Text(application.title).font(.system(size: hSize == .regular ? 32 : 30, weight: .bold)).tracking(-0.75)
+                    Text(application.title).font(.inter(hSize == .regular ? 30 : 26, .heavy)).tracking(-0.5)
                         .foregroundColor(TC.navy).fixedSize(horizontal: false, vertical: true)
                     Text([application.company, application.job?.place].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " · "))
-                        .font(.system(size: 17, weight: .medium)).foregroundColor(TC.ink2).padding(.top, 8)
-                    Text(datesLine).font(.system(size: 16)).foregroundColor(TC.muted).padding(.top, 4)
+                        .font(.inter(17, .medium)).foregroundColor(TC.ink2).padding(.top, 8)
+                    Text(datesLine).font(.inter(16)).foregroundColor(TC.muted).padding(.top, 4)
                     if application.job?.isClosed == true {
-                        Text("This job has closed").font(.system(size: 16, weight: .semibold)).foregroundColor(TC.warning).padding(.top, 6)
+                        Text("This job has closed").font(.inter(16, .semibold)).foregroundColor(TC.warning).padding(.top, 6)
                     }
                     if hSize == .regular { buttons.frame(width: 240).padding(.top, 16) }
 
@@ -773,7 +899,7 @@ struct ApplicationDetailScreen: View {
     /// "Where it's at": only the stages actually reached, newest in its colour.
     private var stages: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("Where it's at").font(.system(size: 18, weight: .semibold)).foregroundColor(TC.navy)
+            Text("Where it's at").font(.inter(18, .semibold)).foregroundColor(TC.navy)
             ForEach(Array(application.stages.enumerated()), id: \.offset) { index, stage in
                 let newest = index == application.stages.count - 1
                 HStack(spacing: 12) {
@@ -782,16 +908,16 @@ struct ApplicationDetailScreen: View {
                         Image(systemName: "checkmark").font(.system(size: 13, weight: .bold)).foregroundColor(.white)
                     }
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(stage.label).font(.system(size: 16, weight: .semibold)).foregroundColor(TC.navy)
+                        Text(stage.label).font(.inter(16, .semibold)).foregroundColor(TC.navy)
                         if let d = ThriveDates.parse(stage.at) {
-                            Text(ThriveDates.longDay(d)).font(.system(size: 16)).foregroundColor(TC.muted)
+                            Text(ThriveDates.longDay(d)).font(.inter(16)).foregroundColor(TC.muted)
                         }
                     }
                 }
             }
             if store.online {
                 Text("Nothing since. If they take it further, you'll see it here and in Messages.")
-                    .font(.system(size: 16)).foregroundColor(TC.ink2).fixedSize(horizontal: false, vertical: true)
+                    .font(.inter(16)).foregroundColor(TC.ink2).fixedSize(horizontal: false, vertical: true)
             }
         }
         .padding(18).frame(maxWidth: .infinity, alignment: .leading)
@@ -811,12 +937,12 @@ struct ApplicationDetailScreen: View {
             } else {
                 (Text("Messaging needs signal. ").fontWeight(.semibold)
                  + Text(application.job != nil ? "The job is saved on this \(ThriveDates.deviceWord), so you can still read it." : ""))
-                    .font(.system(size: 16)).foregroundColor(TC.ink2)
+                    .font(.inter(16)).foregroundColor(TC.ink2)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
             if let job = application.job {
                 NavigationLink(value: job) {
-                    Text("View the job").font(.system(size: 17, weight: .semibold)).foregroundColor(TC.navy)
+                    Text("View the job").font(.inter(17, .semibold)).foregroundColor(TC.navy)
                         .frame(maxWidth: .infinity, minHeight: 52).background(Color.white)
                         .overlay(RoundedRectangle(cornerRadius: 14).stroke(TC.navy, lineWidth: 1.5))
                 }.buttonStyle(.plain)

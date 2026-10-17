@@ -3,13 +3,8 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
-import { supabase } from '@/lib/supabase'
-import { calculateTrialExpiry } from '@/lib/trialUtils'
-import { getStoredAttribution, attributionColumns } from '@/lib/attribution'
-import { countryColumns } from '@/lib/geo'
-import { isValidEmail, isDisposableEmail } from '@/lib/validateEmail'
 import { safeInternalPath } from '@/lib/safeRedirect'
-import { setPendingConfirm } from '@/lib/pendingConfirm'
+import { signUpCandidate, resendSignupEmail } from '@/lib/candidateSignup'
 import PasswordInput from './PasswordInput'
 import LiveJobCount from './LiveJobCount'
 import { Ico } from '@/components/icons'
@@ -59,88 +54,20 @@ export default function CandidateSignupForm({ submitLabel = 'Create account' }: 
   // AGAIN. It is the one link in this chain that no check in the repo can
   // see — not tsc, not the build, not verify.
   const applyRedirect = safeInternalPath(searchParams.get('redirect'))
-  const confirmRedirect = () => {
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin
-    return `${siteUrl}${applyRedirect || '/dashboard'}`
-  }
 
+  // THE STEPS LIVE IN lib/candidateSignup.ts, shared with the iOS app's native
+  // sign-up sheet, so the two cannot sign people up differently. Moved there
+  // unchanged on 16 Oct 2026, with the comments explaining each step:
+  // already-registered detection, the minimal profile row via the service
+  // endpoint, the pending-confirm marker, and the breached-password wording.
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
-
-    if (!fullName.trim()) return setError('Please enter your name')
-    if (!isValidEmail(email)) return setError('Please enter a valid email address')
-    if (isDisposableEmail(email)) return setError('Please use a permanent email address — temporary/disposable inboxes aren’t accepted.')
-    if (password.length < 8) return setError('Password must be at least 8 characters')
-
     setLoading(true)
     try {
-      const { data, error: authError } = await supabase.auth.signUp({
-        email: email.trim(),
-        password,
-        options: {
-          data: { full_name: fullName.trim(), role: 'employee' },
-          emailRedirectTo: confirmRedirect(),
-        },
-      })
-      if (authError) throw authError
-      // Supabase obfuscates "already registered" by returning a user with no
-      // identities and no error — surface a helpful message instead of a
-      // silent no-op holding screen.
-      if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
-        setError('An account with this email already exists. Try logging in instead.')
-        setLoading(false)
-        return
-      }
-      if (!data.user) throw new Error('Could not create your account. Please try again.')
-
-      // Minimal profile row via the service-role endpoint (anon has no session
-      // yet with confirmation on). Everything else is filled post-login.
-      const now = new Date()
-      const trialExpiresAt = calculateTrialExpiry(now)
-      await fetch('/api/profile/create', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: data.user.id,
-          profile: {
-            full_name: fullName.trim(),
-            email: email.trim(),
-            account_status: 'trial',
-            trial_start_date: now.toISOString(),
-            trial_expires_at: trialExpiresAt.toISOString(),
-            // The tag layer only. heard_from is asked on the dashboard now
-            // (components/HeardFromPrompt.tsx) and fills the gap there when no
-            // ?ref / ?utm_* was carried — normalizeSource ranks tags above the
-            // self-report, and the prompt honours that same priority.
-            ...attributionColumns(getStoredAttribution()),
-            // Where the edge said this browser was, at signup. Empty when
-            // unknown, so an existing value is never overwritten.
-            ...countryColumns(),
-          },
-        }),
-      }).catch(() => {})
-
-      // Remember the pending confirmation so the apply-gate / login page can show
-      // a "confirm your email to apply" prompt instead of a bare login they can't
-      // complete yet. Cleared on successful login.
-      setPendingConfirm(email.trim())
-      setSubmitted(true)
-    } catch (err: any) {
-      // Supabase's leaked-password protection (HaveIBeenPwned) rejects any
-      // password found in a breach corpus with a blunt "weak and easy to guess"
-      // message. To someone who just typed a long password that reads as broken,
-      // so they retry variants of the same breached pattern and give up. Replace
-      // it with an honest explanation + the one-tap escape hatch.
-      const code = err?.code || ''
-      const msg = err?.message || ''
-      if (code === 'weak_password' || /weak and easy to guess|pwned|leaked|data breach/i.test(msg)) {
-        setError(
-          "That password has turned up in an online data breach, so it can't be used here — even though it looks strong. Try a longer passphrase (three random words like copper-anvil-mango7 works well), or tap 'Sign up with LinkedIn' above — there's no new password to create."
-        )
-      } else {
-        setError(msg || 'Something went wrong. Please try again.')
-      }
+      const result = await signUpCandidate({ fullName, email, password, returnPath: applyRedirect })
+      if (result.ok) setSubmitted(true)
+      else setError(result.message)
     } finally {
       setLoading(false)
     }
@@ -148,16 +75,7 @@ export default function CandidateSignupForm({ submitLabel = 'Create account' }: 
 
   const handleResend = async () => {
     setResend('sending')
-    try {
-      const { error: resendErr } = await supabase.auth.resend({
-        type: 'signup',
-        email: email.trim(),
-        options: { emailRedirectTo: confirmRedirect() },
-      })
-      setResend(resendErr ? 'error' : 'sent')
-    } catch {
-      setResend('error')
-    }
+    setResend((await resendSignupEmail(email, applyRedirect)) ? 'sent' : 'error')
   }
 
   // ── Holding screen (section C / Option B) — strong, not a dead-end ──

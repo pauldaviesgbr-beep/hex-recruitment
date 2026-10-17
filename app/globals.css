@@ -692,3 +692,44 @@ button[data-blocked='yes']:hover {
   background: #fecaca;
   color: #991b1b;
 }
+
+/* ==========================
+   INSIDE THE iOS APP, WHILE ITS NATIVE TAB BAR IS SHOWING
+   (design_handoff_ios_native_layer, second addendum: "one navigation").
+
+   The app adds `native-nav` to <html> only while its own tab bar is on screen
+   (ThriveRootViewController.updateBar), and re-applies it before each page
+   draws from sessionStorage (ThriveBridgeViewController's document-start
+   script). In a browser the class never exists, so none of this applies.
+
+   Signed out, and on sign-in pages, the app shows no tab bar, so the class is
+   off and the website's own header stays as the only navigation.
+
+   Hidden: the site header, the candidate side menu, and the hamburger.
+   NOT hidden: the employer side menu itself, because the employer "More" tab
+   opens it (it clicks the hidden hamburger, which still works).
+   ========================== */
+html.native-nav [data-site-header],
+html.native-nav [data-candidate-rail],
+html.native-nav [data-sidebar-toggle] {
+  display: none !important;
+}
+
+/* With no header, the only thing to clear at the top is the status bar.
+   Every page that cleared the header does it through --nav-height. */
+html.native-nav {
+  --nav-height: env(safe-area-inset-top, 0px);
+}
+
+/* The candidate rail is gone, so the room made for it goes too. */
+html.native-nav body[data-candidate-sidebar] {
+  padding-left: 0;
+}
+
+/* Above 768px the header sat in the flow rather than fixed, so pages made no
+   room for it there; without it, content needs only the status bar cleared. */
+@media (min-width: 769px) {
+  html.native-nav main {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+}

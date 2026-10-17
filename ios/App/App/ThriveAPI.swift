@@ -84,6 +84,19 @@ struct AppJob: Codable, Hashable, Identifiable {
     let requirements: [String]
     let benefits: [String]
     let url: String
+    // Brand pass. Optional so a copy cached by an earlier build still decodes.
+    let payShort: String?
+    let payLong: String?
+    let facts: [String]?
+}
+
+struct AppProfile: Codable {
+    let firstName: String?
+    let jobTitle: String?
+}
+
+struct ShiftsResponse: Codable {
+    let open: Int
 }
 
 struct JobsResponse: Codable {
