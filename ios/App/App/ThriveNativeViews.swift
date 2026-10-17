@@ -411,6 +411,7 @@ struct JobsScreen: View {
                         .cornerRadius(12)
                         .contentShape(RoundedRectangle(cornerRadius: 12))
                     }
+                    .buttonStyle(.plain)
                     .accessibilityAddTraits(shiftsOnly ? .isSelected : [])
                     if category != nil {
                         Button { category = nil } label: {
@@ -424,7 +425,6 @@ struct JobsScreen: View {
                         .buttonStyle(.plain)
                         .accessibilityLabel("Show all jobs, not only similar ones")
                     }
-                    .buttonStyle(.plain)
                     Spacer(minLength: 0)
                 }
             }

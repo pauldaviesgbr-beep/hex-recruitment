@@ -261,7 +261,7 @@ struct ProfileScreen: View {
             }
             if let s = p?.photoUrl, let url = URL(string: s) {
                 AsyncImage(url: url) { phase in
-                    if case .success(let image) = phase { image.resizable().scaledToFill() }
+                    phase.image?.resizable().scaledToFill()
                 }
                 .clipShape(Circle())
             }
