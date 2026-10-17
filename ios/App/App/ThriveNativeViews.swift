@@ -430,7 +430,7 @@ struct JobsScreen: View {
             HStack(spacing: 0) {
                 Button { showWhere = true } label: {
                     HStack(spacing: 6) {
-                        Image(systemName: "mappin.and.ellipse")
+                        Image(systemName: "mappin")
                         Text(place).font(.inter(16, .semibold)).lineLimit(1)
                     }
                     .foregroundColor(.white).padding(.leading, 14).padding(.trailing, 6).frame(minHeight: 44)

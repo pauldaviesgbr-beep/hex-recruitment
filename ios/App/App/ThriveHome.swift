@@ -163,7 +163,7 @@ struct HomeScreen: View {
                         showWhere = true
                     } label: {
                         HStack(spacing: 8) {
-                            Image(systemName: "mappin.and.ellipse")
+                            Image(systemName: "mappin")
                             Text(store.placeLabel ?? "All of the UK").font(.inter(17, .semibold)).lineLimit(1)
                             Spacer(minLength: 4)
                             Image(systemName: "chevron.down").font(.system(size: 14, weight: .semibold))
