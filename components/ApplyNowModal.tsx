@@ -10,6 +10,7 @@ import PushPriming from '@/components/PushPriming'
 import type { Conversation } from '@/lib/mockMessages'
 import styles from './ApplyNowModal.module.css'
 import { Ico } from '@/components/icons'
+import { formatMoney } from '@/lib/money'
 import { isFixtureGuardError, FIXTURE_GUARD_MESSAGE, isCvRequiredError, CV_REQUIRED_MESSAGE, cvBuilderLink } from '@/lib/applicationGuard'
 
 interface ApplyNowModalProps {
@@ -106,11 +107,16 @@ export default function ApplyNowModal({ job, isOpen, onClose, onSuccess }: Apply
     return () => window.removeEventListener('keydown', handleKey)
   }, [isOpen, onClose])
 
+  // A single figure is shown once (it read "£41,000 - £41,000 per year" in the
+  // app on 17 Oct 2026), pence come from the shared formatter (it printed
+  // "£12.5"), and the period is in words, as the app's job page writes it.
   const formatSalary = () => {
-    if (job.salaryPeriod === 'hour') {
-      return `£${job.salaryMin} - £${job.salaryMax} per hour`
-    }
-    return `£${job.salaryMin.toLocaleString()} - £${job.salaryMax.toLocaleString()} per year`
+    const hourly = job.salaryPeriod === 'hour'
+    const money = (n: number) => (hourly ? formatMoney(n) : `£${Math.round(n).toLocaleString('en-GB')}`)
+    const min = job.salaryMin || job.salaryMax
+    const single = !job.salaryMax || !job.salaryMin || job.salaryMin === job.salaryMax
+    const range = single ? money(min) : `${money(job.salaryMin)}–${money(job.salaryMax)}`
+    return `${range} ${hourly ? 'an hour' : 'a year'}`
   }
 
   const [cvError, setCvError] = useState<string | null>(null)
