@@ -11,7 +11,7 @@
 // the web page left (ios/App/App/ThriveSession.swift). Queries run AS THAT USER,
 // so row-level security applies exactly as on the website.
 
-import { createClient, type SupabaseClient } from '@supabase/supabase-js'
+import { createClient, type SupabaseClient, type User } from '@supabase/supabase-js'
 import type { NextRequest } from 'next/server'
 import { supabaseJobToJob } from '@/lib/types'
 import { formatJobSalary, formatJobLocation } from '@/lib/jobCard'
@@ -26,7 +26,7 @@ export function publicClient(): SupabaseClient {
 }
 
 /** The signed-in user behind a Bearer token, and a client that queries as them. */
-export async function userFromRequest(req: NextRequest): Promise<{ client: SupabaseClient; userId: string } | null> {
+export async function userFromRequest(req: NextRequest): Promise<{ client: SupabaseClient; userId: string; user: User } | null> {
   const header = req.headers.get('authorization') || ''
   const token = header.toLowerCase().startsWith('bearer ') ? header.slice(7).trim() : ''
   if (!token) return null
@@ -38,7 +38,7 @@ export async function userFromRequest(req: NextRequest): Promise<{ client: Supab
   try {
     const { data, error } = await client.auth.getUser(token)
     if (error || !data.user) return null
-    return { client, userId: data.user.id }
+    return { client, userId: data.user.id, user: data.user }
   } catch {
     return null
   }

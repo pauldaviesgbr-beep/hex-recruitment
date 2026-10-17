@@ -3,6 +3,7 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
 import Anthropic from '@anthropic-ai/sdk'
 import { parseCv } from '@/lib/cvParse'
+import { userFromRequest } from '@/lib/appApi'
 
 /**
  * PARSE THE CALLER'S OWN CV. Phase 1 — nothing reads the result yet.
@@ -39,7 +40,10 @@ export async function POST(req: NextRequest) {
     },
   )
 
-  const { data: { user } } = await supabase.auth.getUser()
+  // The website's cookie, or the iOS app's Bearer token (a scanned CV,
+  // app/api/app/me/cv). Either way the user is the session's, never the body's.
+  const { data: { user: cookieUser } } = await supabase.auth.getUser()
+  const user = cookieUser ?? (await userFromRequest(req))?.user ?? null
   if (!user) return NextResponse.json({ error: 'unauthenticated' }, { status: 401 })
 
   const apiKey = process.env.ANTHROPIC_API_KEY
