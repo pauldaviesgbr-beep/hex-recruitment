@@ -28,15 +28,20 @@ export async function PUT(req: NextRequest) {
     .from('candidate_profiles').select('notification_preferences').eq('user_id', me.userId).maybeSingle()
   if (!row) return NextResponse.json({ error: 'no_profile' }, { status: 404 })
 
-  const prefs = normalisePrefs('employee', row.notification_preferences) as CandidatePrefs
-  if (replies !== undefined) prefs.push.new_messages = replies
-  if (applications !== undefined) prefs.push.application_updates = applications
+  // Only the push section changes. The rest is written back exactly as stored,
+  // not filled with defaults: a push switch has no business writing someone's
+  // email preferences into their row (the first drive caught exactly that).
+  const stored = (row.notification_preferences && typeof row.notification_preferences === 'object')
+    ? row.notification_preferences as Record<string, unknown> : {}
+  const push = { ...(normalisePrefs('employee', stored) as CandidatePrefs).push }
+  if (replies !== undefined) push.new_messages = replies
+  if (applications !== undefined) push.application_updates = applications
 
   const { error } = await me.client
-    .from('candidate_profiles').update({ notification_preferences: prefs }).eq('user_id', me.userId)
+    .from('candidate_profiles').update({ notification_preferences: { ...stored, push } }).eq('user_id', me.userId)
   if (error) return NextResponse.json({ error: 'not_saved' }, { status: 503 })
   return NextResponse.json(
-    { replies: prefs.push.new_messages, applications: prefs.push.application_updates },
+    { replies: push.new_messages, applications: push.application_updates },
     { headers: { 'Cache-Control': 'no-store' } },
   )
 }

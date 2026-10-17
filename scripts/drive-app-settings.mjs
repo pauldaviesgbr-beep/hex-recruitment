@@ -71,8 +71,9 @@ async function main() {
     const n = await call('PUT', '/api/app/me/notifications', token, { replies: flipped })
     const after = (await (await rest(`candidate_profiles?user_id=eq.${userId}&select=notification_preferences`)).json())[0].notification_preferences
     check(n.status === 200 && after.push.new_messages === flipped, `replies → ${flipped} lands (got ${n.status})`)
-    check(JSON.stringify(after.email) === JSON.stringify(before?.email) && after.push.application_updates === before?.push?.application_updates,
-      'email preferences and the other switch are untouched')
+    const others = o => JSON.stringify(Object.fromEntries(Object.entries(o || {}).filter(([k]) => k !== "push")))
+    check(others(after) === others(before) && after.push.application_updates === before?.push?.application_updates,
+      "every other preference, and the other switch, exactly as stored")
     const bad = await call('PUT', '/api/app/me/notifications', token, { replies: 'yes' })
     check(bad.status === 400, `a non-boolean is refused (got ${bad.status})`)
 
