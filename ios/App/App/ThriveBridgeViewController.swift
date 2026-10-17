@@ -15,6 +15,16 @@ class ThriveBridgeViewController: CAPBridgeViewController, WKHTTPCookieStoreObse
 
     private var urlObservation: NSKeyValueObservation?
 
+    // THE PREVIOUS PAGE MUST NOT SHOW WHILE THE NEXT ONE LOADS. Paul on build
+    // 17: "when you click Messages you see messages then it switches to
+    // different messages". A web view keeps painting its last page until the
+    // new one arrives, so a tab could show the conversation opened earlier and
+    // then swap. go(to:) now covers the web view with the page background until
+    // the new page has loaded (or 10 seconds pass, so it can never stick).
+    private let cover = UIView()
+    private var loadingObservation: NSKeyValueObservation?
+    private var coverTimer: Timer?
+
     /// "ONE NAVIGATION" (design, second addendum): while the app's own tab bar
     /// is showing, the website hides its header and hamburger. The flag lives in
     /// sessionStorage so that this script, which runs before any page draws, can
@@ -35,6 +45,14 @@ class ThriveBridgeViewController: CAPBridgeViewController, WKHTTPCookieStoreObse
         // A weak proxy: the content controller retains its handlers.
         webView?.configuration.userContentController.add(WeakMessageProxy(self), name: "thrive")
         webView?.configuration.websiteDataStore.httpCookieStore.add(self)
+        cover.frame = view.bounds
+        cover.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        cover.backgroundColor = UIColor(red: 246/255, green: 247/255, blue: 249/255, alpha: 1)
+        cover.isHidden = true
+        view.addSubview(cover)
+        loadingObservation = webView?.observe(\.isLoading, options: [.new]) { [weak self] view, _ in
+            if !view.isLoading { DispatchQueue.main.async { self?.hideCover() } }
+        }
         urlObservation = webView?.observe(\.url, options: [.new]) { [weak self] view, _ in
             let path = view.url?.path ?? "/"
             DispatchQueue.main.async { self?.onPathChanged?(path) }
@@ -54,7 +72,25 @@ class ThriveBridgeViewController: CAPBridgeViewController, WKHTTPCookieStoreObse
     func go(to path: String) {
         guard let base = URL(string: "https://thrivecareer.co.uk"),
               let url = URL(string: path, relativeTo: base) else { return }
+        showCover()
         _ = webView?.load(URLRequest(url: url))
+    }
+
+    private func showCover() {
+        coverTimer?.invalidate()
+        cover.layer.removeAllAnimations()
+        cover.alpha = 1
+        cover.isHidden = false
+        view.bringSubviewToFront(cover)
+        coverTimer = Timer.scheduledTimer(withTimeInterval: 10, repeats: false) { [weak self] _ in self?.hideCover() }
+    }
+
+    private func hideCover() {
+        guard !cover.isHidden else { return }
+        coverTimer?.invalidate()
+        UIView.animate(withDuration: 0.15, animations: { self.cover.alpha = 0 }) { done in
+            if done { self.cover.isHidden = true }
+        }
     }
 
     private var nativeNavOn: Bool?

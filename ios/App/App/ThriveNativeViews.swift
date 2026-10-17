@@ -842,7 +842,8 @@ struct ApplicationsScreen: View {
                                 .font(.inter(16)).foregroundColor(TC.ink2)
                             HStack(spacing: 10) {
                                 StatusPill(status: app.status, label: app.statusLabel)
-                                Text("Applied \(ThriveDates.day(ThriveDates.parse(app.appliedAt)))")
+                                // The pill already says "Applied"; the date stands alone.
+                                Text(ThriveDates.day(ThriveDates.parse(app.appliedAt)))
                                     .font(.inter(16)).foregroundColor(TC.muted)
                             }.padding(.top, 2)
                         }
