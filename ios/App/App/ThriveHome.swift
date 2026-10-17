@@ -57,10 +57,6 @@ struct JobsContainer: View {
     }
 }
 
-private struct BandBottomKey: PreferenceKey {
-    static var defaultValue: CGFloat = 1000
-    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) { value = nextValue() }
-}
 
 struct HomeScreen: View {
     @ObservedObject var store: ThriveStore
@@ -85,7 +81,16 @@ struct HomeScreen: View {
                         band
                             .id("top")
                             .background(GeometryReader { g in
-                                Color.clear.preference(key: BandBottomKey.self, value: g.frame(in: .named("home")).maxY)
+                                // The band's bottom edge, read on every scroll. (A preference
+                                // key did not reach onPreferenceChange on build 17: the
+                                // compact bar never appeared.) onChange of the frame does.
+                                let bottom = g.frame(in: .named("home")).maxY
+                                Color.clear
+                                    .onAppear { bandGone = bottom < 40 }
+                                    .onChange(of: bottom) { newValue in
+                                        let gone = newValue < 40
+                                        if gone != bandGone { bandGone = gone }
+                                    }
                             })
                         content
                             .frame(maxWidth: 640)
@@ -99,7 +104,6 @@ struct HomeScreen: View {
                     // into the safe area), so the band never slides under the clock.
                     Color.clear.frame(height: 0).background(TC.navy)
                 }
-                .onPreferenceChange(BandBottomKey.self) { bandGone = $0 < 40 }
                 .refreshable { store.refreshJobs(); store.refreshHome() }
                 // Navy behind the status bar and above the band, including the
                 // pull-to-refresh overscroll. The content sets its own background.
