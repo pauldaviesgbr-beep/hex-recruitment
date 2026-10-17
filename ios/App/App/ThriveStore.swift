@@ -29,28 +29,73 @@ final class ThriveStore: ObservableObject {
     @Published var applicationsLoad: Load = .idle
 
     @Published var online = true
+    /// "See similar jobs" on a closed job: the Jobs tab opens All jobs
+    /// filtered to this category. The id makes each request a new event.
+    @Published var similarRequest: (category: String, id: UUID)?
+
+    func showSimilar(to job: AppJob) {
+        guard let category = job.category else { return }
+        similarRequest = (category: category, id: UUID())
+        selectTab(0)
+    }
+
+    /// The last job taken out of Saved, for the Undo bar (R2).
+    @Published var lastUnsaved: (job: AppJob, at: Date)?
     @Published var hideTabBar = false
 
     // MARK: The Jobs home (design H1–H3)
     @Published var profile: AppProfile?
     @Published var shiftsOpen: Int?
 
+    // MARK: Native Profile (build 17 review, D6/D7) — logic in ThriveProfile.swift
+    @Published var profileLoad: Load = .idle
+    @Published var scan: ScanState = .none
+    @Published var cvAddedAt: Date?          // shows "CV added" for a few seconds
+    /// Thumbnails of the pages just scanned (D3). The PDF itself is a file in
+    /// the app's private storage (ThriveStore.pendingScanFile), never Photos.
+    var scanPages: [UIImage] = []
+    var scanUpload: URLSessionUploadTask?
+    var scanProgress: NSKeyValueObservation?
+
     func refreshHome() {
         ThriveAPI.get("/shifts", token: nil, as: ShiftsResponse.self) { [weak self] r in
             if case .success(let s) = r { self?.shiftsOpen = s.open }
         }
-        guard let token = token() else { profile = nil; return }
+        refreshProfile()
+    }
+
+    func refreshProfile() {
+        guard let token = token() else { profile = nil; profileLoad = .idle; return }
+        if profile == nil { profileLoad = .loading }
         ThriveAPI.get("/me/profile", token: token, as: AppProfile.self) { [weak self] r in
-            if case .success(let p) = r { self?.profile = p }
+            switch r {
+            case .success(let p): self?.profile = p; self?.profileLoad = .loaded
+            case .failure: if self?.profile == nil { self?.profileLoad = .failed }
+            }
         }
     }
 
     /// For you (H3): jobs matching the job title on their profile. The whole
     /// title first ("Sous Chef"); if that finds fewer than three, its most
     /// specific word ("Chef"), never a seniority word on its own.
+    /// Whole days since a job was posted, or nil if it carries no date.
+    func ageDays(_ job: AppJob) -> Int? {
+        guard let d = ThriveDates.parse(job.postedAt) else { return nil }
+        return Calendar.current.dateComponents([.day], from: d, to: Date()).day
+    }
+
+    /// The home's "New this week" (build 17 review): jobs up to 7 days old.
+    /// With fewer than three, the three newest under "Newest jobs".
+    func homeNewest() -> (title: String, jobs: [AppJob]) {
+        let all = filteredJobs(query: "", placeKey: nil)
+        let fresh = all.filter { (ageDays($0) ?? 999) <= 7 }
+        return fresh.count >= 3 ? ("New this week", Array(fresh.prefix(3))) : ("Newest jobs", Array(all.prefix(3)))
+    }
+
     func forYou(placeKey: String?) -> [AppJob] {
         guard let title = profile?.jobTitle?.lowercased(), !title.isEmpty else { return [] }
-        let pool = filteredJobs(query: "", placeKey: placeKey)
+        // Only jobs up to 30 days old; with none, the section hides.
+        let pool = filteredJobs(query: "", placeKey: placeKey).filter { (ageDays($0) ?? 999) <= 30 }
         var hits = pool.filter { $0.title.lowercased().contains(title) }
         if hits.count < 3 {
             let generic: Set<String> = ["senior", "junior", "head", "assistant", "deputy", "trainee", "commis", "and", "the", "of"]
@@ -208,6 +253,7 @@ final class ThriveStore: ObservableObject {
             }
         } else {
             saved.removeAll { $0.job.id == job.id }
+            lastUnsaved = (job: job, at: Date())
         }
         persistPending()
         writeCache()
@@ -239,7 +285,10 @@ final class ThriveStore: ObservableObject {
         saved = []; savedUpdatedAt = nil; savedLoad = .idle
         applications = []; applicationsUpdatedAt = nil; applicationsLoad = .idle
         pending = [:]
-        profile = nil
+        profile = nil; profileLoad = .idle
+        // A waiting scan goes too (design rule); its file is in cacheDir.
+        scanUpload?.cancel(); scanUpload = nil; scanProgress = nil
+        scanPages = []; scan = .none; cvAddedAt = nil
         persistPending()
         try? FileManager.default.removeItem(at: ThriveStore.cacheDir)
     }
@@ -256,7 +305,7 @@ final class ThriveStore: ObservableObject {
         var applicationsUpdatedAt: Date?
     }
 
-    private static var cacheDir: URL {
+    static var cacheDir: URL {
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         return base.appendingPathComponent("thrive-cache", isDirectory: true)
     }

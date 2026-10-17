@@ -626,7 +626,8 @@ export default function MessagesPage() {
                 ← Back to Candidates
               </button>
             )}
-            <h1 className={styles.sidebarTitle}>
+            {/* Inside the iOS app the navy bar already says Messages (design E2 rule 2). */}
+            <h1 className={styles.sidebarTitle} data-repeats-native-title="">
               Messages
             </h1>
             <div className={styles.searchBox}>

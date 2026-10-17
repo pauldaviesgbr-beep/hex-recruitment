@@ -347,3 +347,22 @@
     width: 100%;
   }
 }
+
+/* ==========================
+   BUILD 17 REVIEW (design R4): the apply sheet in the brand's terms, on the
+   website and inside the app. Navy, not blue; one yellow (Send application).
+   Later rules at the same specificity, so they win over the ones above.
+   ========================== */
+.header h2 { font-weight: 800; font-size: 20px; color: #0F172A; letter-spacing: -0.01em; }
+.closeBtn { color: #0F172A; background: transparent; }
+.jobInfo h3 { font-weight: 600; font-size: 17px; line-height: 1.3; color: #0F172A; }
+.jobInfo p { font-size: 16px; color: #334155; }
+.jobInfo p strong { font-weight: 700; color: #0F172A; }
+.cvCheckboxRow { border: 1.5px solid #0F172A; border-radius: 14px; background: #fff; }
+.cvCheckboxRow input[type="checkbox"] { accent-color: #0F172A; }
+.cvLabel { color: #0F172A; font-weight: 600; }
+.fieldLabel { font-weight: 600; font-size: 16px; color: #0F172A; }
+.textarea { border: 1px solid #CBD2DC; border-radius: 12px; }
+.textarea:focus { border-color: #0F172A; box-shadow: none; outline: 2px solid #0F172A; outline-offset: 0; }
+.submitBtn { min-height: 52px; border-radius: 14px; font-weight: 700; font-size: 17px; background: #FFE500; color: #0F172A; }
+.cancelBtn { color: #0F172A; }

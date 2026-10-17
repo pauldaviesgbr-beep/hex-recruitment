@@ -11,7 +11,7 @@
 // the web page left (ios/App/App/ThriveSession.swift). Queries run AS THAT USER,
 // so row-level security applies exactly as on the website.
 
-import { createClient, type SupabaseClient } from '@supabase/supabase-js'
+import { createClient, type SupabaseClient, type User } from '@supabase/supabase-js'
 import type { NextRequest } from 'next/server'
 import { supabaseJobToJob } from '@/lib/types'
 import { formatJobSalary, formatJobLocation } from '@/lib/jobCard'
@@ -26,7 +26,7 @@ export function publicClient(): SupabaseClient {
 }
 
 /** The signed-in user behind a Bearer token, and a client that queries as them. */
-export async function userFromRequest(req: NextRequest): Promise<{ client: SupabaseClient; userId: string } | null> {
+export async function userFromRequest(req: NextRequest): Promise<{ client: SupabaseClient; userId: string; user: User } | null> {
   const header = req.headers.get('authorization') || ''
   const token = header.toLowerCase().startsWith('bearer ') ? header.slice(7).trim() : ''
   if (!token) return null
@@ -38,7 +38,7 @@ export async function userFromRequest(req: NextRequest): Promise<{ client: Supab
   try {
     const { data, error } = await client.auth.getUser(token)
     if (error || !data.user) return null
-    return { client, userId: data.user.id }
+    return { client, userId: data.user.id, user: data.user }
   } catch {
     return null
   }
@@ -48,7 +48,7 @@ export async function userFromRequest(req: NextRequest): Promise<{ client: Supab
 export const APP_JOB_COLUMNS =
   'id, title, company, location, area, area_region, area_county, salary_min, salary_max, salary_type, ' +
   'employment_type, posted_at, created_at, status, description, full_description, responsibilities, ' +
-  'requirements, benefits, tags, is_recruiter_posting, employer_id'
+  'requirements, benefits, tags, is_recruiter_posting, employer_id, category'
 
 export type AppJob = {
   id: string
@@ -71,6 +71,10 @@ export type AppJob = {
   payShort: string | null  // "£63k", "£55k–£62k", "£12.50 an hour"
   payLong: string | null   // "£63,000 a year", "£12.50 an hour"
   facts: string[]          // ["Full time", "Permanent"], from employment_type
+  // Build 17 review (design R1 and the small fixes).
+  town: string             // "Deptford": the row's place
+  category: string | null  // for "See similar jobs" on a closed job
+  aboutBlocks: { kind: 'heading' | 'text'; text: string }[]
 }
 
 // Regions resolved from a place name are cached per server instance: the
@@ -100,8 +104,41 @@ function postedLabel(iso: string | null): string {
   if (days === 1) return 'Yesterday'
   // A card is scanned, not read: "3 days ago" says how fresh it is at a
   // glance; "Tue 13 Oct" makes the reader do the sum.
-  if (days < 7) return `${days} days ago`
-  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'Europe/London' })
+  // Design R1 (build 17 review): to 6 days, then "6 Oct"; from six months, the year too.
+  if (days <= 6) return `${days} days ago`
+  return shortDate(d, days >= 183)
+}
+
+// "Sep", never "Sept": en-GB's own abbreviation became "Sept" in newer ICU,
+// and the design asks for three letters everywhere.
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+export function shortDate(d: Date, withYear = false): string {
+  const london = new Date(d.toLocaleString('en-US', { timeZone: 'Europe/London' }))
+  const base = `${london.getDate()} ${MONTHS[london.getMonth()]}`
+  return withYear ? `${base} ${london.getFullYear()}` : base
+}
+
+/** The town alone (design R1): no postcode district and no county after a
+ *  town. "Deptford, London, SE8" gives "Deptford"; "Wokingham, Berkshire"
+ *  gives "Wokingham". With no town, the county. */
+export function townOf(row: { location?: string | null; area?: string | null }): string {
+  const isDistrict = (t: string) => /^[A-Z]{1,2}\d[A-Z\d]?(\s*\d[A-Z]{2})?$/i.test(t)
+  const first = (v?: string | null) =>
+    (v || '').split(',').map(t => t.trim()).filter(t => t && !isDistrict(t))[0] || ''
+  return first(row.location) || first(row.area)
+}
+
+/** The advert body as headings and paragraphs (design: "the advert's
+ *  subheadings render as headings everywhere"). A short line with no closing
+ *  punctuation, followed by more text, is a subheading. */
+export function aboutBlocks(text: string): { kind: 'heading' | 'text'; text: string }[] {
+  const lines = text.split('\n').map(l => l.trim()).filter(Boolean)
+  return lines.map((line, i) => {
+    const bare = line.replace(/:$/, '')
+    const heading = i < lines.length - 1 && bare.length <= 48 && !/[.!?;,]$/.test(bare) &&
+      bare.split(/\s+/).length <= 7 && !/^[•\-–]/.test(bare)
+    return heading ? { kind: 'heading' as const, text: bare } : { kind: 'text' as const, text: line }
+  })
 }
 
 /** Dates for the app: ISO 8601 UTC with milliseconds ("2026-10-16T08:12:00.000Z").
@@ -171,6 +208,9 @@ export async function toAppJob(row: any): Promise<AppJob> {
     isClosed: row.status !== 'active',
     region: regionKey ? { key: regionKey, label: regionName(regionKey) || regionKey } : null,
     about: plainText(row.full_description || row.description),
+    aboutBlocks: aboutBlocks(plainText(row.full_description || row.description)),
+    town: townOf(row),
+    category: row.category || null,
     responsibilities: (row.responsibilities || []).map(plainText).filter(Boolean),
     requirements: (row.requirements || []).map(plainText).filter(Boolean),
     benefits: (row.benefits || []).map(plainText).filter(Boolean),

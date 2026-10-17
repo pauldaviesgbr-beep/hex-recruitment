@@ -30,11 +30,16 @@ enum ThriveAPI {
     }
 
     static func send(_ method: String, _ path: String, token: String?,
+                     json: [String: Any]? = nil,
                      done: @escaping (Result<Data, Failure>) -> Void) {
         guard let url = URL(string: base + path) else { done(.failure(.server)); return }
         var req = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: timeout)
         req.httpMethod = method
         if let token = token { req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization") }
+        if let json = json {
+            req.httpBody = try? JSONSerialization.data(withJSONObject: json)
+            req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        }
         URLSession.shared.dataTask(with: req) { data, response, error in
             let status = (response as? HTTPURLResponse)?.statusCode ?? 0
             let result: Result<Data, Failure>
@@ -88,11 +93,41 @@ struct AppJob: Codable, Hashable, Identifiable {
     let payShort: String?
     let payLong: String?
     let facts: [String]?
+    // Build 17 review. Optional for the same reason.
+    let town: String?
+    let category: String?
+    let aboutBlocks: [AboutBlock]?
+}
+
+struct AboutBlock: Codable, Hashable {
+    let kind: String   // "heading" | "text"
+    let text: String
 }
 
 struct AppProfile: Codable {
     let firstName: String?
     let jobTitle: String?
+    // Native Profile (build 17 review, D6/D7). Optional: an older server
+    // answer still decodes.
+    let fullName: String?
+    let town: String?
+    let photoUrl: String?
+    let isDiscoverable: Bool?
+    let heldUntil: String?
+    let complete: ProfileComplete?
+    let cv: ProfileCV?
+}
+
+struct ProfileComplete: Codable, Equatable {
+    let done: Int
+    let total: Int
+    let next: String?
+}
+
+struct ProfileCV: Codable, Equatable {
+    let fileName: String
+    let url: String?
+    let added: String?
 }
 
 struct ShiftsResponse: Codable {
@@ -155,7 +190,10 @@ enum ThriveDates {
 
     private static func format(_ date: Date, _ pattern: String) -> String {
         let f = DateFormatter()
-        f.locale = Locale(identifier: "en_GB")
+        // en_US_POSIX, not en_GB: current iOS writes en-GB September as
+        // "Sept", and the design asks for "Sep". Same day and month names
+        // otherwise; the order comes from the pattern, not the locale.
+        f.locale = Locale(identifier: "en_US_POSIX")
         f.timeZone = TimeZone(identifier: "Europe/London")
         f.dateFormat = pattern
         return f.string(from: date)

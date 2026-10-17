@@ -37,7 +37,7 @@ class ThriveRootViewController: UIViewController, UITabBarDelegate {
         Tab(title: "Saved", symbol: "bookmark", path: "/saved-jobs", matches: ["/saved-jobs"], native: 1),
         Tab(title: "Applications", symbol: "doc.text", path: "/applications", matches: ["/applications"], native: 2),
         Tab(title: "Messages", symbol: "bubble.left", path: "/messages", matches: ["/messages"], native: nil),
-        Tab(title: "Profile", symbol: "person", path: "/dashboard", matches: ["/dashboard", "/profile", "/settings"], native: nil),
+        Tab(title: "Profile", symbol: "person", path: "/dashboard", matches: ["/dashboard", "/profile", "/settings"], native: 5),
     ]
 
     // The four employer slots settled on 12 Sept 2026: Home · Job ads ·
@@ -200,6 +200,8 @@ class ThriveRootViewController: UIViewController, UITabBarDelegate {
             AnyView(SignedOutTab(store: store, title: "Profile", symbol: "person",
                                  heading: "Sign in to build your profile",
                                  message: "Your CV and details, ready to send with every application.")),
+            // 5: Profile SIGNED IN (build 17 review, D6/D7), native.
+            AnyView(ProfileScreen(store: store)),
         ]
         for screen in screens {
             let host = UIHostingController(rootView: screen)
@@ -348,7 +350,7 @@ class ThriveRootViewController: UIViewController, UITabBarDelegate {
 
     private func setBackBarVisible(_ visible: Bool) {
         if let from = webOpenedFrom, visible {
-            let title = ["Jobs", "Saved", "Applications", "Messages", "Profile"][min(max(from, 0), 4)]
+            let title = ["Jobs", "Saved", "Applications", "Messages", "Profile", "Profile"][min(max(from, 0), 5)]
             backButton.setTitle(" \(title)", for: .normal)
         }
         // A web TAB (Messages, Profile, the employer pages) has no back: its
@@ -367,6 +369,8 @@ class ThriveRootViewController: UIViewController, UITabBarDelegate {
         // They may have just applied or sent a message.
         store.refreshApplications()
         store.refreshSaved()
+        // They may have changed their details or uploaded a CV.
+        if from == 5 { store.refreshProfile() }
     }
 
     // MARK: - Session and role
@@ -422,8 +426,9 @@ class ThriveRootViewController: UIViewController, UITabBarDelegate {
                 self.tabs = ThriveRootViewController.candidateTabs
                 self.dismissSignIn()
                 // G2: an existing candidate goes back to the screen they came
-                // from. Messages and Profile were placeholders while signed out;
-                // signed in they are the website. First launch: Jobs (A1).
+                // from. Messages was a placeholder while signed out and is the
+                // website signed in; Profile is native either way (host 4 out,
+                // host 5 in, through the tab). First launch: Jobs (A1).
                 let back = self.nativeIndex
                 if let b = back, b >= 3 { self.selectTab(b) } else { self.showNative(back ?? 0) }
                 self.finishPendingAction()
@@ -450,6 +455,13 @@ class ThriveRootViewController: UIViewController, UITabBarDelegate {
         // menu link, a redirect after applying): show the native screen.
         if role == .candidate, nativeIndex == nil {
             let owned: [(String, Int)] = [("/saved-jobs", 1), ("/applications", 2)]
+            // The website's own dashboard is the Profile tab's old page: the
+            // app shows its native Profile instead (build 17 review: "Drop the
+            // TODAY card, the Recommended cards…").
+            if path == "/dashboard" || path.hasPrefix("/dashboard?") {
+                showNative(5)
+                return
+            }
             if path == "/jobs" || path.hasPrefix("/jobs?") {
                 showNative(0)
                 return
@@ -489,7 +501,7 @@ class ThriveRootViewController: UIViewController, UITabBarDelegate {
         let match: Int?
         if let n = nativeIndex {
             // Hosts 3 and 4 (signed-out Messages and Profile) sit at their tab index.
-            match = n >= 3 ? n : tabs.firstIndex { $0.native == n }
+            match = (n == 3 || n == 4) ? n : tabs.firstIndex { $0.native == n }
         } else if let from = webOpenedFrom {
             match = tabs.firstIndex { $0.native == from }
         } else {

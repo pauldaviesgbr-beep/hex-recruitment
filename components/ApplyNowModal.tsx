@@ -10,6 +10,7 @@ import PushPriming from '@/components/PushPriming'
 import type { Conversation } from '@/lib/mockMessages'
 import styles from './ApplyNowModal.module.css'
 import { Ico } from '@/components/icons'
+import { formatMoney } from '@/lib/money'
 import { isFixtureGuardError, FIXTURE_GUARD_MESSAGE, isCvRequiredError, CV_REQUIRED_MESSAGE, cvBuilderLink } from '@/lib/applicationGuard'
 
 interface ApplyNowModalProps {
@@ -106,11 +107,16 @@ export default function ApplyNowModal({ job, isOpen, onClose, onSuccess }: Apply
     return () => window.removeEventListener('keydown', handleKey)
   }, [isOpen, onClose])
 
+  // A single figure is shown once (it read "£41,000 - £41,000 per year" in the
+  // app on 17 Oct 2026), pence come from the shared formatter (it printed
+  // "£12.5"), and the period is in words, as the app's job page writes it.
   const formatSalary = () => {
-    if (job.salaryPeriod === 'hour') {
-      return `£${job.salaryMin} - £${job.salaryMax} per hour`
-    }
-    return `£${job.salaryMin.toLocaleString()} - £${job.salaryMax.toLocaleString()} per year`
+    const hourly = job.salaryPeriod === 'hour'
+    const money = (n: number) => (hourly ? formatMoney(n) : `£${Math.round(n).toLocaleString('en-GB')}`)
+    const min = job.salaryMin || job.salaryMax
+    const single = !job.salaryMax || !job.salaryMin || job.salaryMin === job.salaryMax
+    const range = single ? money(min) : `${money(job.salaryMin)}–${money(job.salaryMax)}`
+    return `${range} ${hourly ? 'an hour' : 'a year'}`
   }
 
   const [cvError, setCvError] = useState<string | null>(null)
@@ -311,14 +317,15 @@ export default function ApplyNowModal({ job, isOpen, onClose, onSuccess }: Apply
           <>
             <div className={styles.header}>
               <h2>Apply to {job.company}</h2>
-              <button className={styles.closeBtn} onClick={onClose} aria-label="Close">×</button>
+              {/* Inside the iOS app the navy bar's back closes this (design R4). */}
+              <button className={styles.closeBtn} onClick={onClose} aria-label="Close" data-hide-in-app="">×</button>
             </div>
 
             <div className={styles.body}>
               {/* Job info */}
               <div className={styles.jobInfo}>
                 <h3>{job.title}</h3>
-                <p>{job.location} &bull; {formatSalary()}</p>
+                <p><strong>{formatSalary()}</strong> · {job.location}</p>
               </div>
 
               {/* CV section */}
@@ -344,7 +351,7 @@ export default function ApplyNowModal({ job, isOpen, onClose, onSuccess }: Apply
                       onChange={e => setUseSavedCv(e.target.checked)}
                     />
                     <div className={styles.cvCheckboxText}>
-                      <span className={styles.cvLabel}>Apply with your saved CV</span>
+                      <span className={styles.cvLabel}>Send my saved CV</span>
                       <span className={styles.cvFilename}>{cvFileName || 'your-cv.pdf'}</span>
                     </div>
                   </label>
@@ -375,7 +382,7 @@ export default function ApplyNowModal({ job, isOpen, onClose, onSuccess }: Apply
               {/* Cover letter */}
               <div className={styles.field}>
                 <label className={styles.fieldLabel}>
-                  {coverLetterRequired ? 'Cover Letter (required)' : 'Cover Letter (optional)'}
+                  {coverLetterRequired ? 'Cover letter (required)' : 'Cover letter (optional)'}
                 </label>
                 <textarea
                   className={`${styles.textarea} ${coverLetterRequired && !coverLetter.trim() ? styles.textareaRequired : ''}`}
@@ -422,7 +429,7 @@ export default function ApplyNowModal({ job, isOpen, onClose, onSuccess }: Apply
               </div>
             )}
             <div className={styles.footer}>
-              <button className={styles.cancelBtn} onClick={onClose}>
+              <button className={styles.cancelBtn} onClick={onClose} data-hide-in-app="">
                 Cancel
               </button>
               <button
@@ -430,7 +437,7 @@ export default function ApplyNowModal({ job, isOpen, onClose, onSuccess }: Apply
                 onClick={handleSubmit}
                 disabled={isSubmitting || (coverLetterRequired && !coverLetter.trim()) || (cvRequired && !cvUrl) || unansweredRequired.length > 0}
               >
-                {isSubmitting ? 'Submitting...' : 'Submit Application'}
+                {isSubmitting ? 'Sending…' : 'Send application'}
               </button>
             </div>
           </>
