@@ -6,8 +6,10 @@ import SwiftUI
 // yellow Search; then three jobs; then "See all", Shifts, and (signed out) the
 // sign-up card. The full list is its own screen (JobsScreen, H4).
 
-/// One dense job row (H1, H4, H6): title, pay in bold navy · place, age.
-/// No type and no recruiter: they live on the job page.
+/// One dense job row, everywhere (design R1, build 17 review): the title,
+/// clamped at two lines, then "£59k · London · 4 days ago" with the age
+/// quieter. No type and no recruiter: they live on the job page.
+/// A closed job (Saved only) keeps its title, loses its pay, and says so.
 struct DenseJobRow: View {
     @ObservedObject var store: ThriveStore
     let job: AppJob
@@ -15,27 +17,36 @@ struct DenseJobRow: View {
     var body: some View {
         HStack(alignment: .top, spacing: 8) {
             VStack(alignment: .leading, spacing: 4) {
-                Text(job.title).font(.inter(17, .semibold)).foregroundColor(TC.navy)
-                    .lineSpacing(2).fixedSize(horizontal: false, vertical: true)
-                payAndPlace
-                Text(job.postedLabel).font(.inter(16)).foregroundColor(TC.muted)
+                Text(job.title).font(.inter(17, .semibold))
+                    .foregroundColor(job.isClosed ? TC.ink2 : TC.navy)
+                    .lineSpacing(2).lineLimit(2)
+                if job.isClosed {
+                    Text("This job has closed").font(.inter(16, .semibold)).foregroundColor(TC.warning)
+                } else {
+                    metaLine.fixedSize(horizontal: false, vertical: true)
+                }
             }
             Spacer(minLength: 0)
             if showBookmark { BookmarkButton(store: store, job: job).padding(.top, -10).padding(.trailing, -8) }
         }
-        .padding(.vertical, 16).padding(.leading, 18).padding(.trailing, 10)
+        .padding(.vertical, 12).padding(.leading, 16).padding(.trailing, 8)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color.white)
+        .overlay(alignment: .leading) {
+            if job.isClosed { Rectangle().fill(TC.warning).frame(width: 3) }
+        }
         .contentShape(Rectangle())
     }
 
-    private var payAndPlace: Text {
-        let pay = job.payShort ?? job.pay
-        if let pay = pay {
+    private var metaLine: Text {
+        let place = Text(job.town ?? job.place).font(.inter(16)).foregroundColor(TC.ink2)
+        let age = job.postedLabel.isEmpty ? Text("")
+            : Text(" · ").font(.inter(16)).foregroundColor(TC.ink2) + Text(job.postedLabel).font(.inter(16)).foregroundColor(TC.muted)
+        if let pay = job.payShort ?? job.pay {
             return Text(pay).font(.inter(16, .bold)).foregroundColor(TC.navy)
-                + Text(" · \(job.place)").font(.inter(16)).foregroundColor(TC.ink2)
+                + Text(" · ").font(.inter(16)).foregroundColor(TC.ink2) + place + age
         }
-        return Text(job.place).font(.inter(16)).foregroundColor(TC.ink2)
+        return place + age
     }
 }
 
@@ -251,7 +262,8 @@ struct HomeScreen: View {
                     if store.signedIn && store.profile != nil && (store.profile?.jobTitle ?? "").isEmpty && !a9Dismissed {
                         thinProfileCard.padding(.top, 20)
                     }
-                    section("New this week", subline: nil, jobs: Array(store.filteredJobs(query: "", placeKey: nil).prefix(3)))
+                    let newest = store.homeNewest()
+                    section(newest.title, subline: nil, jobs: newest.jobs)
                 }
 
                 // The end of the home (H2).
@@ -363,15 +375,31 @@ struct JobsTab: View {
     @State private var showAll = false
     @State private var allQuery = ""
     @State private var shiftsOnly = false
+    @State private var category: String?
     @State private var path: [AppJob] = []
 
     var body: some View {
+        content
+            .onReceive(store.$similarRequest) { req in
+                guard let req = req else { return }
+                path = []
+                allQuery = ""
+                shiftsOnly = false
+                category = req.category
+                showAll = true
+                store.similarRequest = nil
+            }
+    }
+
+    @ViewBuilder private var content: some View {
         if showAll {
-            JobsScreen(store: store, initialQuery: allQuery, initialShiftsOnly: shiftsOnly, back: { showAll = false })
+            JobsScreen(store: store, initialQuery: allQuery, initialShiftsOnly: shiftsOnly,
+                       initialCategory: category, back: { showAll = false; category = nil })
+                .id(category ?? "all")
         } else {
             NavigationStack(path: $path) {
                 HomeScreen(store: store,
-                           openAll: { q in allQuery = q; shiftsOnly = false; showAll = true },
+                           openAll: { q in allQuery = q; shiftsOnly = false; category = nil; showAll = true },
                            openShifts: { allQuery = ""; shiftsOnly = true; showAll = true },
                            openJob: { job in path.append(job) })
                     .navigationDestination(for: AppJob.self) { job in

@@ -317,14 +317,15 @@ export default function ApplyNowModal({ job, isOpen, onClose, onSuccess }: Apply
           <>
             <div className={styles.header}>
               <h2>Apply to {job.company}</h2>
-              <button className={styles.closeBtn} onClick={onClose} aria-label="Close">×</button>
+              {/* Inside the iOS app the navy bar's back closes this (design R4). */}
+              <button className={styles.closeBtn} onClick={onClose} aria-label="Close" data-hide-in-app="">×</button>
             </div>
 
             <div className={styles.body}>
               {/* Job info */}
               <div className={styles.jobInfo}>
                 <h3>{job.title}</h3>
-                <p>{job.location} &bull; {formatSalary()}</p>
+                <p><strong>{formatSalary()}</strong> · {job.location}</p>
               </div>
 
               {/* CV section */}
@@ -350,7 +351,7 @@ export default function ApplyNowModal({ job, isOpen, onClose, onSuccess }: Apply
                       onChange={e => setUseSavedCv(e.target.checked)}
                     />
                     <div className={styles.cvCheckboxText}>
-                      <span className={styles.cvLabel}>Apply with your saved CV</span>
+                      <span className={styles.cvLabel}>Send my saved CV</span>
                       <span className={styles.cvFilename}>{cvFileName || 'your-cv.pdf'}</span>
                     </div>
                   </label>
@@ -381,7 +382,7 @@ export default function ApplyNowModal({ job, isOpen, onClose, onSuccess }: Apply
               {/* Cover letter */}
               <div className={styles.field}>
                 <label className={styles.fieldLabel}>
-                  {coverLetterRequired ? 'Cover Letter (required)' : 'Cover Letter (optional)'}
+                  {coverLetterRequired ? 'Cover letter (required)' : 'Cover letter (optional)'}
                 </label>
                 <textarea
                   className={`${styles.textarea} ${coverLetterRequired && !coverLetter.trim() ? styles.textareaRequired : ''}`}
@@ -428,7 +429,7 @@ export default function ApplyNowModal({ job, isOpen, onClose, onSuccess }: Apply
               </div>
             )}
             <div className={styles.footer}>
-              <button className={styles.cancelBtn} onClick={onClose}>
+              <button className={styles.cancelBtn} onClick={onClose} data-hide-in-app="">
                 Cancel
               </button>
               <button
@@ -436,7 +437,7 @@ export default function ApplyNowModal({ job, isOpen, onClose, onSuccess }: Apply
                 onClick={handleSubmit}
                 disabled={isSubmitting || (coverLetterRequired && !coverLetter.trim()) || (cvRequired && !cvUrl) || unansweredRequired.length > 0}
               >
-                {isSubmitting ? 'Submitting...' : 'Submit Application'}
+                {isSubmitting ? 'Sending…' : 'Send application'}
               </button>
             </div>
           </>

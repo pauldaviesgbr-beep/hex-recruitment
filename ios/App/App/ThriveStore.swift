@@ -29,6 +29,18 @@ final class ThriveStore: ObservableObject {
     @Published var applicationsLoad: Load = .idle
 
     @Published var online = true
+    /// "See similar jobs" on a closed job: the Jobs tab opens All jobs
+    /// filtered to this category. The id makes each request a new event.
+    @Published var similarRequest: (category: String, id: UUID)?
+
+    func showSimilar(to job: AppJob) {
+        guard let category = job.category else { return }
+        similarRequest = (category: category, id: UUID())
+        selectTab(0)
+    }
+
+    /// The last job taken out of Saved, for the Undo bar (R2).
+    @Published var lastUnsaved: (job: AppJob, at: Date)?
     @Published var hideTabBar = false
 
     // MARK: The Jobs home (design H1–H3)
@@ -48,9 +60,24 @@ final class ThriveStore: ObservableObject {
     /// For you (H3): jobs matching the job title on their profile. The whole
     /// title first ("Sous Chef"); if that finds fewer than three, its most
     /// specific word ("Chef"), never a seniority word on its own.
+    /// Whole days since a job was posted, or nil if it carries no date.
+    func ageDays(_ job: AppJob) -> Int? {
+        guard let d = ThriveDates.parse(job.postedAt) else { return nil }
+        return Calendar.current.dateComponents([.day], from: d, to: Date()).day
+    }
+
+    /// The home's "New this week" (build 17 review): jobs up to 7 days old.
+    /// With fewer than three, the three newest under "Newest jobs".
+    func homeNewest() -> (title: String, jobs: [AppJob]) {
+        let all = filteredJobs(query: "", placeKey: nil)
+        let fresh = all.filter { (ageDays($0) ?? 999) <= 7 }
+        return fresh.count >= 3 ? ("New this week", Array(fresh.prefix(3))) : ("Newest jobs", Array(all.prefix(3)))
+    }
+
     func forYou(placeKey: String?) -> [AppJob] {
         guard let title = profile?.jobTitle?.lowercased(), !title.isEmpty else { return [] }
-        let pool = filteredJobs(query: "", placeKey: placeKey)
+        // Only jobs up to 30 days old; with none, the section hides.
+        let pool = filteredJobs(query: "", placeKey: placeKey).filter { (ageDays($0) ?? 999) <= 30 }
         var hits = pool.filter { $0.title.lowercased().contains(title) }
         if hits.count < 3 {
             let generic: Set<String> = ["senior", "junior", "head", "assistant", "deputy", "trainee", "commis", "and", "the", "of"]
@@ -208,6 +235,7 @@ final class ThriveStore: ObservableObject {
             }
         } else {
             saved.removeAll { $0.job.id == job.id }
+            lastUnsaved = (job: job, at: Date())
         }
         persistPending()
         writeCache()

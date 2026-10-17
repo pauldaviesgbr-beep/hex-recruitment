@@ -120,3 +120,57 @@ struct NavyTitleBand<Trailing: View>: View {
         .background(TC.navy.ignoresSafeArea(edges: .top))
     }
 }
+
+/// The navy bar on pushed screens (job page, application): a white back
+/// chevron with the previous title, and white glyphs on the right. Drawn by us
+/// rather than the system bar, because iOS 26 puts every system bar button in a
+/// grey glass pill, which on navy reads as a sticker (build 17 review: "plain
+/// white glyphs, 44pt targets, no glass"). Once the screen's header has
+/// scrolled away, its title sits in the middle on one line (H5).
+struct DetailTopBar<Trailing: View>: View {
+    var title: String? = nil
+    var backTitle: String? = nil
+    var back: (() -> Void)? = nil
+    @ViewBuilder var trailing: () -> Trailing
+    var body: some View {
+        ZStack {
+            if let title = title {
+                Text(title).font(.inter(17, .semibold)).foregroundColor(.white)
+                    .lineLimit(1).padding(.horizontal, 96)
+                    .transition(.opacity)
+            }
+            HStack(spacing: 0) {
+                if let back = back {
+                    Button(action: back) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "chevron.left").font(.system(size: 18, weight: .semibold))
+                            if let t = backTitle { Text(t).font(.inter(17, .medium)).lineLimit(1) }
+                        }
+                        .foregroundColor(.white).frame(minWidth: 44, minHeight: 44, alignment: .leading)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(backTitle.map { "Back to \($0)" } ?? "Back")
+                }
+                Spacer(minLength: 8)
+                trailing()
+            }
+        }
+        .padding(.horizontal, 12)
+        .frame(height: 52)
+        .frame(maxWidth: .infinity)
+        .background(TC.navy.ignoresSafeArea(edges: .top))
+    }
+}
+
+/// Hiding the system bar on a pushed screen also turns off the edge swipe
+/// back. This keeps it on whenever there is somewhere to go back to.
+extension UINavigationController: UIGestureRecognizerDelegate {
+    override open func viewDidLoad() {
+        super.viewDidLoad()
+        interactivePopGestureRecognizer?.delegate = self
+    }
+    public func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
+        viewControllers.count > 1
+    }
+}

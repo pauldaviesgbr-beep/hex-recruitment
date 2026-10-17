@@ -28,13 +28,12 @@ func statusColours(_ status: String) -> (bg: Color, fg: Color) {
     func hex(_ v: UInt32) -> Color {
         Color(red: Double((v >> 16) & 0xff) / 255, green: Double((v >> 8) & 0xff) / 255, blue: Double(v & 0xff) / 255)
     }
+    // Design R3 (build 17 review).
     switch status {
-    case "viewed": return (hex(0xdbeafe), hex(0x1e40af))
-    case "shortlisted", "hired": return (hex(0xdcfce7), hex(0x166534))
-    case "interview": return (hex(0xfef3c7), hex(0x92400e))
-    case "offer": return (TC.yellow, TC.navy)
-    case "rejected": return (hex(0xfee2e2), hex(0xb91c1c))
-    default: return (hex(0xf1f5f9), hex(0x334155))
+    case "viewed", "shortlisted": return (hex(0xE0EBFF), hex(0x1D4ED8))
+    case "interview", "offer", "hired": return (TC.navy, .white)
+    case "rejected", "withdrawn": return (hex(0xF6F7F9), hex(0x64748B))
+    default: return (hex(0xEEF0F4), hex(0x334155))
     }
 }
 
@@ -254,18 +253,22 @@ struct JobsScreen: View {
     var initialQuery: String = ""
     /// Opened from the home's Shifts row: temp work only (the Shifts chip toggles it).
     var initialShiftsOnly = false
+    /// Opened from "See similar jobs": one category, with a chip to clear it.
+    var initialCategory: String? = nil
     var back: (() -> Void)? = nil
     @Environment(\.horizontalSizeClass) private var hSize
     @State private var query = ""
     @State private var seeded = false
     @State private var shiftsOnly = false
+    @State private var category: String?
     @State private var selection: String?
     @State private var showWhere = false
 
     private var list: [AppJob] {
         let all = store.filteredJobs(query: store.online ? query : "", placeKey: store.placeKey)
         // Temp work, as the website's /temp-work counts it: adverts marked Temporary.
-        return shiftsOnly ? all.filter { ($0.facts ?? []).contains("Temporary") } : all
+        let temp = shiftsOnly ? all.filter { ($0.facts ?? []).contains("Temporary") } : all
+        return category.map { c in temp.filter { $0.category == c } } ?? temp
     }
 
     private var subline: String {
@@ -291,7 +294,7 @@ struct JobsScreen: View {
         }
         .navigationSplitViewStyle(.balanced)
         .onAppear {
-            if !seeded { query = initialQuery; shiftsOnly = initialShiftsOnly; seeded = true }
+            if !seeded { query = initialQuery; shiftsOnly = initialShiftsOnly; category = initialCategory; seeded = true }
             if store.jobs.isEmpty || store.jobsLoad != .loaded { store.refreshJobs() }
             openFirstOnPad()
         }
@@ -308,7 +311,9 @@ struct JobsScreen: View {
 
     /// H4's count line: "119 jobs · newest first", or "14 jobs in London".
     private var countLine: String {
-        let n = shiftsOnly
+        let n = category != nil
+            ? "\(list.count) similar \(list.count == 1 ? "job" : "jobs")"
+            : shiftsOnly
             ? "\(list.count) temp \(list.count == 1 ? "job" : "jobs")"
             : "\(list.count) \(list.count == 1 ? "job" : "jobs")"
         if let place = store.placeLabel { return "\(n) in \(place)" }
@@ -407,6 +412,18 @@ struct JobsScreen: View {
                         .contentShape(RoundedRectangle(cornerRadius: 12))
                     }
                     .accessibilityAddTraits(shiftsOnly ? .isSelected : [])
+                    if category != nil {
+                        Button { category = nil } label: {
+                            HStack(spacing: 6) {
+                                Text("Similar").font(.inter(16, .semibold))
+                                Image(systemName: "xmark").font(.system(size: 13, weight: .bold))
+                            }
+                            .foregroundColor(.white).padding(.horizontal, 14).frame(minHeight: 44)
+                            .background(Color.white.opacity(0.12)).cornerRadius(12)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Show all jobs, not only similar ones")
+                    }
                     .buttonStyle(.plain)
                     Spacer(minLength: 0)
                 }
@@ -467,7 +484,7 @@ struct JobsScreen: View {
         } else {
             Button { showWhere = true } label: {
                 HStack(spacing: 6) {
-                    Text("Anywhere in the UK").font(.inter(16, .semibold))
+                    Text("All of the UK").font(.inter(16, .semibold))
                     Image(systemName: "chevron.down").font(.system(size: 13, weight: .semibold))
                 }
                 .foregroundColor(.white).padding(.horizontal, 14).frame(minHeight: 44)
@@ -523,7 +540,7 @@ struct WhereSheet: View {
                 .padding(.horizontal, 16).padding(.vertical, 10)
             List {
                 if filter.isEmpty {
-                    row(label: "Anywhere in the UK", count: store.jobs.count, key: nil)
+                    row(label: "All of the UK", count: store.jobs.count, key: nil)
                 }
                 ForEach(shown) { r in row(label: r.label, count: r.count, key: r.key) }
             }
@@ -557,9 +574,22 @@ struct JobDetailScreen: View {
     let backTitle: String
     var savedAt: Date? = nil
     @Environment(\.horizontalSizeClass) private var hSize
+    @Environment(\.dismiss) private var dismiss
+    @State private var headerGone = false
 
     var body: some View {
         VStack(spacing: 0) {
+            DetailTopBar(title: headerGone ? job.title : nil,
+                         backTitle: backTitle,
+                         back: hSize == .regular ? nil : { dismiss() }) {
+                if let url = URL(string: job.url) {
+                    ShareLink(item: url, subject: Text(job.title), message: Text("\(job.title) at \(job.company)")) {
+                        Image(systemName: "square.and.arrow.up").font(.system(size: 20, weight: .medium))
+                            .foregroundColor(.white).frame(width: 44, height: 44)
+                    }.accessibilityLabel("Share this job")
+                }
+                BookmarkButton(store: store, job: job, tint: .white)
+            }
             ScrollView {
                 VStack(spacing: 0) {
                 // H5: the website's dark header, made native. Title, who and
@@ -584,9 +614,17 @@ struct JobDetailScreen: View {
                 .padding(.top, 8).padding(.bottom, 22)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(TC.navy)
+                .background(GeometryReader { g in
+                    // Once the header has gone, its title moves into the bar.
+                    let bottom = g.frame(in: .named("jobdetail")).maxY
+                    Color.clear.onChange(of: bottom) { v in
+                        let gone = v < 8
+                        if gone != headerGone { withAnimation(.easeOut(duration: 0.15)) { headerGone = gone } }
+                    }
+                })
 
                 VStack(alignment: .leading, spacing: 0) {
-                    section("About the job", text: job.about)
+                    aboutSection
                     bullets("What you'll be doing", job.responsibilities)
                     bullets("What they're looking for", job.requirements)
                     bullets("What you get", job.benefits)
@@ -598,6 +636,7 @@ struct JobDetailScreen: View {
                 .background(Color.white)
                 }
             }
+            .coordinateSpace(name: "jobdetail")
             .background(alignment: .top) { TC.navy.frame(height: 400) }
             if hSize != .regular {
                 applyArea
@@ -607,18 +646,7 @@ struct JobDetailScreen: View {
             }
         }
         .background(Color.white)
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar(.visible, for: .navigationBar)
-        .toolbar {
-            ToolbarItemGroup(placement: .navigationBarTrailing) {
-                if let url = URL(string: job.url) {
-                    ShareLink(item: url, subject: Text(job.title), message: Text("\(job.title) at \(job.company)")) {
-                        Image(systemName: "square.and.arrow.up").foregroundColor(.white).frame(width: 44, height: 44)
-                    }.accessibilityLabel("Share this job")
-                }
-                BookmarkButton(store: store, job: job, tint: .white)
-            }
-        }
+        .toolbar(.hidden, for: .navigationBar)
         .onAppear { if hSize != .regular { store.hideTabBar = true } }
         .onDisappear { store.hideTabBar = false }
     }
@@ -633,8 +661,16 @@ struct JobDetailScreen: View {
     /// Apply, or the sentence that replaces it. Never a greyed-out button.
     @ViewBuilder private var applyArea: some View {
         if job.isClosed {
-            Text("This job has closed, so it can't take applications.")
-                .font(.inter(16)).foregroundColor(TC.ink2).frame(maxWidth: .infinity, alignment: .leading)
+            // Build 17 review: a panel, and somewhere to go next.
+            VStack(alignment: .leading, spacing: 12) {
+                Text("This job has closed, so it can't take applications.")
+                    .font(.inter(16, .semibold)).foregroundColor(TC.navy).fixedSize(horizontal: false, vertical: true)
+                if job.category != nil {
+                    OutlineButton(title: "See similar jobs") { store.showSimilar(to: job) }
+                }
+            }
+            .padding(16).frame(maxWidth: .infinity, alignment: .leading)
+            .background(TC.page).cornerRadius(14)
         } else if !store.online {
             HStack(alignment: .top, spacing: 12) {
                 Image(systemName: "wifi.slash").foregroundColor(TC.navy)
@@ -653,6 +689,26 @@ struct JobDetailScreen: View {
                 if store.signedIn { store.openWeb("/job/\(job.id)?apply=1", backTitle) }
                 else { store.requireSignIn(then: .apply(job)) }
             }
+        }
+    }
+
+    /// "About the job", with the advert's own subheadings as headings
+    /// (build 17 review), including on closed jobs.
+    @ViewBuilder private var aboutSection: some View {
+        if let blocks = job.aboutBlocks, !blocks.isEmpty {
+            Text("About the job").font(.inter(19, .heavy)).foregroundColor(TC.navy).padding(.bottom, 8)
+            ForEach(Array(blocks.enumerated()), id: \.offset) { _, b in
+                if b.kind == "heading" {
+                    Text(b.text).font(.inter(19, .heavy)).foregroundColor(TC.navy)
+                        .fixedSize(horizontal: false, vertical: true).padding(.top, 10).padding(.bottom, 6)
+                } else {
+                    Text(b.text).font(.inter(16)).lineSpacing(6).foregroundColor(TC.ink2)
+                        .fixedSize(horizontal: false, vertical: true).padding(.bottom, 10)
+                }
+            }
+            Color.clear.frame(height: 10)
+        } else {
+            section("About the job", text: job.about)
         }
     }
 
@@ -732,44 +788,45 @@ struct SavedScreen: View {
     private var sidebar: some View {
         VStack(spacing: 0) {
         NavyTitleBand(title: "Saved", line: bandLine, offline: !store.online) { EmptyView() }
-        List(selection: $selection) {
-            if store.saved.isEmpty {
+        if store.saved.isEmpty {
+            ScrollView {
                 if store.savedLoad == .loading && store.savedUpdatedAt == nil {
-                    SkeletonCards().plainRow()
+                    SkeletonCards().padding(.top, 16)
                 } else {
                     EmptyState(symbol: "bookmark", heading: "Nothing saved yet",
                                message: "Tap the bookmark on any job. Saved jobs stay on this \(ThriveDates.deviceWord), so you can read them in a basement kitchen with no signal.") {
                         OutlineButton(title: store.jobs.isEmpty ? "Browse jobs" : "Browse \(store.jobs.count) jobs") { store.selectTab(0) }
-                    }.plainRow()
-                }
-            } else {
-                ForEach(store.saved) { item in
-                    Card(selected: hSize == .regular && selection == item.id, closed: item.job.isClosed) {
-                        VStack(alignment: .leading, spacing: 5) {
-                            Text(item.job.title).font(.inter(18, .semibold))
-                                .foregroundColor(item.job.isClosed ? TC.ink2 : TC.navy)
-                                .fixedSize(horizontal: false, vertical: true)
-                            Text("\(item.job.company) · \(item.job.place)").font(.inter(16)).foregroundColor(TC.ink2)
-                            if item.job.isClosed {
-                                Text("This job has closed").font(.inter(16, .semibold)).foregroundColor(TC.warning)
-                            } else {
-                                Text("Saved \(ThriveDates.day(ThriveDates.parse(item.savedAt)))")
-                                    .font(.inter(16)).foregroundColor(TC.muted)
-                            }
-                        }
                     }
-                    .tag(item.id)
-                    .cardRow()
-                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                        Button(role: .destructive) { store.toggleSave(item.job) } label: { Label("Remove", systemImage: "bookmark.slash") }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+            }
+            .background(TC.page)
+            .refreshable { store.refreshSaved() }
+        } else {
+            // R2: one rounded container, 16pt below the band; the R1 row with
+            // the pay and the advert's age; swipe left removes, and so does the
+            // filled bookmark, with Undo.
+            List(selection: $selection) {
+                Section {
+                    ForEach(store.saved) { item in
+                        DenseJobRow(store: store, job: item.job, showBookmark: hSize != .regular)
+                            .tag(item.id)
+                            .listRowInsets(EdgeInsets())
+                            .listRowBackground(Color.white)
+                            .listRowSeparatorTint(TC.hairline)
+                            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                Button(role: .destructive) { store.toggleSave(item.job) } label: { Label("Remove", systemImage: "bookmark.slash") }
+                            }
                     }
                 }
             }
+            .listStyle(.insetGrouped)
+            .environment(\.defaultMinListHeaderHeight, 16)
+            .scrollContentBackground(.hidden)
+            .background(TC.page)
+            .refreshable { store.refreshSaved() }
+            .overlay(alignment: .bottom) { UndoBar(store: store) }
         }
-        .listStyle(.plain)
-        .scrollContentBackground(.hidden)
-        .background(TC.page)
-        .refreshable { store.refreshSaved() }
         }
     }
 }
@@ -806,6 +863,7 @@ struct ApplicationsScreen: View {
         }
         .navigationSplitViewStyle(.balanced)
         .onAppear {
+            markVisit()
             store.refreshApplications()
             if hSize == .regular, selection == nil { selection = store.applications.first?.id }
         }
@@ -822,42 +880,55 @@ struct ApplicationsScreen: View {
     private var sidebar: some View {
         VStack(spacing: 0) {
         NavyTitleBand(title: "Applications", line: bandLine, offline: !store.online) { EmptyView() }
-        List(selection: $selection) {
-            if store.applications.isEmpty {
+        if store.applications.isEmpty {
+            ScrollView {
                 if store.applicationsLoad == .loading && store.applicationsUpdatedAt == nil {
-                    SkeletonCards().plainRow()
+                    SkeletonCards().padding(.top, 16)
                 } else {
                     EmptyState(symbol: "doc.text", heading: "No applications yet",
                                message: "When you apply, the job shows here with what the employer has done with it. You can check it without signal.") {
                         OutlineButton(title: store.jobs.isEmpty ? "Browse jobs" : "Browse \(store.jobs.count) jobs") { store.selectTab(0) }
-                    }.plainRow()
-                }
-            } else {
-                ForEach(store.applications) { app in
-                    Card(selected: hSize == .regular && selection == app.id) {
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text(app.title).font(.inter(18, .semibold)).foregroundColor(TC.navy)
-                                .fixedSize(horizontal: false, vertical: true)
-                            Text([app.company, app.job?.place].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " · "))
-                                .font(.inter(16)).foregroundColor(TC.ink2)
-                            HStack(spacing: 10) {
-                                StatusPill(status: app.status, label: app.statusLabel)
-                                // The pill already says "Applied"; the date stands alone.
-                                Text(ThriveDates.day(ThriveDates.parse(app.appliedAt)))
-                                    .font(.inter(16)).foregroundColor(TC.muted)
-                            }.padding(.top, 2)
-                        }
                     }
-                    .tag(app.id)
-                    .cardRow()
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
+            .background(TC.page)
+            .refreshable { store.refreshApplications() }
+        } else {
+            // R3: one rounded container. Title; "{employer} · {date}" (plus
+            // "· closed"); the status pill on the right; a navy dot on a row
+            // whose status changed since the last visit.
+            List(selection: $selection) {
+                Section {
+                    ForEach(store.applications) { app in
+                        ApplicationRow(app: app, changed: changedIds.contains(app.id))
+                            .tag(app.id)
+                            .listRowInsets(EdgeInsets())
+                            .listRowBackground(Color.white)
+                            .listRowSeparatorTint(TC.hairline)
+                    }
+                }
+            }
+            .listStyle(.insetGrouped)
+            .environment(\.defaultMinListHeaderHeight, 16)
+            .scrollContentBackground(.hidden)
+            .background(TC.page)
+            .refreshable { store.refreshApplications() }
         }
-        .listStyle(.plain)
-        .scrollContentBackground(.hidden)
-        .background(TC.page)
-        .refreshable { store.refreshApplications() }
         }
+    }
+
+    /// Statuses as they were at the last visit, kept on the phone. A row is
+    /// "changed" when its status differs from what was seen then.
+    @State private var changedIds: Set<String> = []
+    private static let seenKey = "thrive.applicationStatusesSeen"
+
+    private func markVisit() {
+        let seen = (UserDefaults.standard.dictionary(forKey: ApplicationsScreen.seenKey) as? [String: String]) ?? [:]
+        changedIds = Set(store.applications.filter { seen[$0.id] != nil && seen[$0.id] != $0.status }.map { $0.id })
+        var now: [String: String] = [:]
+        for a in store.applications { now[a.id] = a.status }
+        UserDefaults.standard.set(now, forKey: ApplicationsScreen.seenKey)
     }
 }
 
@@ -866,8 +937,11 @@ struct StatusPill: View {
     let label: String
     var body: some View {
         let c = statusColours(status)
-        Text(label).font(.inter(16, .semibold)).foregroundColor(c.fg)
-            .padding(.vertical, 7).padding(.horizontal, 10).background(c.bg).cornerRadius(8)
+        // "Rejected" is the website's word; the app says what it means.
+        Text(status == "rejected" ? "Not taken forward" : label)
+            .font(.inter(14, .semibold)).foregroundColor(c.fg)
+            .padding(.vertical, 7).padding(.horizontal, 9).background(c.bg).cornerRadius(7)
+            .fixedSize()
     }
 }
 
@@ -875,40 +949,55 @@ struct ApplicationDetailScreen: View {
     @ObservedObject var store: ThriveStore
     let application: AppApplication
     @Environment(\.horizontalSizeClass) private var hSize
+    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         VStack(spacing: 0) {
+            DetailTopBar(backTitle: "Applications", back: hSize == .regular ? nil : { dismiss() }) { EmptyView() }
             ScrollView {
-                VStack(alignment: .leading, spacing: 0) {
-                    if !store.online && hSize != .regular {
-                        NavyBanner(heading: "No signal",
-                                   message: "As of \(store.applicationsUpdatedAt.map(ThriveDates.updated) ?? "an earlier time"). They may have replied since.")
-                            .padding(.horizontal, -16)
-                    }
-                    Text(application.title).font(.inter(hSize == .regular ? 30 : 26, .heavy)).tracking(-0.5)
-                        .foregroundColor(TC.navy).fixedSize(horizontal: false, vertical: true)
-                    Text([application.company, application.job?.place].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " · "))
-                        .font(.inter(17, .medium)).foregroundColor(TC.ink2).padding(.top, 8)
-                    Text(datesLine).font(.inter(16)).foregroundColor(TC.muted).padding(.top, 4)
+                VStack(spacing: 0) {
+                // B6 in H5's navy header block (build 17 review).
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(application.title).font(.inter(26, .heavy)).tracking(-0.5)
+                        .foregroundColor(.white).fixedSize(horizontal: false, vertical: true)
+                    Text([application.company, application.job?.town ?? application.job?.place].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " · "))
+                        .font(.inter(16, .medium)).foregroundColor(TC.bannerText)
+                    Text(datesLine).font(.inter(16)).foregroundColor(TC.bannerText)
                     if application.job?.isClosed == true {
-                        Text("This job has closed").font(.inter(16, .semibold)).foregroundColor(TC.warning).padding(.top, 6)
+                        Text("This job has closed").font(.inter(16, .semibold)).foregroundColor(Color(red: 1, green: 0.78, blue: 0.5))
                     }
-                    if hSize == .regular { buttons.frame(width: 240).padding(.top, 16) }
-
-                    stages.padding(.top, 20)
+                    if !store.online {
+                        HStack(alignment: .top, spacing: 8) {
+                            Image(systemName: "wifi.slash")
+                            Text("As of \(store.applicationsUpdatedAt.map(ThriveDates.updated) ?? "an earlier time"). They may have replied since.")
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .font(.inter(16, .medium)).foregroundColor(TC.bannerText)
+                    }
+                    if hSize == .regular { buttons.frame(width: 240).padding(.top, 8) }
                 }
                 .frame(maxWidth: 640, alignment: .leading)
-                .padding(.horizontal, hSize == .regular ? 32 : 20).padding(.top, 8).padding(.bottom, 24)
+                .padding(.horizontal, hSize == .regular ? 32 : 20).padding(.top, 8).padding(.bottom, 22)
                 .frame(maxWidth: .infinity, alignment: .leading)
+                .background(TC.navy)
+
+                VStack(alignment: .leading, spacing: 0) {
+                    stages
+                }
+                .frame(maxWidth: 640, alignment: .leading)
+                .padding(.horizontal, hSize == .regular ? 32 : 20).padding(.top, 20).padding(.bottom, 24)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color.white)
+                }
             }
+            .background(alignment: .top) { TC.navy.frame(height: 400) }
             if hSize != .regular {
                 buttons.padding(.horizontal, 16).padding(.vertical, 12)
                     .background(Color.white.overlay(Rectangle().fill(TC.hairline).frame(height: 1), alignment: .top))
             }
         }
         .background(Color.white)
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar(.visible, for: .navigationBar)
+        .toolbar(.hidden, for: .navigationBar)
         .navigationDestination(for: AppJob.self) { job in
             JobDetailScreen(store: store, job: job, backTitle: "Applications")
         }
@@ -972,5 +1061,58 @@ struct ApplicationDetailScreen: View {
                 }.buttonStyle(.plain)
             }
         }
+    }
+}
+
+
+/// "Removed from Saved · Undo" for four seconds after a removal (R2).
+struct UndoBar: View {
+    @ObservedObject var store: ThriveStore
+    var body: some View {
+        if let removed = store.lastUnsaved, Date().timeIntervalSince(removed.at) < 4 {
+            HStack(spacing: 12) {
+                Text("Removed from Saved").font(.inter(16, .medium)).foregroundColor(.white)
+                Spacer()
+                Button("Undo") {
+                    store.lastUnsaved = nil
+                    if !store.isSaved(removed.job.id) { store.toggleSave(removed.job) }
+                }
+                .font(.inter(16, .bold)).foregroundColor(.white).frame(minWidth: 44, minHeight: 44)
+            }
+            .padding(.horizontal, 16).padding(.vertical, 4)
+            .background(TC.navy).cornerRadius(14)
+            .padding(.horizontal, 16).padding(.bottom, 12)
+            .task(id: removed.at) {
+                try? await Task.sleep(nanoseconds: 4_000_000_000)
+                if store.lastUnsaved?.at == removed.at { store.lastUnsaved = nil }
+            }
+        }
+    }
+}
+
+
+/// One application row (R3).
+struct ApplicationRow: View {
+    let app: AppApplication
+    let changed: Bool
+    var body: some View {
+        HStack(alignment: .center, spacing: 10) {
+            if changed {
+                Circle().fill(TC.navy).frame(width: 8, height: 8).accessibilityLabel("Changed")
+            }
+            VStack(alignment: .leading, spacing: 4) {
+                Text(app.title).font(.inter(17, .semibold)).foregroundColor(TC.navy).lineLimit(2)
+                (Text([app.company, ThriveDates.day(ThriveDates.parse(app.appliedAt))].filter { !$0.isEmpty }.joined(separator: " · "))
+                    .foregroundColor(TC.ink2)
+                 + Text(app.job?.isClosed == true ? " · closed" : "").foregroundColor(TC.warning))
+                    .font(.inter(16))
+            }
+            Spacer(minLength: 8)
+            StatusPill(status: app.status, label: app.statusLabel)
+        }
+        .padding(.vertical, 12).padding(.horizontal, 16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.white)
+        .contentShape(Rectangle())
     }
 }

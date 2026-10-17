@@ -712,7 +712,8 @@ button[data-blocked='yes']:hover {
 html.native-nav [data-site-header],
 html.native-nav [data-candidate-rail],
 html.native-nav [data-sidebar-toggle],
-html.native-nav [data-repeats-native-title] {
+html.native-nav [data-repeats-native-title],
+html.native-nav [data-hide-in-app] {
   display: none !important;
 }
 

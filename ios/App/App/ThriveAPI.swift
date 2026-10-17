@@ -88,6 +88,15 @@ struct AppJob: Codable, Hashable, Identifiable {
     let payShort: String?
     let payLong: String?
     let facts: [String]?
+    // Build 17 review. Optional for the same reason.
+    let town: String?
+    let category: String?
+    let aboutBlocks: [AboutBlock]?
+}
+
+struct AboutBlock: Codable, Hashable {
+    let kind: String   // "heading" | "text"
+    let text: String
 }
 
 struct AppProfile: Codable {
@@ -155,7 +164,10 @@ enum ThriveDates {
 
     private static func format(_ date: Date, _ pattern: String) -> String {
         let f = DateFormatter()
-        f.locale = Locale(identifier: "en_GB")
+        // en_US_POSIX, not en_GB: current iOS writes en-GB September as
+        // "Sept", and the design asks for "Sep". Same day and month names
+        // otherwise; the order comes from the pattern, not the locale.
+        f.locale = Locale(identifier: "en_US_POSIX")
         f.timeZone = TimeZone(identifier: "Europe/London")
         f.dateFormat = pattern
         return f.string(from: date)

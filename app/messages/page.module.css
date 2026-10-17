@@ -855,3 +855,12 @@
   line-height: 1.45;
   color: #b91c1c;
 }
+
+/* Build 17 review: initials avatars are quiet grey with navy letters, so the
+   one yellow on the screen stays the unread count and the send action. */
+.avatar,
+.chatHeaderAvatar,
+.messageAvatar {
+  background: #EEF0F4;
+  color: #0F172A;
+}

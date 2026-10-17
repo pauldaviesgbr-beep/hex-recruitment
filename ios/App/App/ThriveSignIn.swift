@@ -38,7 +38,20 @@ struct SignInSheet: View {
     private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
     var body: some View {
-        NavigationStack {
+        // R4 (build 17 review): a white sheet. The title on the left in Inter
+        // 800 20, and Cancel on the right as plain navy text: no glass pill, no
+        // navy bar. In the later steps, Back takes Cancel's place.
+        VStack(spacing: 0) {
+            HStack(alignment: .firstTextBaseline) {
+                Text(title).font(.inter(20, .heavy)).foregroundColor(TC.navy)
+                Spacer(minLength: 12)
+                Button(mode == .signIn ? "Cancel" : "Back") {
+                    if mode == .signIn { close() } else { panel = nil; fieldError = nil; mode = .signIn }
+                }
+                .font(.inter(17, .semibold)).foregroundColor(TC.navy)
+                .frame(minWidth: 44, minHeight: 44)
+            }
+            .padding(.horizontal, 20).padding(.top, 18).padding(.bottom, 6)
             ScrollView {
                 VStack(alignment: .leading, spacing: 12) {
                     if let p = panel {
@@ -62,16 +75,8 @@ struct SignInSheet: View {
                 .frame(maxWidth: 540)
                 .frame(maxWidth: .infinity)
             }
-            .background(Color.white)
-            .navigationTitle(title)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    if mode == .signIn { Button("Cancel") { close() } }
-                    else { Button("Back") { panel = nil; fieldError = nil; mode = .signIn } }
-                }
-            }
         }
+        .background(Color.white)
         .onReceive(store.$providerOutcome) { outcome in
             guard let outcome = outcome else { return }
             busy = nil
@@ -127,12 +132,15 @@ struct SignInSheet: View {
                 .padding(.top, 4)
 
             HStack {
-                Button("Forgot password?") {
-                    fieldError = nil
-                    showResetOffer = true
-                    resetSent = false
+                // Once "Email me a link to reset it" shows, this would say the same twice.
+                if !showResetOffer {
+                    Button("Forgot password?") {
+                        fieldError = nil
+                        showResetOffer = true
+                        resetSent = false
+                    }
+                    .font(.inter(17, .semibold)).foregroundColor(TC.navy).frame(minHeight: 44)
                 }
-                .font(.inter(17, .semibold)).foregroundColor(TC.navy).frame(minHeight: 44)
                 Spacer()
                 Button("Create an account") { panel = nil; fieldError = nil; mode = .signUp }
                     .font(.inter(17, .semibold)).foregroundColor(TC.navy).frame(minHeight: 44)
