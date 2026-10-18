@@ -243,7 +243,7 @@
 
 .saveBtn {
   padding: 0.75rem 1.5rem;
-  background: #3b82f6;
+  background: #0F172A;
   color: white;
   border: none;
   border-radius: 8px;
@@ -254,11 +254,11 @@
 }
 
 .saveBtn:hover:not(:disabled) {
-  background: #2563eb;
+  background: #1E293B;
 }
 
 .saveBtn:disabled {
-  background: #93c5fd;
+  background: #94A3B8;
   cursor: not-allowed;
 }
 
