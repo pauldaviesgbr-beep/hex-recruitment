@@ -233,7 +233,7 @@ export default function AccountSettingsPage() {
     <main>
       <Header />
       <div className={styles.container}>
-        <Link href="/settings" className={styles.backLink}>
+        <Link href="/settings" className={styles.backLink} data-hide-in-app="">
           <span className={styles.backArrow}>←</span>
           Back to Settings
         </Link>

@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabase'
 import { DEV_MODE, getMockUser, getMockUserType } from '@/lib/mockAuth'
 import styles from './page.module.css'
 import { Ico } from '@/components/icons'
+import { CANDIDATE_DELETE_TEXT, DELETE_CONFIRM_WORD } from '@/lib/accountDeletion'
 
 interface PrivacySettings {
   // Profile Visibility - Job Seekers
@@ -788,11 +789,8 @@ export default function PrivacySettingsPage() {
                   </span>
                 ) : (
                   <span className={styles.dangerDescription}>
-                    Deletes your account and your data straight away. Your profile, CV, photo,
-                    saved jobs, alerts and notifications are removed. Applications you sent stay
-                    with the employer with your name and details stripped out, anything you wrote
-                    in a message becomes &quot;[deleted]&quot;, and a signed job offer is kept because it is
-                    a contract. This cannot be undone.
+                    {/* Shared with the iOS app's Delete account screen. */}
+                    {CANDIDATE_DELETE_TEXT}
                   </span>
                 )}
               </div>
@@ -813,7 +811,7 @@ export default function PrivacySettingsPage() {
                       put the most irreversible control in the product into that
                       pile, where a stray Enter could reach it. */}
                   <label htmlFor="deleteConfirm" className={styles.confirmLabel}>
-                    Type DELETE to confirm
+                    Type {DELETE_CONFIRM_WORD} to confirm
                   </label>
                   <input
                     id="deleteConfirm"
@@ -837,7 +835,7 @@ export default function PrivacySettingsPage() {
                       type="button"
                       className={styles.confirmDeleteBtn}
                       onClick={handleDeleteAccount}
-                      disabled={deleting || confirmText.trim() !== 'DELETE'}
+                      disabled={deleting || confirmText.trim() !== DELETE_CONFIRM_WORD}
                     >
                       {deleting ? 'Deleting…' : 'Delete my account'}
                     </button>

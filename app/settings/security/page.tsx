@@ -124,6 +124,20 @@ export default function SecuritySettingsPage() {
         setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' })
         setPasswordStrength({ score: 0, label: '', color: '' })
       } else {
+        // THE CURRENT PASSWORD IS CHECKED, NOT ONLY ASKED FOR. The field was
+        // shown and never read, so anyone holding a signed-in phone could
+        // change the password. Signing in with it again is the check.
+        if (hasPassword) {
+          const { data: { user: me } } = await supabase.auth.getUser()
+          const { error: wrong } = me?.email
+            ? await supabase.auth.signInWithPassword({ email: me.email, password: passwordForm.currentPassword })
+            : { error: new Error('no email') }
+          if (wrong) {
+            setMessage({ type: 'error', text: 'Your current password is not right. Nothing was changed.' })
+            setSaving(false)
+            return
+          }
+        }
         // Update password via Supabase
         const { error } = await supabase.auth.updateUser({
           password: passwordForm.newPassword
@@ -162,7 +176,8 @@ export default function SecuritySettingsPage() {
     <main>
       <Header />
       <div className={styles.container}>
-        <Link href="/settings" className={styles.backLink}>
+        {/* In the app the navy bar's back already says "Settings". */}
+        <Link href="/settings" className={styles.backLink} data-hide-in-app="">
           <span className={styles.backArrow}>←</span>
           Back to Settings
         </Link>
@@ -287,36 +302,6 @@ export default function SecuritySettingsPage() {
           </div>
         </form>
 
-        <div className={styles.section}>
-          <h2 className={styles.sectionTitle}>Two-Factor Authentication</h2>
-          <p className={styles.sectionDescription}>
-            Add an extra layer of security to your account by enabling two-factor authentication.
-          </p>
-          <div className={styles.twoFactorStatus}>
-            <span className={styles.statusBadge}>Not Enabled</span>
-            <button className={styles.enableBtn} disabled>
-              Enable 2FA (Coming Soon)
-            </button>
-          </div>
-        </div>
-
-        <div className={styles.section}>
-          <h2 className={styles.sectionTitle}>Active Sessions</h2>
-          <p className={styles.sectionDescription}>
-            Manage devices where you're currently logged in.
-          </p>
-          <div className={styles.sessionItem}>
-            <div className={styles.sessionIcon}><Ico name="laptop" size={20} /></div>
-            <div className={styles.sessionInfo}>
-              <span className={styles.sessionDevice}>Current Session</span>
-              <span className={styles.sessionDetails}>This device • Active now</span>
-            </div>
-            <span className={styles.currentBadge}>Current</span>
-          </div>
-          <button className={styles.logoutAllBtn} disabled>
-            Log Out All Other Devices (Coming Soon)
-          </button>
-        </div>
       </div>
     </main>
   )

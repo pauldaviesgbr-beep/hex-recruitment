@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { eraseAccount } from '@/lib/eraseAccount'
 import { blockers, employerBlockers, EMPLOYER_ERASURE_PLAN, type TableRule } from '@/lib/erasure'
+import { DELETE_CONFIRM_WORD } from '@/lib/accountDeletion'
 
 // THE DOOR. This one actually deletes.
 //
@@ -21,8 +22,8 @@ import { blockers, employerBlockers, EMPLOYER_ERASURE_PLAN, type TableRule } fro
 
 export const dynamic = 'force-dynamic'
 
-/** Typed by the person, so it cannot be an accidental tap or a stray fetch. */
-const CONFIRM_PHRASE = 'DELETE'
+/** Typed by the person (lib/accountDeletion, shared with the app). */
+const CONFIRM_PHRASE = DELETE_CONFIRM_WORD
 
 export async function POST(req: NextRequest) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL

@@ -123,8 +123,24 @@ class ThriveRootViewController: UIViewController, UITabBarDelegate {
             guard let s = self?.session, !s.isExpired else { return nil }
             return s.accessToken
         }
-        store.openWeb = { [weak self] path, _ in self?.openWebFromNative(path) }
+        store.openWeb = { [weak self] path, title in self?.openWebFromNative(path, backTitle: title) }
         store.selectTab = { [weak self] index in self?.selectTab(index) }
+        // S1 Sign out and S3 Delete: the website's /signout page signs out
+        // properly (it revokes the session, not only forgets it); the cookie
+        // change then clears the phone. Back to Jobs, as a signed-out person.
+        store.signOut = { [weak self] deleted in
+            guard let self = self else { return }
+            self.bridge.go(to: "/signout")
+            self.showNative(0)
+            guard deleted else { return }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                let alert = UIAlertController(title: "Your account has been deleted.", message: nil, preferredStyle: .alert)
+                alert.addAction(UIAlertAction(title: "OK", style: .default))
+                var top: UIViewController = self
+                while let next = top.presentedViewController { top = next }
+                top.present(alert, animated: true)
+            }
+        }
         store.$hideTabBar.receive(on: DispatchQueue.main).sink { [weak self] _ in
             DispatchQueue.main.async { self?.updateBar() }
         }.store(in: &cancellables)
@@ -243,8 +259,13 @@ class ThriveRootViewController: UIViewController, UITabBarDelegate {
 
     /// Apply or Message, from a native screen: the web page inside the app,
     /// with a native back to where they came from.
-    private func openWebFromNative(_ path: String) {
+    /// What the navy bar's back says over a web page opened from a native
+    /// screen ("Settings", "Profile"); nil falls back to the tab's name.
+    private var webBackTitle: String?
+
+    private func openWebFromNative(_ path: String, backTitle: String? = nil) {
         let from = nativeIndex
+        webBackTitle = backTitle
         bridge.go(to: path)
         showWeb(openedFrom: from)
     }
@@ -350,7 +371,7 @@ class ThriveRootViewController: UIViewController, UITabBarDelegate {
 
     private func setBackBarVisible(_ visible: Bool) {
         if let from = webOpenedFrom, visible {
-            let title = ["Jobs", "Saved", "Applications", "Messages", "Profile", "Profile"][min(max(from, 0), 5)]
+            let title = webBackTitle ?? ["Jobs", "Saved", "Applications", "Messages", "Profile", "Profile"][min(max(from, 0), 5)]
             backButton.setTitle(" \(title)", for: .normal)
         }
         // A web TAB (Messages, Profile, the employer pages) has no back: its
@@ -395,7 +416,9 @@ class ThriveRootViewController: UIViewController, UITabBarDelegate {
             tabs = ThriveRootViewController.candidateTabs
             // G1: signed out, the app is native Jobs, not a sign-in wall. A web
             // page opened from a native screen (the terms, say) is left alone.
-            if nativeIndex == nil && webOpenedFrom == nil { showNative(0) } else { updateBar() }
+            // Signed in, Profile is host 5; signed out it is host 4.
+            if nativeIndex == 5 { showNative(4) }
+            else if nativeIndex == nil && webOpenedFrom == nil { showNative(0) } else { updateBar() }
             return
         }
         let previousToken = session?.accessToken

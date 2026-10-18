@@ -42,3 +42,9 @@ export function providerLabel(user: ProviderUserish | null | undefined): string 
   const key = providerKey(user)
   return LABELS[key] || 'your provider'
 }
+
+/** The label for one provider key ("apple" → "Apple"), or null when unmapped.
+ *  For lists of every identity an account has (the app's Settings, S1). */
+export function providerName(key: string | null | undefined): string | null {
+  return (key && LABELS[key]) || null
+}
