@@ -262,10 +262,12 @@ struct SignInSheet: View {
         VStack(alignment: .leading, spacing: 14) {
             if afterSignUp {
                 Text("We sent a link to \(e).").font(.inter(17)).foregroundColor(TC.navy)
-                Text("1. Open it on this \(ThriveDates.deviceWord). It opens in Safari and confirms your account.")
+                // Apple Mail opens the link in Thrive (universal links); some
+                // mail apps, Gmail's among them, open their own browser instead.
+                Text("1. Open it on this \(ThriveDates.deviceWord). It should open Thrive and sign you in.")
                     .font(.inter(16)).foregroundColor(TC.ink2).fixedSize(horizontal: false, vertical: true)
-                Text("2. Come back to Thrive and sign in.")
-                    .font(.inter(16)).foregroundColor(TC.ink2)
+                Text("2. If it opens a browser instead, come back here and sign in.")
+                    .font(.inter(16)).foregroundColor(TC.ink2).fixedSize(horizontal: false, vertical: true)
             } else {
                 Text("We sent a link to \(e). Open it, then come back here and sign in.")
                     .font(.inter(17)).foregroundColor(TC.navy).fixedSize(horizontal: false, vertical: true)

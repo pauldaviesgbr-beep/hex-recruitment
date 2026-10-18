@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyLists-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Universal links: thrivecareer.co.uk/auth/confirm opens the app (the
+	     confirm email and the password reset), so the person is signed in
+	     here rather than in Safari. The site's half is
+	     public/.well-known/apple-app-site-association. The App ID must have
+	     Associated Domains enabled and the provisioning profile regenerated,
+	     or signing fails. -->
+	<key>com.apple.developer.associated-domains</key>
+	<array>
+		<string>applinks:thrivecareer.co.uk</string>
+	</array>
+</dict>
+</plist>
