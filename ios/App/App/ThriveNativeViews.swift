@@ -668,7 +668,10 @@ struct JobDetailScreen: View {
                     if job.isClosed {
                         Text("This job has closed").font(.inter(16, .semibold)).foregroundColor(Color(red: 1, green: 0.78, blue: 0.5))
                     }
-                    if hSize == .regular { applyArea.frame(width: 400).padding(.top, 6) }
+                    // Up to 400, never exactly: on a 10.2-inch iPad the detail
+                    // pane is about 410 wide, and a fixed 400 plus the margins
+                    // pushed the whole page past the screen's right edge.
+                    if hSize == .regular { applyArea.frame(maxWidth: 400).padding(.top, 6) }
                 }
                 .frame(maxWidth: 640, alignment: .leading)
                 .padding(.horizontal, hSize == .regular ? 32 : 20)
@@ -1069,7 +1072,7 @@ struct ApplicationDetailScreen: View {
                         }
                         .font(.inter(16, .medium)).foregroundColor(TC.bannerText)
                     }
-                    if hSize == .regular { buttons.frame(width: 240).padding(.top, 8) }
+                    if hSize == .regular { buttons.frame(maxWidth: 240).padding(.top, 8) }
                 }
                 .frame(maxWidth: 640, alignment: .leading)
                 .padding(.horizontal, hSize == .regular ? 32 : 20).padding(.top, 8).padding(.bottom, 22)
