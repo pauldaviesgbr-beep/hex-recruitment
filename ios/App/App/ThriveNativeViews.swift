@@ -202,6 +202,65 @@ struct BookmarkButton: View {
     }
 }
 
+/// Save beside Apply, in words (Paul on the iPad: "the save button isn't an
+/// obvious find"). A bare bookmark in the corner of the bar said nothing; this
+/// says Save, and Saved once it is. Outline, because yellow is Apply's alone.
+struct SaveJobButton: View {
+    @ObservedObject var store: ThriveStore
+    let job: AppJob
+    var onNavy = false
+    var body: some View {
+        let on = store.isSaved(job.id)
+        Button { store.toggleSave(job) } label: {
+            HStack(spacing: 8) {
+                Image(systemName: on ? "bookmark.fill" : "bookmark").font(.system(size: 17, weight: .semibold))
+                Text(on ? "Saved" : "Save").font(.inter(17, .semibold))
+            }
+            .foregroundColor(onNavy ? .white : TC.navy)
+            .frame(maxWidth: .infinity, minHeight: 52)
+            .background(onNavy ? Color.clear : Color.white)
+            .overlay(RoundedRectangle(cornerRadius: 14).stroke(onNavy ? Color.white.opacity(0.7) : TC.navy, lineWidth: 1.5))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(on ? "Saved. Tap to remove from Saved" : "Save this job")
+    }
+}
+
+/// THE iPAD'S TWO PANES, DRAWN FLAT. NavigationSplitView's sidebar floats as a
+/// rounded card on iOS 26, with a white strip above its navy band (seen on
+/// Paul's iPad, 18 Oct 2026). Here the list is a plain 400pt column, a hairline,
+/// then the detail. An empty list takes the whole width (design: "an empty
+/// list joins the two panes into one column"). Phones keep the system split.
+struct PadSplit<Sidebar: View, Detail: View>: View {
+    var joined = false
+    @ViewBuilder let sidebar: () -> Sidebar
+    @ViewBuilder let detail: () -> Detail
+    var body: some View {
+        if joined {
+            sidebar()
+        } else {
+            // The list takes 40% of the width, 320–400pt. A fixed 400 left a
+            // portrait 10.2-inch iPad's job page only ~410pt: "crammed" (Paul).
+            GeometryReader { g in
+                HStack(spacing: 0) {
+                    sidebar().frame(width: min(400, max(320, g.size.width * 0.4)))
+                    Rectangle().fill(TC.border).frame(width: 1).ignoresSafeArea(edges: .top)
+                    NavigationStack { detail() }.frame(maxWidth: .infinity)
+                }
+            }
+        }
+    }
+}
+
+/// The open row on iPad: a #F6F7F9 fill and a 3pt navy left edge.
+extension View {
+    func padSelected(_ on: Bool) -> some View {
+        self.overlay(alignment: .leading) { if on { Rectangle().fill(TC.navy).frame(width: 3) } }
+            .listRowBackground(on ? TC.page : Color.white)
+    }
+}
+
 func jobMeta(_ job: AppJob) -> String {
     [job.pay, job.type, job.postedLabel.isEmpty ? nil : job.postedLabel].compactMap { $0 }.joined(separator: " · ")
 }
@@ -277,22 +336,30 @@ struct JobsScreen: View {
         return "\(store.jobs.count) hospitality jobs live in the UK"
     }
 
-    var body: some View {
-        NavigationSplitView {
-            sidebar
-                .navigationTitle("All jobs")
-                .toolbar(.hidden, for: .navigationBar)
-                .navigationSplitViewColumnWidth(min: 340, ideal: 400, max: 420)
-        } detail: {
-            NavigationStack {
-                if let id = selection, let job = store.jobs.first(where: { $0.id == id }) {
-                    JobDetailScreen(store: store, job: job, backTitle: "Jobs")
-                } else {
-                    Color.white
-                }
+    @ViewBuilder private var detailPane: some View {
+        if let id = selection, let job = store.jobs.first(where: { $0.id == id }) {
+            JobDetailScreen(store: store, job: job, backTitle: "Jobs", inPane: hSize == .regular)
+        } else {
+            Color.white
+        }
+    }
+
+    @ViewBuilder private var layout: some View {
+        if hSize == .regular {
+            PadSplit(sidebar: { sidebar }, detail: { detailPane })
+        } else {
+            NavigationSplitView {
+                sidebar
+                    .navigationTitle("All jobs")
+                    .toolbar(.hidden, for: .navigationBar)
+            } detail: {
+                NavigationStack { detailPane }
             }
         }
-        .navigationSplitViewStyle(.balanced)
+    }
+
+    var body: some View {
+        layout
         .onAppear {
             if !seeded { query = initialQuery; shiftsOnly = initialShiftsOnly; category = initialCategory; seeded = true }
             if store.jobs.isEmpty || store.jobsLoad != .loaded { store.refreshJobs() }
@@ -353,13 +420,11 @@ struct JobsScreen: View {
             } else {
                 // H4: the dense list, edge to edge, white, hairlines between.
                 ForEach(list) { job in
-                    DenseJobRow(store: store, job: job, showBookmark: hSize != .regular)
-                        .overlay(alignment: .leading) {
-                            if hSize == .regular && selection == job.id { Rectangle().fill(TC.navy).frame(width: 3) }
-                        }
+                    DenseJobRow(store: store, job: job, showBookmark: hSize != .regular,
+                                highlighted: hSize == .regular && selection == job.id)
                         .tag(job.id)
                         .listRowInsets(EdgeInsets())
-                        .listRowBackground(Color.white)
+                        .padSelected(hSize == .regular && selection == job.id)
                         .listRowSeparatorTint(TC.hairline)
                 }
             }
@@ -573,6 +638,9 @@ struct JobDetailScreen: View {
     let job: AppJob
     let backTitle: String
     var savedAt: Date? = nil
+    /// Shown in the iPad's two panes, with its list beside it: no back. Opened
+    /// any other way (from the home, on iPad as on a phone) it needs one.
+    var inPane = false
     @Environment(\.horizontalSizeClass) private var hSize
     @Environment(\.dismiss) private var dismiss
     @State private var headerGone = false
@@ -581,14 +649,14 @@ struct JobDetailScreen: View {
         VStack(spacing: 0) {
             DetailTopBar(title: headerGone ? job.title : nil,
                          backTitle: backTitle,
-                         back: hSize == .regular ? nil : { dismiss() }) {
+                         back: inPane ? nil : { dismiss() }) {
                 if let url = URL(string: job.url) {
                     ShareLink(item: url, subject: Text(job.title), message: Text("\(job.title) at \(job.company)")) {
                         Image(systemName: "square.and.arrow.up").font(.system(size: 20, weight: .medium))
                             .foregroundColor(.white).frame(width: 44, height: 44)
                     }.accessibilityLabel("Share this job")
                 }
-                BookmarkButton(store: store, job: job, tint: .white)
+                // Save is a labelled button beside Apply now, not a glyph here.
             }
             ScrollView {
                 VStack(spacing: 0) {
@@ -607,7 +675,10 @@ struct JobDetailScreen: View {
                     if job.isClosed {
                         Text("This job has closed").font(.inter(16, .semibold)).foregroundColor(Color(red: 1, green: 0.78, blue: 0.5))
                     }
-                    if hSize == .regular { applyArea.frame(width: 240).padding(.top, 6) }
+                    // Up to 400, never exactly: on a 10.2-inch iPad the detail
+                    // pane is about 410 wide, and a fixed 400 plus the margins
+                    // pushed the whole page past the screen's right edge.
+                    if hSize == .regular { applyArea.frame(maxWidth: 400).padding(.top, 6) }
                 }
                 .frame(maxWidth: 640, alignment: .leading)
                 .padding(.horizontal, hSize == .regular ? 32 : 20)
@@ -668,6 +739,9 @@ struct JobDetailScreen: View {
                 if job.category != nil {
                     OutlineButton(title: "See similar jobs") { store.showSimilar(to: job) }
                 }
+                // The bar no longer carries a bookmark, so a saved closed job
+                // can still be taken out of Saved from its own page.
+                if store.isSaved(job.id) { SaveJobButton(store: store, job: job) }
             }
             .padding(16).frame(maxWidth: .infinity, alignment: .leading)
             .background(TC.page).cornerRadius(14)
@@ -685,9 +759,14 @@ struct JobDetailScreen: View {
             }
             .padding(16).background(TC.page).cornerRadius(14)
         } else {
-            PrimaryButton(title: "Apply now", yellow: true) {
-                if store.signedIn { store.openWeb("/job/\(job.id)?apply=1", backTitle) }
-                else { store.requireSignIn(then: .apply(job)) }
+            HStack(spacing: 10) {
+                // On iPad this sits in the navy header; on a phone, the white footer.
+                SaveJobButton(store: store, job: job, onNavy: hSize == .regular)
+                    .frame(width: hSize == .regular ? 150 : 120)
+                PrimaryButton(title: "Apply now", yellow: true) {
+                    if store.signedIn { store.openWeb("/job/\(job.id)?apply=1", backTitle) }
+                    else { store.requireSignIn(then: .apply(job)) }
+                }
             }
         }
     }
@@ -750,22 +829,37 @@ struct SavedScreen: View {
         }
     }
 
-    private var signedInBody: some View {
-        NavigationSplitView {
-            sidebar
-                .navigationTitle("Saved")
-                .toolbar(.hidden, for: .navigationBar)
-                .navigationSplitViewColumnWidth(min: 340, ideal: 400, max: 420)
-        } detail: {
-            NavigationStack {
-                if let id = selection, let item = store.saved.first(where: { $0.job.id == id }) {
-                    JobDetailScreen(store: store, job: item.job, backTitle: "Saved", savedAt: ThriveDates.parse(item.savedAt))
-                } else {
-                    Color.white
-                }
+    @ViewBuilder private var detailPane: some View {
+        if let id = selection, let item = store.saved.first(where: { $0.job.id == id }) {
+            JobDetailScreen(store: store, job: item.job, backTitle: "Saved", savedAt: ThriveDates.parse(item.savedAt),
+                            inPane: hSize == .regular)
+        } else {
+            Color.white
+        }
+    }
+
+    @ViewBuilder private var layout: some View {
+        if hSize == .regular {
+            PadSplit(joined: store.saved.isEmpty, sidebar: { sidebar }, detail: { detailPane })
+        } else {
+            NavigationSplitView {
+                sidebar
+                    .navigationTitle("Saved")
+                    .toolbar(.hidden, for: .navigationBar)
+            } detail: {
+                NavigationStack { detailPane }
             }
         }
-        .navigationSplitViewStyle(.balanced)
+    }
+
+    private var signedInBody: some View {
+        layout
+        .onChange(of: store.saved.count) { _ in
+            // The open job was removed: open the next, or nothing.
+            if hSize == .regular, let id = selection, !store.saved.contains(where: { $0.id == id }) {
+                selection = store.saved.first?.id
+            }
+        }
         .onAppear {
             store.refreshSaved()
             if hSize == .regular, selection == nil { selection = store.saved.first?.id }
@@ -797,7 +891,7 @@ struct SavedScreen: View {
                                message: "Tap the bookmark on any job. Saved jobs stay on this \(ThriveDates.deviceWord), so you can read them in a basement kitchen with no signal.") {
                         OutlineButton(title: store.jobs.isEmpty ? "Browse jobs" : "Browse \(store.jobs.count) jobs") { store.selectTab(0) }
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .frame(maxWidth: .infinity, alignment: hSize == .regular ? .center : .leading)
                 }
             }
             .background(TC.page)
@@ -809,10 +903,11 @@ struct SavedScreen: View {
             List(selection: $selection) {
                 Section {
                     ForEach(store.saved) { item in
-                        DenseJobRow(store: store, job: item.job, showBookmark: hSize != .regular)
+                        DenseJobRow(store: store, job: item.job, showBookmark: hSize != .regular,
+                                    highlighted: hSize == .regular && selection == item.id)
                             .tag(item.id)
                             .listRowInsets(EdgeInsets())
-                            .listRowBackground(Color.white)
+                            .padSelected(hSize == .regular && selection == item.id)
                             .listRowSeparatorTint(TC.hairline)
                             .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                                 Button(role: .destructive) { store.toggleSave(item.job) } label: { Label("Remove", systemImage: "bookmark.slash") }
@@ -846,22 +941,30 @@ struct ApplicationsScreen: View {
         }
     }
 
-    private var signedInBody: some View {
-        NavigationSplitView {
-            sidebar
-                .navigationTitle("Applications")
-                .toolbar(.hidden, for: .navigationBar)
-                .navigationSplitViewColumnWidth(min: 340, ideal: 400, max: 420)
-        } detail: {
-            NavigationStack {
-                if let id = selection, let app = store.applications.first(where: { $0.id == id }) {
-                    ApplicationDetailScreen(store: store, application: app)
-                } else {
-                    Color.white
-                }
+    @ViewBuilder private var detailPane: some View {
+        if let id = selection, let app = store.applications.first(where: { $0.id == id }) {
+            ApplicationDetailScreen(store: store, application: app)
+        } else {
+            Color.white
+        }
+    }
+
+    @ViewBuilder private var layout: some View {
+        if hSize == .regular {
+            PadSplit(joined: store.applications.isEmpty, sidebar: { sidebar }, detail: { detailPane })
+        } else {
+            NavigationSplitView {
+                sidebar
+                    .navigationTitle("Applications")
+                    .toolbar(.hidden, for: .navigationBar)
+            } detail: {
+                NavigationStack { detailPane }
             }
         }
-        .navigationSplitViewStyle(.balanced)
+    }
+
+    private var signedInBody: some View {
+        layout
         .onAppear {
             markVisit()
             store.refreshApplications()
@@ -891,7 +994,7 @@ struct ApplicationsScreen: View {
                                message: "When you apply, the job shows here with what the employer has done with it. You can check it without signal.") {
                         OutlineButton(title: store.jobs.isEmpty ? "Browse jobs" : "Browse \(store.jobs.count) jobs") { store.selectTab(0) }
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .frame(maxWidth: .infinity, alignment: hSize == .regular ? .center : .leading)
                 }
             }
             .background(TC.page)
@@ -903,10 +1006,11 @@ struct ApplicationsScreen: View {
             List(selection: $selection) {
                 Section {
                     ForEach(store.applications) { app in
-                        ApplicationRow(app: app, changed: changedIds.contains(app.id))
+                        ApplicationRow(app: app, changed: changedIds.contains(app.id),
+                                       highlighted: hSize == .regular && selection == app.id)
                             .tag(app.id)
                             .listRowInsets(EdgeInsets())
-                            .listRowBackground(Color.white)
+                            .padSelected(hSize == .regular && selection == app.id)
                             .listRowSeparatorTint(TC.hairline)
                     }
                 }
@@ -976,7 +1080,7 @@ struct ApplicationDetailScreen: View {
                         }
                         .font(.inter(16, .medium)).foregroundColor(TC.bannerText)
                     }
-                    if hSize == .regular { buttons.frame(width: 240).padding(.top, 8) }
+                    if hSize == .regular { buttons.frame(maxWidth: 240).padding(.top, 8) }
                 }
                 .frame(maxWidth: 640, alignment: .leading)
                 .padding(.horizontal, hSize == .regular ? 32 : 20).padding(.top, 8).padding(.bottom, 22)
@@ -1097,6 +1201,7 @@ struct UndoBar: View {
 struct ApplicationRow: View {
     let app: AppApplication
     let changed: Bool
+    var highlighted = false
     var body: some View {
         HStack(alignment: .center, spacing: 10) {
             if changed {
@@ -1114,7 +1219,7 @@ struct ApplicationRow: View {
         }
         .padding(.vertical, 12).padding(.horizontal, 16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.white)
+        .background(highlighted ? TC.page : Color.white)
         .contentShape(Rectangle())
     }
 }

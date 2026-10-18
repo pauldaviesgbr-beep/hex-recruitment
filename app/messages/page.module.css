@@ -864,3 +864,9 @@
   background: #EEF0F4;
   color: #0F172A;
 }
+
+/* The thread's back arrow had no colour, so iOS painted it system blue (seen
+   on the iPad in the app). Navy, the brand's action colour. */
+.backBtn {
+  color: #0F172A;
+}
