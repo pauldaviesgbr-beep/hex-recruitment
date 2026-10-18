@@ -23,6 +23,7 @@
     "unmerged": "node scripts/unmerged.js",
     "emails:prove": "npx tsx scripts/render-activation-emails.ts",
     "webpush:prove": "npx tsx scripts/prove-webpush.ts",
+    "apns:prove": "npx tsx scripts/prove-apns.ts",
     "push:prove": "npx tsx scripts/prove-push-state.ts",
     "firsttouch:prove": "node scripts/prove-first-touch.mjs",
     "datefilter:prove": "node scripts/prove-datefilter-contrast.mjs",

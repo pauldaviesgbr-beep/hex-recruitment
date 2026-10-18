@@ -7,6 +7,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Header from '@/components/Header'
 import SignedImage from '@/components/SignedImage'
 import { supabase } from '@/lib/supabase'
+import { notify } from '@/lib/notify'
 import { chooserLoginPath } from '@/lib/loginRedirect'
 import ReportControl from '@/components/ReportControl'
 import BlockControl from '@/components/BlockControl'
@@ -40,6 +41,8 @@ export default function MessagesPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const candidateParam = searchParams.get('candidate')
+  // A notification links straight to its thread (lib: notify 'message_sent').
+  const conversationParam = searchParams.get('conversation')
 
   // ── State ──────────────────────────────────────────────────────────────
   const [isLoading, setIsLoading] = useState(true)
@@ -296,6 +299,16 @@ export default function MessagesPage() {
     const t = setTimeout(scrollToBottom, 50)
     return () => clearTimeout(t)
   }, [messages, scrollToBottom])
+
+  // Open the thread a notification links to, once the list has loaded.
+  useEffect(() => {
+    if (!conversationParam || isLoading || selectedConversation) return
+    const match = conversations.find(c => c.id === conversationParam)
+    if (match) {
+      setSelectedConversation(match)
+      setShowSidebar(false)
+    }
+  }, [conversationParam, isLoading, selectedConversation, conversations])
 
   // Auto-select conversation when ?candidate= param is present
   useEffect(() => {
@@ -580,6 +593,10 @@ export default function MessagesPage() {
       lastMessage: content,
       lastMessageAt: new Date().toISOString(),
     })
+
+    // The bell entry, and the push "Replies from employers" promises. The
+    // server decides who is told and with what words.
+    notify('message_sent', { conversationId })
 
     if (selectedConversation.participantId) {
       fetch('/api/email/send', {
