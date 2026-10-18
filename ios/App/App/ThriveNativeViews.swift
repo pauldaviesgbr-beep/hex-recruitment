@@ -338,7 +338,7 @@ struct JobsScreen: View {
 
     @ViewBuilder private var detailPane: some View {
         if let id = selection, let job = store.jobs.first(where: { $0.id == id }) {
-            JobDetailScreen(store: store, job: job, backTitle: "Jobs")
+            JobDetailScreen(store: store, job: job, backTitle: "Jobs", inPane: hSize == .regular)
         } else {
             Color.white
         }
@@ -638,6 +638,9 @@ struct JobDetailScreen: View {
     let job: AppJob
     let backTitle: String
     var savedAt: Date? = nil
+    /// Shown in the iPad's two panes, with its list beside it: no back. Opened
+    /// any other way (from the home, on iPad as on a phone) it needs one.
+    var inPane = false
     @Environment(\.horizontalSizeClass) private var hSize
     @Environment(\.dismiss) private var dismiss
     @State private var headerGone = false
@@ -646,7 +649,7 @@ struct JobDetailScreen: View {
         VStack(spacing: 0) {
             DetailTopBar(title: headerGone ? job.title : nil,
                          backTitle: backTitle,
-                         back: hSize == .regular ? nil : { dismiss() }) {
+                         back: inPane ? nil : { dismiss() }) {
                 if let url = URL(string: job.url) {
                     ShareLink(item: url, subject: Text(job.title), message: Text("\(job.title) at \(job.company)")) {
                         Image(systemName: "square.and.arrow.up").font(.system(size: 20, weight: .medium))
@@ -828,7 +831,8 @@ struct SavedScreen: View {
 
     @ViewBuilder private var detailPane: some View {
         if let id = selection, let item = store.saved.first(where: { $0.job.id == id }) {
-            JobDetailScreen(store: store, job: item.job, backTitle: "Saved", savedAt: ThriveDates.parse(item.savedAt))
+            JobDetailScreen(store: store, job: item.job, backTitle: "Saved", savedAt: ThriveDates.parse(item.savedAt),
+                            inPane: hSize == .regular)
         } else {
             Color.white
         }
