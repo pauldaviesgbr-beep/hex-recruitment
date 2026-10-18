@@ -56,6 +56,12 @@ const nextConfig = {
   ],
   headers: async () => [
     {
+      // Universal links (the iOS app): Apple reads this file as JSON, and it
+      // has no extension to say so.
+      source: '/.well-known/apple-app-site-association',
+      headers: [{ key: 'Content-Type', value: 'application/json' }],
+    },
+    {
       source: '/_next/static/:path*',
       headers: [
         { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },

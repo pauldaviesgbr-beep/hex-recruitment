@@ -1,0 +1,13 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["7RTA2FH8C7.uk.co.thrivecareer.app"],
+        "components": [
+          { "/": "/auth/confirm", "comment": "Email confirmation and password reset links open the app, which signs the person in." },
+          { "/": "/auth/confirm/*" }
+        ]
+      }
+    ]
+  }
+}

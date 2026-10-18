@@ -288,6 +288,32 @@ class ThriveRootViewController: UIViewController, UITabBarDelegate {
         }
     }
 
+    // MARK: - Universal links
+
+    /// thrivecareer.co.uk/auth/confirm opened the app (the confirm email, or a
+    /// password reset). The website's own route verifies the token and sets
+    /// the session in THIS web view, so the person is signed in here, not in
+    /// Safari. A signup confirmation loads behind the native screens, and the
+    /// session arriving closes the sign-in sheet as any sign-in does; a reset
+    /// shows the website's form, which needs typing into.
+    @discardableResult
+    func openUniversalLink(_ url: URL) -> Bool {
+        guard let host = url.host, host == "thrivecareer.co.uk" || host == "www.thrivecareer.co.uk",
+              url.path.hasPrefix("/auth/confirm") else { return false }
+        let path = url.path + (url.query.map { "?\($0)" } ?? "")
+        let type = URLComponents(url: url, resolvingAgainstBaseURL: false)?
+            .queryItems?.first(where: { $0.name == "type" })?.value
+        DispatchQueue.main.async {
+            if type == "recovery" {
+                self.dismissSignIn()
+                self.openWebFromNative(path, backTitle: "Jobs")
+            } else {
+                self.bridge.go(to: path)
+            }
+        }
+        return true
+    }
+
     // MARK: - The sign-in sheet (G2)
 
     private weak var signInSheet: UIViewController?

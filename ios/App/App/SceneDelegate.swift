@@ -16,6 +16,12 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         window?.makeKeyAndVisible()
 
         SceneDelegateProxy.shared.scene(scene, willConnectTo: session, options: connectionOptions)
+
+        // A universal link that launched the app (it was not running).
+        if let url = connectionOptions.userActivities
+            .first(where: { $0.activityType == NSUserActivityTypeBrowsingWeb })?.webpageURL {
+            (window?.rootViewController as? ThriveRootViewController)?.openUniversalLink(url)
+        }
     }
 
     func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>) {
@@ -23,6 +29,11 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     }
 
     func scene(_ scene: UIScene, continue userActivity: NSUserActivity) {
+        // A universal link while the app was running.
+        if userActivity.activityType == NSUserActivityTypeBrowsingWeb, let url = userActivity.webpageURL,
+           (window?.rootViewController as? ThriveRootViewController)?.openUniversalLink(url) == true {
+            return
+        }
         SceneDelegateProxy.shared.scene(scene, continue: userActivity)
     }
 }
