@@ -10,13 +10,14 @@ import UserNotifications
 // confirmation word, served by /api/app/me/settings from lib/accountDeletion
 // so the app and the site cannot say different things.
 //
-// S2 (notifications) is built and NOT SHOWN: the app cannot receive a push
-// until APNs is set up, and a switch for something that never arrives is the
-// fault this codebase already removed twice (the marketing and analytics
-// switches). The day push works, flip `pushReady`.
+// S2 (notifications) is shown now that pushes reach the iPhone through APNs
+// (lib/apns.ts, ThrivePush.swift). `pushReady` stays as the one switch that
+// hides every notification control at once, should APNs ever be taken away:
+// a switch for something that never arrives is the fault this codebase has
+// removed twice already.
 
 enum ThriveFeatures {
-    static let pushReady = false
+    static let pushReady = true
 }
 
 struct AppSettings: Codable, Equatable {
@@ -165,6 +166,7 @@ struct NotificationSettingsScreen: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.scenePhase) private var phase
     @State private var allowed: Bool?
+    @State private var undetermined = false
     @State private var replies = true
     @State private var applications = true
     @State private var failed = false
@@ -174,7 +176,20 @@ struct NotificationSettingsScreen: View {
             DetailTopBar(title: "Notifications", backTitle: "Settings", back: { dismiss() }) { EmptyView() }
             ScrollView {
                 VStack(alignment: .leading, spacing: 8) {
-                    if allowed == false {
+                    if undetermined {
+                        // Never asked: iOS lists Thrive in its own Settings
+                        // only once the app has asked, so this asks.
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text("Notifications aren't on yet").font(.inter(17, .semibold)).foregroundColor(TC.navy)
+                            Text("Get a notification when an employer replies or your application changes. Nothing else.")
+                                .font(.inter(16)).foregroundColor(TC.ink2).fixedSize(horizontal: false, vertical: true)
+                            PrimaryButton(title: "Turn on notifications") {
+                                ThrivePush.shared.requestPermission { _ in check() }
+                            }
+                        }
+                        .padding(16).background(Color.white).cornerRadius(16)
+                        .overlay(RoundedRectangle(cornerRadius: 16).stroke(TC.border, lineWidth: 1))
+                    } else if allowed == false {
                         // C3: not dead switches, a way to turn them on.
                         VStack(alignment: .leading, spacing: 10) {
                             Text("Notifications are off").font(.inter(17, .semibold)).foregroundColor(TC.navy)
@@ -216,7 +231,10 @@ struct NotificationSettingsScreen: View {
 
     private func check() {
         UNUserNotificationCenter.current().getNotificationSettings { s in
-            DispatchQueue.main.async { allowed = s.authorizationStatus == .authorized || s.authorizationStatus == .provisional }
+            DispatchQueue.main.async {
+                allowed = s.authorizationStatus == .authorized || s.authorizationStatus == .provisional
+                undetermined = s.authorizationStatus == .notDetermined
+            }
         }
     }
 

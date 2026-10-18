@@ -128,8 +128,15 @@ class ThriveRootViewController: UIViewController, UITabBarDelegate {
         // S1 Sign out and S3 Delete: the website's /signout page signs out
         // properly (it revokes the session, not only forgets it); the cookie
         // change then clears the phone. Back to Jobs, as a signed-out person.
+        // Push: a token is registered for whoever is signed in; a tapped
+        // notification opens what it is about.
+        ThrivePush.shared.onToken = { [weak self] _ in self?.store.registerDeviceToken() }
+        ThrivePush.shared.onTap = { [weak self] link in self?.openFromNotification(link) }
         store.signOut = { [weak self] deleted in
             guard let self = self else { return }
+            // This iPhone stops receiving this person's pushes (a deleted
+            // account's tokens went with it).
+            if !deleted { self.store.unregisterDeviceToken() }
             self.bridge.go(to: "/signout")
             self.showNative(0)
             guard deleted else { return }
@@ -285,6 +292,23 @@ class ThriveRootViewController: UIViewController, UITabBarDelegate {
         } else if let path = tab.path {
             bridge.go(to: path)
             showWeb(openedFrom: nil)
+        }
+    }
+
+    // MARK: - A tapped notification
+
+    /// Applications opens natively; a message opens its thread in Messages;
+    /// anything else opens its page under the navy bar.
+    private func openFromNotification(_ link: String) {
+        guard session != nil else { return }
+        if link == "/applications" || link.hasPrefix("/applications?") {
+            showNative(2)
+            store.refreshApplications()
+        } else if link.hasPrefix("/messages") {
+            bridge.go(to: link)
+            showWeb(openedFrom: nil)
+        } else if link.hasPrefix("/") {
+            openWebFromNative(link, backTitle: "Jobs")
         }
     }
 
@@ -479,6 +503,7 @@ class ThriveRootViewController: UIViewController, UITabBarDelegate {
             self.roleUserId = userId
             if self.role == .candidate && previous != .candidate {
                 self.store.refreshAll()
+                self.store.registerDeviceToken()
                 self.tabs = ThriveRootViewController.candidateTabs
                 self.dismissSignIn()
                 // G2: an existing candidate goes back to the screen they came

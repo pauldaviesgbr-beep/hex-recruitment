@@ -880,6 +880,8 @@ struct ApplicationsScreen: View {
     private var sidebar: some View {
         VStack(spacing: 0) {
         NavyTitleBand(title: "Applications", line: bandLine, offline: !store.online) { EmptyView() }
+        // C1: the notification ask, once there is an application to hear about.
+        if !store.applications.isEmpty { NotifyAskCard(store: store) }
         if store.applications.isEmpty {
             ScrollView {
                 if store.applicationsLoad == .loading && store.applicationsUpdatedAt == nil {

@@ -162,11 +162,21 @@ export function pushPrefKeyFor(notificationType: string): string | null {
   switch (notificationType) {
     case 'new_application': return 'new_applications'
     case 'application_update': return 'application_updates'
+    // An interview invitation is a change to an application: the same switch.
+    case 'interview_interest': return 'application_updates'
     case 'job_match': return 'job_matches'
     case 'new_message': return 'new_messages'
     default: return null
   }
 }
+
+/**
+ * THE iPHONE GETS TWO KINDS AND NO OTHERS. The app's notification settings
+ * (S2) say "We only send these two": replies from employers, and changes to
+ * your applications. Job matches, shift-post comments and the rest stay in
+ * the bell and never reach an iPhone's lock screen, so the sentence is true.
+ */
+export const IOS_PUSH_TYPES = new Set(['new_message', 'application_update', 'interview_interest'])
 
 /** True if this person wants a push for this notification type. */
 export function pushAllowed(prefs: NotificationPrefs, notificationType: string): boolean {

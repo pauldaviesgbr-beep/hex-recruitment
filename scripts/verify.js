@@ -773,6 +773,9 @@ const ALL = [
   // behind isAdmin(email) and the manifest offers no shortcut to it, so a
   // reviewer cannot land on a debugging screen. Filesystem and imports only.
   { name: 'pushtest:prove', cmd: npm, args: ['run', 'pushtest:prove'] },
+  // apns:prove — THE iPHONE PUSH TOKEN IS VALID ES256: the JWT lib/apns.ts signs
+  // verifies against its public key, and altered claims do not. No network.
+  { name: 'apns:prove', cmd: npm, args: ['run', 'apns:prove'] },
 
   // deletegate:prove IS DELIBERATELY NOT IN THIS LIST, the same way
   // rlsprobe:prove is not.

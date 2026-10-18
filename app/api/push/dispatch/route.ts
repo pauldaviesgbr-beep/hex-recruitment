@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { loadServiceAccount, sendToToken } from '@/lib/fcm'
 import { sendWebPush } from '@/lib/webpush'
-import { normalisePrefs, pushAllowed, type Role } from '@/lib/notificationPrefs'
+import { loadApnsCredentials, sendApns } from '@/lib/apns'
+import { normalisePrefs, pushAllowed, IOS_PUSH_TYPES, type Role } from '@/lib/notificationPrefs'
 
 /**
  * Called by the database trigger on INSERT INTO public.notifications.
@@ -84,6 +85,16 @@ export async function POST(req: NextRequest) {
   // missing FIREBASE_* silently killed WEB push too — a coupling between two
   // transports that have nothing to do with each other. The failure is now
   // raised per row, by the branch that actually needs it.
+  // APNs (iPhones), loaded the same way: missing is recorded per row.
+  let apns: ReturnType<typeof loadApnsCredentials> = null
+  let apnsError: string | null = null
+  try {
+    apns = loadApnsCredentials()
+    if (!apns) apnsError = 'APNS_* not configured'
+  } catch (err: any) {
+    apnsError = err?.message?.slice(0, 400) || 'APNs key load failed'
+  }
+
   let sa: ReturnType<typeof loadServiceAccount> | null = null
   let saError: string | null = null
   try {
@@ -148,6 +159,31 @@ export async function POST(req: NextRequest) {
         // or one we can never encrypt for. A 5xx or a network blip must not
         // revoke, or one bad afternoon unsubscribes everybody.
         if (r.gone) {
+          await supabaseAdmin.from('device_tokens')
+            .update({ revoked_at: new Date().toISOString() }).eq('id', t.id)
+        }
+      }
+      continue
+    }
+
+    // APNs path — the iOS app. Its own credentials, so a missing Firebase
+    // setup never blocks an iPhone and the reverse.
+    if (t.platform === 'ios') {
+      if (!IOS_PUSH_TYPES.has(n.type)) {
+        await log({ ...base, success: false, outcome: 'opted_out', error: `not one of the app's two kinds (${n.type})` })
+        continue
+      }
+      if (!apns) {
+        await log({ ...base, success: false, outcome: 'no_credentials', error: apnsError })
+        continue
+      }
+      const r = await sendApns(apns, t.token as string, n.title, n.message || '', n.link)
+      if (r.ok) {
+        sent++
+        await log({ ...base, success: true, outcome: 'sent', provider_message_id: `apns:${r.apnsId}` })
+      } else {
+        await log({ ...base, success: false, outcome: 'provider_error', error: r.error })
+        if (r.tokenIsDead) {
           await supabaseAdmin.from('device_tokens')
             .update({ revoked_at: new Date().toISOString() }).eq('id', t.id)
         }

@@ -7,8 +7,19 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        // Override point for customization after application launch.
+        // Push (ThrivePush.swift): become the notification delegate, so a tap
+        // that launched the app is caught. Asks for nothing at launch.
+        ThrivePush.shared.start()
         return true
+    }
+
+    func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+        ThrivePush.shared.didRegister(deviceToken)
+    }
+
+    func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
+        // Nothing to do: without a token there is no push, and Settings says
+        // so by what iOS reports. Never logged (it can name the device).
     }
 
     func applicationWillResignActive(_ application: UIApplication) {

@@ -230,7 +230,7 @@ export async function POST(request: NextRequest) {
     const eventKey = String(body.event || '')
     const def = EVENTS[eventKey]
     // 'application_viewed' is the one batch event and is handled separately below.
-    if (!def && eventKey !== 'application_viewed') {
+    if (!def && eventKey !== 'application_viewed' && eventKey !== 'message_sent') {
       return NextResponse.json({ error: 'Unknown event.', reason: 'unknown_event' }, { status: 400 })
     }
 
@@ -266,6 +266,64 @@ export async function POST(request: NextRequest) {
       )
       if (insErr) throw insErr
       return NextResponse.json({ ok: true, sent: rows.length })
+    }
+
+    // ── A message was sent: tell the CANDIDATE it arrived ───────────────────
+    // "Replies from employers" (the app's notification settings, S2). Until
+    // this existed a message only ever sent an email, so no bell entry and no
+    // push. Everything is derived from the conversation the caller is IN: the
+    // recipient is the other participant, and the preview is the caller's own
+    // latest message there, never text from the request.
+    // Only a candidate is notified this way: employers read applicant mail in
+    // their own pipeline, and the switch exists on the candidate side only.
+    if (eventKey === 'message_sent') {
+      const conversationId = String(body.conversationId || '')
+      if (!conversationId) return NextResponse.json({ error: 'No conversation named.' }, { status: 400 })
+      const { data: conv } = await admin
+        .from('conversations')
+        .select('id, participant_1, participant_2, participant_1_name, participant_2_name, participant_1_company, participant_2_company')
+        .eq('id', conversationId)
+        .maybeSingle()
+      if (!conv) return NextResponse.json({ error: 'Conversation not found.' }, { status: 404 })
+      const callerIs1 = conv.participant_1 === user.id
+      if (!callerIs1 && conv.participant_2 !== user.id) {
+        return NextResponse.json({ error: 'Not your conversation.', reason: 'not_entitled' }, { status: 403 })
+      }
+      const recipient = callerIs1 ? conv.participant_2 : conv.participant_1
+      if (!recipient) return NextResponse.json({ ok: true, skipped: 'no_recipient' })
+
+      const { data: employerRow } = await admin
+        .from('employer_profiles').select('id').eq('user_id', recipient).maybeSingle()
+      if (employerRow) return NextResponse.json({ ok: true, skipped: 'recipient_is_employer' })
+
+      // One unread entry per conversation: a run of messages is one nudge.
+      const { data: pending } = await admin
+        .from('notifications').select('id')
+        .eq('user_id', recipient).eq('type', 'new_message').eq('related_id', conversationId).eq('read', false)
+        .limit(1)
+      if (pending?.length) return NextResponse.json({ ok: true, skipped: 'already_unread' })
+
+      const { data: last } = await admin
+        .from('messages').select('content')
+        .eq('conversation_id', conversationId).eq('sender_id', user.id)
+        .order('created_at', { ascending: false }).limit(1).maybeSingle()
+      if (!last) return NextResponse.json({ ok: true, skipped: 'no_message' })
+
+      const who = (callerIs1 ? (conv.participant_1_company || conv.participant_1_name)
+                             : (conv.participant_2_company || conv.participant_2_name)) || ''
+      const text = String(last.content || '').replace(/\s+/g, ' ').trim()
+      const { error: insErr } = await admin.from('notifications').insert({
+        user_id: recipient,
+        type: 'new_message',
+        title: who ? `New message from ${who.slice(0, 60)}` : 'New message',
+        message: text.length > 140 ? text.slice(0, 139) + '…' : text,
+        read: false,
+        related_id: conversationId,
+        related_type: 'conversation',
+        link: `/messages?conversation=${conversationId}`,
+      })
+      if (insErr) throw insErr
+      return NextResponse.json({ ok: true })
     }
 
     // ── Single events: resolve the application ─────────────────────────────

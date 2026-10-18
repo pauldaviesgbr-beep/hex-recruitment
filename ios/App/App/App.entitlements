@@ -8,6 +8,10 @@
 	     public/.well-known/apple-app-site-association. The App ID must have
 	     Associated Domains enabled and the provisioning profile regenerated,
 	     or signing fails. -->
+	<!-- Push (lib/apns.ts, ThrivePush.swift). TestFlight and the App Store
+	     use Apple's production push servers. -->
+	<key>aps-environment</key>
+	<string>production</string>
 	<key>com.apple.developer.associated-domains</key>
 	<array>
 		<string>applinks:thrivecareer.co.uk</string>

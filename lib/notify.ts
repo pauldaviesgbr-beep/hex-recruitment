@@ -22,6 +22,7 @@ type NotifyParams = {
   jobId?: string
   interviewId?: string
   applicationIds?: string[]
+  conversationId?: string
   extra?: Record<string, string | boolean>
 }
 
