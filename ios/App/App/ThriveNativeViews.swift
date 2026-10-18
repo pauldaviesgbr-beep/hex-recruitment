@@ -240,10 +240,14 @@ struct PadSplit<Sidebar: View, Detail: View>: View {
         if joined {
             sidebar()
         } else {
-            HStack(spacing: 0) {
-                sidebar().frame(width: 400)
-                Rectangle().fill(TC.border).frame(width: 1).ignoresSafeArea(edges: .top)
-                NavigationStack { detail() }.frame(maxWidth: .infinity)
+            // The list takes 40% of the width, 320–400pt. A fixed 400 left a
+            // portrait 10.2-inch iPad's job page only ~410pt: "crammed" (Paul).
+            GeometryReader { g in
+                HStack(spacing: 0) {
+                    sidebar().frame(width: min(400, max(320, g.size.width * 0.4)))
+                    Rectangle().fill(TC.border).frame(width: 1).ignoresSafeArea(edges: .top)
+                    NavigationStack { detail() }.frame(maxWidth: .infinity)
+                }
             }
         }
     }
