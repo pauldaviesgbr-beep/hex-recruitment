@@ -84,6 +84,12 @@ const config: CapacitorConfig = {
     // ship. tsc refused it under `server`, which is where it was tried
     // first — it is not a server property.
     appendUserAgent: 'ThriveApp',
+    // OUR NOTIFICATION DELEGATE, NOT CAPACITOR'S. By default the bridge makes
+    // its NotificationRouter the UNUserNotificationCenter delegate as it loads,
+    // replacing ThrivePush (set in AppDelegate). With no push plugin behind the
+    // router, a tapped push did nothing and one arriving while the app was
+    // open was not shown: found on build 23, the first push to an iPhone.
+    handleApplicationNotifications: false,
     // The site paints its own background; this stops a white flash on launch
     // before the first paint arrives.
     backgroundColor: '#0f172a',
