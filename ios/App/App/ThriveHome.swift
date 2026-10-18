@@ -14,6 +14,8 @@ struct DenseJobRow: View {
     @ObservedObject var store: ThriveStore
     let job: AppJob
     var showBookmark = true
+    /// The open row on iPad (PadSplit): #F6F7F9 instead of white.
+    var highlighted = false
     var body: some View {
         HStack(alignment: .top, spacing: 8) {
             VStack(alignment: .leading, spacing: 4) {
@@ -31,7 +33,7 @@ struct DenseJobRow: View {
         }
         .padding(.vertical, 12).padding(.leading, 16).padding(.trailing, 8)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.white)
+        .background(highlighted ? TC.page : Color.white)
         .overlay(alignment: .leading) {
             if job.isClosed { Rectangle().fill(TC.warning).frame(width: 3) }
         }
@@ -218,7 +220,10 @@ struct HomeScreen: View {
             }
         }
         .padding(.horizontal, 20).padding(.top, 8).padding(.bottom, 20)
-        .frame(maxWidth: .infinity, alignment: .leading)
+        // iPad: the band's contents keep to the same 640 column as the
+        // content below (Paul's iPad, 18 Oct); the navy still runs full width.
+        .frame(maxWidth: 640, alignment: .leading)
+        .frame(maxWidth: .infinity)
         .background(TC.navy)
     }
 
@@ -235,6 +240,7 @@ struct HomeScreen: View {
         }
         .padding(.horizontal, 16)
         .frame(height: 52)
+        .frame(maxWidth: 640)
         .frame(maxWidth: .infinity)
         .background(TC.navy.ignoresSafeArea(edges: .top))
     }

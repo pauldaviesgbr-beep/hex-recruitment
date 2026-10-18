@@ -90,6 +90,8 @@ function hint(key?: string, label?: string): string | null {
   if (!key || !label) return null
   if (key === 'cvUrl') return 'add your CV'
   if (key === 'photo') return 'add a photo'
+  // The checklist's label is "About me bio"; "add your about me bio" reads badly.
+  if (key === 'bio') return 'add a short bio about you'
   return `add your ${label.replace(/\s*\(.*?\)\s*/g, '').toLowerCase()}`
 }
 

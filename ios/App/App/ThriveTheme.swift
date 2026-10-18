@@ -116,7 +116,10 @@ struct NavyTitleBand<Trailing: View>: View {
             }
         }
         .padding(.horizontal, 20).padding(.top, 4).padding(.bottom, 16)
-        .frame(maxWidth: .infinity, alignment: .leading)
+        // iPad: the band's contents keep to the same 640 column as the
+        // content below (Paul's iPad, 18 Oct); the navy still runs full width.
+        .frame(maxWidth: 640, alignment: .leading)
+        .frame(maxWidth: .infinity)
         .background(TC.navy.ignoresSafeArea(edges: .top))
     }
 }
