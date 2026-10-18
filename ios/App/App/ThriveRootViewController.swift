@@ -408,6 +408,13 @@ class ThriveRootViewController: UIViewController, UITabBarDelegate {
             if session != nil || role != nil {
                 // Signed out: clear everything the phone holds (design rule).
                 store.clearForSignOut()
+                // The board is public: load it again at once, or Jobs sits on
+                // its skeleton (seen after deleting an account). Next turn of
+                // the run loop, so the session below is already cleared.
+                DispatchQueue.main.async { [weak self] in
+                    self?.store.refreshJobs()
+                    self?.store.refreshHome()
+                }
             }
             session = nil
             role = nil

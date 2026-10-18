@@ -346,6 +346,8 @@ struct DeleteAccountScreen: View {
 
     private func delete() {
         guard matches, !deleting else { return }
+        // The keyboard covered "Keep my account" and the result line.
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
         deleting = true
         error = nil
         store.deleteAccount(confirm: typed.trimmingCharacters(in: .whitespaces)) { message in
