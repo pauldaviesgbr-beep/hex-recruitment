@@ -154,8 +154,28 @@ class ThriveRootViewController: UIViewController, UITabBarDelegate {
 
         // THE SIGN-IN SHEET (ThriveSignIn.swift). Native to look at; the website
         // does the signing in, on the page hidden behind the native screens.
-        store.callAuth = { [weak self] name, args, done in
-            guard let self = self else { done(nil); return }
+        store.callAuth = { [weak self] name, args, rawDone in
+            guard let self = self else { rawDone(nil); return }
+            // ONE ANSWER, AND ALWAYS ONE. If the hidden page never answers, the
+            // sheet would sit on "Signing in…" for ever. After 12 seconds a
+            // password sign-in gives up on the sheet and opens the website's
+            // own login page, which does not depend on the hidden page.
+            var answered = false
+            let done: ([String: Any]?) -> Void = { answer in
+                guard !answered else { return }
+                answered = true
+                rawDone(answer)
+            }
+            // No usable answer: a password sign-in moves to the website's page.
+            let giveUp: () -> Void = { [weak self] in
+                guard !answered else { return }
+                done(nil)
+                if name == "password", let self = self, self.session == nil {
+                    self.dismissSignIn()
+                    self.openWebFromNative("/login")
+                }
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 12) { giveUp() }
             self.bridge.callAuth(name, args) { result in
                 switch result {
                 case .success(let answer): done(answer)
@@ -165,10 +185,10 @@ class ThriveRootViewController: UIViewController, UITabBarDelegate {
                     self.bridge.go(to: "/login")
                     DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
                         self.bridge.callAuth(name, args) { retry in
-                            if case .success(let answer) = retry { done(answer) } else { done(nil) }
+                            if case .success(let answer) = retry { done(answer) } else { giveUp() }
                         }
                     }
-                case .failure: done(nil)
+                case .failure: giveUp()
                 }
             }
         }
@@ -187,6 +207,9 @@ class ThriveRootViewController: UIViewController, UITabBarDelegate {
         }
         bridge.onPageMessage = { [weak self] message in
             guard let self = self, message["event"] as? String == "signin-ended", self.session == nil else { return }
+            // On iPad the login page is already on screen and shows its own
+            // error; reopening it would navigate away from that sentence.
+            if UIDeviceIdiom.isPad { return }
             self.store.providerOutcome = (how: message["how"] as? String ?? "failed", message: message["message"] as? String)
             // The new sheet reads the outcome as it opens (a @Published value
             // is delivered to a new subscriber straight away).
@@ -344,6 +367,16 @@ class ThriveRootViewController: UIViewController, UITabBarDelegate {
 
     private func presentSignIn() {
         guard signInSheet == nil, session == nil else { return }
+        // iPad: THE WEBSITE'S OWN LOGIN PAGE, NOT THE SHEET. Apple's review of
+        // build 29 (4 Nov 2026, iPad Air M3, iPadOS 27.2) could not sign in,
+        // and not one request reached Supabase — the attempt died inside the
+        // app, in the sheet or in its call to the hidden page. The website's
+        // login works at both iPad orientations (driven), and a session it
+        // creates closes everything through apply(_:) like any other.
+        if UIDeviceIdiom.isPad {
+            openWebFromNative("/login")
+            return
+        }
         let host = UIHostingController(rootView: SignInSheet(store: store, close: { [weak self] in
             self?.dismissSignIn(cancelled: true)
         }))
