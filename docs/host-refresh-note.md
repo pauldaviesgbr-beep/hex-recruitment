@@ -41,13 +41,37 @@ is cheap. It will not stay that way.
 ---
 
 Goldenkeys reconciles itself weekly through `scripts/import-goldenkeys.mjs`.
-**Host does not and never will:** Host do not permit scraping, so every Host row
-on the board is keyed in by hand from screenshots of their Caterer listings, and
-every reconcile is those images read against the board.
+
+**CHANGED 5 NOVEMBER 2026: Adrian has agreed (Paul, who knows him personally)
+that we take Host's roles from Caterer.** Until then this note said *"Host do not
+permit scraping"*, and every Host row was keyed by hand from screenshots. From
+5 Nov the adverts are FETCHED from Caterer (Firecrawl, about 1 credit a page),
+and the reconcile runs **every Tuesday, alongside the Goldenkeys import**
+(`goldenkeys-import.yml`, Tuesdays 06:00 UTC) — Paul's instruction.
+
+**HOST HAS TWO CATERER COMPANY ACCOUNTS. READ BOTH, OR YOU WILL MISS MOST OF THEM.**
+
+    main     https://www.caterer.com/jobs/host-staffing?cmpId=614335&cmp=1    20 roles on 5 Nov
+    agency   https://www.caterer.com/jobs/host-staffing?cmpId=1374941&cmp=1    5 roles on 5 Nov
+
+The first count on 5 Nov read only the agency account and reported **5** live
+roles; Paul's own screenshot showed 24. The listing page says "Page 1 of 1" on
+each account, so neither one looks incomplete on its own. **Count both.**
+
+**EVERY HOST ROW NOW CARRIES ITS CATERER ADVERT IN `source_url`** (the advert URL
+with the query string stripped). That is what makes the weekly reconcile
+mechanical: a board row whose `source_url` is not on either listing is dead, and
+a listing whose URL is on no board row is new. Matching on text (§4) is only
+needed for a row that has no `source_url` — and after 5 Nov there are none live.
+A `source_url` also takes the row out of the 30-day "is this still open?"
+reminder (`lib/jobReminders.ts`), which is right: Caterer decides that now.
+Adrian had never been sent one.
 
     the board today          npm run board
     the 11 Sept capture      C:\Users\pauld\OneDrive\Thrive\host-captures\2026-09-11\
                              25 images, 20 distinct adverts, MANIFEST.md beside them
+    the 5 Nov reconcile      scripts/host-reconcile-2026-11-05.ts — 18 archived,
+                             23 added (HS-053…HS-075), 2 kept; Host 20 -> 25
 
 The capture folder is deliberately **outside the repository**. `.gitignore`
 line 14 is `*.png` with exceptions only for `public/**` and `app/**`, so images
@@ -273,6 +297,12 @@ Four real applications sat on three of the ten dead rows:
 
 All four `pending`, none from a fixture, one from a candidate since erased.
 Nobody had ever moved any of them.
+
+**5 November 2026:** 11 real applications sat on 8 of the 18 dead rows; **one**
+was ever opened (HS-040, and it was moved). None from a fixture. All eleven were
+made to adverts Host had already stopped running on Caterer — the cost of the
+eight weeks between the 11 Sept and 5 Nov reconciles, and the argument for
+Tuesdays.
 
 **This is not a reason to hold an archive** — the roles are gone and leaving
 them live is worse. It is recorded because it is the small version of what the
