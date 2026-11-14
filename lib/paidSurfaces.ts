@@ -40,4 +40,4 @@ export const PAID_SURFACES_ENABLED = false
  * change of position is a one-line edit rather than a hunt.
  */
 export const BILLING_NOT_LIVE_MESSAGE =
-  'Billing is not live yet. Your account has full access while we build — there is nothing to pay and nothing to set up.'
+  'There is nothing to pay and nothing to set up. Your account has full access.'

@@ -9,60 +9,42 @@ import { DEV_MODE, getMockUser, getMockUserType } from '@/lib/mockAuth'
 import styles from './page.module.css'
 import { Ico } from '@/components/icons'
 import { CANDIDATE_DELETE_TEXT, DELETE_CONFIRM_WORD } from '@/lib/accountDeletion'
+import { parseHold, holdState } from '@/lib/duplicateHold'
 
-interface PrivacySettings {
-  // Profile Visibility - Job Seekers
-  profile_visible_to_employers: boolean
-  hide_from_search: boolean
-  hide_contact_until_connected: boolean
-  show_availability_publicly: boolean
-
-  // Profile Visibility - Employers
-  company_visible_to_seekers: boolean
-  jobs_visible_to_public: boolean
-
-  // Data & Privacy
-  allow_in_search_results: boolean
-  share_activity_for_recommendations: boolean
-  allow_profile_bookmarking: boolean
-  allow_view_tracking: boolean
-}
-
-const defaultJobSeekerSettings: PrivacySettings = {
-  profile_visible_to_employers: true,
-  hide_from_search: false,
-  hide_contact_until_connected: true,
-  show_availability_publicly: true,
-  company_visible_to_seekers: true,
-  jobs_visible_to_public: true,
-  allow_in_search_results: true,
-  share_activity_for_recommendations: true,
-  allow_profile_bookmarking: true,
-  allow_view_tracking: true,
-}
-
-const defaultEmployerSettings: PrivacySettings = {
-  profile_visible_to_employers: true,
-  hide_from_search: false,
-  hide_contact_until_connected: false,
-  show_availability_publicly: true,
-  company_visible_to_seekers: true,
-  jobs_visible_to_public: true,
-  allow_in_search_results: true,
-  share_activity_for_recommendations: true,
-  allow_profile_bookmarking: true,
-  allow_view_tracking: true,
-}
+// TEN SWITCHES ON THIS PAGE CONTROLLED NOTHING (design review A17, 14 Nov 2026).
+//
+// "Visible to employers", "Private mode", "Hide contact details", "Show
+// availability", "Appear in search results", "Personalised recommendations",
+// "Allow profile bookmarking", "Profile view tracking", and for employers
+// "Company visible to job seekers" and "Public job postings". They were saved
+// into privacy_settings and NOTHING in the codebase ever read that blob back.
+//
+// The worst of them misreported a real state: every hidden candidate (14 of
+// 14 real ones) was shown "Visible to employers: on", because the page read
+// its own defaults while the directory reads candidate_profiles.is_discoverable.
+//
+// So the page now carries ONE switch, the real one, written exactly as the
+// dashboard switch and the iOS app's switch write it (PUT /api/app/me/visibility,
+// refused while a duplicate check holds the profile). The rest are removed
+// rather than wired up: same treatment as the SMS rows, the marketing-emails
+// switch and the analytics toggle — a control for something that does not
+// happen is a false statement to the person using it.
+//
+// privacy_settings is left in the database untouched. Nothing reads it, and
+// clearing real people's rows is not this change's job.
 
 export default function PrivacySettingsPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
   const [exporting, setExporting] = useState(false)
   const [userType, setUserType] = useState<'employer' | 'employee' | null>(null)
 
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
-  const [settings, setSettings] = useState<PrivacySettings>(defaultJobSeekerSettings)
+  // The real visibility: candidate_profiles.is_discoverable. Null until read,
+  // so the switch never shows a guessed state.
+  const [discoverable, setDiscoverable] = useState<boolean | null>(null)
+  const [held, setHeld] = useState(false)
+  const [visSaving, setVisSaving] = useState(false)
   const [requesting, setRequesting] = useState(false)
   // Null until asked. Asked on load, so the screen can say "we have your
   // request" instead of offering the button to someone who already pressed it.
@@ -105,14 +87,7 @@ export default function PrivacySettingsPage() {
         // disagree with it.
         setOwnsEmployerProfile(type === 'employer')
 
-        // Load from localStorage
-        const savedSettings = localStorage.getItem('privacySettings')
-        const defaults = type === 'employer' ? defaultEmployerSettings : defaultJobSeekerSettings
-        if (savedSettings) {
-          setSettings({ ...defaults, ...JSON.parse(savedSettings) })
-        } else {
-          setSettings(defaults)
-        }
+        if (type !== 'employer') setDiscoverable(true)
 
         setLoading(false)
         return
@@ -131,7 +106,7 @@ export default function PrivacySettingsPage() {
       setUserType(type)
 
       // ASKED SEPARATELY FROM THE SETTINGS FETCH, ON PURPOSE.
-      // The settings query below selects privacy_settings and would return
+      // The visibility query below (candidates only) would return
       // null both for "no row" and for "the query failed" — and treating a
       // failure as "no company" would show an owner a Delete button that the
       // server then refuses. This asks one question with one answer, and
@@ -153,25 +128,19 @@ export default function PrivacySettingsPage() {
         .then(r => r.json())
         .then(b => { if (b?.open) setOpenRequest({ requestedAt: b.open.requestedAt }) })
         .catch(() => {})
-      const defaults = type === 'employer' ? defaultEmployerSettings : defaultJobSeekerSettings
-
-      // Fetch settings from appropriate table
-      try {
-        const tableName = type === 'employer' ? 'employer_profiles' : 'candidate_profiles'
+      // Candidates only: employers have no directory visibility to set.
+      if (type !== 'employer') {
         const { data: profile, error } = await supabase
-          .from(tableName)
-          .select('privacy_settings')
+          .from('candidate_profiles')
+          .select('is_discoverable, duplicate_hold')
           .eq('user_id', session.user.id)
           .maybeSingle()
-
-        if (!error && profile?.privacy_settings) {
-          setSettings({ ...defaults, ...profile.privacy_settings })
-        } else {
-          setSettings(defaults)
+        // Left null on failure: the switch then says it could not load,
+        // rather than showing a state nobody read.
+        if (!error && profile) {
+          setDiscoverable(!!profile.is_discoverable)
+          setHeld(holdState(parseHold(profile.duplicate_hold)) === 'held')
         }
-      } catch (err) {
-        console.error('Error loading privacy settings:', err)
-        setSettings(defaults)
       }
 
       setLoading(false)
@@ -180,69 +149,33 @@ export default function PrivacySettingsPage() {
     loadSettings()
   }, [router])
 
-  const handleToggle = (key: keyof PrivacySettings) => {
-    setSettings(prev => ({
-      ...prev,
-      [key]: !prev[key]
-    }))
+  // Saves as soon as it is flipped, like the dashboard switch: no Save button
+  // for one control, and no way to leave the page thinking it changed when it
+  // did not. Optimistic, reverted on any refusal.
+  const handleVisibility = async () => {
+    if (discoverable === null || held || visSaving) return
+    const next = !discoverable
+    setDiscoverable(next)
+    setVisSaving(true)
     setMessage(null)
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setSaving(true)
-    setMessage(null)
-
     try {
-      if (DEV_MODE) {
-        localStorage.setItem('privacySettings', JSON.stringify(settings))
-        setMessage({ type: 'success', text: 'Privacy settings saved successfully!' })
-      } else {
+      if (!DEV_MODE) {
         const { data: { session } } = await supabase.auth.getSession()
-        if (!session) throw new Error('No session found')
-
-        const tableName = userType === 'employer' ? 'employer_profiles' : 'candidate_profiles'
-
-        // Check if profile exists
-        const { data: existingProfile } = await supabase
-          .from(tableName)
-          .select('id')
-          .eq('user_id', session.user.id)
-          .maybeSingle()
-
-        let error
-        if (existingProfile) {
-          const result = await supabase
-            .from(tableName)
-            .update({
-              privacy_settings: settings,
-              updated_at: new Date().toISOString()
-            })
-            .eq('user_id', session.user.id)
-          error = result.error
-        } else {
-          // Create minimal profile with privacy settings
-          const result = await supabase
-            .from(tableName)
-            .insert({
-              user_id: session.user.id,
-              privacy_settings: settings,
-              ...(userType === 'employer'
-                ? { company_name: session.user.user_metadata?.company_name || 'My Company' }
-                : { full_name: session.user.user_metadata?.full_name || 'User' }
-              )
-            })
-          error = result.error
-        }
-
-        if (error) throw error
-        setMessage({ type: 'success', text: 'Privacy settings saved successfully!' })
+        if (!session) throw new Error('signed_out')
+        const res = await fetch('/api/app/me/visibility', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+          body: JSON.stringify({ discoverable: next }),
+        })
+        if (res.status === 409) { setHeld(true); throw new Error('held') }
+        if (!res.ok) throw new Error('not_saved')
       }
-    } catch (error: any) {
-      console.error('Error saving privacy settings:', error)
-      setMessage({ type: 'error', text: error.message || 'Failed to save settings' })
+      setMessage({ type: 'success', text: next ? 'Employers can now find you.' : 'Your profile is now hidden from employers.' })
+    } catch {
+      setDiscoverable(!next)
+      setMessage({ type: 'error', text: 'That did not save. Please try again.' })
     } finally {
-      setSaving(false)
+      setVisSaving(false)
     }
   }
 
@@ -258,7 +191,6 @@ export default function PrivacySettingsPage() {
         const mockUser = getMockUser()
         exportData = {
           user: mockUser,
-          privacySettings: settings,
           notificationPreferences: localStorage.getItem('notificationPreferences')
             ? JSON.parse(localStorage.getItem('notificationPreferences')!)
             : null,
@@ -483,7 +415,9 @@ export default function PrivacySettingsPage() {
           <div className={styles.headerIcon}><Ico name="lock" size={20} /></div>
           <div>
             <h1 className={styles.title}>Privacy Settings</h1>
-            <p className={styles.subtitle}>Control who can see your information and how your data is used</p>
+            <p className={styles.subtitle}>
+              {userType === 'employer' ? 'Your data and your account' : 'Choose whether employers can find you, and manage your data'}
+            </p>
           </div>
         </div>
 
@@ -498,199 +432,33 @@ export default function PrivacySettingsPage() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className={styles.form}>
-          {/* Profile Visibility */}
+        {userType !== 'employer' && (
           <div className={styles.section}>
             <div className={styles.sectionHeader}>
               <span className={styles.sectionIcon}><Ico name="eye" size={20} /></span>
-              <h2 className={styles.sectionTitle}>Profile Visibility</h2>
+              <h2 className={styles.sectionTitle}>Who can see you</h2>
             </div>
-            <p className={styles.sectionDescription}>
-              Control who can see your profile and what information is displayed
-            </p>
-
-            <div className={styles.settingsList}>
-              {userType === 'employee' ? (
-                <>
-                  <div className={styles.settingItem}>
-                    <div className={styles.settingInfo}>
-                      <span className={styles.settingName}>Visible to employers</span>
-                      <span className={styles.settingDescription}>
-                        Allow employers to find and view your profile when searching for candidates
-                      </span>
-                    </div>
-                    <Toggle
-                      checked={settings.profile_visible_to_employers}
-                      onChange={() => handleToggle('profile_visible_to_employers')}
-                    />
-                  </div>
-
-                  <div className={styles.settingItem}>
-                    <div className={styles.settingInfo}>
-                      <span className={styles.settingName}>Private mode</span>
-                      <span className={styles.settingDescription}>
-                        Hide your profile from search results. You can still apply to jobs directly.
-                      </span>
-                    </div>
-                    <Toggle
-                      checked={settings.hide_from_search}
-                      onChange={() => handleToggle('hide_from_search')}
-                    />
-                  </div>
-
-                  <div className={styles.settingItem}>
-                    <div className={styles.settingInfo}>
-                      <span className={styles.settingName}>Hide contact details</span>
-                      <span className={styles.settingDescription}>
-                        Only show your email and phone after you've connected with an employer
-                      </span>
-                    </div>
-                    <Toggle
-                      checked={settings.hide_contact_until_connected}
-                      onChange={() => handleToggle('hide_contact_until_connected')}
-                    />
-                  </div>
-
-                  <div className={styles.settingItem}>
-                    <div className={styles.settingInfo}>
-                      <span className={styles.settingName}>Show availability status</span>
-                      <span className={styles.settingDescription}>
-                        Display your current availability (e.g., "Available immediately") on your profile
-                      </span>
-                    </div>
-                    <Toggle
-                      checked={settings.show_availability_publicly}
-                      onChange={() => handleToggle('show_availability_publicly')}
-                    />
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className={styles.settingItem}>
-                    <div className={styles.settingInfo}>
-                      <span className={styles.settingName}>Company visible to job seekers</span>
-                      <span className={styles.settingDescription}>
-                        Allow job seekers to view your company profile and information
-                      </span>
-                    </div>
-                    <Toggle
-                      checked={settings.company_visible_to_seekers}
-                      onChange={() => handleToggle('company_visible_to_seekers')}
-                    />
-                  </div>
-
-                  <div className={styles.settingItem}>
-                    <div className={styles.settingInfo}>
-                      <span className={styles.settingName}>Public job postings</span>
-                      <span className={styles.settingDescription}>
-                        Show your job postings to everyone. If disabled, only registered users can view them.
-                      </span>
-                    </div>
-                    <Toggle
-                      checked={settings.jobs_visible_to_public}
-                      onChange={() => handleToggle('jobs_visible_to_public')}
-                    />
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-
-          {/* Data & Privacy */}
-          <div className={styles.section}>
-            <div className={styles.sectionHeader}>
-              <span className={styles.sectionIcon}><Ico name="bar-chart-3" size={20} /></span>
-              <h2 className={styles.sectionTitle}>Data & Privacy</h2>
-            </div>
-            <p className={styles.sectionDescription}>
-              Choose how your data is used to improve your experience
-            </p>
-
             <div className={styles.settingsList}>
               <div className={styles.settingItem}>
                 <div className={styles.settingInfo}>
-                  <span className={styles.settingName}>Appear in search results</span>
+                  <span className={styles.settingName}>Employers can find you</span>
                   <span className={styles.settingDescription}>
-                    {userType === 'employee'
-                      ? 'Allow your profile to appear when employers search for candidates'
-                      : 'Allow your company to appear in job seeker searches'}
+                    {held
+                      ? 'We’re checking your profile against another with the same name. Nothing’s wrong, and you can change this once that’s done.'
+                      : discoverable === null
+                      ? 'We couldn’t load this setting. Reload the page to try again.'
+                      : 'Your profile shows in the candidate directory, where employers hiring on Thrive can find you and message you.'}
                   </span>
                 </div>
                 <Toggle
-                  checked={settings.allow_in_search_results}
-                  onChange={() => handleToggle('allow_in_search_results')}
-                />
-              </div>
-
-              <div className={styles.settingItem}>
-                <div className={styles.settingInfo}>
-                  <span className={styles.settingName}>Personalised recommendations</span>
-                  <span className={styles.settingDescription}>
-                    {userType === 'employee'
-                      ? 'Share your activity to receive better job recommendations'
-                      : 'Share your activity to receive better candidate recommendations'}
-                  </span>
-                </div>
-                <Toggle
-                  checked={settings.share_activity_for_recommendations}
-                  onChange={() => handleToggle('share_activity_for_recommendations')}
-                />
-              </div>
-
-              {userType === 'employee' && (
-                <div className={styles.settingItem}>
-                  <div className={styles.settingInfo}>
-                    <span className={styles.settingName}>Allow profile bookmarking</span>
-                    <span className={styles.settingDescription}>
-                      Let employers save your profile to their shortlist for later review
-                    </span>
-                  </div>
-                  <Toggle
-                    checked={settings.allow_profile_bookmarking}
-                    onChange={() => handleToggle('allow_profile_bookmarking')}
-                  />
-                </div>
-              )}
-
-              <div className={styles.settingItem}>
-                <div className={styles.settingInfo}>
-                  <span className={styles.settingName}>Profile view tracking</span>
-                  <span className={styles.settingDescription}>
-                    {userType === 'employee'
-                      ? 'See which employers have viewed your profile'
-                      : 'See which candidates have viewed your job postings'}
-                  </span>
-                </div>
-                <Toggle
-                  checked={settings.allow_view_tracking}
-                  onChange={() => handleToggle('allow_view_tracking')}
+                  checked={!!discoverable}
+                  onChange={handleVisibility}
+                  disabled={discoverable === null || held || visSaving}
                 />
               </div>
             </div>
           </div>
-
-          {/* Form Actions */}
-          <div className={styles.actions}>
-            <Link href="/settings" className={styles.cancelBtn}>
-              Cancel
-            </Link>
-            <button
-              type="submit"
-              className={styles.saveBtn}
-              disabled={saving}
-              aria-busy={saving}
-            >
-              {saving ? (
-                <>
-                  <span className={styles.savingSpinner}></span>
-                  Saving...
-                </>
-              ) : (
-                'Save Settings'
-              )}
-            </button>
-          </div>
-        </form>
+        )}
 
         {/* Danger Zone */}
         <div className={styles.dangerSection}>
