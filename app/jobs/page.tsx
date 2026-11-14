@@ -1037,7 +1037,10 @@ function JobsPageContent() {
             </div>
           )}
         </div>
-        <div className={styles.quickLinks}>
+        {/* On a phone a signed-in candidate has the All / For you / Shifts chips
+            at the top of this band (components/JobsChips), which make the same
+            choice; two controls for one choice on one screen is one too many. */}
+        <div className={`${styles.quickLinks} ${currentUserRole === 'employee' ? styles.quickLinksChipped : ''}`}>
           <button className={styles.filterPill} onClick={clearFilters}>Browse All Jobs</button>
           <Link href="/jobs/recommended" className={styles.filterPill}>Jobs For You →</Link>
         </div>
