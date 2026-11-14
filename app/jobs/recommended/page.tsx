@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo, useRef } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import Header from '@/components/Header'
+import JobsChips from '@/components/JobsChips'
 import JobDetailModal from '@/components/JobDetailModal'
 import CompanyLogo from '@/components/CompanyLogo'
 import JobPostingSchema from '@/components/JobPostingSchema'
@@ -284,6 +285,7 @@ export default function RecommendedJobsPage() {
       {/* Slim dark banner */}
       <section className={styles.hero}>
         <div className={styles.heroInner}>
+          <JobsChips current="for-you" tone="dark" />
           <h1 className={styles.heroTitle}>
             <svg className={styles.heroIcon} width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="none">
               <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />

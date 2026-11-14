@@ -43,7 +43,7 @@
 
 import type { LucideIcon } from 'lucide-react'
 import {
-  AlertTriangle, Apple, ArrowRight, Ban, Banknote, BarChart3, Bell, Box, Briefcase, Building2,
+  AlertTriangle, Apple, ArrowRight, Ban, Banknote, BarChart3, Bell, Bookmark, Box, Briefcase, Building2,
   Cake, Calendar, Camera, Check, ChefHat, Clock, Compass, CreditCard, Eye,
   File, FileText, Flag, FlaskConical, Flame, Folder, Gift, Globe, Handshake,
   HelpCircle, Home, Image as ImageIcon, Inbox, Info, Key, Laptop, Lightbulb,
@@ -51,7 +51,7 @@ import {
   Package, Paperclip, PartyPopper, Pause, Pencil, Phone, Radio, RefreshCw,
   Rocket, Search, Settings, Shield, Smartphone, Sparkles, Star, Tag, Tent,
   Timer, Trash2, TrendingUp, User, Users, UtensilsCrossed, Video, X, Zap,
-  Martini,
+  Martini, Menu,
 } from 'lucide-react'
 
 export const ICONS = {
@@ -62,6 +62,7 @@ export const ICONS = {
   banknote: Banknote,
   'bar-chart-3': BarChart3,
   bell: Bell,
+  bookmark: Bookmark,
   box: Box,
   briefcase: Briefcase,
   building: Building2,
@@ -97,6 +98,7 @@ export const ICONS = {
   mail: Mail,
   'map-pin': MapPin,
   martini: Martini,
+  menu: Menu,
   'message-square': MessageSquare,
   mic: Mic,
   package: Package,

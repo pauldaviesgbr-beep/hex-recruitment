@@ -190,6 +190,12 @@ const laneScan = () => {
       const short = sel.split(/[\s,>]+/).pop() || sel
       if (['.banner', '.messagesLayout', '.panel'].includes(short)) continue
 
+      // AND A FOURTH, 14 Nov 2026: .bar in components/PhoneNav.module.css is
+      // the PHONE BOTTOM BAR, and the lane sits ON it rather than under it —
+      // the banner's own bottom reads --nav-bottom-h, asserted below. Named by
+      // FILE as well as selector, so another .bar anywhere is still policed.
+      if (f === 'components/PhoneNav.module.css' && short === '.bar') continue
+
       // Either variable counts. There are TWO NAMES for this lane — the
       // banner publishes --consent-h AND --cookie-banner-height, and the job
       // page's mobile apply bar reads the second. That duplication is a real
@@ -265,6 +271,28 @@ check(
   () => {
     const reserve = bodyRules.find(r => /padding-bottom\s*:/.test(r)) || ''
     return /padding-bottom:\s*calc\(\s*var\(--chat-clear[^)]*\)\s*\+\s*var\(--consent-h/.test(reserve)
+  },
+  true
+)
+
+// ── THE PHONE BOTTOM BAR (14 Nov 2026) ─────────────────────────────────────
+// Fixed at the foot of every signed-in phone page. Two things must hold, and
+// each is the other half of the exemption above: the banner moves UP by the
+// bar's height, so it never covers the bar; and the bar's height is a term in
+// the ONE body reserve, so the bar never covers content.
+
+check(
+  'the cookie banner sits on the phone bottom bar, never over it',
+  () => /\.banner\s*\{[^}]*bottom:\s*var\(--nav-bottom-h/.test(
+    read('components/CookieConsent.module.css').replace(/\/\*[\s\S]*?\*\//g, '')),
+  true
+)
+
+check(
+  'and the bar is a term in the one body reserve',
+  () => {
+    const reserve = bodyRules.find(r => /padding-bottom\s*:/.test(r)) || ''
+    return /\+\s*var\(--nav-bottom-h/.test(reserve) && /--nav-bottom-h:\s*0px/.test(globals)
   },
   true
 )

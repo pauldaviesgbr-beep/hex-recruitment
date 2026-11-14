@@ -315,9 +315,9 @@ button.item {
     transform: translateX(0);
   }
 
-  .mobileToggle {
-    display: flex;
-  }
+  /* .mobileToggle is NOT shown here any more: the bottom bar replaced it.
+     It stays display:none at every width as the iOS app's bridge to the
+     More page (EmployerSidebar.tsx). */
 
   .overlay {
     display: block;

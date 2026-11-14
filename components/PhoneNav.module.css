@@ -1,0 +1,124 @@
+/* THE BOTTOM BAR ON A PHONE (design_handoff_phone_navigation, mockup 3a).
+
+   NO body PADDING IN THIS FILE, NOW OR EVER. The bar publishes --nav-bottom-h
+   from PhoneNav.tsx and globals.css adds it to the one bottom reserve. A second
+   bottom padding on body here would be a later rule at the same specificity and
+   would silently win over the consent lane: the exact bug globals.css records,
+   which cost a candidate his application.
+
+   Z-INDEX IS A TOKEN. --z-sidebar-nav (140) is above the header (100) and below
+   every modal (200): it is navigation, and a sheet or modal must cover it. */
+
+.bar {
+  display: none;
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: var(--z-sidebar-nav);
+  background: #ffffff;
+  border-top: 1px solid #DFE3EA;
+  /* Clear the home indicator. env() is 0 in every desktop browser and cannot be
+     set from script, so this is invisible to any check not run on a handset. */
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Phone width only — the same boundary at which the header goes fixed and drops
+   its desktop controls, so there is no width with neither. */
+@media (max-width: 768px) {
+  .bar { display: block; }
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+}
+
+.item {
+  display: flex;
+  min-width: 0;
+}
+
+.link {
+  flex: 1;
+  min-width: 0;
+  /* The whole cell is the target: 56 tall, so every slot clears 44. */
+  height: 56px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  text-decoration: none;
+  color: #64748b;
+  font-weight: 500;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.link[data-active] {
+  color: #0F172A;
+  font-weight: 600;
+}
+
+.link:focus-visible {
+  outline: 3px solid rgba(15, 23, 42, 0.35);
+  outline-offset: -3px;
+}
+
+/* The active pill sits behind the icon: 56 x 28, brand yellow, radius 14. */
+.pill {
+  position: relative;
+  width: 56px;
+  height: 28px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.link[data-active] .pill {
+  background: #FFE500;
+}
+
+.label {
+  font-size: 12px;
+  line-height: 16px;
+  /* ONE LINE, ALWAYS. "Applications" is the longest label and has to fit a
+     64px cell at 320 wide; it is measured there by the drive, not assumed. */
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.badge {
+  position: absolute;
+  top: -2px;
+  left: calc(50% + 6px);
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: #DC2626;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 16px;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+/* The badge is aria-hidden so a bare number is not read out; this says it in
+   words instead. */
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

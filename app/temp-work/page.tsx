@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Header from '@/components/Header'
+import JobsChips from '@/components/JobsChips'
 import { ThumbsUp, MessageCircle } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import {
@@ -560,6 +561,7 @@ export default function TempWorkPage() {
     <main>
       <Header />
       <div className={styles.page}>
+        <JobsChips current="shifts" tone="light" />
         <div className={styles.grid}>
           {/* THE HEADING IS A CHILD OF THE GRID, NOT OF THE FEED, AND THAT IS
               THE WHOLE FIX. The grid collapses to one column at 760, so source

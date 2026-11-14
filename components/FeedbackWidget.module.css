@@ -188,7 +188,7 @@
 @media (max-width: 768px) {
   .wrapper {
     position: fixed;
-    bottom: var(--consent-h, 0px);
+    bottom: calc(var(--consent-h, 0px) + var(--nav-bottom-h, 0px));
     left: 0;
     right: 0;
     width: 100%;

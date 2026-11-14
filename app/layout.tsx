@@ -1,5 +1,8 @@
 import dynamic from 'next/dynamic'
 const FeedbackWidget = dynamic(() => import('@/components/FeedbackWidget'), { ssr: false })
+// The phone bottom bar. Here rather than in Header, which every page mounts
+// afresh, so the bar persists across navigations (components/PhoneNav.tsx).
+const PhoneNav = dynamic(() => import('@/components/PhoneNav'), { ssr: false })
 import ScrollToTop from '@/components/ScrollToTop'
 import FirstTouchCapture from '@/components/FirstTouchCapture'
 import SessionGuard from '@/components/SessionGuard'
@@ -152,6 +155,7 @@ export default function RootLayout({
             <NativeAuthBridge />
             {children}
             <FeedbackWidget />
+            <PhoneNav />
           </MessagesProvider>
         </Providers>
       </body>

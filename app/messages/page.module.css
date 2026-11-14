@@ -823,7 +823,10 @@
     top: var(--nav-height);
     left: 0;
     right: 0;
-    bottom: var(--keyboard-inset, 0px);
+    /* Above the phone bottom bar (0 inside the app and on wider screens), or
+       above the keyboard, whichever is taller: an open keyboard covers the
+       bar, so adding the two would leave a gap above the keyboard. */
+    bottom: max(var(--keyboard-inset, 0px), var(--nav-bottom-h, 0px));
     height: auto;
   }
 }

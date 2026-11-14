@@ -1,0 +1,160 @@
+/* THE MORE / PROFILE LIST PAGE (design_handoff_phone_navigation, mockup 3c).
+   Tokens from the handoff: ink #0F172A, muted #64748b, line #DFE3EA, page
+   #F6F7F9, destructive #B91C1C, badge red #DC2626. */
+
+.page {
+  background: #F6F7F9;
+  min-height: 100vh;
+}
+
+.inner {
+  padding: 20px 16px 32px;
+  max-width: 1040px;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+.title {
+  font-family: var(--font-serif), Georgia, serif;
+  font-weight: 600;
+  font-size: 28px;
+  line-height: 34px;
+  color: #0F172A;
+  margin: 0 0 16px;
+}
+
+.groups {
+  display: grid;
+  gap: 14px;
+}
+
+/* From 768 up the groups sit in two columns. */
+@media (min-width: 768px) {
+  .groups {
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+  }
+}
+
+.group {
+  min-width: 0;
+}
+
+.groupLabel {
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #64748b;
+  margin: 0 0 6px 4px;
+}
+
+.card {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  background: #ffffff;
+  border: 1px solid #DFE3EA;
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.rowItem + .rowItem {
+  border-top: 1px solid #DFE3EA;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 48px;
+  padding: 6px 16px;
+  box-sizing: border-box;
+  background: none;
+  border: 0;
+  text-align: left;
+  text-decoration: none;
+  color: #0F172A;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.row:active,
+.row:hover {
+  background: #EEF0F4;
+}
+
+.row:focus-visible {
+  outline: 3px solid rgba(15, 23, 42, 0.35);
+  outline-offset: -3px;
+}
+
+/* The top group carries the unread counts and is a step heavier. */
+.cardTop .row {
+  min-height: 52px;
+  font-weight: 600;
+}
+
+.rowText {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.rowLabel {
+  line-height: 20px;
+}
+
+.rowSubline {
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 400;
+  color: #64748b;
+}
+
+.rowDanger {
+  color: #B91C1C;
+}
+
+.chevron {
+  color: #64748b;
+  font-size: 20px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.badge {
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 10px;
+  background: #DC2626;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 20px;
+  text-align: center;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+.foot {
+  margin: 20px 4px 0;
+  font-size: 15px;
+}
+
+.footLink {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: #0F172A;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}

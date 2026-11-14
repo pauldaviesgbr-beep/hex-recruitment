@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect, useRef, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Header from '@/components/Header'
+import JobsChips from '@/components/JobsChips'
 import JobDetailModal from '@/components/JobDetailModal'
 import { Job } from '@/lib/mockJobs'
 import { useJobs } from '@/lib/JobsContext'
@@ -988,6 +989,7 @@ function JobsPageContent() {
       {/* Search Section */}
       <div className={styles.searchSection}>
         <div className={styles.searchInner}>
+          <JobsChips current="all" tone="dark" />
           <h1 className={styles.pageTitle}>
             {currentUserRole === 'employer' ? 'Browse Job Listings' : 'Find Your Next Role'}
           </h1>
