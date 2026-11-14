@@ -74,10 +74,17 @@ const code = (s) => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^[ \t]*\/\/.*$/g
 rec('no CODE in the route gates on user_metadata.role',
   /user_metadata\??\.role/.test(code(route)), false)
 
-// The table-selection ternaries are correct and must survive — if they vanish,
+// The table-selection ternary is correct and must survive — if it vanishes,
 // somebody has "fixed" this by deleting the wrong thing.
-rec('the settings table is still chosen by role (3 legitimate uses remain)',
-  (page.match(/userType === 'employer'/g) || []).length >= 3, true)
+//
+// THIS USED TO COUNT THREE, AND THE COUNT WAS THE WRONG INSTRUMENT. Two of the
+// three served the privacy_settings load and save, and went on 14 Nov 2026
+// when the ten dead switches did (design review A17) — legitimately, with the
+// code they belonged to. A bare count of `userType === 'employer'` would also
+// pass on an unrelated subtitle ternary. So assert the one that remains, by
+// its whole shape: the data export still picks the table by role.
+rec('the data export still chooses its table by role',
+  /tableName = userType === 'employer' \? 'employer_profiles' : 'candidate_profiles'/.test(page), true)
 
 for (const r of out) {
   console.log(`  ${r.ok ? 'PASS' : 'FAIL'}  ${r.name}`)
