@@ -535,6 +535,83 @@
   box-shadow: 0 4px 12px rgba(255, 229, 0, 0.3);
 }
 
+/* Saved jobs that have closed (C05). Neutral on purpose: closing is not an
+   error the candidate made, so no red, and nothing here asks them to act
+   beyond tidying the list. */
+.closedSection {
+  margin-top: 1.5rem;
+  padding: 1.25rem 1.25rem 0.5rem;
+  background: #fff;
+  border: 1px solid #DFE3EA;
+  border-radius: 12px;
+}
+
+.closedTitle {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #0F172A;
+  margin: 0 0 0.25rem;
+}
+
+.closedNote {
+  font-size: 0.9rem;
+  color: #334155;
+  margin: 0 0 0.75rem;
+}
+
+.closedLink {
+  color: #0F172A;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.closedList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.closedRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem 0;
+  border-top: 1px solid #EEF0F4;
+}
+
+.closedRowText {
+  min-width: 0;
+}
+
+.closedRowTitle {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #334155;
+  margin: 0;
+}
+
+.closedRowMeta {
+  font-size: 0.85rem;
+  color: #64748b;
+  margin: 0.15rem 0 0;
+}
+
+.closedRemove {
+  flex-shrink: 0;
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #0F172A;
+  background: transparent;
+  border: 1.5px solid #0F172A;
+  border-radius: 10px;
+  min-height: 44px;
+  padding: 0 1rem;
+  cursor: pointer;
+}
+
 /* Loading */
 .loadingState {
   display: flex;

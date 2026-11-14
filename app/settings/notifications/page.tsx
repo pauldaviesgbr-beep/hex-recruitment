@@ -26,25 +26,17 @@ const CANDIDATE_EMAIL: Row[] = [
   { key: 'application_updates', name: 'Application updates', desc: 'Get notified when your application status changes' },
   { key: 'new_messages', name: 'New messages', desc: 'Get notified when you receive a new message' },
 ]
-const CANDIDATE_SMS: Row[] = [
-  { key: 'new_messages', name: 'New messages', desc: 'Get a text when you receive an important message' },
-  { key: 'job_alerts', name: 'Job alerts', desc: 'Get a text for urgent job opportunities' },
-]
 const EMPLOYER_EMAIL: Row[] = [
   { key: 'new_applications', name: 'New applications', desc: 'Get notified when candidates apply to your jobs' },
   { key: 'application_updates', name: 'Application updates', desc: 'Get notified when an application status changes' },
   { key: 'new_messages', name: 'New messages', desc: 'Get notified when you receive a new message' },
   { key: 'job_views', name: 'Job views & saves', desc: 'Get notified when your jobs are viewed or saved' },
 ]
-const EMPLOYER_SMS: Row[] = [
-  { key: 'new_messages', name: 'New messages', desc: 'Get a text when you receive an important message' },
-  { key: 'urgent_applications', name: 'Urgent applications', desc: 'Get a text for urgent applications' },
-]
 
 function sectionsFor(role: Role) {
   return role === 'employer'
-    ? { email: EMPLOYER_EMAIL, sms: EMPLOYER_SMS }
-    : { email: CANDIDATE_EMAIL, sms: CANDIDATE_SMS }
+    ? { email: EMPLOYER_EMAIL }
+    : { email: CANDIDATE_EMAIL }
 }
 
 export default function NotificationsSettingsPage() {
@@ -96,7 +88,7 @@ export default function NotificationsSettingsPage() {
     loadPreferences()
   }, [router])
 
-  const toggle = (channel: 'email' | 'sms', key: string) => {
+  const toggle = (channel: 'email', key: string) => {
     setPreferences(prev => ({
       ...prev,
       [channel]: { ...(prev as any)[channel], [key]: !(prev as any)[channel][key] },
@@ -188,7 +180,6 @@ export default function NotificationsSettingsPage() {
 
   const sections = sectionsFor(userType)
   const email = (preferences as any).email as Record<string, boolean>
-  const sms = (preferences as any).sms as Record<string, boolean>
 
   return (
     <main>
@@ -237,7 +228,12 @@ export default function NotificationsSettingsPage() {
             <h2 className={styles.sectionTitle}>Push Notifications</h2>
           </div>
           <div className={styles.settingsList}>
-            <div className={styles.settingItem}>
+            {/* STACKED, NOT SIDE BY SIDE (design review C21.1). PushToggle is a
+                button in one state and a full paragraph in three others
+                ("blocked", "unsupported", "add to home screen"). As a flex
+                sibling the paragraph took the row and squeezed the label to
+                one word per line on a laptop, overlapping it. */}
+            <div className={`${styles.settingItem} ${styles.settingItemStacked}`}>
               <div className={styles.settingInfo}>
                 <span className={styles.settingName}>Notifications on this device</span>
                 <span className={styles.settingDescription}>
@@ -290,25 +286,12 @@ export default function NotificationsSettingsPage() {
             </div>
           </div>
 
-          {/* SMS Notifications */}
-          <div className={styles.section}>
-            <div className={styles.sectionHeader}>
-              <span className={styles.sectionIcon}><Ico name="smartphone" size={20} /></span>
-              <h2 className={styles.sectionTitle}>SMS Notifications</h2>
-            </div>
-            <p className={styles.sectionDescription}>Standard messaging rates may apply</p>
-            <div className={styles.settingsList}>
-              {sections.sms.map(row => (
-                <div className={styles.settingItem} key={`sms-${row.key}`}>
-                  <div className={styles.settingInfo}>
-                    <span className={styles.settingName}>{row.name}</span>
-                    <span className={styles.settingDescription}>{row.desc}</span>
-                  </div>
-                  <Toggle checked={!!sms[row.key]} onChange={() => toggle('sms', row.key)} />
-                </div>
-              ))}
-            </div>
-          </div>
+          {/* NO SMS SECTION. Thrive sends no text messages: there is no SMS
+              provider, sender or call site anywhere in the codebase. Its
+              switches saved preferences nothing read, and "Standard messaging
+              rates may apply" warned about a cost that cannot arise (design
+              review C21.2; recorded as open in CLAUDE.md on 25 Sept 2026).
+              Stored sms preferences are left in the rows, untouched. */}
 
           {/* Email Frequency */}
           <div className={styles.section}>

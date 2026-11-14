@@ -84,8 +84,8 @@ export async function POST(req: NextRequest) {
     if (!email || !isValidEmail(email)) {
       return NextResponse.json({ error: 'Please enter a valid email address.' }, { status: 400 })
     }
-    if (!password || password.length < 6) {
-      return NextResponse.json({ error: 'Password must be at least 6 characters.' }, { status: 400 })
+    if (!password || password.length < 8) {
+      return NextResponse.json({ error: 'Password must be at least 8 characters.' }, { status: 400 })
     }
     if (!companyName) {
       return NextResponse.json({ error: 'Company name is required.' }, { status: 400 })

@@ -8,6 +8,7 @@ import CompanyLogo from '@/components/CompanyLogo'
 import JobDetailModal from '@/components/JobDetailModal'
 import JobPostingSchema from '@/components/JobPostingSchema'
 import { Job } from '@/lib/mockJobs'
+import { isSplitPaneWidth } from '@/lib/viewport'
 import { useJobs } from '@/lib/JobsContext'
 import { SEO_SECTORS } from '@/lib/seo'
 import styles from './page.module.css'
@@ -39,7 +40,8 @@ export default function SectorJobsPage() {
   }, [jobs, sectorInfo])
 
   useEffect(() => {
-    if (filteredJobs.length > 0 && !selectedJob) {
+    // Laptop only: on a phone a selected job opens as a modal (lib/viewport).
+    if (filteredJobs.length > 0 && !selectedJob && isSplitPaneWidth()) {
       setSelectedJob(filteredJobs[0])
     }
   }, [filteredJobs, selectedJob])

@@ -31,7 +31,6 @@ export const SUBSCRIPTION_TIERS = {
       'Manage applications in dashboard',
       'Analytics dashboard',
       'Dedicated account support',
-      'Cancel anytime',
     ],
   },
 } as const

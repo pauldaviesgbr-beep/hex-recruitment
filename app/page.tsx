@@ -326,7 +326,7 @@ export default function Home() {
       <section className={styles.seeItSection}>
         <div className={styles.sectionInner}>
           <h2 className={styles.sectionTitle}>See Thrive in action</h2>
-          <p className={styles.sectionSubtitle}>From job ad to signed offer without leaving the page — no spreadsheets, no CV black holes, no per-post fees.</p>
+          <p className={styles.sectionSubtitle}>From job ad to signed offer without leaving the page — no spreadsheets, no CV black holes.</p>
           <div className={styles.demoRows}>
             <div className={styles.demoRow}>
               <div className={styles.demoVideoWrap}>

@@ -9,6 +9,7 @@ import CompanyLogo from '@/components/CompanyLogo'
 import JobPostingSchema from '@/components/JobPostingSchema'
 import ApplyNowModal from '@/components/ApplyNowModal'
 import { Job } from '@/lib/mockJobs'
+import { isSplitPaneWidth } from '@/lib/viewport'
 import { Candidate } from '@/lib/mockCandidates'
 import { useJobs } from '@/lib/JobsContext'
 import { supabaseProfileToCandidate } from '@/lib/types'
@@ -147,7 +148,7 @@ export default function RecommendedJobsPage() {
 
   // Auto-select first job on desktop
   useEffect(() => {
-    if (isMobile) return
+    if (isMobile || !isSplitPaneWidth()) return
     if (recommendedJobs.length > 0) {
       setSelectedJob(prev => {
         if (prev && recommendedJobs.some(j => j.id === prev.id)) return prev

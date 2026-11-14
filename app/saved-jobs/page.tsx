@@ -8,6 +8,7 @@ import JobDetailModal from '@/components/JobDetailModal'
 import CompanyLogo from '@/components/CompanyLogo'
 import JobPostingSchema from '@/components/JobPostingSchema'
 import { Job } from '@/lib/mockJobs'
+import { isSplitPaneWidth } from '@/lib/viewport'
 import { useJobs } from '@/lib/JobsContext'
 import { useSavedJobs } from '@/lib/useSavedJobs'
 import { supabase } from '@/lib/supabase'
@@ -31,6 +32,8 @@ export default function SavedJobsPage() {
   const [savedTimestamps, setSavedTimestamps] = useState<Record<string, string>>({})
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null)
   const [shortlistedJobIds, setShortlistedJobIds] = useState<Set<string>>(new Set())
+  // Titles for saved jobs that have closed, keyed by job id. See below.
+  const [closedDetails, setClosedDetails] = useState<Record<string, { title: string; company: string; place: string }>>({})
 
   // Detect mobile
   useEffect(() => {
@@ -112,9 +115,47 @@ export default function SavedJobsPage() {
       return bTime.localeCompare(aTime)
     })
 
+  // SAVED JOBS THAT HAVE CLOSED (design review C05, 14 Nov 2026).
+  //
+  // `jobs` is the live board only, so a save whose advert closed resolved to
+  // nothing and vanished from this list, while every count (the badge above,
+  // the dashboard tile) still included it: "No saved jobs yet" under a badge
+  // of 3. Every real candidate who had ever saved a job was in that state.
+  //
+  // WHICH SAVES HAVE CLOSED IS KNOWN WITHOUT ASKING ANYONE: a saved id that is
+  // not on the live board is not open. Only the TITLES need fetching, because
+  // RLS lets a candidate read active adverts only. The iOS app already has
+  // the endpoint for that (/api/app/me/saved, closed saves marked isClosed,
+  // each advert read only because the user's own saved_jobs row points at
+  // it), so the website asks the same one and the two cannot disagree. If it
+  // fails, the rows still show, just without their titles.
+  const closedIds = Array.from(savedIds).filter(id => !jobs.some(j => j.id === id))
+  useEffect(() => {
+    if (!isAuthenticated || DEV_MODE || closedIds.length === 0) return
+    let cancelled = false
+    ;(async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) return
+      try {
+        const res = await fetch('/api/app/me/saved', {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+          cache: 'no-store',
+        })
+        if (!res.ok) return
+        const body = await res.json()
+        const next: Record<string, { title: string; company: string; place: string }> = {}
+        for (const s of body?.saved || []) {
+          if (s?.job?.isClosed) next[s.job.id] = { title: s.job.title, company: s.job.company, place: s.job.place }
+        }
+        if (!cancelled) setClosedDetails(next)
+      } catch { /* rows still render, untitled */ }
+    })()
+    return () => { cancelled = true }
+  }, [isAuthenticated, closedIds.join(',')])
+
   // Auto-select first job on desktop
   useEffect(() => {
-    if (!isMobile && !selectedJob && savedJobs.length > 0) {
+    if (!isMobile && isSplitPaneWidth() && !selectedJob && savedJobs.length > 0) {
       setSelectedJob(savedJobs[0])
     }
   }, [isMobile, savedJobs.length])
@@ -485,7 +526,7 @@ export default function SavedJobsPage() {
               </div>
             )}
           </div>
-        ) : (
+        ) : closedIds.length > 0 ? null : (
           <div className={styles.emptyState}>
             <div className={styles.emptyIcon}>
               <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -498,6 +539,32 @@ export default function SavedJobsPage() {
               Browse Jobs
             </Link>
           </div>
+        )}
+
+        {closedIds.length > 0 && (
+          <section className={styles.closedSection} aria-labelledby="closed-saves-title">
+            <h2 id="closed-saves-title" className={styles.closedTitle}>No longer open</h2>
+            <p className={styles.closedNote}>
+              {closedIds.length === 1 ? 'This job has' : 'These jobs have'} closed since you saved {closedIds.length === 1 ? 'it' : 'them'}.
+              {savedJobs.length === 0 && <> <Link href="/jobs" className={styles.closedLink}>See jobs that are open</Link></>}
+            </p>
+            <ul className={styles.closedList}>
+              {closedIds.map(id => {
+                const d = closedDetails[id]
+                return (
+                  <li key={id} className={styles.closedRow}>
+                    <div className={styles.closedRowText}>
+                      <p className={styles.closedRowTitle}>{d ? d.title : 'A job that has closed'}</p>
+                      {d && <p className={styles.closedRowMeta}>{[d.company, d.place].filter(Boolean).join(' · ')}</p>}
+                    </div>
+                    <button type="button" className={styles.closedRemove} onClick={() => toggleSave(id)}>
+                      Remove
+                    </button>
+                  </li>
+                )
+              })}
+            </ul>
+          </section>
         )}
       </div>
 

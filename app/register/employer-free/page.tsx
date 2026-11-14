@@ -69,8 +69,8 @@ export default function RegisterEmployerFreePage() {
       return
     }
 
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters')
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters')
       return
     }
 
@@ -217,8 +217,8 @@ export default function RegisterEmployerFreePage() {
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 required
-                minLength={6}
-                placeholder="At least 6 characters"
+                minLength={8}
+                placeholder="At least 8 characters"
                 autoComplete="new-password"
               />
             </div>
@@ -257,7 +257,6 @@ export default function RegisterEmployerFreePage() {
 
             <div className={styles.trustRow}>
               <span><span className={styles.trustCheck}>✓</span> No credit card</span>
-              <span><span className={styles.trustCheck}>✓</span> Cancel anytime</span>
               <span><span className={styles.trustCheck}>✓</span> Free for first {EMPLOYER_COHORT_CAP} employers</span>
             </div>
           </form>

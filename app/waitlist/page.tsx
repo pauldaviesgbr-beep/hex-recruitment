@@ -85,7 +85,7 @@ function WaitlistContent() {
         )}
 
         {/* Headline */}
-        <h1 className={styles.headline}>{isFull ? 'Join the waitlist' : `Get ${foundingPhraseShort()} — before we launch`}</h1>
+        <h1 className={styles.headline}>{isFull ? 'Join the waitlist' : `Get ${foundingPhraseShort()}`}</h1>
 
         {/* Subheadline */}
         <p className={styles.subheadline}>

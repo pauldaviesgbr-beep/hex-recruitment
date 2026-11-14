@@ -299,7 +299,7 @@ function SubscriptionContent() {
               {isCanceled ? 'Resubscribe to continue' : 'Get started'}
             </h2>
             <p className={styles.pricingSubtitle}>
-              {trialPhraseFormal()}. Cancel anytime.
+              {trialPhraseFormal()}.
             </p>
 
             <div className={styles.pricingGrid}>
