@@ -160,6 +160,7 @@ async function render({ job, width, height, label, platform }) {
   const roleSize = Math.round(width * (role.length > 34 ? 0.072 : 0.086))
   const strapSize = Math.round(width * 0.034)
   const metaSize = Math.round(width * 0.038)
+  const paySize = Math.round(width * 0.062)
   const eyebrowSize = Math.round(width * 0.030)
 
   const roleLines = wrap(role, role.length > 34 ? 22 : 18)
@@ -176,23 +177,31 @@ async function render({ job, width, height, label, platform }) {
   const typeFloor = height - safePx
   let y = typeFloor - pad
   const chips = []
-  if (pay || where) {
-    // THE META LINE HAS TO WRAP, because --salary can be any length.
-    //
-    // It used to be one unwrapped <text>. That was safe only while the pay
-    // string came from money(), which is never longer than "£34,500–£38,000/year"
-    // — and the moment a person typed "£60,000 + quarterly bonus" the line ran
-    // off the right edge of the card and the pay was cut mid-word. SVG does not
-    // wrap and it does not complain; it just draws past the canvas.
-    const metaText = [where, pay].filter(Boolean).join('   ·   ')
-    const metaPerLine = Math.max(12, Math.floor((width - pad * 2) / (metaSize * 0.56)))
-    const metaLines = wrap(metaText, metaPerLine)
-    for (const line of [...metaLines].reverse()) {
-      chips.push(`<text x="${pad}" y="${y}" font-family="Archivo, Helvetica, Arial, sans-serif" font-size="${metaSize}" font-weight="600" fill="#FFFFFF">${esc(line)}</text>`)
+  // THE PAY IS ITS OWN LINE, LARGE AND YELLOW, AND THE PLACE SITS UNDER IT.
+  //
+  // Paul's call, 14 Nov 2026: on LinkedIn most people see the image and never
+  // open the post, so the salary has to be readable at a glance. It used to
+  // share one small white line with the location ("Chelsea · £93,000 OTE").
+  //
+  // BOTH LINES WRAP, because --salary can be any length. The meta line used to
+  // be one unwrapped <text>, and the moment a person typed "£60,000 + quarterly
+  // bonus" it ran off the right edge and the pay was cut mid-word. SVG does not
+  // wrap and it does not complain; it just draws past the canvas.
+  const perLine = size => Math.max(12, Math.floor((width - pad * 2) / (size * 0.56)))
+  if (where) {
+    for (const line of [...wrap(where, perLine(metaSize))].reverse()) {
+      chips.push(`<text x="${pad}" y="${y}" font-family="Archivo, Helvetica, Arial, sans-serif" font-size="${metaSize}" font-weight="600" fill="rgba(255,255,255,0.9)">${esc(line)}</text>`)
       y -= Math.round(metaSize * 1.35)
     }
-    y -= Math.round(metaSize * 0.55)
+    y -= Math.round(metaSize * 0.2)
   }
+  if (pay) {
+    for (const line of [...wrap(pay, perLine(paySize))].reverse()) {
+      chips.push(`<text x="${pad}" y="${y}" font-family="Archivo, Helvetica, Arial, sans-serif" font-size="${paySize}" font-weight="800" fill="#FFE500">${esc(line)}</text>`)
+      y -= Math.round(paySize * 1.2)
+    }
+  }
+  if (pay || where) y -= Math.round(metaSize * 0.55)
   for (const line of [...strapLines].reverse()) {
     chips.push(`<text x="${pad}" y="${y}" font-family="Archivo, Helvetica, Arial, sans-serif" font-size="${strapSize}" font-weight="500" fill="#FFE500" letter-spacing="1.5">${esc(line.toUpperCase())}</text>`)
     y -= Math.round(strapSize * 1.5)
