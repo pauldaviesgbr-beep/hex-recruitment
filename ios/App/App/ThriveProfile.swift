@@ -196,9 +196,23 @@ struct ProfileScreen: View {
                         VStack(spacing: 0) {
                             plainRow("Your details") { store.openWeb("/profile", "Profile") }
                             Divider().background(TC.hairline).padding(.leading, 16)
+                            // The candidate's notifications inbox had no route in the
+                            // app (design_handoff_phone_navigation, 1d).
+                            plainRow("Notifications") { store.openWeb("/notifications", "Profile") }
+                            Divider().background(TC.hairline).padding(.leading, 16)
                             plainRow("Company reviews") { store.openWeb("/reviews", "Profile") }
                             Divider().background(TC.hairline).padding(.leading, 16)
                             plainRow("Settings") { showSettings = true }
+                        }
+                        .background(Color.white).cornerRadius(16)
+                        .overlay(RoundedRectangle(cornerRadius: 16).stroke(TC.border, lineWidth: 1))
+                        // Help. Ask Thrive is the website's chat, opened by a link
+                        // (components/ChatBot reads ?ask=1), because a native screen
+                        // cannot press anything on a page it has not loaded.
+                        VStack(spacing: 0) {
+                            plainRow("Ask Thrive") { store.openWeb("/support?ask=1", "Profile") }
+                            Divider().background(TC.hairline).padding(.leading, 16)
+                            plainRow("Share feedback") { store.openWeb("/feedback", "Profile") }
                         }
                         .background(Color.white).cornerRadius(16)
                         .overlay(RoundedRectangle(cornerRadius: 16).stroke(TC.border, lineWidth: 1))

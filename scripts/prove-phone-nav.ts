@@ -208,6 +208,55 @@ check('both hamburgers are gone',
   () => [/styles\.mobileToggle/.test(noComments(employerSidebar)), /styles\.mobileToggle/.test(noComments(candidateSidebar))],
   [false, false])
 
+// ── THE APP'S NATIVE TABS (build 31 on) AGREE WITH THE WEBSITE'S BAR ───────
+// The same five slots live in Swift and in TypeScript, and nothing compiles
+// one against the other. Parsed from ThriveRootViewController.swift.
+
+const rootSwift = read('ios/App/App/ThriveRootViewController.swift')
+const employerTabsSwift = (() => {
+  const start = rootSwift.indexOf('private static let employerTabs: [Tab] = [')
+  const end = rootSwift.indexOf('\n    ]', start)
+  if (start < 0 || end < 0) return []
+  const block = rootSwift.slice(start, end)
+  return Array.from(block.matchAll(/Tab\(title: "([^"]+)", symbol: "[^"]+", path: "([^"]+)",\s*matches: \[([^\]]*)\]/g))
+    .map(m => ({ title: m[1], path: m[2], matches: Array.from(m[3].matchAll(/"([^"]+)"/g)).map(x => x[1]) }))
+})()
+
+check('ZERO-GUARD: the Swift employer tabs parse',
+  () => employerTabsSwift.length, 5)
+
+check('the app\'s employer tabs are the website\'s bar: same titles, same pages, same order',
+  () => JSON.stringify(employerTabsSwift.map(t => [t.title, t.path])) === JSON.stringify(EMPLOYER_BAR.map(s => [s.label, s.href])),
+  true)
+
+check('and the app\'s More tab lights on exactly the pages the website\'s More slot does',
+  () => {
+    const swiftMore = employerTabsSwift.find(t => t.title === 'More')?.matches ?? []
+    const webMore = EMPLOYER_BAR.find(s => s.label === 'More')!
+    const want = Array.from(new Set([webMore.href, ...webMore.match])).sort()
+    // The app matches by prefix (currentPath.hasPrefix), so '/settings' there
+    // covers '/settings/company' here.
+    const covered = (h: string) => swiftMore.some(m => h === m || h.startsWith(m + '/'))
+    return { missingInApp: want.filter(h => !covered(h)), extraInApp: swiftMore.filter(m => !want.includes(m)) }
+  },
+  { missingInApp: [], extraInApp: [] })
+
+check('the next build\'s badge reads the endpoint that exists',
+  () => /ThriveAPI\.get\("\/me\/unread"/.test(rootSwift) && existsSync(join(ROOT, 'app/api/app/me/unread/route.ts')),
+  true)
+
+check('the native Profile rows open pages that exist (Notifications, Ask Thrive, Share feedback)',
+  () => {
+    const prof = read('ios/App/App/ThriveProfile.swift')
+    const want = [['Notifications', '/notifications'], ['Ask Thrive', '/support?ask=1'], ['Share feedback', '/feedback']]
+    return want.filter(([label, path]) => !prof.includes(`plainRow("${label}") { store.openWeb("${path}", "Profile") }`) || !routeExists(path))
+      .map(([l]) => l)
+  },
+  [])
+
+check('and ?ask=1 really opens the chat',
+  () => /get\('ask'\) === '1'/.test(noComments(read('components/ChatBot.tsx'))), true)
+
 // ── INSIDE THE APP, NONE OF THE WEBSITE'S NAVIGATION SHOWS ─────────────────
 
 const globals = noComments(read('app/globals.css'))

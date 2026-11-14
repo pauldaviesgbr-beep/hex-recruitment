@@ -40,14 +40,33 @@ class ThriveRootViewController: UIViewController, UITabBarDelegate {
         Tab(title: "Profile", symbol: "person", path: "/dashboard", matches: ["/dashboard", "/profile", "/settings"], native: 5),
     ]
 
-    // The four employer slots settled on 12 Sept 2026: Home · Job ads ·
-    // Applicants · More. More opens the website's existing side menu.
+    // Five employer slots (design_handoff_phone_navigation, 14 Nov 2026):
+    // Home · Job ads · Applicants · Calendar · More — the same five the website
+    // shows on a phone (lib/phoneNav.ts, EMPLOYER_BAR).
+    //
+    // MORE IS A PAGE NOW, /employer/more. Up to build 30 it had no path and
+    // pressed the website's hamburger instead; the website keeps that control
+    // as a bridge so those builds land on the same page. Its matches are the
+    // destinations the More page lists, so they keep More lit — they MUST
+    // agree with EMPLOYER_BAR's More slot in lib/phoneNav.ts, and
+    // scripts/prove-phone-nav.ts asserts that they do.
     private static let employerTabs: [Tab] = [
         Tab(title: "Home", symbol: "house", path: "/employer/dashboard", matches: ["/employer/dashboard"], native: nil),
         Tab(title: "Job ads", symbol: "briefcase", path: "/my-jobs", matches: ["/my-jobs", "/post-job"], native: nil),
-        Tab(title: "Applicants", symbol: "person.2", path: "/applied", matches: ["/applied", "/pipeline"], native: nil),
-        Tab(title: "More", symbol: "line.3.horizontal", path: nil, matches: [], native: nil),
+        Tab(title: "Applicants", symbol: "person.2", path: "/applied", matches: ["/applied"], native: nil),
+        Tab(title: "Calendar", symbol: "calendar", path: "/calendar", matches: ["/calendar"], native: nil),
+        Tab(title: "More", symbol: "line.3.horizontal", path: "/employer/more",
+            matches: ["/employer/more", "/messages", "/notifications", "/pipeline", "/offers", "/interviews",
+                      "/candidates", "/talent-pool", "/temp-work", "/dashboard/analytics", "/reviews",
+                      "/settings", "/feedback", "/admin", "/company", "/employer/analytics", "/jobs"],
+            native: nil),
     ]
+
+    /// The More tab's badge: unread messages plus unread notifications, from
+    /// /api/app/me/unread (the app has no website header to carry them).
+    private struct UnreadCounts: Decodable { let messages: Int; let notifications: Int }
+    private var moreUnread = 0
+    private var moreUnreadAskedAt: Date?
 
     // Pages where a tab bar makes no sense: signing in, signing up, onboarding.
     private static let noBarPrefixes = ["/login", "/register", "/signup", "/auth", "/welcome", "/reset-password"]
@@ -502,6 +521,8 @@ class ThriveRootViewController: UIViewController, UITabBarDelegate {
             session = nil
             role = nil
             roleUserId = nil
+            moreUnread = 0
+            moreUnreadAskedAt = nil
             store.signedIn = false
             tabs = ThriveRootViewController.candidateTabs
             // G1: signed out, the app is native Jobs, not a sign-in wall. A web
@@ -622,10 +643,35 @@ class ThriveRootViewController: UIViewController, UITabBarDelegate {
             match = tabs.firstIndex { tab in tab.matches.contains { currentPath.hasPrefix($0) } }
         }
         tabBar.selectedItem = match.flatMap { tabBar.items?[$0] }
+        // The items can have just been rebuilt above, which drops a badge.
+        applyMoreBadge()
+        refreshMoreBadge()
         // The navy bar over a web tab names it.
         webTitle.text = (nativeIndex == nil && webOpenedFrom == nil) ? match.map { tabs[$0].title } : nil
         // The bar hides on job detail so Apply is never covered (design A2).
         setBarVisible(!(nativeIndex != nil && store.hideTabBar))
+    }
+
+    /// Writes the stored count onto the More tab, if this tab set has one.
+    private func applyMoreBadge() {
+        guard let items = tabBar.items else { return }
+        for (i, tab) in tabs.enumerated() where i < items.count && tab.path == "/employer/more" {
+            items[i].badgeValue = moreUnread > 0 ? (moreUnread > 99 ? "99+" : String(moreUnread)) : nil
+        }
+    }
+
+    /// Asks the website for the two counts behind the More badge. Runs from
+    /// updateBar, which fires on every page change, so it is held to once every
+    /// 15 seconds. Employers only: the candidate tabs carry no More.
+    private func refreshMoreBadge() {
+        guard role == .employer, let s = session, !s.isExpired else { return }
+        if let at = moreUnreadAskedAt, Date().timeIntervalSince(at) < 15 { return }
+        moreUnreadAskedAt = Date()
+        ThriveAPI.get("/me/unread", token: s.accessToken, as: UnreadCounts.self) { [weak self] result in
+            guard let self = self, case .success(let counts) = result else { return }
+            self.moreUnread = counts.messages + counts.notifications
+            self.applyMoreBadge()
+        }
     }
 
     private func setBarVisible(_ visible: Bool) {
@@ -640,7 +686,8 @@ class ThriveRootViewController: UIViewController, UITabBarDelegate {
         guard item.tag >= 0, item.tag < tabs.count else { return }
         let tab = tabs[item.tag]
         if tab.path == nil {
-            // "More" is not a page: open the menu and leave the highlight where it was.
+            // No tab is pathless since the More page (14 Nov 2026); kept so a
+            // future action tab has somewhere to go. It used to open the menu.
             bridge.openSideMenu()
             updateBar()
             return
