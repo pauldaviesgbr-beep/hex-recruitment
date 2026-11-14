@@ -84,9 +84,16 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-.row:active,
-.row:hover {
+.row:active {
   background: #EEF0F4;
+}
+
+/* Hover only where there is a pointer: on a phone :hover sticks after a tap,
+   so the row you came back from stays tinted. */
+@media (hover: hover) {
+  .row:hover {
+    background: #EEF0F4;
+  }
 }
 
 .row:focus-visible {
