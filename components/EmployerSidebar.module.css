@@ -315,9 +315,8 @@ button.item {
     transform: translateX(0);
   }
 
-  /* .mobileToggle is NOT shown here any more: the bottom bar replaced it.
-     It stays display:none at every width as the iOS app's bridge to the
-     More page (EmployerSidebar.tsx). */
+  /* No hamburger at phone width any more: the bottom bar replaced it
+     (components/PhoneNav). .mobileToggle is no longer rendered. */
 
   .overlay {
     display: block;

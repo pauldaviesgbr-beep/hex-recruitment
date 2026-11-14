@@ -24,6 +24,7 @@ import {
 const ROOT = join(__dirname, '..')
 const read = (rel: string) => readFileSync(join(ROOT, rel), 'utf8')
 const noComments = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, '')
+const barCssRaw = () => noComments(read('components/PhoneNav.module.css'))
 
 let failed = 0
 let ran = 0
@@ -171,23 +172,41 @@ const swift = read('ios/App/App/ThriveBridgeViewController.swift')
 check('the app still presses "Open navigation"',
   () => swift.includes('[aria-label=\\"Open navigation\\"]'), true)
 
-check('and the employer page still carries that control, which now opens More',
-  // CODE, NOT COMMENTS: the comment above the button quotes this very
-  // attribute, so a check that read comments would pass on a renamed button.
-  () => /aria-label="Open navigation"/.test(noComments(employerSidebar)) &&
-        /onClick=\{\(\) => router\.push\(EMPLOYER_MORE_PATH\)\}/.test(employerSidebar) &&
+// CODE, NOT COMMENTS, throughout: the comment above the button quotes this
+// very attribute, so a check that read comments would pass on a renamed button
+// (watched happening, 14 Nov 2026).
+const phoneNavCode = noComments(read('components/PhoneNav.tsx'))
+
+check('the bar component carries that control, and it opens the More page',
+  () => /aria-label="Open navigation"/.test(phoneNavCode) &&
+        /onClick=\{\(\) => router\.push\(EMPLOYER_MORE_PATH\)\}/.test(phoneNavCode) &&
         EMPLOYER_MORE_PATH === '/employer/more' && routeExists(EMPLOYER_MORE_PATH),
   true)
 
-check('on every page: it is no longer gated on the page being a list',
-  () => /hideHamburger/.test(employerSidebar), false)
+check('on EVERY page: rendered outside the bar\'s own show/hide, so pushed pages have it too',
+  // The CONDITION in front of the bridge, read directly. An earlier version
+  // compared positions in the file and passed with the bridge gated on `show`
+  // (watched, 14 Nov 2026): a check of where code sits is not a check of when
+  // it renders.
+  () => {
+    const btn = phoneNavCode.lastIndexOf('<button', phoneNavCode.indexOf('aria-label="Open navigation"'))
+    const gate = phoneNavCode.slice(phoneNavCode.lastIndexOf('{', btn), btn)
+    return { gate: gate.replace(/\s+/g, ' ').trim(), mentionsShow: /\bshow\b/.test(gate) }
+  },
+  { gate: "{role === 'employer' && (", mentionsShow: false })
 
-check('and it is never painted: no rule turns it back on at phone width',
-  () => /\.mobileToggle\s*\{[^}]*display:\s*flex/.test(noComments(read('components/EmployerSidebar.module.css'))),
-  false)
+check('exactly ONE such control in the product, so the app cannot press the wrong one',
+  () => ['components/PhoneNav.tsx', 'components/EmployerSidebar.tsx', 'components/CandidateSidebar.tsx', 'components/Header.tsx']
+    .map(f => (noComments(read(f)).match(/aria-label="Open navigation"/g) || []).length).reduce((a, b) => a + b, 0),
+  1)
 
-check('the candidate hamburger is gone',
-  () => /styles\.mobileToggle/.test(candidateSidebar), false)
+check('and it is never painted',
+  () => /\.bridge\s*\{\s*display:\s*none;?\s*\}/.test(barCssRaw()) && !/\.bridge[^{]*\{[^}]*display:\s*(block|flex|inline)/.test(barCssRaw()),
+  true)
+
+check('both hamburgers are gone',
+  () => [/styles\.mobileToggle/.test(noComments(employerSidebar)), /styles\.mobileToggle/.test(noComments(candidateSidebar))],
+  [false, false])
 
 // ── INSIDE THE APP, NONE OF THE WEBSITE'S NAVIGATION SHOWS ─────────────────
 

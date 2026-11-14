@@ -122,3 +122,10 @@
   white-space: nowrap;
   border: 0;
 }
+
+/* The bridge for the iOS app's More tab (PhoneNav.tsx). Never painted at any
+   width: the app presses it from script, which works on a display:none
+   element, and nobody else should ever see or reach it. */
+.bridge {
+  display: none;
+}

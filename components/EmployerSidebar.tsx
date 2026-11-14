@@ -7,7 +7,6 @@ import { Bot } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { DEV_MODE, getMockUser } from '@/lib/mockAuth'
 import styles from './EmployerSidebar.module.css'
-import { EMPLOYER_MORE_PATH } from '@/lib/phoneNav'
 
 const STORAGE_KEY = 'employer-sidebar-collapsed'
 
@@ -285,36 +284,12 @@ export default function EmployerSidebar() {
 
   return (
     <>
-      {/* THE HAMBURGER IS GONE FROM THE SCREEN AND KEPT AS A BRIDGE.
-          On a phone the bottom bar's More slot (components/PhoneNav) replaces
-          this drawer (design_handoff_phone_navigation, 14 Nov 2026), so the
-          button is never painted — EmployerSidebar.module.css hides it at every
-          width — and nothing opens the drawer any more.
-
-          IT STAYS IN THE DOM BECAUSE THE iOS APP PRESSES IT. Build 30's "More"
-          tab runs document.querySelector('[aria-label="Open navigation"]').click()
-          (ThriveBridgeViewController.openSideMenu), and that binary is in
-          people's hands and cannot be changed from here. Pressing it now goes to
-          the More page instead of opening the drawer, so the shipped app gets the
-          new page with no new build. HTMLElement.click() fires on a display:none
-          element, which is why hiding it does not break the app.
-
-          RENDERED ON EVERY PAGE, detail pages included. It used to be left out of
-          detail pages, where the app's More tab therefore did nothing at all. */}
-      <button
-        className={styles.mobileToggle}
-        data-sidebar-toggle=""
-        onClick={() => router.push(EMPLOYER_MORE_PATH)}
-        aria-label="Open navigation"
-        tabIndex={-1}
-      >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <line x1="3" y1="12" x2="21" y2="12" />
-          <line x1="3" y1="6" x2="21" y2="6" />
-          <line x1="3" y1="18" x2="21" y2="18" />
-        </svg>
-      </button>
-
+      {/* NO HAMBURGER (design_handoff_phone_navigation, 14 Nov 2026). On a phone
+          the bottom bar's More slot replaces this drawer, and nothing opens it.
+          The control the iOS app presses for its More tab now lives in
+          components/PhoneNav, which is mounted on every page — this component
+          is not (the stepped post-job form renders no header), so the app's
+          More tab did nothing there. */}
       <aside ref={sidebarRef} data-employer-rail="" className={`${styles.sidebar} ${collapsed ? styles.collapsed : styles.expanded} ${mobileOpen ? styles.mobileOpen : ''}`}>
         {/* Spacer: fills the area behind the navbar */}
         <div className={styles.navSpacer} />

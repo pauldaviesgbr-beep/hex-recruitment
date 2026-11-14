@@ -28,16 +28,17 @@
 
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { DEV_MODE, getMockUser } from '@/lib/mockAuth'
 import { useMessages } from '@/lib/MessagesContext'
 import { Ico } from './icons'
-import { activeSlot, barFor, barHiddenOn, type NavRole } from '@/lib/phoneNav'
+import { activeSlot, barFor, barHiddenOn, EMPLOYER_MORE_PATH, type NavRole } from '@/lib/phoneNav'
 import styles from './PhoneNav.module.css'
 
 export default function PhoneNav() {
   const pathname = usePathname() || '/'
+  const router = useRouter()
   const barRef = useRef<HTMLElement>(null)
   const [role, setRole] = useState<NavRole | null>(null)
   const { totalUnreadCount } = useMessages()
@@ -75,11 +76,36 @@ export default function PhoneNav() {
     }
   }, [show])
 
-  if (!show || !role) return null
+  if (!role) return null
 
   const lit = activeSlot(role, pathname)
 
   return (
+    <>
+      {/* THE BRIDGE FOR THE iOS APP ALREADY IN PEOPLE'S HANDS. Build 30's "More"
+          tab does not load a page: it runs
+            document.querySelector('[aria-label="Open navigation"]').click()
+          (ThriveBridgeViewController.openSideMenu), which used to open the
+          hamburger drawer. That binary cannot be changed from here, so this
+          control answers to the same name and goes to the More page instead —
+          the shipped app gets More, with Log out, Notifications and Settings,
+          without a new build.
+          HERE, NOT IN THE SIDEBAR, because this component is mounted on EVERY
+          page and the sidebar is not: the stepped post-job form renders no
+          header, and detail pages left the hamburger out, so the app's More tab
+          used to do nothing on either. Never painted (display:none at every
+          width); HTMLElement.click() still fires on it. Employers only. */}
+      {role === 'employer' && (
+        <button
+          type="button"
+          className={styles.bridge}
+          data-sidebar-toggle=""
+          aria-label="Open navigation"
+          tabIndex={-1}
+          onClick={() => router.push(EMPLOYER_MORE_PATH)}
+        />
+      )}
+      {show && (
     <nav ref={barRef} className={styles.bar} aria-label="Main" data-hide-in-app="" data-phone-nav={role}>
       <ul className={styles.list}>
         {barFor(role).map(slot => {
@@ -107,5 +133,7 @@ export default function PhoneNav() {
         })}
       </ul>
     </nav>
+      )}
+    </>
   )
 }
