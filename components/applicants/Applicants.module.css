@@ -44,8 +44,20 @@
   margin: 0 0 16px;
 }
 
-/* ── Toast: navy, at the top of the list, yellow Undo 44 tall ── */
+/* ── Toast: navy, yellow Undo 44 tall ──
+   FIXED AT THE FOOT OF THE SCREEN, ABOVE THE PHONE BAR AND THE COOKIE BANNER,
+   OUTSIDE BOTH PANES. It first sat at the top of the list pane — and on a
+   phone the list pane is display:none while an applicant is open, so every
+   move made from the applicant page had an Undo nobody could see or reach
+   (found driving the preview, 15 Nov 2026). The top of a long list scrolls
+   away too. The same sum the page's bottom padding uses (globals.css). */
 .toast {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(var(--consent-h, 0px) + var(--nav-bottom-h, 0px) + max(16px, env(safe-area-inset-bottom, 0px)));
+  width: min(520px, calc(100% - 32px));
+  z-index: var(--z-dropdown, 110);
   display: flex;
   align-items: center;
   gap: 12px;
@@ -53,7 +65,7 @@
   color: #ffffff;
   border-radius: 12px;
   padding: 6px 8px 6px 16px;
-  margin: 0 0 14px;
+  box-shadow: 0 8px 24px rgba(10, 22, 40, 0.25);
   font-size: 15px;
   line-height: 20px;
   min-height: 44px;
@@ -84,19 +96,27 @@
 }
 
 /* ── Controls: job filter pill, then the stage chips (they WRAP) ── */
+/* minmax(0, 1fr), NOT the implicit auto column. A native select is as wide as
+   its longest option, and a grid column grows to its items' minimum width — so
+   one 70-character advert title made the select 656px on a 358px phone, the
+   chips row went with it, and Interview and Offer sat past the screen edge,
+   clipped and unreachable (measured on the preview, 15 Nov 2026). */
 .controls {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 12px;
   margin-bottom: 16px;
 }
 
-.jobFilter { display: block; }
+.jobFilter { display: block; min-width: 0; }
 
 .jobFilter select {
   appearance: none;
   -webkit-appearance: none;
   height: 44px;
+  width: auto;
   max-width: 100%;
+  text-overflow: ellipsis;
   padding: 0 40px 0 16px;
   border: 1px solid #DFE3EA;
   border-radius: 22px;

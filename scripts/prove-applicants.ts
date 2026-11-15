@@ -77,6 +77,26 @@ check('stage chips: 40 tall, 8 apart, wrapping, never a sideways-scrolling row',
     return { wrap: /flex-wrap:\s*wrap/.test(chips), gap8: /gap:\s*8px/.test(chips), h40: /height:\s*40px/.test(chip), noOverflowX: !/overflow-x/.test(css) }
   }, { wrap: true, gap8: true, h40: true, noOverflowX: true })
 
+// FOUND DRIVING THE PREVIEW, 15 Nov 2026. (1) The toast sat inside the list
+// pane, which a phone hides while an applicant is open: every Undo on the
+// applicant page was invisible and unreachable. (2) The job select was as wide
+// as its longest option (656px on a 358px phone) and pushed Interview and
+// Offer past the screen edge.
+check('the toast lives OUTSIDE both panes and is fixed above the phone bar and the cookie banner',
+  () => {
+    const v = read('components/applicants/ApplicantsView.tsx')
+    const toastRule = (css.match(/\.toast\s*\{[^}]*\}/) || [''])[0]
+    return {
+      afterBothPanes: v.indexOf('className={styles.toast}') > v.indexOf('aria-label="Applicant"'),
+      once: (v.match(/className=\{styles\.toast\}/g) || []).length === 1,
+      fixed: /position:\s*fixed/.test(toastRule),
+      clearsBar: /bottom:\s*calc\([^;]*--consent-h[^;]*--nav-bottom-h/.test(toastRule),
+    }
+  }, { afterBothPanes: true, once: true, fixed: true, clearsBar: true })
+
+check('the controls column can shrink below the select\'s longest option (minmax(0, 1fr))',
+  () => /\.controls\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)/.test(css), true)
+
 check('the page uses every class it names (a missing CSS-module class renders unstyled, silently)',
   () => {
     const used = new Set<string>()

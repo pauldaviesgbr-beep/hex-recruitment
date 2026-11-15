@@ -236,29 +236,6 @@ export default function ApplicantsView() {
         <section className={styles.listPane} aria-label="Applicants">
           <h1 className={styles.title}>Applicants</h1>
 
-          {toast && (
-            <div className={styles.toast} role="status">
-              <span className={styles.toastText}>{toast.text}</span>
-              {toast.undo && (
-                <button
-                  type="button"
-                  className={styles.toastUndo}
-                  onClick={async () => {
-                    // Undo instead of finishing: the finish never runs.
-                    const t = toastRef.current
-                    if (toastTimer.current) clearTimeout(toastTimer.current)
-                    toastTimer.current = null
-                    toastRef.current = null
-                    setToast(null)
-                    await t?.undo?.()
-                  }}
-                >
-                  Undo
-                </button>
-              )}
-            </div>
-          )}
-
           <div className={styles.controls}>
             <label className={styles.jobFilter}>
               <span className={styles.srOnly}>Job ad</span>
@@ -349,6 +326,32 @@ export default function ApplicantsView() {
           )}
         </section>
       </div>
+
+      {/* OUTSIDE BOTH PANES, fixed at the foot of the screen: on a phone the
+          list pane is hidden while an applicant is open, and a toast inside it
+          was an Undo nobody could see (Applicants.module.css, .toast). */}
+      {toast && (
+        <div className={styles.toast} role="status">
+          <span className={styles.toastText}>{toast.text}</span>
+          {toast.undo && (
+            <button
+              type="button"
+              className={styles.toastUndo}
+              onClick={async () => {
+                // Undo instead of finishing: the finish never runs.
+                const t = toastRef.current
+                if (toastTimer.current) clearTimeout(toastTimer.current)
+                toastTimer.current = null
+                toastRef.current = null
+                setToast(null)
+                await t?.undo?.()
+              }}
+            >
+              Undo
+            </button>
+          )}
+        </div>
+      )}
 
       {scheduleRow && data.ownerId && (
         <ScheduleInterviewModal
