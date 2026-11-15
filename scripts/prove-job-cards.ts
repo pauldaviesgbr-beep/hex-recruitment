@@ -85,8 +85,15 @@ check('the board lays the rows in the 1b list, not the old photo grid', () => {
 // Exact list of the files that draw a job for a candidate and are DONE. Every
 // surface finished on this branch is added here; the rest are named in
 // PENDING so the gap is visible rather than forgotten.
-const IMAGE = /<img\b|<Image\b|SignedImage|CompanyLogo|backgroundImage|background-image|resolveJobBanner|companyLogo|companyBanner|bannerUrl/
-const DONE = ['components/JobRow.tsx', 'components/JobCard.tsx']
+// What RENDERS an image — an element, an image component, a background, or the
+// banner resolver — not a field name: the apply flow passes companyLogo as the
+// new conversation's avatar, which is messaging data, not a picture of the job.
+const IMAGE = /<img\b|<Image\b|<SignedImage|<CompanyLogo|<BrandedJobFallback|backgroundImage|background-image|resolveJobBanner\(/
+const DONE = [
+  'components/JobRow.tsx', 'components/JobCard.tsx',
+  // step 2: the advert views
+  'app/job/[id]/page.tsx', 'app/jobs/page.tsx', 'components/JobDetailModal.tsx', 'components/ApplyNowModal.tsx',
+]
 check('no image, logo or banner in any finished job surface', () => DONE.filter(f => IMAGE.test(noComments(read(f)))), [])
 check('ZERO-GUARD: the image pattern still finds an image where one is known to be', () => IMAGE.test(noComments(read('components/FeedCard.tsx'))), true)
 

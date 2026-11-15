@@ -16,15 +16,12 @@ import { useSavedJobs } from '@/lib/useSavedJobs'
 import { getTagCategory } from '@/lib/jobTags'
 import { Boost } from '@/lib/boostTypes'
 import CompanyReviewsSummary from '@/components/CompanyReviewsSummary'
-import CompanyLogo from '@/components/CompanyLogo'
 import JobCard from '@/components/JobCard'
 import rowStyles from '@/components/JobRow.module.css'
+import { formatJobAddress } from '@/lib/jobCard'
 import { WORK_TYPES } from '@/lib/workTypes'
 import { annualisedOrNull } from '@/lib/salaryInput'
-import { resolveJobBanner } from '@/lib/jobBanner'
-import BrandedJobFallback from '@/components/BrandedJobFallback'
 import JobPostingSchema from '@/components/JobPostingSchema'
-import { selectQuote } from '@/lib/jobQuote'
 import { useAnalyticsTracking } from '@/hooks/useAnalyticsTracking'
 import styles from './page.module.css'
 
@@ -1300,25 +1297,9 @@ function JobsPageContent() {
             </div>
 
             <div className={styles.modalBody}>
-              {(() => {
-                // Banner cascade so the detail header is never bare (incl. jobs
-                // saved without a banner, like Goldenkeys "Head Chef").
-                const detailBanner = resolveJobBanner({ id: selectedJob.id, companyBanner: selectedJob.companyBanner, company: selectedJob.company, category: selectedJob.category })
-                return (
-                  <div className={styles.detailBanner}>
-                    {detailBanner
-                      ? <img src={detailBanner} alt={selectedJob.company} className={styles.detailBannerImg} />
-                      : <BrandedJobFallback
-                          company={selectedJob.company}
-                          brandColour={selectedJob.brandColour}
-                          quote={selectQuote(selectedJob)}
-                          tags={selectedJob.tags}
-                          variant="header"
-                        />}
-                  </div>
-                )
-              })()}
-
+              {/* NO BANNER AND NO BRANDED PANEL (design 25, 15 Nov 2026; the
+                  text-led handoff replaces both the photo and the no-photo
+                  panel). The advert opens on its title. */}
               <div className={styles.detailHeader}>
                 <h1 className={styles.detailTitle}>{selectedJob.title}</h1>
                 <p className={styles.detailCompany}>{selectedJob.company}</p>
@@ -1328,9 +1309,11 @@ function JobsPageContent() {
                   </a>
                 )}
                 <a href={getGoogleMapsUrl(selectedJob)} target="_blank" rel="noopener noreferrer" className={styles.detailLocation}>
-                  <Ico name="map-pin" size={16} /> {selectedJob.fullLocation?.addressLine1
-                    ? `${selectedJob.fullLocation.addressLine1}, ${selectedJob.fullLocation.city} ${selectedJob.fullLocation.postcode}`
-                    : [selectedJob.location, selectedJob.area].filter(Boolean).join(', ')}
+                  {/* formatJobAddress, not an inline template: the template
+                      printed "Cardiff," — a comma pointing at nothing — on
+                      every advert whose address is only a town (seen 15 Nov
+                      2026; the job page was fixed the same way in August). */}
+                  <Ico name="map-pin" size={16} /> {formatJobAddress(selectedJob)}
                 </a>
                 <p className={styles.detailSalary}>{formatSalaryFull(selectedJob)}</p>
                 {selectedJob.expiresDate && (() => {

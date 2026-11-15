@@ -4,12 +4,8 @@ import { useState, useEffect, useRef } from 'react'
 import { Job } from '@/lib/mockJobs'
 import { supabase } from '@/lib/supabase'
 import { useSavedJobs } from '@/lib/useSavedJobs'
-import CompanyLogo from '@/components/CompanyLogo'
-import { resolveJobBanner } from '@/lib/jobBanner'
-import BrandedJobFallback from '@/components/BrandedJobFallback'
 import JobPostingSchema from '@/components/JobPostingSchema'
 import { getTagCategory, WORK_STYLE_TAGS } from '@/lib/jobTags'
-import { selectQuote } from '@/lib/jobQuote'
 import CompanyReviewsSummary from '@/components/CompanyReviewsSummary'
 import { useAnalyticsTracking, ViewSource } from '@/hooks/useAnalyticsTracking'
 import ApplyNowModal from '@/components/ApplyNowModal'
@@ -252,30 +248,10 @@ export default function JobDetailModal({
         <div className={styles.content} ref={contentRef}>
           {/* Header with Banner */}
           <div className={styles.header}>
-            {(() => {
-              // Banner cascade: job/employer banner → sector-matched stock → navy
-              // fallback, so the detail header is never bare (incl. existing jobs
-              // like the Goldenkeys "Head Chef" that were saved without a banner).
-              const detailBanner = resolveJobBanner({ id: job.id, companyBanner: job.companyBanner, company: job.company, category: job.category })
-              return (
-                <div className={styles.bannerWrapper}>
-                  {detailBanner
-                    ? <img src={detailBanner} alt="" className={styles.banner} />
-                    : <BrandedJobFallback
-                        company={job.company}
-                        brandColour={job.brandColour}
-                        quote={selectQuote(job)}
-                        tags={job.tags}
-                        variant="header"
-                      />}
-                  <div className={styles.bannerOverlay} />
-                </div>
-              )
-            })()}
+            {/* NO BANNER, NO BRANDED PANEL, NO LOGO (design 25, 15 Nov 2026;
+                design_handoff_job_cards_text_led). The header opens on the
+                title, on its own dark band. */}
             <div className={styles.headerContent}>
-              <div className={styles.companyLogo}>
-                <CompanyLogo src={job.companyLogo} alt={job.company} />
-              </div>
               <div className={styles.headerInfo}>
                 <h1 className={styles.jobTitle}>{job.title}</h1>
                 <p className={styles.companyName}>

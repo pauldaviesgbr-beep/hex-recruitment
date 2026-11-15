@@ -4,7 +4,6 @@ import { useState, useEffect, useMemo } from 'react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Header from '@/components/Header'
-import CompanyLogo from '@/components/CompanyLogo'
 import CompanyReviewsSummary from '@/components/CompanyReviewsSummary'
 import ApplyNowModal from '@/components/ApplyNowModal'
 import { Job } from '@/lib/mockJobs'
@@ -302,16 +301,11 @@ export default function JobDetailPage() {
 
         {/* Job Header */}
         <div className={styles.jobHeader}>
-          {job.companyBanner && (
-            <div className={styles.jobBanner}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={job.companyBanner} alt={job.company} />
-            </div>
-          )}
+          {/* NO BANNER AND NO LOGO (design 25, 15 Nov 2026: no images on job
+              cards OR job pages; design_handoff_job_cards_text_led). The
+              recruiter's images stay on their own company page and in the
+              share image, which are advertising, not the advert. */}
           <div className={styles.headerContent}>
-            <div className={styles.companyLogo}>
-              <CompanyLogo src={job.companyLogo} alt={job.company} />
-            </div>
             <div className={styles.headerInfo}>
               <h1 className={styles.jobTitle}>{job.title}</h1>
               <p className={styles.companyName}>{job.company}</p>
