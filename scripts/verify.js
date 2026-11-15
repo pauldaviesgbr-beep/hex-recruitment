@@ -364,6 +364,9 @@ const ALL = [
   // Watched failing on purpose 14 Nov 2026: a row removed, a row pointed at a
   // route that does not exist, the bridge button renamed, the employer rail
   // left visible in the app. Four named failures; green on restore.
+  // 15 Nov 2026: the side menus are asserted as EXACT lists (label and
+  // destination, in order), not a floor; watched red on a renamed item, a
+  // moved link, and an item written in a shape the parser cannot read.
   { name: 'phonenav:prove', cmd: npm, args: ['run', 'phonenav:prove'] },
 
   // THE APPLICANTS LIST (15 Nov 2026, design 25 branch 2). Imports the stage
@@ -373,8 +376,9 @@ const ALL = [
   // Also: no status is written inside an Undo window (a status change fires
   // the trigger that cancels interviews and withdraws offers, which no Undo
   // can put back). Filesystem only, fast tier. Watched failing on purpose
-  // 15 Nov 2026, fourteen mutations one at a time — each red on its own check,
-  // every file restored byte-identical, 34/34 green after.
+  // 15 Nov 2026, seventeen mutations one at a time — each red on its own check,
+  // every file restored byte-identical, 36/36 green after. Includes the server-
+  // queued send (waitUntil) that stops a closed tab delaying the update.
   { name: 'applicants:prove', cmd: npm, args: ['run', 'applicants:prove'] },
 
   // THE BUILD FETCHES NO FONTS FROM GOOGLE (15 Nov 2026). Twice in one hour

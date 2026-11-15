@@ -18,11 +18,12 @@
  *   Shortlist / Mark hired   shown at once; written (as the employer) and the
  *                            candidate's bell notice sent when Undo runs out.
  *   Not a fit                the server records the update as OWED (that
- *                            column fires nothing); the status changes and the
- *                            update is sent when Undo runs out — or at once
- *                            if the employer leaves first, with sendBeacon for
- *                            a hidden page, and the daily catch-up for a page
- *                            that died. The server sends once, whatever calls.
+ *                            column fires nothing) and QUEUES ITS OWN SEND
+ *                            eight seconds later, so a closed tab delays
+ *                            nothing. This page also sends when Undo runs out,
+ *                            or at once if the employer leaves first (beacon
+ *                            for a hidden page). The server sends once,
+ *                            whatever calls; the status changes at that send.
  * Leaving the page (navigating away, hiding it) makes the pending move final.
  * A second move while a toast is up finishes the first one immediately, so
  * there is only ever one Undo on screen and it always means the last thing.

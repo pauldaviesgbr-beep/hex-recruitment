@@ -127,8 +127,28 @@ check('Undo clears only what is owed, and only before the send has begun (still 
   () => [writesStatus(undoBlock), /decline_notice_due_at: null/.test(undoBlock), /\.in\('status', WAITING_STATUSES\)/.test(undoBlock), /\.is\('decline_notice_sent_at', null\)/.test(undoBlock)],
   [false, true, true, true])
 
+const sendNowFn = block(route, 'async function sendNow(', 'export async function POST')
 check('the status becomes rejected at the SEND, as the employer, before the sender runs',
-  () => [/status: 'rejected'/.test(sendBlock), sendBlock.indexOf("status: 'rejected'") < sendBlock.indexOf('sendDeclineNotice(')], [true, true])
+  () => [/status: 'rejected'/.test(sendNowFn), sendNowFn.indexOf("status: 'rejected'") < sendNowFn.indexOf('sendDeclineNotice('), /sendNow\(supabase, id\)/.test(sendBlock)], [true, true, true])
+
+// A CLOSED TAB MUST NOT DELAY THE UPDATE (Paul, 15 Nov 2026). The decline
+// queues its own send on the server, after the Undo window plus grace, and the
+// function is allowed to live long enough to do it.
+check('decline queues the send on the server (waitUntil), after Undo plus grace, through the same sendNow',
+  () => {
+    const owed = Number((route.match(/const OWED_AFTER_MS = (\d+)/) || [])[1])
+    const graceExpr = (route.match(/const SERVER_SEND_AFTER_MS = OWED_AFTER_MS \+ (\d+)/) || [])[1]
+    const maxDur = Number((route.match(/export const maxDuration = (\d+)/) || [])[1])
+    return {
+      imported: /import \{ waitUntil \} from '@vercel\/functions'/.test(route),
+      queuedInDecline: /waitUntil\(/.test(declineBlock) && /SERVER_SEND_AFTER_MS/.test(declineBlock) && /sendNow\(supabase, id\)/.test(declineBlock),
+      afterUndo: owed === UNDO_MS && Number(graceExpr) >= 1000,
+      livesLongEnough: maxDur * 1000 >= owed + Number(graceExpr) + 10000,
+    }
+  }, { imported: true, queuedInDecline: true, afterUndo: true, livesLongEnough: true })
+
+check('the package that keeps the function alive is a pinned dependency',
+  () => JSON.parse(read('package.json')).dependencies['@vercel/functions'], '3.10.5')
 
 check('the sender moves a still-owed waiting row (the catch-up has no caller), THEN claims it: rejected, owed, not yet sent',
   () => {

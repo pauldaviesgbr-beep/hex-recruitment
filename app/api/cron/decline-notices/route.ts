@@ -4,14 +4,15 @@ import { sendDeclineNotice } from '@/lib/declineNotice'
 import { WAITING_STATUSES } from '@/lib/applicantStages'
 
 /**
- * THE CATCH-UP FOR A POLITE UPDATE THE BROWSER NEVER SENT (design 25,
- * decision 5). The page sends when the Undo toast times out, and again with
- * sendBeacon as it is hidden. If the app was killed inside those six seconds
- * neither happens, and the candidate would never hear. This sends anything
- * owed for more than a minute and not yet sent.
+ * A BACKSTOP, NOT THE ROUTE AN UPDATE NORMALLY TAKES (design 25, decision 5).
+ * The Not a fit route queues its own send on the server eight seconds after
+ * the tap (waitUntil), so a closed tab does not delay the candidate; the page
+ * also sends when its toast runs out and by beacon when hidden. This daily run
+ * exists only for the case none of those could cover — the function that held
+ * the queued send died mid-wait — and sends anything owed for more than a
+ * minute and not yet sent.
  *
- * Daily, like every other scheduled job here (vercel.json). The once-only
- * claim in lib/declineNotice means it can never send something the page
+ * The once-only claim in lib/declineNotice means it can never send something
  * already sent, and an Undo clears what is owed, so it can never send that.
  */
 

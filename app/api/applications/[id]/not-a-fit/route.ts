@@ -3,6 +3,7 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { getCurrentEmployerOwnerId } from '@/lib/employer'
 import { sendDeclineNotice } from '@/lib/declineNotice'
 import { WAITING_STATUSES } from '@/lib/applicantStages'
+import { waitUntil } from '@vercel/functions'
 
 /**
  * "Not a fit" on the Applicants list (design 25, decision 5). Three actions:
@@ -28,6 +29,16 @@ import { WAITING_STATUSES } from '@/lib/applicantStages'
  * The list shows an owed row as Not a fit straight away (effectiveStage in
  * lib/applicantStages); the candidate sees nothing until the update is sent.
  *
+ * THE SERVER QUEUES ITS OWN SEND (Paul, 15 Nov 2026: an employer closing the
+ * tab must not delay a candidate's update until the daily catch-up). After a
+ * decline is recorded, the response returns at once and this function stays
+ * alive (waitUntil) to send SERVER_SEND_AFTER_MS later — the six-second Undo
+ * plus two seconds' grace, so an Undo tapped at the last moment and slow to
+ * arrive still lands before the send. The page also sends when its toast runs
+ * out and by beacon when hidden; all three go through one claim, so the
+ * candidate hears once. The daily cron is a backstop only, for a function
+ * that died mid-wait.
+ *
  * THE CALLER'S OWN SESSION, NOT THE SERVICE ROLE, for every read and write of
  * the application — the same choice /api/jobs/[id]/remove makes. RLS still
  * applies underneath, so a team member without manage_pipeline is refused by
@@ -40,9 +51,30 @@ import { WAITING_STATUSES } from '@/lib/applicantStages'
  */
 
 export const dynamic = 'force-dynamic'
+// The queued send keeps the function alive ~8 s after it responds, plus the
+// send itself (email, message, notice). 30 s leaves room on any plan.
+export const maxDuration = 30
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const OWED_AFTER_MS = 6000
+const SERVER_SEND_AFTER_MS = OWED_AFTER_MS + 2000
+
+type Client = ReturnType<typeof createServerClient>
+
+/** Make an owed, still-waiting row rejected AS THE CALLER (so the status log
+ *  names them), then claim and send. An Undo that got in first leaves nothing
+ *  owed: neither statement matches and nothing is sent. */
+async function sendNow(supabase: Client, id: string) {
+  const nowIso = new Date().toISOString()
+  await supabase
+    .from('job_applications')
+    .update({ status: 'rejected', status_updated_at: nowIso, stage_entered_at: nowIso })
+    .eq('id', id)
+    .in('status', WAITING_STATUSES)
+    .not('decline_notice_due_at', 'is', null)
+    .is('decline_notice_sent_at', null)
+  return sendDeclineNotice(id)
+}
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   const id = params.id
@@ -90,6 +122,12 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       .select('id')
     if (error) return NextResponse.json({ error: 'write_failed' }, { status: 500 })
     if (!updated?.length) return NextResponse.json({ error: 'changed_underneath' }, { status: 409 })
+    // Queue the send on the server, so a closed tab cannot delay it.
+    waitUntil(
+      new Promise(resolve => setTimeout(resolve, SERVER_SEND_AFTER_MS))
+        .then(() => sendNow(supabase, id))
+        .catch(() => { /* the daily catch-up still owes it */ }),
+    )
     return NextResponse.json({ ok: true })
   }
 
@@ -110,19 +148,10 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   }
 
   if (action === 'send') {
-    // The status changes HERE, as the caller, so the status trigger records
-    // who made the decision. Only a row that is still owed and still waiting
-    // moves; an Undo that got in first leaves nothing owed, and this matches
-    // no row. The sender then claims and sends (it would also make this move
-    // itself, for the daily catch-up, where there is no caller).
-    await supabase
-      .from('job_applications')
-      .update({ status: 'rejected', status_updated_at: now.toISOString(), stage_entered_at: now.toISOString() })
-      .eq('id', id)
-      .in('status', WAITING_STATUSES)
-      .not('decline_notice_due_at', 'is', null)
-      .is('decline_notice_sent_at', null)
-    const result = await sendDeclineNotice(id)
+    // From the page: its toast ran out, or it is being hidden. The status
+    // changes here, as the caller (sendNow); the sender then claims and sends,
+    // and makes that move itself only for the catch-up, which has no caller.
+    const result = await sendNow(supabase, id)
     return NextResponse.json({ ok: true, result })
   }
 

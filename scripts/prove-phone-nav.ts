@@ -103,13 +103,52 @@ const inPage: Record<string, { page: string; link: RegExp }> = {
 const homeless = (sources: string[], homes: string[]) =>
   sources.filter(h => !homes.includes(h) && !inPage[h])
 
-// 12 until 15 Nov 2026; design 25 branch 2 removed Pipeline and Offers on
-// purpose (both redirect to /applied), leaving exactly 10. The guard is about
-// the SCAN finding links, not about how many the menu should have.
-check('ZERO-GUARD: the employer sidebar scan still finds its links',
-  () => hrefsIn(employerSidebar).length >= 10, true)
-check('ZERO-GUARD: the candidate sidebar scan still finds its links',
-  () => hrefsIn(candidateSidebar).length >= 9, true)
+// THE EXACT SIDE MENUS, label and destination, in order — not "at least N"
+// (Paul, 15 Nov 2026). A floor passes on a menu that lost an item and gained
+// another, and on one that kept the count but moved a link; only the list
+// itself says the menu is what it should be. Any change to a side menu has to
+// change this list in the same commit. Pipeline and Offers left the employer
+// menu on 15 Nov 2026 (design 25 branch 2; both redirect to /applied).
+const menuItems = (src: string) =>
+  Array.from(src.matchAll(/label:\s*'([^']+)',\s*\r?\n\s*href:\s*([^\r\n]+?),?\s*\r?\n/g)).map(m => `${m[1]} -> ${m[2].trim()}`)
+check('the employer side menu is exactly these items, in this order',
+  () => menuItems(employerSidebar),
+  [
+    'Dashboard -> \'/employer/dashboard\'',
+    'Applicants -> \'/applied\'',
+    'Interviews -> \'/interviews\'',
+    'Manage Job Ads -> \'/my-jobs\'',
+    'Post Job -> \'/post-job\'',
+    'Shifts -> \'/temp-work\'',
+    'Candidates -> \'/candidates\'',
+    'Talent Pool -> \'/talent-pool\'',
+    'Insights -> \'/dashboard/analytics\'',
+    'Browse Jobs -> \'/jobs\'',
+    'My Reviews -> companyName ? `/company/${encodeURIComponent(companyName)}` : \'/reviews\'',
+  ])
+check('the candidate side menu is exactly these items, in this order',
+  () => menuItems(candidateSidebar),
+  [
+    'Search Jobs -> \'/jobs\'',
+    'Recommended -> \'/jobs/recommended\'',
+    'Shifts -> \'/temp-work\'',
+    'Saved Jobs -> \'/saved-jobs\'',
+    'My Applications -> \'/applications\'',
+    'Messages -> \'/messages\'',
+    'CV Builder -> \'/cv-builder\'',
+    'Notifications -> \'/notifications\'',
+    'Company Reviews -> \'/reviews\'',
+  ])
+// The item parser is what the two lists above are measured with; it must see
+// every `label:` in the file, or a new item written in a shape it does not
+// recognise would slip past both. Same count, not a floor.
+check('ZERO-GUARD: the item parser sees every label in both side menus',
+  // Counted ANYWHERE on a line: the first version counted only labels at the
+  // start of a line, and an item written on one line before an existing one
+  // pushed that one's label off the line start, so both counts stayed equal.
+  () => [menuItems(employerSidebar).length === (employerSidebar.match(/\blabel:\s*'/g) || []).length,
+         menuItems(candidateSidebar).length === (candidateSidebar.match(/\blabel:\s*'/g) || []).length],
+  [true, true])
 
 check(
   'every employer destination has a home on a phone',
