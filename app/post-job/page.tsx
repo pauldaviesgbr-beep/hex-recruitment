@@ -1656,9 +1656,11 @@ function PostJobContent() {
                       }
                     // A COPY IS NOT AUTOSAVED (it would overwrite the one saved
                     // draft), so it must not say it is: until it is posted,
-                    // nothing of it has been written anywhere.
+                    // nothing of it has been written anywhere. Kept as short as
+                    // the line it replaces — the status is nowrap beside the
+                    // wordmark, and a longer one crushed "Post a job" at 390.
                     : copyId
-                      ? { kind: 'saving', text: 'Copy of a past ad · not saved until you post it' }
+                      ? { kind: 'saving', text: 'Copy · not saved yet' }
                     : savedAt
                       ? { kind: 'saved', text: `Draft saved${[formData.title, formData.location].filter(Boolean).length ? ` · ${[formData.title, formData.location].filter(Boolean).join(', ')}` : ''}` }
                       : { kind: 'saving', text: 'Saving as you go · draft' }
