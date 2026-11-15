@@ -15,6 +15,9 @@ import { readdirSync, statSync } from 'node:fs'
 import * as jobCard from '../lib/jobCard'
 import { jobPay, jobPayText, jobRowModel, primaryEmploymentType } from '../lib/jobCard'
 import { shiftPay, shiftPlace, formatWhen, byStartDate, type TempPost } from '../lib/tempWork'
+import { appPay } from '../lib/appApi'
+// @ts-ignore — a plain .mjs (shared with the drive); tsx loads it as-is
+import { tabOf } from '../lib/jobAdTabs.mjs'
 
 const ROOT = join(__dirname, '..')
 const read = (rel: string) => readFileSync(join(ROOT, rel), 'utf8')
@@ -34,7 +37,25 @@ check('annual pay in thousands, en dash, "a year"', () => jobPayText(jobPay({ sa
 check('hourly pay keeps its pence, "an hour"', () => jobPayText(jobPay({ salaryMin: 16.95, salaryMax: 16.95, salaryPeriod: 'hour' })), '£16.95 an hour')
 check('NO PAY → no pay line at all (never "Competitive")', () => jobPay({ salaryMin: 0, salaryMax: 0, salaryPeriod: 'year' }), null)
 check('above zero, not merely present: a literal 0 is no pay', () => [jobPay({ salaryMin: null, salaryMax: 0 }), jobPayText(jobPay({ salaryMin: 0, salaryMax: 32000, salaryPeriod: 'year' }))], [null, '£32k a year'])
-check('two figures that print the same are one figure: never "£42k–£42k"', () => jobPayText(jobPay({ salaryMin: 41800, salaryMax: 42000, salaryPeriod: 'year' })), '£42k a year')
+check('two figures that print the same are one figure: never "£42k–£42k"', () => jobPayText(jobPay({ salaryMin: 42000, salaryMax: 42050, salaryPeriod: 'year' })), '£42k a year')
+// Design 26 follow-up: CARD PAY MUST NOT ROUND. £41,800 printed "£42k" on the
+// card beside "£41,800 a year" on the advert. One decimal when not a whole
+// thousand, truncated (never rounded up), and the app reads the same rule.
+check('card pay never rounds: "£41.8k", "£41.8k–£48k", whole thousands stay "£42k", and nothing rounds UP to a whole thousand', () => [
+  jobPayText(jobPay({ salaryMin: 41800, salaryMax: 41800, salaryPeriod: 'year' })),
+  jobPayText(jobPay({ salaryMin: 41800, salaryMax: 48000, salaryPeriod: 'year' })),
+  jobPayText(jobPay({ salaryMin: 42000, salaryMax: 42000, salaryPeriod: 'year' })),
+  jobPayText(jobPay({ salaryMin: 41960, salaryMax: 41960, salaryPeriod: 'year' })),
+  jobPayText(jobPay({ salaryMin: 41800, salaryMax: 42000, salaryPeriod: 'year' })),
+  // Agreed (design 26, round 3): under £100 above a thousand reads as the
+  // thousand — "£41k", never "£41.0k".
+  jobPayText(jobPay({ salaryMin: 41050, salaryMax: 41050, salaryPeriod: 'year' })),
+], ['£41.8k a year', '£41.8k–£48k a year', '£42k a year', '£41.9k a year', '£41.8k–£42k a year', '£41k a year'])
+check('the app\'s pay (lib/appApi appPay) follows the same rule, through the same function', () => [
+  appPay({ salary_min: 41800, salary_max: 48000, salary_type: 'annual' }).payShort,
+  appPay({ salary_min: 42000, salary_max: 42000, salary_type: 'annual' }).payShort,
+  /payThousands/.test(noComments(read('lib/appApi.ts'))) && !/toFixed\(0\)\}k/.test(noComments(read('lib/appApi.ts'))),
+], ['£41.8k–£48k', '£42k', true])
 check('a draft with no period yet shows the figure and claims no period', () => jobPayText(jobPay({ salaryMin: 30000, salaryMax: 30000, salaryPeriod: null })), '£30,000')
 
 // ── THE ROW MODEL: role → pay → place · type → via {recruiter} · age ──────
@@ -107,7 +128,9 @@ const DONE = [
   // round 2 (design 26): the shared Save, the Shifts feed and its shift row,
   // the employer's manage view and its card, and the home page's role cards
   'components/SaveJobButton.tsx', 'components/ShiftRow.tsx', 'app/temp-work/page.tsx',
-  'components/ManageCard.tsx', 'app/temp-work/manage/page.tsx', 'app/page.tsx',
+  'components/ManageCard.tsx', 'app/temp-work/manage/page.tsx', 'app/page.tsx', 'app/HomeClient.tsx',
+  // design 26, C: the employer's job ads
+  'app/my-jobs/page.tsx',
 ]
 
 // ── THE 1a CARD ────────────────────────────────────────────────────────────
@@ -213,6 +236,75 @@ check('"Competitive" appears in no string anywhere in app, components or lib', (
   const files = ['app', 'components', 'lib'].flatMap(walk)
   return { scanned: files.length > 200, hits: files.filter(f => /['"`][^'"`\n]*\bCompetitive\b/.test(noComments(read(f)))) }
 }, { scanned: true, hits: [] })
+// ── JOB ADS, /my-jobs (design 26, C) ───────────────────────────────────────
+check('the three tabs partition every status: paused is live; closed is archived; filled is filled', () =>
+  (['active', 'paused', 'filled', 'closed', 'archived'] as const).map(s => tabOf(s)),
+  ['live', 'live', 'filled', 'archived', 'archived'])
+check('/my-jobs: Live · Filled · Archived on the shared ManageCard, counts from the same list, no applicant-stage tabs, no FeedCard, no images', () => {
+  const mj = noComments(read('app/my-jobs/page.tsx'))
+  return [
+    /<ManageCard\b/.test(mj) && !/<FeedCard\b/.test(mj),
+    /(\['live', 'filled', 'archived'\] as const)/.test(mj) && /c\[tabOf\(j\.status\)/.test(mj) && /\.filter\(j => tabOf\(j\.status\) === activeTab\)/.test(mj),
+    /key: 'interviewing'|key: 'offers'|key: 'hired'|detailedOffers|rawInterviews/.test(mj),
+    IMAGE.test(mj),
+    />Job ads<\/h1>/.test(mj) && /aria-label=\{searchOpen \? 'Close search' : 'Search job ads'\}/.test(mj),
+  ]
+}, [true, true, false, false, true])
+check('/my-jobs: no pay shows "Add the pay" ON A LIVE AD ONLY (opening the editor on the pay field), and the quick editor requires pay', () => {
+  const mj = noComments(read('app/my-jobs/page.tsx')), qe = noComments(read('components/QuickEditJobModal.tsx'))
+  return [
+    /Add the pay/.test(mj) && /setEditFocus\('pay'\)/.test(mj) && /focusField=\{editFocus\}/.test(mj),
+    // round 3: filled and archived cards leave the pay out
+    /\{!pay && isLiveTab && </.test(mj),
+    /payRef/.test(qe) && /!\(values\.salaryMin > 0\)/.test(qe),
+  ]
+}, [true, true, true])
+// Design 26, round 3. "Post again" (the shift card's word) starts a COPY in
+// the post-job form — the old Reuse inserted it onto the board behind a
+// confirm box, skipping the pay rule. "Make live again" revives the SAME ad.
+check('/my-jobs: filled and archived ads say "Post again", which opens a copy in the form; nothing on the page inserts an advert; "Make live again", never "Reuse" or "Reactivate"', () => {
+  const mj = noComments(read('app/my-jobs/page.tsx'))
+  return [
+    /label: 'Post again', onClick: \(\) => handlePostAgain\(job\)/.test(mj) && /router\.push\(`\/post-job\?copy=\$\{job\.id\}`\)/.test(mj),
+    /\.from\('jobs'\)\s*\.insert\(/.test(mj),
+    /label: 'Make live again'/.test(mj),
+    /label: '(Reuse|Reactivate)'/.test(mj),
+  ]
+}, [true, false, true, false])
+check('post-job ?copy=: this employer\'s own ad only, a NEW advert (fresh reference, no expiry), never the saved draft, applied once', () => {
+  const pj = noComments(read('app/post-job/page.tsx'))
+  return [
+    /const copyId = searchParams\.get\('edit'\) \? null : searchParams\.get\('copy'\)/.test(pj),
+    /\.eq\('id', copyId\)\.eq\('employer_id', ownerId\)/.test(pj),
+    /jobReference: '',\s*expiresAt: '',/.test(pj),
+    /if \(!stepped \|\| restored \|\| copyId\) return/.test(pj),
+    /if \(asCopy\) setCopySource\(null\)/.test(pj),
+    // a copy never switches the form into edit mode
+    /if \(editId\) \{\s*setIsEditMode\(true\)/.test(pj),
+    // a stored 0 fills an EMPTY pay box (the form then asks), never "0"
+    /salaryMin: jobToEdit\.salaryMin && jobToEdit\.salaryMin > 0 \? String\(jobToEdit\.salaryMin\) : ''/.test(pj) && !/salaryMin: jobToEdit\.salaryMin\?\.toString\(\)/.test(pj),
+    // a copy is not autosaved, so it never claims to be: no "Saving as you go",
+    // no "Save & finish later"
+    /: copyId\s*\?\s*\{ kind: 'saving', text: 'Copy · not saved yet' \}/.test(pj) && /\{copyId \? 'Cancel' : <>Save &amp; finish later<\/>\}/.test(pj),
+  ]
+}, [true, true, true, true, true, true, true, true])
+check('the manage card\'s ⋯: a danger item goes LAST, red #B42318, below a divider; Remove ad is the danger item', () => {
+  const mc = noComments(read('components/ManageCard.tsx')), css = noComments(read('components/ManageCard.module.css')), mj = noComments(read('app/my-jobs/page.tsx'))
+  return [
+    /\[\.\.\.menu\.filter\(a => !a\.danger\), \.\.\.menu\.filter\(a => a\.danger\)\]/.test(mc) && /role="separator"/.test(mc),
+    /\.menuDanger\s*\{\s*color:\s*#B42318;?\s*\}/.test(css) && /\.menuSep\s*\{[^}]*background:\s*#EEF0F4/.test(css),
+    /label: 'Remove ad', onClick: \(\) => setRemoveTarget\(job\), danger: true/.test(mj),
+  ]
+}, [true, true, true])
+check('from 768 a quiet (filled / archived) card\'s action column takes the card\'s #F6F7F9 tint', () =>
+  /@media \(min-width: 768px\)\s*\{[^@]*\.card:not\(\[data-live\]\):has\(> \.actions\) \.action\s*\{\s*background:\s*#F6F7F9/.test(noComments(read('components/ManageCard.module.css'))), true)
+check('/my-jobs: the countdown is only claimed where the expiry cron will act (never on a recruiter posting); "new" is the Applicants list\'s own stage', () => {
+  const mj = noComments(read('app/my-jobs/page.tsx'))
+  return [/if \(job\.isRecruiterPosting\) return null/.test(mj), /stageOf\(status\) === 'new'/.test(mj), /\/applied\?job=\$\{job\.id\}/.test(mj)]
+}, [true, true, true])
+check('the manage card puts its actions inline at the right from 768 (design 26, C: laptop)', () =>
+  /@media \(min-width: 768px\)\s*\{[^@]*\.card:has\(> \.actions\)\s*\{[^}]*grid-template-columns:\s*minmax\(0, 1fr\) 150px/.test(noComments(read('components/ManageCard.module.css'))), true)
+
 check('withdrawing: nothing is written during the 5-second Undo; the page going away writes it with keepalive; "I\'m available" inside the window is the Undo', () => {
   const tw = noComments(read('app/temp-work/page.tsx'))
   const fn = tw.slice(tw.indexOf('const withdrawInterest = '), tw.indexOf('// THE PAGE GOING AWAY') > -1 ? tw.indexOf('const withdrawInterest = ') + 1200 : undefined)

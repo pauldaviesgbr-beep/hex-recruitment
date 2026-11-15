@@ -18,6 +18,7 @@ import { isEmployerEntitled } from '@/lib/foundingEntitlement'
 import { PHOTO_TIPS } from '@/lib/photoTips'
 import type { WorkType } from '@/lib/workTypes'
 import type { Job as JobType } from '@/lib/mockJobs'
+import { supabaseJobToJob } from '@/lib/types'
 import { employerLoginPath } from '@/lib/loginRedirect'
 import { focusField, type FieldProblem } from '@/lib/focusField'
 import FormError from '@/components/FormError'
@@ -60,6 +61,17 @@ function PostJobContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { jobs, addJob, updateJob, getJobById, refreshJobs } = useJobs()
+
+  // POST AGAIN (/my-jobs): ?copy=<id> fills the form from one of THIS
+  // employer's own adverts. It is a NEW advert — not edit mode, a fresh
+  // reference, no expiry carried over, and the pay checked like any other —
+  // so the copy is reviewed and posted through the form rather than inserted
+  // behind it. Fetched here, not from the jobs context: that holds active
+  // adverts only, and the ads being posted again are filled or archived.
+  // Someone else's advert is refused rather than copied: their company name
+  // and logo are not ours to pre-fill.
+  const copyId = searchParams.get('edit') ? null : searchParams.get('copy')
+  const [copySource, setCopySource] = useState<JobType | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   // WHICH field the current error is about, so the message can be rendered
@@ -310,7 +322,11 @@ function PostJobContent() {
   const [savedAt, setSavedAt] = useState<Date | null>(null)
 
   useEffect(() => {
-    if (!stepped || restored) return
+    // A COPY IS NOT A DRAFT, in either direction: an old draft must not land
+    // on top of it, and it must not overwrite that draft — the copy can always
+    // be started again from its source ad, the abandoned draft cannot. With
+    // `restored` left false, autosave stays off for the copy too.
+    if (!stepped || restored || copyId) return
     setRestored(true)
     try {
       const raw = window.localStorage.getItem(DRAFT_KEY)
@@ -345,7 +361,7 @@ function PostJobContent() {
       // A corrupt draft must never block posting a job. Drop it and carry on.
       try { window.localStorage.removeItem(DRAFT_KEY) } catch {}
     }
-  }, [stepped, restored])
+  }, [stepped, restored, copyId])
 
   useEffect(() => {
     if (!stepped || !restored || adStatus === 'live') return
@@ -523,14 +539,35 @@ function PostJobContent() {
     checkAuth()
   }, [router, jobs])
 
-  // Check for edit mode and load job data
+  // POST AGAIN: fetch the source advert, scoped to this employer.
+  useEffect(() => {
+    if (!copyId) return
+    let cancelled = false
+    ;(async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session || cancelled) return
+      const ownerId = (await getCurrentEmployerOwnerId(supabase)) ?? session.user.id
+      const { data } = await supabase.from('jobs').select('*').eq('id', copyId).eq('employer_id', ownerId).maybeSingle()
+      if (cancelled) return
+      if (data) setCopySource(supabaseJobToJob(data))
+      else showError('That job ad could not be found to copy. You can still post a new one here.')
+    })()
+    return () => { cancelled = true }
+  }, [copyId])
+
+  // Check for edit mode (or a copy) and load job data. ONE MAPPING from a
+  // stored advert to the form, so a copy can never be filled differently from
+  // an edit; the copy then drops what belongs to the original alone.
   useEffect(() => {
     const editId = searchParams.get('edit')
-    if (editId && jobs.length > 0) {
-      setIsEditMode(true)
-      setEditJobId(editId)
+    const asCopy = !editId && !!copySource
+    if ((editId && jobs.length > 0) || asCopy) {
+      if (editId) {
+        setIsEditMode(true)
+        setEditJobId(editId)
+      }
       setLoadingJobData(true)
-      const jobToEdit = getJobById(editId)
+      const jobToEdit = editId ? getJobById(editId) : copySource
       if (jobToEdit) {
         // Determine employment type from array
         // Empty, not 'Full-time'. Editing a row whose array is missing would
@@ -572,7 +609,8 @@ function PostJobContent() {
         const contractTypes = ['Permanent', 'Temporary', 'Fixed-term']
         const foundContract = (jobToEdit.employmentType || []).find((t: string) => contractTypes.includes(t))
 
-        setFormData({
+        setFormData(prev => {
+          const built: typeof prev = {
           company: jobToEdit.company || '',
           companyWebsite: jobToEdit.companyWebsite || '',
           companyLogo: jobToEdit.companyLogo || '',
@@ -586,8 +624,10 @@ function PostJobContent() {
           workLocationType: (jobToEdit.workLocationType || 'In person') as 'In person' | 'Remote' | 'Hybrid',
           // Editing an advert must not silently drop what it already said.
           requiresRightToWork: (jobToEdit.workAuthorization || []).length > 0,
-          salaryMin: jobToEdit.salaryMin?.toString() || '',
-          salaryMax: jobToEdit.salaryMax?.toString() || '',
+          // A stored 0 is "no pay", not "£0": the box stays empty so the form
+          // asks for the figure, rather than showing a pay nobody chose.
+          salaryMin: jobToEdit.salaryMin && jobToEdit.salaryMin > 0 ? String(jobToEdit.salaryMin) : '',
+          salaryMax: jobToEdit.salaryMax && jobToEdit.salaryMax > 0 ? String(jobToEdit.salaryMax) : '',
           salaryPeriod: jobToEdit.salaryPeriod || 'hour',
           location: jobToEdit.location || '',
           area: jobToEdit.area || '',
@@ -600,6 +640,19 @@ function PostJobContent() {
           jobReference: jobToEdit.jobReference || '',
           expiresAt: jobToEdit.expiresDate || '',
           tags,
+          }
+          if (!asCopy) return built
+          // A COPY: a new reference is minted on posting, no expiry is carried
+          // over, and the company block is the account's own (filled on load)
+          // rather than whatever the old advert said.
+          return {
+            ...built,
+            jobReference: '',
+            expiresAt: '',
+            company: prev.company || built.company,
+            companyLogo: prev.companyLogo || built.companyLogo,
+            companyWebsite: prev.companyWebsite || built.companyWebsite,
+          }
         })
 
         // Load screening questions
@@ -619,8 +672,13 @@ function PostJobContent() {
       setLoadingJobData(false)
       // Go straight to editor view when loading an existing job description
       setDescView('editor')
+      // A COPY IS APPLIED ONCE. Posting it at step 2 changes `jobs`, which
+      // re-runs this effect; were the source still here it would fill the form
+      // again over what the employer has typed since — the pay included —
+      // just before step 3 saves it to the live ad.
+      if (asCopy) setCopySource(null)
     }
-  }, [searchParams, jobs, getJobById])
+  }, [searchParams, jobs, getJobById, copySource])
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
@@ -1596,6 +1654,13 @@ function PostJobContent() {
                         kind: 'live',
                         text: `Live since ${(publishedAt ?? new Date()).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}${formData.title ? ` · ${formData.title}` : ''}${formData.location ? `, ${formData.location}` : ''}`,
                       }
+                    // A COPY IS NOT AUTOSAVED (it would overwrite the one saved
+                    // draft), so it must not say it is: until it is posted,
+                    // nothing of it has been written anywhere. Kept as short as
+                    // the line it replaces — the status is nowrap beside the
+                    // wordmark, and a longer one crushed "Post a job" at 390.
+                    : copyId
+                      ? { kind: 'saving', text: 'Copy · not saved yet' }
                     : savedAt
                       ? { kind: 'saved', text: `Draft saved${[formData.title, formData.location].filter(Boolean).length ? ` · ${[formData.title, formData.location].filter(Boolean).join(', ')}` : ''}` }
                       : { kind: 'saving', text: 'Saving as you go · draft' }
@@ -2075,7 +2140,8 @@ function PostJobContent() {
           {stepped && step === 1 && (
             <div className={flow.stepFooter}>
               <p className={flow.stepFooterNote}>Everything here can be edited after the ad is live.</p>
-              <button type="button" className={flow.textBtn} onClick={() => router.push('/my-jobs')}>Save &amp; finish later</button>
+              {/* A copy saves nothing to finish later; it can be started again from its ad. */}
+              <button type="button" className={flow.textBtn} onClick={() => router.push('/my-jobs')}>{copyId ? 'Cancel' : <>Save &amp; finish later</>}</button>
               <button type="button" className={flow.primaryBtn} onClick={() => goToStep(2)}>Next — the advert →</button>
             </div>
           )}
