@@ -15,10 +15,14 @@
   margin-bottom: 2rem;
 }
 
+/* Page title: the brand serif 600 28/34, the same as More, at every width
+   (design review, 15 Nov 2026). */
 .title {
-  font-size: 2rem;
-  font-weight: 700;
-  color: #1a1a1a;
+  font-family: var(--font-serif), Georgia, serif;
+  font-size: 28px;
+  line-height: 34px;
+  font-weight: 600;
+  color: #0F172A;
   margin: 0 0 0.5rem 0;
 }
 
@@ -47,26 +51,25 @@
   transition: all 0.2s;
 }
 
+/* No blue (the sweep's palette has none): the hover is a darker border. */
 .settingCard:hover {
-  border-color: #3b82f6;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
-  transform: translateY(-2px);
+  border-color: #CBD5E1;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
 }
 
+/* Icons in ink on the light fill (design review, 15 Nov 2026). The glyph
+   takes currentColor, which was the link's blue. */
 .cardIcon {
   width: 48px;
   height: 48px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f3f4f6;
+  background: #EEF0F4;
+  color: #0F172A;
   border-radius: 12px;
   font-size: 1.5rem;
   flex-shrink: 0;
-}
-
-.settingCard:hover .cardIcon {
-  background: #eff6ff;
 }
 
 .cardContent {
@@ -88,26 +91,18 @@
   line-height: 1.4;
 }
 
+/* A › chevron, the same as the More page's rows. */
 .cardArrow {
-  color: #9ca3af;
-  font-size: 1.25rem;
+  color: #64748b;
+  font-size: 20px;
+  line-height: 1;
   flex-shrink: 0;
-  transition: transform 0.2s;
-}
-
-.settingCard:hover .cardArrow {
-  color: #3b82f6;
-  transform: translateX(4px);
 }
 
 /* Responsive */
 @media (max-width: 640px) {
   .container {
     padding: 1rem;
-  }
-
-  .title {
-    font-size: 1.5rem;
   }
 
   .cardsGrid {

@@ -739,11 +739,31 @@
     padding-top: calc(0.75rem + env(safe-area-inset-top, 0px));
   }
 
+  /* 16 FROM EACH EDGE ON A PHONE (Claude Design's review, 15 Nov 2026: the
+     logo and bell sat about 52 in). Signed in, the wrapper is .headerFull,
+     which kept its 2rem laptop gutter here, and this row added 0.75rem more.
+     Now the wrapper carries the one 16px gutter, matching the global
+     .container (1rem) the signed-out header sits in, and this row adds none. */
   .headerContent {
     flex-direction: row;
     align-items: center;
     gap: 0.5rem;
-    padding: 0 0.75rem;
+    padding: 0;
+  }
+
+  .headerFull {
+    padding: 0 16px;
+  }
+
+  /* The bell is a 44-wide target (NotificationBell.module.css, phone) around
+     a 22px glyph, so with the box at the gutter the glyph would sit 27 in.
+     Letting the target run 11px — half of 44 minus 22 — into the gutter puts
+     the GLYPH 16 from the edge and keeps the full 44 to tap. Measured, not
+     assumed: the first pass guessed a 44 box and a 20 glyph, and the bell was
+     really 40 and 22. Signed in only: signed out, the last item is the Sign
+     up button, whose visible edge is its box. */
+  .headerFull .nav {
+    margin-right: -11px;
   }
 
   .nav {

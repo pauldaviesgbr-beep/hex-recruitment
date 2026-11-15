@@ -2717,7 +2717,7 @@ export default function AnalyticsContent() {
           <div className={styles.upgradeCard}>
             <h2 className={styles.upgradeTitle}>Subscribe to access Analytics</h2>
             <p className={styles.upgradeText}>
-              The Analytics Dashboard is available with an active Thrive subscription.
+              Insights are available with an active Thrive subscription.
               Subscribe to access detailed recruitment insights, candidate demographics,
               market benchmarking, and more.
             </p>
@@ -2743,8 +2743,8 @@ export default function AnalyticsContent() {
         {/* Page Header */}
         <div className={styles.pageHeader}>
           <div>
-            <h1 className={styles.title}>Analytics Dashboard</h1>
-            <p className={styles.subtitle}>Recruitment insights for {companyName}</p>
+            <h1 className={styles.title}>Insights</h1>
+            <p className={styles.subtitle}>How your job ads are performing</p>
           </div>
           <div className={styles.headerControls}>
             <div className={styles.dateFilter}>

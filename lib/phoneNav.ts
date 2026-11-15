@@ -18,6 +18,9 @@
 // Offers into Applicants, Talent pool into Candidates, Interviews into
 // Calendar) are NOT built yet, so those pages keep their own rows until they
 // are — removing a row before its merge ships removes the page.
+//
+// SECOND PASS (design 25, 15 Nov 2026): the employer bar is Home · Applicants
+// · Calendar · Messages · More, and Job ads moves into More as "Your job ads".
 
 import type { IconName } from '@/components/icons'
 
@@ -33,6 +36,10 @@ export type BarSlot = {
   badge?: 'messages'
 }
 
+/** A tab the iOS app may or may not draw itself. Build 30's employer tabs are
+ *  Home · Job ads · Applicants · More; build 31's are the website's five. */
+export type NativeTab = 'messages' | 'calendar'
+
 export type MenuRow = {
   label: string
   href?: string
@@ -44,24 +51,47 @@ export type MenuRow = {
   adminOnly?: boolean
   /** The employer's public company page, whose path carries their name. */
   companyReviews?: boolean
+  /** "{n} live · " goes in front of the subline, n = the employer's live adverts. */
+  liveCount?: boolean
+  /** SHOWN ONLY INSIDE AN APP WHOSE OWN BAR LACKS THIS TAB. Build 30 has no
+   *  Messages or Calendar tab, and it is the build in people's hands until 31
+   *  is approved: dropping these rows would leave Messages unreachable there.
+   *  The app says which tabs it draws (html[data-native-tabs], set from build
+   *  31 on) and globals.css shows the row only when that list lacks this one.
+   *  So the rows go by themselves once someone is on 31, with no date to
+   *  remember, and stay for anyone who never updates. On the website the bar
+   *  carries both, so they never show there. */
+  onlyInAppWithout?: NativeTab
 }
 
-export type MenuGroup = { heading?: string; rows: MenuRow[] }
+/** `side` places the group in one of two independent columns from 768 wide
+ *  (components/NavMenuPage.tsx). Without it the page keeps its one grid. */
+export type MenuGroup = { heading?: string; rows: MenuRow[]; side?: 'left' | 'right' }
 
 // ── THE EMPLOYER MORE PAGE ──────────────────────────────────────────────────
 
+// From 768 wide: left column Notifications then Account, right column Hiring
+// then Help (Claude Design's review, 15 Nov 2026). On a phone, this order.
 export const EMPLOYER_MORE: MenuGroup[] = [
   {
-    // No heading: the two rows that carry unread counts sit first, because a
-    // count is only useful where it is seen.
+    side: 'left',
+    // No heading: the row that carries the unread count sits first, because a
+    // count is only useful where it is seen. Messages has its own tab now; its
+    // row and Calendar's stand in for an app that has no such tab
+    // (onlyInAppWithout), and they sit AFTER Notifications so a hidden row
+    // never leaves its divider on the first visible one.
     rows: [
-      { label: 'Messages', href: '/messages', badge: 'messages' },
       { label: 'Notifications', href: '/notifications', badge: 'notifications' },
+      { label: 'Messages', href: '/messages', badge: 'messages', onlyInAppWithout: 'messages' },
+      { label: 'Calendar', href: '/calendar', onlyInAppWithout: 'calendar' },
     ],
   },
   {
     heading: 'Hiring',
+    side: 'right',
     rows: [
+      // Post a job is the first button on that page (inPage in the check).
+      { label: 'Your job ads', href: '/my-jobs', subline: 'Post, edit, close', liveCount: true },
       // Pipeline, Offers, Interviews and Talent pool are here because their
       // merges have not been built. Each one leaves this list in the same
       // change that gives it its new home, never before.
@@ -71,13 +101,14 @@ export const EMPLOYER_MORE: MenuGroup[] = [
       // CANDIDATES AND TALENT POOL ARE DIFFERENT LISTS — see EmployerSidebar.
       { label: 'Candidates', href: '/candidates', subline: 'Search people who can be found' },
       { label: 'Talent pool', href: '/talent-pool', subline: 'People who applied to your jobs' },
-      { label: 'Temp work', href: '/temp-work' },
-      { label: 'Analytics', href: '/dashboard/analytics' },
+      { label: 'Shifts', href: '/temp-work' },
+      { label: 'Insights', href: '/dashboard/analytics' },
       { label: 'Reviews of your company', href: '/reviews', companyReviews: true },
     ],
   },
   {
     heading: 'Account',
+    side: 'left',
     rows: [
       { label: 'Company profile', href: '/settings/company' },
       // "delete account" is true for employers: /settings/privacy offers the
@@ -89,6 +120,7 @@ export const EMPLOYER_MORE: MenuGroup[] = [
   },
   {
     heading: 'Help',
+    side: 'right',
     rows: [
       { label: 'Ask Thrive', action: 'ask-thrive' },
       { label: 'Share feedback', href: '/feedback' },
@@ -135,19 +167,28 @@ export const CANDIDATE_PROFILE: MenuGroup[] = [
 const hrefsOf = (groups: MenuGroup[]) =>
   groups.flatMap(g => g.rows).map(r => r.href).filter((h): h is string => !!h)
 
+/** The rows that live on More for good, not the ones standing in for a tab an
+ *  older app lacks: those pages have a slot of their own, so More must not
+ *  claim them. */
+export const moreOwnHrefs = (groups: MenuGroup[]) =>
+  groups.flatMap(g => g.rows).filter(r => !r.onlyInAppWithout)
+    .map(r => r.href).filter((h): h is string => !!h)
+
 export const EMPLOYER_MORE_PATH = '/employer/more'
 export const CANDIDATE_PROFILE_PATH = '/me'
 
 export const EMPLOYER_BAR: BarSlot[] = [
   { label: 'Home', href: '/employer/dashboard', icon: 'home', match: [] },
-  { label: 'Job ads', href: '/my-jobs', icon: 'briefcase', match: ['/post-job'] },
   { label: 'Applicants', href: '/applied', icon: 'users', match: [] },
   { label: 'Calendar', href: '/calendar', icon: 'calendar', match: [] },
+  { label: 'Messages', href: '/messages', icon: 'message-square', match: [], badge: 'messages' },
   {
-    label: 'More', href: EMPLOYER_MORE_PATH, icon: 'menu', badge: 'messages',
+    // No count on the website's More: notifications are the header bell there.
+    label: 'More', href: EMPLOYER_MORE_PATH, icon: 'more-horizontal',
     // Everything reached from More keeps More lit — the design's rule — and
     // the company page carries the employer's name, so it matches by prefix.
-    match: [...hrefsOf(EMPLOYER_MORE), '/company', '/employer/analytics', EMPLOYER_MORE_FOOT.href],
+    // /post-job is reached from Your job ads.
+    match: [...moreOwnHrefs(EMPLOYER_MORE), '/post-job', '/company', '/employer/analytics', EMPLOYER_MORE_FOOT.href],
   },
 ]
 
@@ -202,8 +243,11 @@ export function barHiddenOn(pathname: string): boolean {
 // sub-page already links back to Settings, and "‹ More" there would skip a
 // level. /messages is left out because its layout is fixed to the top of the
 // screen and would sit on top of the link.
+//
+// The stand-in rows (onlyInAppWithout) are left out too: in build 31 those
+// pages are tabs of their own, and a "‹ More" on a tab would be wrong.
 export function moreBackShownOn(pathname: string, companyPath: string | null): boolean {
   if (pathname === '/messages') return false
   if (companyPath && pathname === companyPath) return true
-  return hrefsOf(EMPLOYER_MORE).includes(pathname) || pathname === EMPLOYER_MORE_FOOT.href
+  return moreOwnHrefs(EMPLOYER_MORE).includes(pathname) || pathname === EMPLOYER_MORE_FOOT.href
 }

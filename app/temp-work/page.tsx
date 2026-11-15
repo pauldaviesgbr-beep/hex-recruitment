@@ -576,7 +576,7 @@ export default function TempWorkPage() {
               auto-placement would otherwise drop it into the filter column. */}
           <div className={styles.feedHead}>
             <div>
-              <h1 className={styles.h1}>Temp Work</h1>
+              <h1 className={styles.h1}>Shifts</h1>
               <p className={styles.h1sub}>Short-term roles and casual shifts. Apply to a role, or tell an employer you&rsquo;re available for a shift.</p>
             </div>
             {canPost && <Link href="/temp-work/post" className={styles.feedPostBtn}>+ Post</Link>}
@@ -586,7 +586,7 @@ export default function TempWorkPage() {
           <aside className={styles.leftRail}>
             <div className={styles.filterTitle}>Category</div>
             <div className={styles.catCol}>
-              <button className={`${styles.catBtn} ${!group ? styles.catBtnOn : ''}`} onClick={() => { setGroup(''); setRole('') }}>All temp work</button>
+              <button className={`${styles.catBtn} ${!group ? styles.catBtnOn : ''}`} onClick={() => { setGroup(''); setRole('') }}>All shifts</button>
               {ROLE_GROUPS.map(g => (
                 <div key={g.key}>
                   <button className={`${styles.catBtn} ${group === g.key ? styles.catBtnOn : ''}`} onClick={() => { setGroup(group === g.key ? '' : g.key); setRole('') }}>
@@ -636,7 +636,7 @@ export default function TempWorkPage() {
             {loading ? (
               <div className={styles.empty}>Loading shifts…</div>
             ) : feed.length === 0 ? (
-              <div className={styles.empty}>No temp work matches your filters right now.</div>
+              <div className={styles.empty}>No shifts match your filters right now.</div>
             ) : feed.map(item => item.kind === 'job' ? (
               <div key={`job-${item.job.id}`} className={styles.jobCardWrap}>
                 <JobCard job={item.job} onSelect={j => router.push(`/jobs?id=${j.id}`)} />
@@ -914,7 +914,7 @@ export default function TempWorkPage() {
               <div className={styles.ctaCard}>
                 <div className={styles.ctaTitle}>Hiring temp staff?</div>
                 <p className={styles.ctaSub}>Post a dated shift and see who likes and comments. Ongoing casual roles go on the job board.</p>
-                <Link href="/temp-work/post" className={styles.ctaBtn}>+ Post temp work</Link>
+                <Link href="/temp-work/post" className={styles.ctaBtn}>+ Post a shift</Link>
                 {/* "Your shifts", not "Your posts & comments". The destination
                     leads with who is AVAILABLE — comments are the secondary
                     thing on it — and the old label described the page as it was

@@ -1003,7 +1003,8 @@ function MyJobsContent() {
                  activeTab === 'offers' ? 'Offers' :
                  activeTab === 'hired' ? 'Hired' :
                  activeTab === 'archived' ? 'Archived Jobs' :
-                 'Manage Job Ads'}
+                 // The More row's name (design review, 15 Nov 2026).
+                 'Your job ads'}
               </h1>
               <p className={styles.subtitle}>
                 {activeTab === 'interviewing' ? 'Jobs with candidates in the interview stage' :
@@ -1015,7 +1016,7 @@ function MyJobsContent() {
             </div>
             {activeTab !== 'interviewing' && activeTab !== 'offers' && activeTab !== 'hired' && (
               <Link href="/post-job" className={styles.postJobBtn}>
-                + Post New Job
+                + Post a job
               </Link>
             )}
           </div>

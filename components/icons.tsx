@@ -51,7 +51,7 @@ import {
   Package, Paperclip, PartyPopper, Pause, Pencil, Phone, Radio, RefreshCw,
   Rocket, Search, Settings, Shield, Smartphone, Sparkles, Star, Tag, Tent,
   Timer, Trash2, TrendingUp, User, Users, UtensilsCrossed, Video, X, Zap,
-  Martini, Menu,
+  Martini, Menu, Ellipsis,
 } from 'lucide-react'
 
 export const ICONS = {
@@ -100,6 +100,9 @@ export const ICONS = {
   martini: Martini,
   menu: Menu,
   'message-square': MessageSquare,
+  // The employer bar's More: three dots, the website twin of the app's
+  // SF Symbol "ellipsis" (design 24).
+  'more-horizontal': Ellipsis,
   mic: Mic,
   package: Package,
   paperclip: Paperclip,

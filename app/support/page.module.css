@@ -107,6 +107,27 @@
   text-underline-offset: 2px;
 }
 
+/* Opens the chat. The design's primary button: 44 tall, yellow, radius 12,
+   Inter 600 15. */
+.askButton {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 16px;
+  background: #FFE500;
+  color: #0F172A;
+  border: 0;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.askButton:focus-visible {
+  outline: 3px solid rgba(15, 23, 42, 0.35);
+  outline-offset: 2px;
+}
+
 .footer {
   background: var(--dark-gray);
   color: rgba(255, 255, 255, 0.75);

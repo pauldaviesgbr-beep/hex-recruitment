@@ -64,7 +64,6 @@ export default function ChatBot() {
   const [messages, setMessages] = useState<Message[]>([])
   const [inputValue, setInputValue] = useState('')
   const [isTyping, setIsTyping] = useState(false)
-  const [showBadge, setShowBadge] = useState(true)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   // Conversation ID is regenerated on first open AND on "New
@@ -115,11 +114,14 @@ export default function ChatBot() {
     return () => window.removeEventListener('keydown', handleEsc)
   }, [isOpen])
 
-  // Open from mobile menu via custom event
+  // THE ONLY WAYS IN: there is no floating launcher (Claude Design, 15 Nov
+  // 2026 — dropped everywhere, phone, iPad and laptop). The rows that open it
+  // dispatch this event: Help on More and Profile, the laptop side menus, the
+  // avatar menu, and the Ask Thrive button on /support, which is where a
+  // signed-out visitor finds it.
   useEffect(() => {
     const handleOpen = () => {
       setIsOpen(true)
-      setShowBadge(false)
     }
     window.addEventListener('open-thrive-chatbot', handleOpen)
     return () => window.removeEventListener('open-thrive-chatbot', handleOpen)
@@ -132,7 +134,6 @@ export default function ChatBot() {
   useEffect(() => {
     if (new URLSearchParams(window.location.search).get('ask') === '1') {
       setIsOpen(true)
-      setShowBadge(false)
     }
   }, [pathname])
 
@@ -321,11 +322,6 @@ export default function ChatBot() {
     sendMessage(question)
   }
 
-  const handleOpenChat = () => {
-    setIsOpen(true)
-    setShowBadge(false)
-  }
-
   const handleNewConversation = () => {
     // Mint a fresh conversation_id so chat_logs partitions the new
     // conversation separately from the prior one.
@@ -346,17 +342,7 @@ export default function ChatBot() {
 
   return (
     <>
-      {/* Chat Button */}
-      <button
-        className={`${styles.chatButton} ${isOpen ? styles.hidden : ''}`}
-        onClick={handleOpenChat}
-        aria-label="Open Ask Thrive chat"
-      >
-        <span className={styles.chatIcon}><ThriveIcon size={24} /></span>
-        {showBadge && <span className={styles.chatBadge}>Need help?</span>}
-      </button>
-
-      {/* Chat Window */}
+      {/* Chat Window. No launcher button: see the event listener above. */}
       <div
         className={`${styles.chatWindow} ${isOpen ? styles.open : ''}`}
         role="dialog"

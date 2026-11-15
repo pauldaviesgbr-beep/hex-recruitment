@@ -30,8 +30,12 @@ class ThriveBridgeViewController: CAPBridgeViewController, WKHTTPCookieStoreObse
     /// sessionStorage so that this script, which runs before any page draws, can
     /// put the class back on every page load: no flash of the website header.
     /// The CSS that acts on it is in app/globals.css (html.native-nav).
+    ///
+    /// From build 31 it also restores html[data-native-tabs], the list of tabs
+    /// the app draws (setNativeNav), so the More page knows which of its
+    /// stand-in rows to drop before it paints (app/globals.css).
     private static let nativeNavScript = WKUserScript(
-        source: "try{if(sessionStorage.getItem('thriveNativeNav')==='1'){document.documentElement.classList.add('native-nav')}}catch(e){}",
+        source: "try{if(sessionStorage.getItem('thriveNativeNav')==='1'){var d=document.documentElement;d.classList.add('native-nav');var t=sessionStorage.getItem('thriveNativeTabs');if(t){d.setAttribute('data-native-tabs',t)}}}catch(e){}",
         injectionTime: .atDocumentStart,
         forMainFrameOnly: true)
 
@@ -94,13 +98,23 @@ class ThriveBridgeViewController: CAPBridgeViewController, WKHTTPCookieStoreObse
     }
 
     private var nativeNavOn: Bool?
+    private var nativeTabsSent: String?
 
-    /// Tell the page whether the app is providing the navigation right now.
-    func setNativeNav(_ on: Bool, force: Bool = false) {
-        if !force, nativeNavOn == on { return }
+    /// Tell the page whether the app is providing the navigation right now,
+    /// and which tabs it draws (lowercased titles, space-separated, so CSS can
+    /// test them with [data-native-tabs~='messages']).
+    func setNativeNav(_ on: Bool, tabs: [String] = [], force: Bool = false) {
+        // Letters only, so nothing in a title can change what the script does.
+        let list = on ? tabs.map { $0.filter { $0.isLetter } }.filter { !$0.isEmpty }.joined(separator: " ") : ""
+        if !force, nativeNavOn == on, nativeTabsSent == list { return }
         nativeNavOn = on
+        nativeTabsSent = list
         let v = on ? "1" : "0"
-        let js = "try{sessionStorage.setItem('thriveNativeNav','\(v)');document.documentElement.classList.toggle('native-nav',\(on ? "true" : "false"))}catch(e){}"
+        let js = "try{var d=document.documentElement;sessionStorage.setItem('thriveNativeNav','\(v)');d.classList.toggle('native-nav',\(on ? "true" : "false"));"
+            + (list.isEmpty
+                ? "sessionStorage.removeItem('thriveNativeTabs');d.removeAttribute('data-native-tabs')"
+                : "sessionStorage.setItem('thriveNativeTabs','\(list)');d.setAttribute('data-native-tabs','\(list)')")
+            + "}catch(e){}"
         webView?.evaluateJavaScript(js, completionHandler: nil)
     }
 

@@ -169,14 +169,14 @@ export default function ManageTempWorkPage() {
   const btn = (color: string): React.CSSProperties => ({ padding: '5px 10px', border: `1px solid ${C.border}`, background: '#fff', color, borderRadius: 7, fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer' })
 
   if (phase === 'loading') return <main><Header /><div style={{ ...wrap, textAlign: 'center', color: C.sub }}>Loading…</div></main>
-  if (phase === 'denied') return <main><Header /><div style={{ ...wrap, textAlign: 'center' }}><p style={{ color: C.sub }}>You need the “manage jobs” permission to manage temp work.</p></div></main>
+  if (phase === 'denied') return <main><Header /><div style={{ ...wrap, textAlign: 'center' }}><p style={{ color: C.sub }}>You need the “manage jobs” permission to manage shifts.</p></div></main>
 
   return (
     <main>
       <Header />
       <div style={wrap}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: '0.35rem' }}>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: C.ink }}>Your temp work</h1>
+          <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: C.ink }}>Your shifts</h1>
           <Link href="/temp-work/post" style={{ padding: '9px 16px', background: C.yellow, color: C.ink, fontWeight: 700, fontSize: '0.9rem', borderRadius: 9, textDecoration: 'none' }}>+ Post</Link>
         </div>
         {/* TWO STATES, TWO SENTENCES.

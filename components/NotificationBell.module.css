@@ -321,6 +321,16 @@
 
 /* Responsive */
 @media (max-width: 768px) {
+  /* The design's bell target on a phone: 44 x 44 (design 24, the header).
+     The 2px above and below are taken back with negative margins so the
+     header row stays 40 tall: --nav-height has under 1px of slack
+     (navheight:prove), and a taller row would slide every page under it. */
+  .bellButton {
+    width: 44px;
+    height: 44px;
+    margin: -2px 0;
+  }
+
   .dropdown {
     position: absolute;
     top: calc(100% + 8px);
