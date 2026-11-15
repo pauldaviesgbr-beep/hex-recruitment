@@ -11,7 +11,7 @@ import { useJobs } from '@/lib/JobsContext'
 import { useSavedJobs } from '@/lib/useSavedJobs'
 import { supabase } from '@/lib/supabase'
 import { getTagCategory, WORK_STYLE_TAGS } from '@/lib/jobTags'
-import { formatJobAddress, formatJobLocation } from '@/lib/jobCard'
+import { formatJobAddress, formatJobLocation, jobPay, jobPayText } from '@/lib/jobCard'
 import { useAnalyticsTracking } from '@/hooks/useAnalyticsTracking'
 import styles from './page.module.css'
 import { Ico } from '@/components/icons'
@@ -157,16 +157,9 @@ export default function JobDetailPage() {
     setShowApplyModal(true)
   }
 
-  const formatSalary = () => {
-    if (!job) return ''
-    const single = !job.salaryMax || job.salaryMin === job.salaryMax
-    if (job.salaryPeriod === 'hour') {
-      return single ? `£${job.salaryMin} per hour` : `£${job.salaryMin} - £${job.salaryMax} per hour`
-    }
-    return single
-      ? `£${job.salaryMin.toLocaleString()} per year`
-      : `£${job.salaryMin.toLocaleString()} - £${job.salaryMax.toLocaleString()} per year`
-  }
+  // The shared pay text (lib/jobCard jobPay, design 17): no pay → null, never
+  // "Competitive salary" (design 26: never, anywhere) and never "£0 per year".
+  const formatSalary = (): string | null => { if (!job) return null; const p = jobPay(job); return p ? jobPayText(p) : null }
 
   const renderDescription = (text: string) => {
     if (typeof window !== 'undefined' && text.includes('<') && text.includes('>')) {
@@ -333,7 +326,7 @@ export default function JobDetailPage() {
                 <span className={styles.metaIcon}><Ico name="map-pin" size={20} /></span>
                 {formatJobAddress(job)}
               </a>
-              <span className={styles.salary}>{formatSalary()}</span>
+              {formatSalary() && <span className={styles.salary}>{formatSalary()}</span>}
             </div>
             <div className={styles.badges}>
               {Array.isArray(job.employmentType)
@@ -372,7 +365,7 @@ export default function JobDetailPage() {
               <div className={styles.detailsGrid}>
                 <div className={styles.detailItem}>
                   <span className={styles.detailLabel}>Pay</span>
-                  <span className={styles.detailValue}>{formatSalary()}</span>
+                  <span className={styles.detailValue}>{formatSalary() ?? 'Not stated'}</span>
                 </div>
                 <div className={styles.detailItem}>
                   <span className={styles.detailLabel}>Job type</span>
@@ -673,7 +666,7 @@ export default function JobDetailPage() {
                 <h3 className={styles.quickInfoTitle}>Quick Info</h3>
                 <div className={styles.quickInfoItem}>
                   <span className={styles.quickInfoLabel}>Salary</span>
-                  <span className={styles.quickInfoValue}>{formatSalary()}</span>
+                  <span className={styles.quickInfoValue}>{formatSalary() ?? 'Not stated'}</span>
                 </div>
                 <div className={styles.quickInfoItem}>
                   <span className={styles.quickInfoLabel}>Location</span>

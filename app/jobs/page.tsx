@@ -18,7 +18,7 @@ import { Boost } from '@/lib/boostTypes'
 import CompanyReviewsSummary from '@/components/CompanyReviewsSummary'
 import JobCard from '@/components/JobCard'
 import rowStyles from '@/components/JobRow.module.css'
-import { formatJobAddress } from '@/lib/jobCard'
+import { formatJobAddress, jobPay, jobPayText } from '@/lib/jobCard'
 import { WORK_TYPES } from '@/lib/workTypes'
 import { annualisedOrNull } from '@/lib/salaryInput'
 import JobPostingSchema from '@/components/JobPostingSchema'
@@ -594,17 +594,9 @@ function JobsPageContent() {
     return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(locationString)}`
   }
 
-  const formatSalaryFull = (job: Job) => {
-    if (!job.salaryMin && !job.salaryMax) return 'Competitive salary'
-    const negotiable = (job.tags || []).includes('Salary negotiable') ? ' (negotiable)' : ''
-    const single = !job.salaryMax || job.salaryMin === job.salaryMax
-    if (job.salaryPeriod === 'hour') {
-      return single ? `£${job.salaryMin} per hour${negotiable}` : `£${job.salaryMin} - £${job.salaryMax} per hour${negotiable}`
-    }
-    return single
-      ? `£${job.salaryMin.toLocaleString()} per year${negotiable}`
-      : `£${job.salaryMin.toLocaleString()} - £${job.salaryMax.toLocaleString()} per year${negotiable}`
-  }
+  // The shared pay text (lib/jobCard jobPay, design 17): no pay → null, never
+  // "Competitive salary" (design 26: never, anywhere) and never "£0 per year".
+  const formatSalaryFull = (job: Job): string | null => { const p = jobPay(job); return p ? jobPayText(p) : null }
 
   const renderDescription = (text: string) => {
     if (typeof window !== 'undefined' && text.includes('<') && text.includes('>')) {
@@ -875,17 +867,6 @@ function JobsPageContent() {
     }
   }
 
-  const formatSalary = (job: Job) => {
-    if (!job.salaryMin && !job.salaryMax) return 'Competitive salary'
-    const negotiable = (job.tags || []).includes('Salary negotiable') ? ' (negotiable)' : ''
-    const single = !job.salaryMax || job.salaryMin === job.salaryMax
-    if (job.salaryPeriod === 'hour') {
-      return single ? `£${job.salaryMin}/hr${negotiable}` : `£${job.salaryMin}-${job.salaryMax}/hr${negotiable}`
-    }
-    return single
-      ? `£${(job.salaryMin / 1000).toFixed(0)}k/year${negotiable}`
-      : `£${(job.salaryMin / 1000).toFixed(0)}k-${(job.salaryMax / 1000).toFixed(0)}k/year${negotiable}`
-  }
 
   const getTagStyle = (index: number) => {
     const tagStyles = [styles.tagGreen, styles.tagBlue, styles.tagYellow]
@@ -1034,13 +1015,16 @@ function JobsPageContent() {
               ))}
             </div>
           )}
-        </div>
         {/* On a phone a signed-in candidate has the All / For you / Shifts chips
             at the top of this band (components/JobsChips), which make the same
-            choice; two controls for one choice on one screen is one too many. */}
+            choice; two controls for one choice on one screen is one too many.
+            INSIDE .searchInner (design 26: the pills touched the screen edge
+            at every width). It gives them the search fields' own gutter —
+            16 on a phone — and lines them up under the fields above. */}
         <div className={`${styles.quickLinks} ${currentUserRole === 'employee' ? styles.quickLinksChipped : ''}`}>
           <button className={styles.filterPill} onClick={clearFilters}>Browse All Jobs</button>
           <Link href="/jobs/recommended" className={styles.filterPill}>Jobs For You →</Link>
+        </div>
         </div>
       </div>
 
@@ -1315,7 +1299,7 @@ function JobsPageContent() {
                       2026; the job page was fixed the same way in August). */}
                   <Ico name="map-pin" size={16} /> {formatJobAddress(selectedJob)}
                 </a>
-                <p className={styles.detailSalary}>{formatSalaryFull(selectedJob)}</p>
+                {formatSalaryFull(selectedJob) && <p className={styles.detailSalary}>{formatSalaryFull(selectedJob)}</p>}
                 {selectedJob.expiresDate && (() => {
                   const daysLeft = Math.ceil((new Date(selectedJob.expiresDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
                   if (daysLeft <= 7 && daysLeft >= 0) {
@@ -1359,7 +1343,7 @@ function JobsPageContent() {
               <div className={styles.detailSection}>
                 <h2 className={styles.detailSectionTitle}>Job Details</h2>
                 <div className={styles.detailGrid}>
-                  <div className={styles.detailGridItem}><span className={styles.detailGridLabel}>Pay</span><span className={styles.detailGridValue}>{formatSalaryFull(selectedJob)}</span></div>
+                  <div className={styles.detailGridItem}><span className={styles.detailGridLabel}>Pay</span><span className={styles.detailGridValue}>{formatSalaryFull(selectedJob) ?? 'Not stated'}</span></div>
                   <div className={styles.detailGridItem}><span className={styles.detailGridLabel}>Job type</span><span className={styles.detailGridValue}>{Array.isArray(selectedJob.employmentType) ? selectedJob.employmentType.join(', ') : selectedJob.employmentType || 'Not specified'}</span></div>
                   <div className={styles.detailGridItem}><span className={styles.detailGridLabel}>Shift & schedule</span><span className={styles.detailGridValue}>{selectedJob.shiftSchedule || 'Not specified'}</span></div>
                   <div className={styles.detailGridItem}><span className={styles.detailGridLabel}>Work location</span><span className={styles.detailGridValue}>{selectedJob.workLocationType || 'In person'}</span></div>
@@ -1454,7 +1438,7 @@ function JobsPageContent() {
                 <div className={styles.applyBody}>
                   <div className={styles.applyJobInfo}>
                     <h3>{selectedJob.title}</h3>
-                    <p>{selectedJob.location} • {formatSalaryFull(selectedJob)}</p>
+                    <p>{selectedJob.location}{formatSalaryFull(selectedJob) ? ` • ${formatSalaryFull(selectedJob)}` : ''}</p>
                   </div>
                   <div className={styles.applyField}>
                     <label>Cover Letter (optional)</label>

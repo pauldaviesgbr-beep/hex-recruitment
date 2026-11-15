@@ -18,7 +18,7 @@ import { getTagCategory } from '@/lib/jobTags'
 import CompanyReviewsSummary from '@/components/CompanyReviewsSummary'
 import { useAnalyticsTracking } from '@/hooks/useAnalyticsTracking'
 import styles from './page.module.css'
-import { formatJobLocation } from '@/lib/jobCard'
+import { formatJobLocation, jobPay, jobPayText } from '@/lib/jobCard'
 import ReportControl from '@/components/ReportControl'
 
 export default function SavedJobsPage() {
@@ -190,15 +190,10 @@ export default function SavedJobsPage() {
     if (direction === 'next' && idx < savedJobs.length - 1) setSelectedJob(savedJobs[idx + 1])
   }
 
-  const formatSalary = (job: Job) => {
-    if (job.salaryPeriod === 'hour') return `£${job.salaryMin}-${job.salaryMax}/hr`
-    return `£${job.salaryMin.toLocaleString()}-${job.salaryMax.toLocaleString()}/yr`
-  }
 
-  const formatSalaryFull = (job: Job) => {
-    if (job.salaryPeriod === 'hour') return `£${job.salaryMin} - £${job.salaryMax} per hour`
-    return `£${job.salaryMin.toLocaleString()} - £${job.salaryMax.toLocaleString()} per year`
-  }
+  // The shared pay text (lib/jobCard jobPay, design 17): no pay → null, never
+  // "Competitive salary" (design 26: never, anywhere) and never "£0 per year".
+  const formatSalaryFull = (job: Job): string | null => { const p = jobPay(job); return p ? jobPayText(p) : null }
 
   const getGoogleMapsUrl = (job: Job) => {
     let locationString: string
@@ -364,7 +359,7 @@ export default function SavedJobsPage() {
                         ? `${selectedJob.fullLocation.addressLine1}, ${selectedJob.fullLocation.city} ${selectedJob.fullLocation.postcode}`
                         : [selectedJob.location, selectedJob.area].filter(Boolean).join(', ')}
                     </a>
-                    <p className={styles.detailSalary}>{formatSalaryFull(selectedJob)}</p>
+                    {formatSalaryFull(selectedJob) && <p className={styles.detailSalary}>{formatSalaryFull(selectedJob)}</p>}
                     <div className={styles.detailBadges}>
                       {Array.isArray(selectedJob.employmentType)
                         ? selectedJob.employmentType.map((type, i) => (
@@ -407,7 +402,7 @@ export default function SavedJobsPage() {
                     <div className={styles.detailGrid}>
                       <div className={styles.detailGridItem}>
                         <span className={styles.detailGridLabel}>Pay</span>
-                        <span className={styles.detailGridValue}>{formatSalaryFull(selectedJob)}</span>
+                        <span className={styles.detailGridValue}>{formatSalaryFull(selectedJob) ?? 'Not stated'}</span>
                       </div>
                       <div className={styles.detailGridItem}>
                         <span className={styles.detailGridLabel}>Job type</span>

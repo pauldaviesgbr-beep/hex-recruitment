@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase'
 import { useSavedJobs } from '@/lib/useSavedJobs'
 import JobPostingSchema from '@/components/JobPostingSchema'
 import { getTagCategory, WORK_STYLE_TAGS } from '@/lib/jobTags'
+import { jobPay, jobPayText } from '@/lib/jobCard'
 import CompanyReviewsSummary from '@/components/CompanyReviewsSummary'
 import { useAnalyticsTracking, ViewSource } from '@/hooks/useAnalyticsTracking'
 import ApplyNowModal from '@/components/ApplyNowModal'
@@ -169,15 +170,9 @@ export default function JobDetailModal({
     setShowApplyModal(true)
   }
 
-  const formatSalary = () => {
-    const single = !job.salaryMax || job.salaryMin === job.salaryMax
-    if (job.salaryPeriod === 'hour') {
-      return single ? `£${job.salaryMin} per hour` : `£${job.salaryMin} - £${job.salaryMax} per hour`
-    }
-    return single
-      ? `£${job.salaryMin.toLocaleString()} per year`
-      : `£${job.salaryMin.toLocaleString()} - £${job.salaryMax.toLocaleString()} per year`
-  }
+  // The shared pay text (lib/jobCard jobPay, design 17): no pay → null, never
+  // "£0 per year" (two live imported adverts store a literal 0).
+  const formatSalary = (): string | null => { const p = jobPay(job); return p ? jobPayText(p) : null }
 
   const renderDescription = (text: string) => {
     if (typeof window !== 'undefined' && text.includes('<') && text.includes('>')) {
@@ -284,7 +279,7 @@ export default function JobDetailModal({
                       ? `${job.fullLocation.addressLine1}, ${job.fullLocation.city} ${job.fullLocation.postcode}`
                       : [job.location, job.area].filter(Boolean).join(', ')}
                   </a>
-                  <span className={styles.salary}>{formatSalary()}</span>
+                  {formatSalary() && <span className={styles.salary}>{formatSalary()}</span>}
                 </div>
                 <div className={styles.employmentBadges}>
                   {Array.isArray(job.employmentType)
@@ -362,7 +357,7 @@ export default function JobDetailModal({
             <div className={styles.detailsGrid}>
               <div className={styles.detailItem}>
                 <span className={styles.detailLabel}>Pay</span>
-                <span className={styles.detailValue}>{formatSalary()}</span>
+                <span className={styles.detailValue}>{formatSalary() ?? 'Not stated'}</span>
               </div>
               <div className={styles.detailItem}>
                 <span className={styles.detailLabel}>Job type</span>

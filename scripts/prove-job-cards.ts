@@ -12,6 +12,7 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { jobPay, jobPayText, jobRowModel } from '../lib/jobCard'
+import { shiftPay, shiftPlace, formatWhen, byStartDate, type TempPost } from '../lib/tempWork'
 
 const ROOT = join(__dirname, '..')
 const read = (rel: string) => readFileSync(join(ROOT, rel), 'utf8')
@@ -65,10 +66,13 @@ check('NEW chip: Inter 600 13, .06em, navy on #EEF0F4, radius 6 — not yellow',
   const r = rule('newChip')
   return [/font-size:\s*13px/.test(r), /letter-spacing:\s*0\.06em/.test(r), /background:\s*#EEF0F4/i.test(r), /border-radius:\s*6px/.test(r), !/FFE500/i.test(r)]
 }, [true, true, true, true, true])
-check('Save is a separate 44×44 target above the stretched row button', () => {
-  const s = rule('save')
-  return [/width:\s*44px/.test(s) && /height:\s*44px/.test(s), /z-index:\s*1/.test(s), /\.main::after\s*\{[^}]*position:\s*absolute;\s*inset:\s*0/.test(rowCss), /e\.stopPropagation\(\)/.test(rowTsx)]
-}, [true, true, true, true])
+check('Save is a separate 44×44 target above the stretched row button — ONE button, shared by the row and the 1a card', () => {
+  const saveCss = noComments(read('components/SaveJobButton.module.css'))
+  const saveTsx = noComments(read('components/SaveJobButton.tsx'))
+  const s = (saveCss.match(/\.save\s*\{[^}]*\}/) || [''])[0]
+  const cardTsx2 = noComments(read('components/JobCardLink.tsx'))
+  return [/width:\s*44px/.test(s) && /height:\s*44px/.test(s), /z-index:\s*1/.test(s), /\.main::after\s*\{[^}]*position:\s*absolute;\s*inset:\s*0/.test(rowCss), /e\.stopPropagation\(\)/.test(saveTsx), /<SaveJobButton/.test(rowTsx) && /<SaveJobButton/.test(cardTsx2), /<svg/.test(rowTsx)]
+}, [true, true, true, true, true, false])
 check('the list: full width below 768; one 760 box, border, radius 16 from 768', () =>
   /@media \(min-width: 768px\) \{\s*\.list \{[^}]*max-width:\s*760px;[^}]*border:\s*1px solid #DFE3EA;[^}]*border-radius:\s*16px/.test(rowCss), true)
 
@@ -98,6 +102,10 @@ const DONE = [
   'app/jobs/sector/[sector]/page.tsx', 'app/jobs/[city]/page.tsx', 'app/jobs/recommended/page.tsx', 'app/saved-jobs/page.tsx',
   // step 4: the 1a card, and the small lists that use it (both dashboards)
   'components/JobTypeCard.tsx', 'components/JobCardLink.tsx',
+  // round 2 (design 26): the shared Save, the Shifts feed and its shift row,
+  // the employer's manage view and its card, and the home page's role cards
+  'components/SaveJobButton.tsx', 'components/ShiftRow.tsx', 'app/temp-work/page.tsx',
+  'components/ManageCard.tsx', 'app/temp-work/manage/page.tsx', 'app/page.tsx',
 ]
 
 // ── THE 1a CARD ────────────────────────────────────────────────────────────
@@ -121,13 +129,76 @@ check('the dashboards\' small-list card IS the 1a card (no image-led markup, no 
   const l = noComments(read('components/JobCardLink.tsx'))
   return [/<JobTypeCard/.test(l), /jobStyles|cardScrim|function formatSalary/.test(l)]
 }, [true, false])
+// Design 26: the card's TITLE is the link, stretched over the card, so Save
+// (corner) and "Not interested" (footer) are real buttons beside it — not
+// buttons inside an <a>, and no grey × floating over the title.
+check('the 1a card: title link stretched over the card; Save in the corner; "Not interested" a footer text button; the × gone', () => {
+  const l = noComments(read('components/JobCardLink.tsx'))
+  const dash = noComments(read('app/dashboard/page.tsx'))
+  const emp = noComments(read('app/employer/dashboard/page.tsx'))
+  return [
+    /\.titleLink::after\s*\{[^}]*position:\s*absolute;\s*inset:\s*0/.test(cardCss),
+    /<Link\b/.test(l),
+    /onToggleSave=\{j => toggleSave\(j\.id\)\}/.test(dash) && /onNotInterested=/.test(dash),
+    /recDismiss|&times;/.test(dash + read('app/dashboard/page.module.css')),
+    /applicant\$\{/.test(emp) && !/apps ·/.test(emp),
+  ]
+}, [true, false, true, false, true])
+
+// ── THE SHIFT ROW (design 26, round 2, B) ──────────────────────────────────
+// Imports the rules (lib/tempWork) rather than restating them.
+const shift = { hourly_rate: 130, rate_type: 'day', location_area: 'Manchester', postcode: 'm2 4ab', is_ongoing: false, date_from: '2026-11-25', date_to: '2026-11-27', start_time: '11:00:00', end_time: '23:00:00' } as unknown as TempPost
+check('shift pay is bold-able text with the period in words; a literal 0 is no pay', () =>
+  [shiftPay(shift), shiftPay({ hourly_rate: 12.5, rate_type: 'hour' } as any), shiftPay({ hourly_rate: 0, rate_type: 'hour' } as any)],
+  [{ amount: '£130', period: 'a day' }, { amount: '£12.50', period: 'an hour' }, null])
+check('the place is the town then the postcode\'s outward part ("Manchester M2")', () => shiftPlace(shift), 'Manchester M2')
+check('the shift row\'s date line: no weekday, en dash, "Ongoing, flexible" — and the email/Shifts-box form is unchanged', () => [
+  formatWhen(shift, { weekday: false, ongoing: 'Ongoing, flexible' }),
+  formatWhen({ ...shift, date_to: null, start_time: '10:00:00', end_time: '17:00:00', date_from: '2026-11-30' } as any, { weekday: false, ongoing: 'Ongoing, flexible' }),
+  formatWhen({ ...shift, is_ongoing: true } as any, { weekday: false, ongoing: 'Ongoing, flexible' }),
+  formatWhen({ ...shift, date_to: null, start_time: '10:00:00', end_time: '17:00:00', date_from: '2026-11-30' } as any),
+], ['25–27 Nov · 11:00–23:00', '30 Nov · 10:00–17:00', 'Ongoing, flexible', 'Mon 30 Nov · 10:00–17:00'])
+check('posted shifts sort by start date, soonest first; ongoing ones after the dated', () => {
+  const p = (id: string, date_from: string | null, is_ongoing = false) => ({ id, date_from, is_ongoing, created_at: '2026-11-01T00:00:00Z' }) as unknown as TempPost
+  return [p('late', '2026-12-05'), p('ongoing', null, true), p('soon', '2026-11-20')].sort(byStartDate).map(x => x.id)
+}, ['soon', 'late', 'ongoing'])
+check('the Shifts feed: ONE list, two labelled groups, open shifts only, examples on test builds only, shift rows not photo cards', () => {
+  const tw = noComments(read('app/temp-work/page.tsx'))
+  return [
+    /className=\{rowStyles\.list\}/.test(tw),
+    /Posted shifts · \{shiftList\.length\}/.test(tw) && /Short-term jobs · \{jobList\.length\}/.test(tw),
+    /\.eq\('status', 'open'\)/.test(tw) && !/status\.eq\.filled/.test(tw),
+    /const usingExamples = previewAllowed &&/.test(tw),
+    /<ShiftRow\b/.test(tw) && !/<FeedCard\b/.test(tw),
+  ]
+}, [true, true, true, true, true])
+check('"I\'m available" is outlined, not yellow; once tapped, navy with a yellow tick', () => {
+  const css = noComments(read('components/ShiftRow.module.css'))
+  const btn = (css.match(/\.availBtn\s*\{[^}]*\}/) || [''])[0], on = (css.match(/\.availOn\s*\{[^}]*\}/) || [''])[0]
+  return [/inset 0 0 0 1\.5px #0F172A/.test(btn), /FFE500|primary-yellow/i.test(btn), /background:\s*#0F172A/.test(on)]
+}, [true, false, true])
+check('the employer\'s manage card ships with Mark filled and Close only (Edit, Duplicate, Post again hidden until built)', () => {
+  const mg = noComments(read('app/temp-work/manage/page.tsx'))
+  return [/<ManageCard\b/.test(mg), /'Mark filled'/.test(mg), /'Close'/.test(mg), /Edit shift|Duplicate|Post again/.test(mg), /\{m\.needed\} · \{avail\.length\} available/.test(mg)]
+}, [true, true, true, false, true])
+check('no advert view or card says "Competitive salary" or builds its own "per year" pay text', () =>
+  DONE.filter(f => { const s = noComments(read(f)); return /'Competitive salary'|per year`|per hour`/.test(s) }), [])
 check('the list-and-detail pages draw their lists with the 1b row, not their own cards', () =>
   ['app/jobs/sector/[sector]/page.tsx', 'app/jobs/[city]/page.tsx', 'app/jobs/recommended/page.tsx', 'app/saved-jobs/page.tsx']
     .filter(f => { const s = noComments(read(f)); return !/<JobRow\b/.test(s) || /styles\.listCardLogo/.test(s) }), [])
-check('Recommended\'s match % sits in the row\'s right-hand column, not laid over the title (no absolute positioning)', () => {
-  const r = (noComments(read('app/jobs/recommended/page.module.css')).match(/\.listCardMatch\s*\{[^}]*\}/) || [''])[0]
-  return [r.length > 0, /position:\s*absolute/.test(r)]
-}, [true, false])
+// Design 26 (round 2): the match % is the grey chip "99% match" on line 3
+// after the age — not in the right column, not yellow — and with no Save the
+// row's right padding equals the left. (Until 15 Nov it was an absolutely
+// positioned yellow chip laid over the title.)
+check('Recommended\'s match % is the grey "N% match" chip on line 3, and a row with no Save pads its right like its left', () => {
+  const rec = noComments(read('app/jobs/recommended/page.tsx'))
+  const chip = rule('tagChip'), noSave = rule('noSave')
+  return [
+    /tag=\{showMatchPercent\(job\) \? `\$\{job\.matchPercentage\}% match`/.test(rec), /aside=/.test(rec), /listCardMatch/.test(rec + read('app/jobs/recommended/page.module.css')),
+    /background:\s*#EEF0F4/i.test(chip) && /font-size:\s*13px/.test(chip) && !/FFE500|primary-yellow/i.test(chip),
+    /padding-right:\s*18px/.test(noSave),
+  ]
+}, [true, false, false, true, true])
 check('no image, logo or banner in any finished job surface', () => DONE.filter(f => IMAGE.test(noComments(read(f)))), [])
 check('ZERO-GUARD: the image pattern still finds an image where one is known to be', () => IMAGE.test(noComments(read('components/FeedCard.tsx'))), true)
 

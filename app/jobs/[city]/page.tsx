@@ -49,10 +49,6 @@ export default function CityJobsPage() {
     }
   }, [filteredJobs, selectedJob])
 
-  const formatSalary = (job: Job) => {
-    if (job.salaryPeriod === 'hour') return `£${job.salaryMin}-${job.salaryMax}/hr`
-    return `£${(job.salaryMin / 1000).toFixed(0)}k-${(job.salaryMax / 1000).toFixed(0)}k/year`
-  }
 
   if (!cityInfo) {
     return notFound()
