@@ -40,6 +40,9 @@ export interface ManageCardProps {
   lines: ReactNode[]
   /** The attention strip, shown only when someone is waiting. */
   attention?: string
+  /** Where the strip goes, when it is not the same place as the title (job ads:
+   *  the title opens all applicants, the strip the new ones). */
+  onAttention?: () => void
   /** Whether the review panel is open; the page owns it. */
   open: boolean
   onToggleOpen: () => void
@@ -51,7 +54,10 @@ export interface ManageCardProps {
   children?: ReactNode
 }
 
-export default function ManageCard({ statusWord, statusDetail, live, title, lines, attention, open, onToggleOpen, actions, menu, menuLabel, children }: ManageCardProps) {
+export default function ManageCard({ statusWord, statusDetail, live, title, lines, attention, onAttention, open, onToggleOpen, actions, menu, menuLabel, children }: ManageCardProps) {
+  // aria-expanded only where there is a panel to expand: on job ads the title
+  // navigates, and announcing "collapsed" on a link-like control would be false.
+  const expands = !!children
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
@@ -78,12 +84,12 @@ export default function ManageCard({ statusWord, statusDetail, live, title, line
           {statusWord}{statusDetail ? ` · ${statusDetail}` : ''}
         </p>
         <h3 className={styles.title}>
-          <button type="button" className={styles.titleBtn} onClick={onToggleOpen} aria-expanded={open}>{title}</button>
+          <button type="button" className={styles.titleBtn} onClick={onToggleOpen} aria-expanded={expands ? open : undefined}>{title}</button>
         </h3>
         {lines.map((l, i) => <p key={i} className={i === lines.length - 1 && lines.length > 1 ? styles.info : styles.line}>{l}</p>)}
 
         {attention && (
-          <button type="button" className={styles.attn} onClick={onToggleOpen} aria-expanded={open}>
+          <button type="button" className={styles.attn} onClick={onAttention ?? onToggleOpen} aria-expanded={expands && !onAttention ? open : undefined}>
             <span className={styles.attnLead}>{attention}</span>
             <span className={styles.attnGo}>Review ›</span>
           </button>

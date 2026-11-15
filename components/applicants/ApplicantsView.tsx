@@ -62,7 +62,9 @@ export default function ApplicantsView() {
 
   const stageParam = params?.get('stage') as ListedStage | null
   const [stage, setStage] = useState<'all' | ListedStage>(stageParam && (LISTED_STAGES as readonly string[]).includes(stageParam) ? stageParam : 'all')
-  const [jobFilter, setJobFilter] = useState<string>('live')
+  // ?job= opens the list on one advert — /my-jobs' "N new applicants · Review"
+  // and its card titles land here (design 26, C). Default: all live job ads.
+  const [jobFilter, setJobFilter] = useState<string>(params?.get('job') || 'live')
 
   const [toast, setToast] = useState<Toast | null>(null)
   // The live toast also sits in a ref, so finishing it runs its side effect

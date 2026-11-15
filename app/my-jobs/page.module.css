@@ -8,75 +8,8 @@
 /* Page title: the brand serif 600 28/34, the same as More (design review, 15 Nov 2026). */
 .title { font-family: var(--font-serif), Georgia, serif; font-size: 28px; line-height: 34px; font-weight: 600; color: #0F172A; margin: 0 0 0.2rem 0; }
 .subtitle { color: var(--text-gray); font-size: 0.9rem; margin: 0; }
-.postJobBtn, .browseJobsBtn { padding: 0.5rem 1.25rem; background: var(--primary-yellow); border: none; border-radius: 8px; font-size: 0.875rem; font-weight: 600; color: var(--text-dark); cursor: pointer; transition: background 0.15s; text-decoration: none; white-space: nowrap; }
-.postJobBtn:hover, .browseJobsBtn:hover { background: var(--hover-yellow); }
-
-/* ─── Filter Tabs (quiet, matches interviews) ────────────────────────── */
-/* Restyled to recede: inactive = borderless muted text; active = subtle
-   light-grey chip with a hairline border. No more dark-navy filled tile.
-   Keeps counts. */
-/* CONTROLS WRAP; CONTENT SCROLLS. This row had `overflow-x: auto` AND a
-   hidden scrollbar, so at 390 the Archived tab sat off the right edge with no
-   affordance of any kind — not scrolled out of reach so much as gone. Found in
-   a screenshot at 390 on 18 Aug 2026: five tabs visible, Archived nowhere.
-   That matters on this page specifically, because Archived is where "Remove
-   ad" puts an advert, so an employer on a phone could file a role away and
-   then have no route back to it.
-
-   Same fix already applied to /candidates .filterStripLeft, /admin/analytics
-   .tabBar and /dashboard/analytics .tabBar — this is the fourth instance of a
-   decision already taken, not a new one. */
-.filterTabs {
-  display: flex; gap: 0.35rem;
-  flex-wrap: wrap;
-  row-gap: 0.4rem;
-  margin-bottom: 0.875rem;
-  padding-bottom: 0.625rem;
-  border-bottom: 1px solid var(--rs-border, var(--border-gray));
-}
-.filterTab {
-  padding: 0.2rem 0.55rem;
-  border-radius: 999px;
-  font-size: 0.72rem;
-  font-weight: 500;
-  cursor: pointer;
-  border: 1px solid transparent;
-  background: transparent;
-  color: var(--rs-text-muted, var(--text-gray));
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
-  white-space: nowrap; flex-shrink: 0;
-  display: inline-flex; align-items: center; gap: 0.25rem;
-}
-.filterTab:hover {
-  color: var(--rs-text, var(--text-dark));
-  background: var(--rs-bg-subtle, #f8fafc);
-}
-.filterTabActive {
-  background: var(--rs-bg-subtle, #f1f5f9);
-  color: var(--rs-text, var(--text-dark));
-  border-color: var(--rs-border, #e2e8f0);
-  font-weight: 600;
-}
-.filterTabActive:hover {
-  background: var(--rs-bg-subtle, #f1f5f9);
-  color: var(--rs-text, var(--text-dark));
-  border-color: var(--rs-border-strong, #cbd5e1);
-}
-.filterTabCount {
-  font-size: 0.68rem; font-weight: 500;
-  margin-left: 0.2rem; opacity: 0.65;
-}
-
-/* ─── Search Bar ───────────────────────────────────────────────────────── */
-.searchBar { display: flex; background: var(--white); border-radius: 8px; overflow: hidden; border: 1px solid var(--border-gray); margin-bottom: 1rem; }
-.searchInputGroup { flex: 1; display: flex; align-items: center; padding: 0 0.75rem; gap: 0.5rem; border-right: 1px solid var(--border-gray); }
-.searchInputGroup:last-child { border-right: none; }
-.searchIcon { color: var(--text-gray); flex-shrink: 0; }
-.searchInput { flex: 1; border: none; outline: none; padding: 0.6rem 0; font-size: 0.9rem; background: transparent; }
-.searchInput::placeholder { color: #9ca3af; }
-
-/* ─── Stats (matches interviews stat cards) ────────────────────────────── */
-.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; margin-bottom: 1.25rem; }
+.browseJobsBtn { padding: 0.5rem 1.25rem; background: var(--primary-yellow); border: none; border-radius: 8px; font-size: 0.875rem; font-weight: 600; color: var(--text-dark); cursor: pointer; transition: background 0.15s; text-decoration: none; white-space: nowrap; }
+.browseJobsBtn:hover { background: var(--hover-yellow); }
 .statsSmall { display: flex; gap: 0.75rem; margin-bottom: 1.25rem; }
 .statItem { background: var(--white); border: 1px solid var(--border-gray); border-top: 3px solid var(--primary-yellow); border-radius: 10px; padding: 0.75rem 1.25rem; display: flex; align-items: center; gap: 1rem; box-shadow: var(--card-shadow); }
 .statNumber { font-size: 1.5rem; font-weight: 700; color: var(--text-dark); line-height: 1; flex-shrink: 0; }
@@ -102,43 +35,8 @@
 
 /* ─── Card Header (title left + logo right) ──────────────────────────── */
 .cardHeader { display: flex; gap: 0.75rem; align-items: flex-start; margin-bottom: 0; }
-.companyLogo { width: 56px; min-width: 56px; max-width: 56px; height: 56px; border-radius: 8px; object-fit: contain; flex-shrink: 0; background: #fff; overflow: hidden; border: 1px solid var(--border-gray); padding: 2px; }
 .jobInfo { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0; }
 .jobTitle { font-size: 1.05rem; font-weight: 700; color: var(--text-dark); margin: 0; padding: 0; line-height: 1.3; }
-.jobKeyInfo { display: flex; align-items: center; gap: 0.3rem; flex-wrap: wrap; margin: 0; padding: 0; line-height: 1.4; }
-.salaryBadge { font-size: 0.9rem; font-weight: 700; color: var(--text-dark); padding: 0; background: none; }
-.typeBadge { font-size: 0.9rem; font-weight: 700; color: var(--text-dark); padding: 0; background: none; }
-
-/* ─── Card Content (single column, uniform line-height) ──────────────── */
-.cardContent { display: flex; flex-direction: column; gap: 0; margin-top: 0.5rem; }
-
-.cardMeta {
-  font-size: 0.875rem; font-weight: 400; color: var(--text-gray);
-  margin: 0; padding: 0.45rem 0 0; display: block; line-height: 1.4;
-}
-
-.cardActions {
-  display: grid; grid-template-columns: 1fr 1fr; gap: 0.15rem 1.5rem; margin-top: 0.25rem;
-}
-
-.cardAction {
-  font-size: 0.875rem; font-weight: 400; color: var(--text-dark);
-  background: none; border: none; padding: 0.35rem 0; margin: 0;
-  display: block; text-align: left; cursor: pointer; width: 100%; line-height: 1.4;
-  text-decoration: underline; text-underline-offset: 2px; text-decoration-color: #d1d5db;
-  transition: color 0.15s, text-decoration-color 0.15s;
-}
-.cardAction:hover { color: var(--dark-gray); text-decoration-color: var(--dark-gray); }
-
-/* ─── Card Bottom (status | posted date | boost) ────────────────────── */
-.cardBottom {
-  display: flex; align-items: center; justify-content: space-between;
-  margin-top: 1rem;
-}
-
-.postedDate {
-  font-size: 0.75rem; color: var(--text-gray); flex: 1; text-align: center; padding: 0 0.25rem;
-}
 
 /* Legacy v1 status badge (different class — kept for back-compat with
    any older view that still references .statusBadge directly). The
@@ -146,279 +44,13 @@
    .statusPill rule, so the cascade lets modifiers override. */
 .statusBadge { padding: 0.25rem 0.75rem; border-radius: 999px; font-size: 0.8rem; font-weight: 600; flex-shrink: 0; white-space: nowrap; }
 
-/* Boost button */
-.boostBtn {
-  padding: 0.35rem 0.875rem; background: var(--primary-yellow); color: var(--black); border: none;
-  border-radius: 6px; font-size: 0.8rem; font-weight: 700; cursor: pointer;
-  white-space: nowrap; flex-shrink: 0; transition: background 0.15s;
-}
-.boostBtn:hover { background: var(--hover-yellow); }
-.boostBtnActive { background: var(--hover-yellow); }
-
-/* Interview / hired badges */
-.interviewBadge { display: flex; align-items: center; gap: 0.35rem; padding: 0.25rem 0.5rem; background: var(--dark-gray); border-radius: 6px; font-size: 0.8rem; color: rgba(255,255,255,0.85); margin: 0.2rem 0; }
-
 /* ─── Row layout — line list, hairline-separated (matches interviews) ── */
 /* The list sits inside ONE rounded surface; each job is a single line
    with a thin bottom-border. No per-card chrome, calm scan. */
-/* An empty tab says so, inside the same bordered container the rows would
-   have filled. Muted, not an alert — an empty list is a state, not an error. */
-.emptyTabNote {
-  margin: 0;
-  padding: 28px 20px;
-  text-align: center;
-  font-size: 13.5px;
-  color: #64748b;
-}
-
-/* THE ADVERTS AS A BOARD, not as a table.
- *
- * auto-fill with a minmax floor rather than fixed breakpoints, so the number
- * of columns follows the space available instead of a guess about it. At 390
- * that resolves to one column; the container itself never overflows because
- * the floor is below the narrowest viewport we support.
- *
- * overflow: visible is load-bearing — the kebab menu opens out of its card and
- * would be clipped by anything else. */
-.cardGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 1.25rem;
-  overflow: visible;
-}
-
-@media (max-width: 420px) {
-  /* Below the minmax floor the grid would still force 320px and push the page
-     sideways. One column, sized to the space, and nothing overflows. */
-  .cardGrid { grid-template-columns: 1fr; }
-}
-
-/* The card is the whole unit — nothing is welded underneath it any more. This
-   wrapper exists ONLY so the ⋯ can be laid over the card: .jobCard is
-   overflow:hidden for the photo, so a menu opened inside it would be clipped. */
-.cardUnit {
-  position: relative;
-  min-width: 0;
-}
-
-/* WHERE THE BOARD PUTS THE BOOKMARK. Same corner, same size, same z-index — an
-   employer's card and a candidate's card put their one control in the same
-   place. z-index above the retired wash so it stays reachable on a filled ad. */
-.cardKebab {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  z-index: 4;
-}
-
-/* THE BUTTON WAS DRESSED FOR A WHITE ROW AND IS NOW ON A PHOTOGRAPH.
-   .kebabBtn is transparent with a muted grey glyph and a light-grey hover —
-   which on a dark banner is grey-on-dark that half the photos would swallow,
-   and a hover state that looks like a rendering fault. Matched to the board's
-   own overlay control instead: translucent dark disc, white glyph, the same
-   34px the bookmark uses. */
-.cardKebab .kebabBtn {
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  background: rgba(10, 22, 40, 0.55);
-  -webkit-backdrop-filter: blur(4px);
-  backdrop-filter: blur(4px);
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  color: #fff;
-}
-
-.cardKebab .kebabBtn:hover,
-.cardKebab .kebabBtn[aria-expanded="true"] {
-  background: rgba(10, 22, 40, 0.85);
-  border-color: rgba(255, 255, 255, 0.4);
-  color: #fff;
-}
-
-/* THE MENU IS CENTRED ON THE TRIGGER, WHICH WORKED IN THE MIDDLE OF A ROW AND
-   DOES NOT 12px FROM A CARD'S RIGHT EDGE: 200px centred on a 34px button puts
-   ~80px past the card, and at 390 that is past the viewport. Right-aligned to
-   the trigger instead, so it opens INTO the card. */
-.cardKebab .kebabMenu {
-  left: auto;
-  right: 0;
-  transform: none;
-  z-index: 20;
-}
-
-/* WHERE THE BOARD PUTS "Applied ✓" — the slot already meaning "how many people".
-   Clickable, because the number IS the way into the pipeline; the whole card
-   goes to the same place, so this is a shortcut rather than the only route. */
-.cardAppsBadge {
-  position: absolute;
-  top: 14px;
-  right: 56px;
-  z-index: 3;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 4px 9px;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  background: rgba(10, 22, 40, 0.55);
-  -webkit-backdrop-filter: blur(4px);
-  backdrop-filter: blur(4px);
-  color: #fff;
-  font-size: 11.5px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.cardAppsBadge:hover { background: rgba(10, 22, 40, 0.8); }
 
 /* The word drops below the card's own breakpoint — the count and the arrow
    still say what it is, and two cards side by side at 390 have no room for
    "applications" spelled out. */
-@media (max-width: 520px) {
-  .cardAppsWord { display: none; }
-}
-
-/* The stamp row UNDER "New", which is where the board already stacks a second
-   badge. Dark plate rather than a tint so it stays legible on a light banner
-   and a dark one alike — a stamp that vanishes on half the photos is worse
-   than no stamp. */
-.cardStampInfo,
-.cardStampHired {
-  position: absolute;
-  top: 48px;
-  left: 14px;
-  z-index: 3;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 3px 8px;
-  border-radius: 999px;
-  font-size: 0.72rem;
-  font-weight: 600;
-  background: rgba(15, 23, 42, 0.82);
-  color: #fff;
-}
-
-/* Hired sits below interview when both are present, rather than on top of it. */
-.cardStampHired { top: 78px; background: rgba(22, 101, 52, 0.9); }
-
-.jobRow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  background: transparent;
-  border: 0;
-  border-bottom: 1px solid var(--rs-border, var(--border-gray));
-  border-radius: 0;
-  padding: 0.75rem 1.125rem;
-  cursor: pointer;
-  transition: background 0.12s;
-  position: relative;
-}
-.jobRow:last-child { border-bottom: 0; }
-.jobRow:hover { background: var(--rs-bg-subtle, #f8fafc); }
-.jobRow:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--rs-text, #0f172a) 30%, transparent);
-  outline-offset: -2px;
-}
-
-/* Left cluster — packs tightly from the left. Items shrink/wrap if
-   needed; no slack-distribution. When the logo is hidden, no space is
-   reserved — the title sits immediately after the row's left padding. */
-.rowMain {
-  display: inline-flex;
-  align-items: center;
-  flex: 1 1 auto;
-  min-width: 0;
-  gap: 0;
-}
-
-/* Right cluster — fixed width side, items hug the right edge so every
-   row's right edge lines up regardless of how much content the left
-   cluster has. */
-.rowAside {
-  display: inline-flex;
-  align-items: center;
-  flex-shrink: 0;
-  gap: 0.625rem;
-  position: relative;
-}
-
-.rowTitle {
-  flex: 0 1 auto;
-  min-width: 0;
-  font-size: 0.95rem; font-weight: 700;
-  color: var(--rs-text, var(--text-dark));
-  margin: 0; padding: 0; line-height: 1.3;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.rowVenue,
-.rowLocation,
-.rowInterview,
-.rowHired {
-  flex: 0 0 auto;
-  font-size: 0.88rem; line-height: 1.3;
-  color: var(--rs-text-muted, #64748b);
-  font-weight: 500;
-  white-space: nowrap;
-}
-.rowVenue { color: var(--rs-text, var(--text-dark)); }
-.rowHired { color: var(--rs-stage-hired, #16a34a); font-weight: 600; }
-
-/* Em-dash separator between fields — same as the interviews page.
-   Symmetric margin = consistent breathing on both sides regardless of
-   which fields surround it. */
-.fieldSep {
-  display: inline-flex;
-  align-items: center;
-  flex: 0 0 auto;
-  margin: 0 0.45rem;
-  font-size: 0.88rem;
-  font-weight: 400;
-  color: var(--rs-text-soft, #94a3b8);
-  user-select: none;
-}
-
-/* Legacy .rowSep used elsewhere — alias to fieldSep visuals so nothing breaks. */
-.rowSep {
-  display: inline-flex;
-  align-items: center;
-  flex: 0 0 auto;
-  margin: 0 0.25rem;
-  font-size: 0.88rem;
-  color: var(--rs-text-soft, #94a3b8);
-  user-select: none;
-}
-
-/* Status pill — same color-mix quiet style as interviews. Status-
-   specific overrides below pick the accent (and MUST come after this
-   base rule so the cascade works — both are same-specificity single-
-   class selectors). */
-.statusPill {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.18rem 0.6rem;
-  font-size: 0.72rem;
-  font-weight: 600;
-  border-radius: 999px;
-  white-space: nowrap;
-  flex-shrink: 0;
-  letter-spacing: 0.01em;
-  background: color-mix(in srgb, var(--rs-text-muted, #64748b) 10%, transparent);
-  color: var(--rs-text-muted, #64748b);
-  border: 1px solid color-mix(in srgb, var(--rs-text-muted, #64748b) 25%, transparent);
-}
-
-/* Status modifiers — applied alongside .statusPill via the page.tsx
-   `${styles.statusPill} ${statusClass}` pattern. Order in this file
-   matters: each modifier must sit AFTER .statusPill so its bg/color/
-   border overrides the muted base. */
-.statusActiveGreen {
-  background: color-mix(in srgb, var(--rs-stage-offered, #10b981) 12%, transparent);
-  color: var(--rs-stage-offered, #10b981);
-  border: 1px solid color-mix(in srgb, var(--rs-stage-offered, #10b981) 30%, transparent);
-}
 .statusActive { background: var(--dark-gray); color: var(--primary-yellow); }
 .statusPaused {
   background: color-mix(in srgb, #f59e0b 12%, transparent);
@@ -437,130 +69,6 @@
 .statusAccepted { background: #dcfce7; color: #16a34a; }
 .statusFilled { background: #f1f5f9; color: #6b7280; }
 
-/* Applications: emphasised clickable SECONDARY action — quiet blue
-   accent so it doesn't compete with the single solid-yellow primary
-   CTA (+ Post New Job). One consistent pipeline-blue (--rs-stage-
-   reviewing #3b82f6) across every row regardless of job status, so
-   the page has just two competing colours: brand-yellow for the
-   primary CTA, calm blue for the per-row secondary action. */
-.applicationsPill {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  padding: 0.3rem 0.7rem;
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: var(--rs-stage-reviewing, #3b82f6);
-  background: color-mix(in srgb, var(--rs-stage-reviewing, #3b82f6) 10%, transparent);
-  border: 1px solid color-mix(in srgb, var(--rs-stage-reviewing, #3b82f6) 40%, transparent);
-  border-radius: 999px;
-  white-space: nowrap;
-  cursor: pointer;
-  flex-shrink: 0;
-  transition: background 0.15s, border-color 0.15s, transform 0.05s;
-}
-.applicationsPill:hover {
-  background: color-mix(in srgb, var(--rs-stage-reviewing, #3b82f6) 16%, transparent);
-  border-color: var(--rs-stage-reviewing, #3b82f6);
-}
-.applicationsPill:active { transform: translateY(1px); }
-.applicationsPill strong { font-weight: 700; }
-.applicationsPillArrow {
-  margin-left: 0.1rem;
-  font-weight: 500;
-  opacity: 0.7;
-}
-/* Mobile compresses "applications" → "apps" via these spans */
-.appCountWord { display: inline; }
-.appCountWordShort { display: none; }
-
-/* Company logo on the row — shown only for recruiter accounts (multi-
-   client). Smaller than v1 (40×40) to match the calmer line-row.
-   margin-right keeps it visually grouped with the title without needing
-   a gap on the row container (which would punch holes when the logo is
-   absent). */
-.rowLogo {
-  width: 40px; min-width: 40px; max-width: 40px; height: 40px;
-  border-radius: 8px; object-fit: contain; flex-shrink: 0;
-  margin-right: 0.625rem;
-  background: var(--rs-bg-surface, var(--white)); overflow: hidden;
-  border: 1px solid var(--rs-border, var(--border-gray)); padding: 2px;
-}
-
-/* ─── Kebab popover ───────────────────────────────────────────────────── */
-.kebabWrap { position: relative; flex-shrink: 0; }
-/* Overflow ⋯ — converged with the Interviews page's .overflowBtn: a 28px
-   square ghost button holding the lucide MoreHorizontal icon, same hover. */
-.kebabBtn {
-  width: 28px; height: 28px;
-  display: inline-flex; align-items: center; justify-content: center;
-  background: transparent; border: 1px solid transparent; border-radius: 6px;
-  color: var(--rs-text-muted, var(--text-gray)); line-height: 1; cursor: pointer; padding: 0;
-  transition: background 0.12s, border-color 0.12s, color 0.12s;
-}
-.kebabBtn:hover, .kebabBtn[aria-expanded="true"] {
-  background: var(--rs-bg-subtle, var(--light-gray)); border-color: var(--rs-border-strong, var(--border-gray)); color: var(--rs-text, var(--text-dark));
-}
-/* Dropdown menu — centred under the ⋯ button so it looks visually
-   anchored to the trigger rather than free-floating against the row's
-   right edge. translateX(-50%) horizontally centres the menu on the
-   trigger's centre line. Last-row overflow is unlikely at 200px min-
-   width on a 1440px-wide layout, but the @media block below shifts to
-   right-anchored on narrow viewports to avoid clipping. */
-.kebabMenu {
-  position: absolute;
-  top: calc(100% + 4px);
-  left: 50%;
-  transform: translateX(-50%);
-  min-width: 200px;
-  background: var(--white); border: 1px solid var(--border-gray); border-radius: 8px;
-  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.12);
-  padding: 0.25rem; z-index: 100;
-}
-
-@media (max-width: 768px) {
-  /* On narrow screens the centred menu would clip on the right edge.
-     Fall back to right-anchored so the menu opens leftward from the
-     trigger. */
-  .kebabMenu {
-    left: auto;
-    right: 0;
-    transform: none;
-  }
-}
-.kebabItem {
-  width: 100%;
-  text-align: left;
-  padding: 0.5rem 0.75rem;
-  background: transparent;
-  border: none;
-  border-radius: 5px;
-  font-size: 0.85rem;
-  color: var(--text-dark);
-  cursor: pointer;
-  /* Flex so the leading icon slot + label sit side-by-side. Items
-     without icons still render an empty slot of the same width, so
-     every label across the menu starts at the same x. */
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-.kebabItem:hover { background: var(--light-gray); }
-
-/* Fixed-width icon slot at the left of every menu item. Items with an
-   icon (e.g. ⚡ on "Boost this job") fill it; items without leave it
-   empty as a visual spacer so the labels line up. */
-.kebabItemIcon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 1.1rem;
-  height: 1rem;
-  flex-shrink: 0;
-  font-size: 0.95rem;
-  line-height: 1;
-}
-
 /* ─── Mobile (≤768px): reflow the one-line row into a stacked card ─────
    Desktop (≥768px, the base rules above) keeps the inline dash-separated
    one-line row EXACTLY as approved. On mobile the row reflows, same DOM
@@ -574,59 +82,6 @@
    markup separators are `.fieldSep` — so on mobile a wrapped field used
    to drag its dash with it ("— London"). We hide `.fieldSep` now, so the
    line break itself is the only separator and no dash is ever orphaned. */
-@media (max-width: 768px) {
-  .jobRow {
-    flex-wrap: wrap;
-    align-items: flex-start;
-    justify-content: flex-start;
-    padding: 0.875rem;
-    gap: 0.35rem 0.5rem;
-  }
-  /* Left cluster spans the full row and wraps: logo + title share line 1,
-     each meta field breaks onto its own full-width line below. */
-  .rowMain {
-    flex: 1 1 100%;
-    flex-wrap: wrap;
-    align-items: center;
-    row-gap: 0.15rem;
-  }
-  /* Kill the inline em-dashes on mobile — line breaks are the separator. */
-  .fieldSep { display: none; }
-  /* Title wraps to up to 2 lines instead of ellipsis-truncating. */
-  .rowTitle {
-    white-space: normal;
-    overflow: hidden;
-    text-overflow: clip;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    flex: 1 1 auto;
-  }
-  /* Each meta field claims its own full-width line, starting clean-left. */
-  .rowVenue,
-  .rowLocation,
-  .rowInterview,
-  .rowHired {
-    flex: 0 0 100%;
-    white-space: normal;
-  }
-  /* Right cluster drops to its own full-width line; the ⋯ hugs the right
-     edge (margin-left:auto) so it's never cramped against the apps pill. */
-  .rowAside {
-    flex: 1 1 100%;
-    width: 100%;
-    gap: 0.5rem;
-    margin-top: 0.1rem;
-  }
-  .rowAside .kebabWrap { margin-left: auto; }
-  /* Compact "applications" → "apps" to keep the action line tidy. */
-  .appCountWord { display: none; }
-  .appCountWordShort { display: inline; }
-}
-.interviewBadge strong { color: var(--primary-yellow); }
-.interviewBadgeIcon { font-size: 0.8rem; }
-.hiredInfo { display: flex; align-items: center; gap: 0.35rem; padding: 0.25rem 0.5rem; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; font-size: 0.8rem; color: #16a34a; margin: 0.2rem 0; }
-.hiredIcon { font-size: 0.8rem; font-weight: 700; }
 
 /* Withdraw button (candidate applied jobs view) */
 .withdrawBtn {
@@ -637,27 +92,12 @@
 }
 .withdrawBtn:hover { background: #f9fafb; border-color: #d1d5db; }
 
-/* ─── Past Interviews ──────────────────────────────────────────────────── */
-.pastSection { margin-top: 2rem; border-top: 1px solid var(--border-gray); padding-top: 1.25rem; }
-
 /* ─── Responsive ───────────────────────────────────────────────────────── */
 @media (max-width: 768px) {
   .jobsList { grid-template-columns: 1fr; }
-  .stats { grid-template-columns: repeat(2, 1fr); }
   .header { flex-direction: column; align-items: stretch; }
-  .postJobBtn, .browseJobsBtn { text-align: center; }
+  .browseJobsBtn { text-align: center; }
   .container { padding: 1rem 1rem 3rem; }
-}
-
-@media (max-width: 640px) {
-  .searchBar { flex-direction: column; }
-  .searchInputGroup { border-right: none; border-bottom: 1px solid var(--border-gray); }
-  .searchInputGroup:last-child { border-bottom: none; }
-}
-
-@media (max-width: 480px) {
-  .stats { grid-template-columns: repeat(2, 1fr); }
-  .cardActions { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 375px) {
@@ -687,3 +127,58 @@
 .shiftCounts { display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0; }
 .shiftAvail { font-size: 0.78rem; font-weight: 700; color: #166534; background: #f0fdf4; border: 1px solid #bbf7d0; padding: 0.1rem 0.45rem; border-radius: 999px; }
 .shiftStatus { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: #475569; background: #f1f5f9; padding: 0.1rem 0.45rem; border-radius: 6px; }
+
+/* ── JOB ADS (design 26, C) ─────────────────────────────────────────────
+   The employer's /my-jobs: "Job ads" with a yellow Post a job, the Shifts
+   box, three tabs with search as one icon at their right, and ONE column of
+   ManageCards, max 720 — not the 3-up grid. Smallest text 14px. */
+.adsWrap { max-width: 720px; margin: 0 auto; padding: 24px 16px 48px; box-sizing: border-box; }
+@media (min-width: 768px) { .adsWrap { padding: 32px 32px 64px; max-width: 784px; } }
+.adsHead { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
+.adsTitle { margin: 0; font-size: 24px; line-height: 1.2; font-weight: 700; letter-spacing: -0.02em; color: #0F172A; }
+.adsPost {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: 12px;
+  background: var(--primary-yellow, #FFE500);
+  color: #0F172A;
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.adsTabsRow { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 18px 0 12px; border-bottom: 1px solid #DFE3EA; }
+.adsTabs { display: flex; flex-wrap: wrap; gap: 4px; }
+.adsTab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  background: none;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  color: #334155;
+  cursor: pointer;
+}
+.adsTabOn { color: #0F172A; border-bottom-color: #0F172A; }
+.adsTab:focus-visible { outline: 3px solid rgba(15, 23, 42, 0.35); outline-offset: -3px; }
+.adsTabCount { font-weight: 500; color: #64748b; font-variant-numeric: tabular-nums; }
+.adsSearchBtn { width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; border: 0; border-radius: 10px; background: none; color: #0F172A; cursor: pointer; }
+.adsSearchBtn:focus-visible { outline: 3px solid rgba(15, 23, 42, 0.35); outline-offset: 0; }
+.adsSearch { width: 100%; height: 44px; box-sizing: border-box; margin: 0 0 12px; padding: 0 14px; border: 1px solid #DFE3EA; border-radius: 12px; background: #ffffff; font: inherit; font-size: 16px; color: #0F172A; }
+.adsSearch:focus { outline: 3px solid rgba(15, 23, 42, 0.2); outline-offset: 0; border-color: #0F172A; }
+.adsList { display: flex; flex-direction: column; gap: 12px; }
+.adsEmptyNote { margin: 8px 0; font-size: 15px; color: #64748b; }
+.adsEmptyBox { display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 40px 16px; border: 1px dashed #DFE3EA; border-radius: 16px; text-align: center; }
+.adsEmptyTitle { margin: 0; font-size: 16px; font-weight: 600; color: #334155; }
+/* The pay in the 1b short form; "Add the pay" where there is none. */
+.adsPay { font-weight: 700; color: #0F172A; font-variant-numeric: tabular-nums; }
+.adsAddPay { padding: 0; border: 0; background: none; font: inherit; font-weight: 600; color: #0F172A; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.adsAddPay:focus-visible { outline: 3px solid rgba(15, 23, 42, 0.35); outline-offset: 2px; border-radius: 4px; }

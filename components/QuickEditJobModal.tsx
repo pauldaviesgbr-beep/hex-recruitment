@@ -41,9 +41,11 @@ interface Props {
   onCancel: () => void
   /** The full editor, for everything this dialog deliberately leaves out. */
   fullEditHref: string
+  /** "Add the pay" on /my-jobs opens this dialog ON the pay field (design 26, C). */
+  focusField?: 'pay'
 }
 
-export default function QuickEditJobModal({ job, onSave, onCancel, fullEditHref }: Props) {
+export default function QuickEditJobModal({ job, onSave, onCancel, fullEditHref, focusField }: Props) {
   const [values, setValues] = useState<QuickEditValues>({
     title: job.title,
     location: job.location,
@@ -56,8 +58,9 @@ export default function QuickEditJobModal({ job, onSave, onCancel, fullEditHref 
   const [error, setError] = useState<string | null>(null)
   const [errorField, setErrorField] = useState<keyof QuickEditValues | null>(null)
   const titleRef = useRef<HTMLInputElement>(null)
+  const payRef = useRef<HTMLInputElement>(null)
 
-  useEffect(() => { titleRef.current?.focus() }, [])
+  useEffect(() => { (focusField === 'pay' ? payRef : titleRef).current?.focus() }, [focusField])
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape' && !busy) onCancel() }
     window.addEventListener('keydown', onKey)
@@ -79,6 +82,9 @@ export default function QuickEditJobModal({ job, onSave, onCancel, fullEditHref 
 
     if (!values.title.trim()) return fail('Give the role a title.', 'title')
     if (!values.location.trim()) return fail('Say where the role is.', 'location')
+    // PAY IS REQUIRED (design 26, round 2), here as on the full form: the home
+    // page promises "the salary on every one".
+    if (!(values.salaryMin > 0)) return fail('Add the pay — every advert on Thrive shows it.', 'salaryMin')
     // A max below a min is not a validation nicety: six code paths annualise
     // pay before comparing, so an inverted range misfires in matching long
     // before anyone reads the advert.
@@ -161,7 +167,7 @@ export default function QuickEditJobModal({ job, onSave, onCancel, fullEditHref 
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.7rem' }}>
             <div style={{ flex: '1 1 130px', minWidth: 0 }}>
               <label style={label} htmlFor="qe-min">Salary from</label>
-              <input id="qe-min" type="number" inputMode="numeric" style={input('salaryMin')}
+              <input id="qe-min" ref={payRef} type="number" inputMode="numeric" style={input('salaryMin')}
                 value={values.salaryMin || ''} disabled={busy}
                 onChange={(e) => set('salaryMin', Number(e.target.value) || 0)} />
             </div>

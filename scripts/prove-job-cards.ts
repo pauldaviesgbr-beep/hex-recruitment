@@ -16,6 +16,8 @@ import * as jobCard from '../lib/jobCard'
 import { jobPay, jobPayText, jobRowModel, primaryEmploymentType } from '../lib/jobCard'
 import { shiftPay, shiftPlace, formatWhen, byStartDate, type TempPost } from '../lib/tempWork'
 import { appPay } from '../lib/appApi'
+// @ts-ignore — a plain .mjs (shared with the drive); tsx loads it as-is
+import { tabOf } from '../lib/jobAdTabs.mjs'
 
 const ROOT = join(__dirname, '..')
 const read = (rel: string) => readFileSync(join(ROOT, rel), 'utf8')
@@ -124,6 +126,8 @@ const DONE = [
   // the employer's manage view and its card, and the home page's role cards
   'components/SaveJobButton.tsx', 'components/ShiftRow.tsx', 'app/temp-work/page.tsx',
   'components/ManageCard.tsx', 'app/temp-work/manage/page.tsx', 'app/page.tsx', 'app/HomeClient.tsx',
+  // design 26, C: the employer's job ads
+  'app/my-jobs/page.tsx',
 ]
 
 // ── THE 1a CARD ────────────────────────────────────────────────────────────
@@ -229,6 +233,31 @@ check('"Competitive" appears in no string anywhere in app, components or lib', (
   const files = ['app', 'components', 'lib'].flatMap(walk)
   return { scanned: files.length > 200, hits: files.filter(f => /['"`][^'"`\n]*\bCompetitive\b/.test(noComments(read(f)))) }
 }, { scanned: true, hits: [] })
+// ── JOB ADS, /my-jobs (design 26, C) ───────────────────────────────────────
+check('the three tabs partition every status: paused is live; closed is archived; filled is filled', () =>
+  (['active', 'paused', 'filled', 'closed', 'archived'] as const).map(s => tabOf(s)),
+  ['live', 'live', 'filled', 'archived', 'archived'])
+check('/my-jobs: Live · Filled · Archived on the shared ManageCard, counts from the same list, no applicant-stage tabs, no FeedCard, no images', () => {
+  const mj = noComments(read('app/my-jobs/page.tsx'))
+  return [
+    /<ManageCard\b/.test(mj) && !/<FeedCard\b/.test(mj),
+    /(\['live', 'filled', 'archived'\] as const)/.test(mj) && /c\[tabOf\(j\.status\)/.test(mj) && /\.filter\(j => tabOf\(j\.status\) === activeTab\)/.test(mj),
+    /key: 'interviewing'|key: 'offers'|key: 'hired'|detailedOffers|rawInterviews/.test(mj),
+    IMAGE.test(mj),
+    />Job ads<\/h1>/.test(mj) && /aria-label=\{searchOpen \? 'Close search' : 'Search job ads'\}/.test(mj),
+  ]
+}, [true, true, false, false, true])
+check('/my-jobs: no pay shows "Add the pay" (opening the editor on the pay field), and the quick editor requires pay', () => {
+  const mj = noComments(read('app/my-jobs/page.tsx')), qe = noComments(read('components/QuickEditJobModal.tsx'))
+  return [/Add the pay/.test(mj) && /setEditFocus\('pay'\)/.test(mj) && /focusField=\{editFocus\}/.test(mj), /payRef/.test(qe) && /!\(values\.salaryMin > 0\)/.test(qe)]
+}, [true, true])
+check('/my-jobs: the countdown is only claimed where the expiry cron will act (never on a recruiter posting); "new" is the Applicants list\'s own stage', () => {
+  const mj = noComments(read('app/my-jobs/page.tsx'))
+  return [/if \(job\.isRecruiterPosting\) return null/.test(mj), /stageOf\(status\) === 'new'/.test(mj), /\/applied\?job=\$\{job\.id\}/.test(mj)]
+}, [true, true, true])
+check('the manage card puts its actions inline at the right from 768 (design 26, C: laptop)', () =>
+  /@media \(min-width: 768px\)\s*\{[^@]*\.card:has\(> \.actions\)\s*\{[^}]*grid-template-columns:\s*minmax\(0, 1fr\) 150px/.test(noComments(read('components/ManageCard.module.css'))), true)
+
 check('withdrawing: nothing is written during the 5-second Undo; the page going away writes it with keepalive; "I\'m available" inside the window is the Undo', () => {
   const tw = noComments(read('app/temp-work/page.tsx'))
   const fn = tw.slice(tw.indexOf('const withdrawInterest = '), tw.indexOf('// THE PAGE GOING AWAY') > -1 ? tw.indexOf('const withdrawInterest = ') + 1200 : undefined)
