@@ -283,8 +283,11 @@ check('post-job ?copy=: this employer\'s own ad only, a NEW advert (fresh refere
     /if \(editId\) \{\s*setIsEditMode\(true\)/.test(pj),
     // a stored 0 fills an EMPTY pay box (the form then asks), never "0"
     /salaryMin: jobToEdit\.salaryMin && jobToEdit\.salaryMin > 0 \? String\(jobToEdit\.salaryMin\) : ''/.test(pj) && !/salaryMin: jobToEdit\.salaryMin\?\.toString\(\)/.test(pj),
+    // a copy is not autosaved, so it never claims to be: no "Saving as you go",
+    // no "Save & finish later"
+    /: copyId\s*\?\s*\{ kind: 'saving', text: 'Copy of a past ad · not saved until you post it' \}/.test(pj) && /\{copyId \? 'Cancel' : <>Save &amp; finish later<\/>\}/.test(pj),
   ]
-}, [true, true, true, true, true, true, true])
+}, [true, true, true, true, true, true, true, true])
 check('the manage card\'s ⋯: a danger item goes LAST, red #B42318, below a divider; Remove ad is the danger item', () => {
   const mc = noComments(read('components/ManageCard.tsx')), css = noComments(read('components/ManageCard.module.css')), mj = noComments(read('app/my-jobs/page.tsx'))
   return [

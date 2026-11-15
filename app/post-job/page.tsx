@@ -1654,6 +1654,11 @@ function PostJobContent() {
                         kind: 'live',
                         text: `Live since ${(publishedAt ?? new Date()).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}${formData.title ? ` · ${formData.title}` : ''}${formData.location ? `, ${formData.location}` : ''}`,
                       }
+                    // A COPY IS NOT AUTOSAVED (it would overwrite the one saved
+                    // draft), so it must not say it is: until it is posted,
+                    // nothing of it has been written anywhere.
+                    : copyId
+                      ? { kind: 'saving', text: 'Copy of a past ad · not saved until you post it' }
                     : savedAt
                       ? { kind: 'saved', text: `Draft saved${[formData.title, formData.location].filter(Boolean).length ? ` · ${[formData.title, formData.location].filter(Boolean).join(', ')}` : ''}` }
                       : { kind: 'saving', text: 'Saving as you go · draft' }
@@ -2133,7 +2138,8 @@ function PostJobContent() {
           {stepped && step === 1 && (
             <div className={flow.stepFooter}>
               <p className={flow.stepFooterNote}>Everything here can be edited after the ad is live.</p>
-              <button type="button" className={flow.textBtn} onClick={() => router.push('/my-jobs')}>Save &amp; finish later</button>
+              {/* A copy saves nothing to finish later; it can be started again from its ad. */}
+              <button type="button" className={flow.textBtn} onClick={() => router.push('/my-jobs')}>{copyId ? 'Cancel' : <>Save &amp; finish later</>}</button>
               <button type="button" className={flow.primaryBtn} onClick={() => goToStep(2)}>Next — the advert →</button>
             </div>
           )}
