@@ -171,8 +171,8 @@ check(
 // listings collapse to "Chef De Partie", all from one employer.
 
 check(
-  'the role cards render the FULL title',
-  () => pageCode.includes('{job.title}'),
+  'the role cards are the shared text-led components, which render the job’s own title (design 26, A)',
+  () => /<JobRow[\s\S]*?job=\{job\}/.test(pageCode) && /<JobCardLink[\s\S]*?variant="home"/.test(pageCode),
   true
 )
 check(
@@ -180,10 +180,19 @@ check(
   () => /shortJobTitle|truncateTitle|split\('–'\)/.test(pageCode),
   false
 )
+// DESIGN 26 REVERSED ONE HALF OF THIS: from 769 the home cards are a FIXED
+// 248px and clamp the title to two lines, so the grid lines up and the reserve
+// is exact. The phone rows must still never clamp — the full title stays
+// reachable on the home page itself, as well as on every advert.
 check(
-  'and no line-clamp cuts it in CSS either',
-  () => /\.heroRoleTitle\s*\{[^}]*line-clamp/.test(css),
-  false
+  'the phone rows never clamp the title; only the fixed-height 1a home card does (design 26)',
+  () => {
+    const rowCss = read('components/JobRow.module.css')
+    const cardCss = read('components/JobTypeCard.module.css')
+    const rowTitle = (rowCss.match(/\.title\s*\{[^}]*\}/) || [''])[0]
+    return [/line-clamp/.test(rowTitle), /\[data-variant='home'\] \.title\s*\{[^}]*-webkit-line-clamp:\s*2/.test(cardCss)]
+  },
+  [false, true]
 )
 
 // ── EVERY CLASS THE PAGE USES HAS A RULE BEHIND IT ─────────────────────────
@@ -207,7 +216,7 @@ check(
 // The reverse is not an error — a stylesheet may carry rules for a sibling
 // page — but the hero's own new classes must exist, or the layout silently
 // falls back to unstyled inline content.
-for (const cls of ['heroSearch', 'heroField', 'heroInput', 'heroSearchBtn', 'heroUnderline', 'heroRoles', 'heroRoleCard', 'heroRoleTitle', 'foundingStrip']) {
+for (const cls of ['heroSearch', 'heroField', 'heroInput', 'heroSearchBtn', 'heroUnderline', 'homeList', 'homeGrid', 'homeCardWide', 'foundingStrip']) {
   check(`.${cls} is defined`, () => new RegExp(`\\.${cls}\\s*[{,]`).test(css), true)
 }
 
@@ -223,52 +232,39 @@ check(
   true
 )
 check(
-  'two cards at 390, four from 769 up',
+  'three rows at 390, a 2x2 of four from 769, a 3x2 of six from 1024 (design 26, A)',
   () => {
     const base = css.split('@media (min-width: 769px)')[0]
     const desktop = css.split('@media (min-width: 769px)')[1] || ''
-    return /\.heroRoleCardWide\s*\{\s*display:\s*none/.test(base) && /\.heroRoleCardWide\s*\{\s*display:\s*flex/.test(desktop)
+    const wide = css.split('@media (min-width: 1024px)')[1] || ''
+    return [
+      /newestRoles\.slice\(0, 3\)\.map/.test(pageCode) && /newestRoles\.slice\(0, 6\)\.map/.test(pageCode) && /\.limit\(6\)/.test(pageCode),
+      /\.homeGrid\s*\{\s*display:\s*none/.test(base),
+      /\.homeList\s*\{\s*display:\s*none/.test(desktop) && /\.homeGrid\s*\{[^}]*repeat\(2, minmax\(0, 1fr\)\)/.test(desktop) && /\.homeCardWide\s*\{\s*display:\s*none/.test(desktop),
+      /\.homeGrid\s*\{[^}]*repeat\(3, minmax\(0, 1fr\)\)/.test(wide) && /\.homeCardWide\s*\{\s*display:\s*block/.test(wide),
+    ]
   },
-  true
+  [true, true, true, true]
 )
-// ── THE TABLET BLOCK ───────────────────────────────────────────────────────
-// 769-1199 was a width nobody had designed for: it took the desktop hero box,
-// the tablet headline, the MOBILE stacked search and the MOBILE one-column
-// grid at once. These two assert the block that fixed it, so the next person
-// widening a query finds out here rather than on a reviewer's iPad.
-const tablet = css.split('@media (min-width: 769px) and (max-width: 1199px)')[1] || ''
+// ── THE RESERVES ──────────────────────────────────────────────────────────
+// A MEDIA QUERY ADDS NO SPECIFICITY, so a later rule wins. The reserves were
+// three numbers in three blocks (318, 386, 362), and the 2x2 one was once
+// silently beaten by a later <=1024 rule: the diff read correctly and the
+// computed value did not move. They are now the LAST rules in the file, and
+// this asserts exactly that — order, not the numbers, so re-measuring a
+// reserve (which the sheet instructs) never turns it red.
 check(
-  'the tablet block puts the four cards in a 2x2',
-  () => tablet.includes("grid-template-columns: repeat(2, 1fr)"),
-  true
-)
-check(
-  'the 2x2 reserve is declared AFTER the <=1024 rule it overrides',
+  'the two home reserves are the last heroRolesSection rules in the file: phone, then 769+',
   () => {
-    // A MEDIA QUERY ADDS NO SPECIFICITY. The first attempt put this rule in the
-    // tablet block ABOVE the <=1024 one, the diff read correctly, and the
-    // computed value stayed 318px. Order is the whole assertion.
-    //
-    // AND IT NO LONGER PINS THE NUMBER. This used to search for the literal
-    // `min-height: 385px`, so the reserve could not be re-measured without the
-    // check going red about correct work — and re-measuring is exactly what
-    // this sheet instructs ("re-measure rather than nudging the number").
-    // A check that forbids the maintenance it depends on is the wrong check.
-    // It was 385 and is 386: the See-all link made the row 1px taller, the
-    // section settles at 385.56, and a 385 reserve no longer covered it.
-    // AND THE SEARCH STARTS FROM THE 318 RULE, NOT FROM THE TOP OF THE FILE.
-    // THERE ARE TWO 769-1199 BLOCKS — the hero padding one and this reserve —
-    // so a bare indexOf finds the FIRST, which sits above 318 and would make
-    // this assertion answer about the wrong block entirely. Caught by watching
-    // this check fail on purpose after it was reworked.
-    const i1024 = css.indexOf('min-height: 318px')
-    const iTablet = i1024 > -1 ? css.indexOf('@media (min-width: 769px) and (max-width: 1199px)', i1024) : -1
-    const i769 = iTablet > -1 ? css.indexOf('min-height:', iTablet) : -1
-    return i1024 > -1 && iTablet > -1 && i769 > -1 && i769 > i1024
+    const flat = css.replace(/\r\n/g, '\n')
+    const iPhone = flat.lastIndexOf('@media (max-width: 768px) {\n  .heroRolesSection { min-height:')
+    const iWide = flat.lastIndexOf('@media (min-width: 769px) {\n  .heroRolesSection { min-height:')
+    const lastMention = flat.lastIndexOf('.heroRolesSection')
+    const declared = (flat.match(/\.heroRolesSection\s*\{\s*min-height:/g) || []).length
+    return [iPhone > -1, iWide > iPhone, lastMention > iWide && lastMention < iWide + 80, declared]
   },
-  true
+  [true, true, true, 2]
 )
-
 check(
   'the fields can shrink — a flex child defaults to refusing to',
   () => /\.heroField\s*\{[^}]*min-width:\s*0/.test(css) && /\.heroInput\s*\{[^}]*min-width:\s*0/.test(css),

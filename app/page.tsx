@@ -8,7 +8,10 @@ import ThriveMark from '@/components/ThriveMark'
 import { supabase } from '@/lib/supabase'
 import { supabaseJobToJob } from '@/lib/types'
 import type { Job } from '@/lib/mockJobs'
-import { formatJobSalary, formatJobLocation } from '@/lib/jobCard'
+import JobRow from '@/components/JobRow'
+import JobCardLink from '@/components/JobCardLink'
+import rowStyles from '@/components/JobRow.module.css'
+import { useSavedJobs } from '@/lib/useSavedJobs'
 import { Ico } from '@/components/icons'
 import { EMPLOYER_COHORT_CAP } from '@/lib/constants/cohort'
 import { BRAND_NAME, BRAND_TAGLINE } from '@/lib/constants/brand'
@@ -21,6 +24,8 @@ const DEMO_BASE = 'https://aaljufxcniacfggqiuls.supabase.co/storage/v1/object/pu
 
 export default function Home() {
   const router = useRouter()
+  // Save on the home cards and rows: the board's own save (lib/useSavedJobs).
+  const { isSaved, toggleSave } = useSavedJobs()
   const [authRedirecting, setAuthRedirecting] = useState(false)
   const [spotsRemaining, setSpotsRemaining] = useState<number | null>(null)
   const [liveJobs, setLiveJobs] = useState<number | null>(null)
@@ -91,7 +96,9 @@ export default function Home() {
         .select('*')
         .eq('status', 'active')
         .order('posted_at', { ascending: false })
-        .limit(4)
+        // SIX (design 26, A): three rows on a phone, a 2x2 of four from 769,
+        // a 3x2 of six from 1024. One query either way; CSS shows the right number.
+        .limit(6)
       if (!alive) return
       setNewestRoles((data || []).map(supabaseJobToJob))
     })()
@@ -254,24 +261,37 @@ export default function Home() {
                   : 'See all jobs →'}
               </Link>
             </div>
-            <div className={styles.heroRoles}>
-              {newestRoles.map((job, i) => (
-                <Link
+            {/* THE TEXT-LED HOME CARDS (design 26, A). No image, no logo,
+                the shared pay text ("£42k a year", never "£42k/year").
+                PHONE: three 1b rows in one boxed list, line 3 "via {recruiter}
+                · age". FROM 769: the 1a card at a fixed 248px — 2x2, then 3x2
+                from 1024 — with the title clamped to two lines (design's call:
+                the fixed height is what makes the reserve below exact). The
+                full title is still on the phone rows and on every advert.
+                NOT TRUNCATED AT THE EN DASH anywhere: 40 live listings would
+                collapse to "Chef De Partie". */}
+            <div className={`${rowStyles.list} ${styles.homeList}`}>
+              {newestRoles.slice(0, 3).map(job => (
+                <JobRow
                   key={job.id}
-                  href={`/job/${job.id}`}
-                  className={`${styles.heroRoleCard} ${i > 1 ? styles.heroRoleCardWide : ''}`}
-                >
-                  <span className={styles.heroRoleEmployer}>{job.company}</span>
-                  {/* THE FULL TITLE, NOT TRUNCATED AT THE EN DASH. Cutting
-                      there is right in admin and destroys the board: 40 live
-                      listings collapse to "Chef De Partie", all from one
-                      employer, and the phrase after the dash is the only
-                      thing telling them apart. It wraps instead. */}
-                  <span className={styles.heroRoleTitle}>{job.title}</span>
-                  <span className={styles.heroRoleMeta}>
-                    {formatJobSalary(job)} · {formatJobLocation(job)}
-                  </span>
-                </Link>
+                  job={job}
+                  viaLine
+                  onSelect={j => router.push(`/job/${j.id}`)}
+                  saved={isSaved(job.id)}
+                  onToggleSave={j => toggleSave(j.id)}
+                />
+              ))}
+            </div>
+            <div className={styles.homeGrid}>
+              {newestRoles.slice(0, 6).map((job, i) => (
+                <JobCardLink
+                  key={job.id}
+                  job={job}
+                  variant="home"
+                  className={i >= 4 ? styles.homeCardWide : undefined}
+                  saved={isSaved(job.id)}
+                  onToggleSave={j => toggleSave(j.id)}
+                />
               ))}
             </div>
           </>
