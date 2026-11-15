@@ -624,8 +624,10 @@ function PostJobContent() {
           workLocationType: (jobToEdit.workLocationType || 'In person') as 'In person' | 'Remote' | 'Hybrid',
           // Editing an advert must not silently drop what it already said.
           requiresRightToWork: (jobToEdit.workAuthorization || []).length > 0,
-          salaryMin: jobToEdit.salaryMin?.toString() || '',
-          salaryMax: jobToEdit.salaryMax?.toString() || '',
+          // A stored 0 is "no pay", not "£0": the box stays empty so the form
+          // asks for the figure, rather than showing a pay nobody chose.
+          salaryMin: jobToEdit.salaryMin && jobToEdit.salaryMin > 0 ? String(jobToEdit.salaryMin) : '',
+          salaryMax: jobToEdit.salaryMax && jobToEdit.salaryMax > 0 ? String(jobToEdit.salaryMax) : '',
           salaryPeriod: jobToEdit.salaryPeriod || 'hour',
           location: jobToEdit.location || '',
           area: jobToEdit.area || '',
