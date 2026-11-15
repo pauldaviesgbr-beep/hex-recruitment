@@ -1,17 +1,16 @@
 'use client'
 
 import type { Job } from '@/lib/mockJobs'
-import FeedCard from '@/components/FeedCard'
-import { cardModelFromJob } from '@/lib/jobCard'
-import styles from '@/app/jobs/page.module.css'
+import JobRow from '@/components/JobRow'
 
-// The job board card. Everything visual now lives in <FeedCard>; this file is
-// the job-shaped half of it — the model mapping plus the controls only a job has
-// (save, applied, shortlisted).
+// The job board card — NOW THE TEXT-LED 1b ROW (design_handoff_job_cards_text_led;
+// design 25: no images anywhere jobs appear). It kept its name and its props so
+// every caller (/jobs, the post-job preview, the jobs in the /temp-work feed)
+// changes in one place. The photo card it replaced was <FeedCard>, which still
+// draws shifts and the employer's job ads until their own step on this branch.
 //
-// It kept its name and its props on purpose: /jobs is the busiest page in the
-// product and this refactor should be invisible there. Nothing about how a job
-// renders changed, only where the code for it lives.
+// `boosted` is accepted and no longer drawn: on the photo card it was a yellow
+// ring, and the text-led spec has no boost treatment.
 
 export interface JobCardProps {
   job: Job
@@ -26,30 +25,16 @@ export interface JobCardProps {
 }
 
 export default function JobCard({
-  job, onSelect, saved, onToggleSave, applied, shortlisted, boosted,
+  job, onSelect, saved, onToggleSave, applied, shortlisted,
 }: JobCardProps) {
-  const showSave = typeof onToggleSave === 'function'
-
   return (
-    <FeedCard
-      model={cardModelFromJob(job)}
-      onSelect={onSelect ? () => onSelect(job) : undefined}
-      boosted={boosted}
-      controls={showSave ? (
-        <button
-          className={`${styles.cardSave} ${saved ? styles.cardSaved : ''}`}
-          onClick={e => { e.stopPropagation(); onToggleSave!(job) }}
-          aria-label={saved ? 'Unsave job' : 'Save job'}
-        >
-          <svg viewBox="0 0 24 24" fill={saved ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
-            <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
-          </svg>
-        </button>
-      ) : undefined}
-      stamps={<>
-        {applied && <span className={styles.cardApplied}>Applied ✓</span>}
-        {shortlisted && <span className={styles.jobCardStamp}>SHORTLISTED</span>}
-      </>}
+    <JobRow
+      job={job}
+      onSelect={onSelect}
+      saved={saved}
+      onToggleSave={onToggleSave}
+      applied={applied}
+      shortlisted={shortlisted}
     />
   )
 }

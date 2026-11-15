@@ -18,6 +18,7 @@ import { Boost } from '@/lib/boostTypes'
 import CompanyReviewsSummary from '@/components/CompanyReviewsSummary'
 import CompanyLogo from '@/components/CompanyLogo'
 import JobCard from '@/components/JobCard'
+import rowStyles from '@/components/JobRow.module.css'
 import { WORK_TYPES } from '@/lib/workTypes'
 import { annualisedOrNull } from '@/lib/salaryInput'
 import { resolveJobBanner } from '@/lib/jobBanner'
@@ -1243,7 +1244,9 @@ function JobsPageContent() {
             </button>
           </div>
         ) : filteredJobs.length > 0 ? (
-          <div className={styles.jobsGrid} ref={listRef}>
+          // The 1b list: full width below 768, one 760 box from 768
+          // (components/JobRow.module.css). Was a 1/2/3-column photo grid.
+          <div className={rowStyles.list} ref={listRef}>
             {filteredJobs.map(job => (
               <JobCard
                 key={job.id}

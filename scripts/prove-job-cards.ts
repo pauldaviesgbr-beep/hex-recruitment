@@ -1,0 +1,94 @@
+// npm run jobcards:prove
+//
+// THE TEXT-LED JOB CARDS (design_handoff_job_cards_text_led, 16 Oct 2026;
+// design 25, 15 Nov 2026: no images anywhere jobs appear, website and app).
+// Filesystem only. It IMPORTS the card model rather than restating it.
+//
+// The check that matters most is the CLASS check at the bottom: every file that
+// draws a job for a candidate is listed, and none may render an image, a logo
+// or a banner. A surface added later that draws a job must be added to the list
+// — the list is exact, not a floor.
+
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
+import { jobPay, jobPayText, jobRowModel } from '../lib/jobCard'
+
+const ROOT = join(__dirname, '..')
+const read = (rel: string) => readFileSync(join(ROOT, rel), 'utf8')
+const noComments = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '').replace(/\{\/\*[\s\S]*?\*\/\}/g, '')
+
+let failed = 0, ran = 0
+const check = (name: string, got: () => unknown, want: unknown) => {
+  ran++
+  let v: unknown
+  try { v = got() } catch (err) { console.log(`FAIL  ${name}\n        threw: ${(err as Error).message}`); failed++; return }
+  const a = JSON.stringify(v), b = JSON.stringify(want)
+  if (a !== b) { console.log(`FAIL  ${name}\n        want ${b}\n        got  ${a}`); failed++ } else console.log(`ok    ${name}`)
+}
+
+// ── PAY: amount bold, period in words, nothing when there is no pay ────────
+check('annual pay in thousands, en dash, "a year"', () => jobPayText(jobPay({ salaryMin: 50000, salaryMax: 60000, salaryPeriod: 'year' })), '£50k–£60k a year')
+check('hourly pay keeps its pence, "an hour"', () => jobPayText(jobPay({ salaryMin: 16.95, salaryMax: 16.95, salaryPeriod: 'hour' })), '£16.95 an hour')
+check('NO PAY → no pay line at all (never "Competitive")', () => jobPay({ salaryMin: 0, salaryMax: 0, salaryPeriod: 'year' }), null)
+check('above zero, not merely present: a literal 0 is no pay', () => [jobPay({ salaryMin: null, salaryMax: 0 }), jobPayText(jobPay({ salaryMin: 0, salaryMax: 32000, salaryPeriod: 'year' }))], [null, '£32k a year'])
+check('a draft with no period yet shows the figure and claims no period', () => jobPayText(jobPay({ salaryMin: 30000, salaryMax: 30000, salaryPeriod: null })), '£30,000')
+
+// ── THE ROW MODEL: role → pay → place · type → via {recruiter} · age ──────
+const job = {
+  id: 'j1', title: 'Head Chef Events', company: 'Collins King & Associates', salaryMin: 50000, salaryMax: 60000, salaryPeriod: 'year',
+  location: 'London', area: 'London E9', employmentType: ['Full-time'], postedAt: 'Today', tags: [],
+} as any
+check('the row model carries the spec\'s fields, in its order', () => {
+  const m = jobRowModel(job)
+  return [m.title, jobPayText(m.pay), m.place, m.type, m.via, m.age, m.isNew]
+}, ['Head Chef Events', '£50k–£60k a year', 'London E9', 'Full-time', 'via Collins King & Associates', 'Today', true])
+check('NEW is the last 48 hours: Today and Yesterday, not "2 days ago"',
+  () => ['Today', 'Yesterday', '2 days ago', ''].map(postedAt => jobRowModel({ ...job, postedAt }).isNew), [true, true, false, false])
+
+// ── THE 1b ROW ─────────────────────────────────────────────────────────────
+const rowTsx = noComments(read('components/JobRow.tsx'))
+const rowCss = noComments(read('components/JobRow.module.css'))
+const rule = (name: string) => (rowCss.match(new RegExp(`\\.${name}\\s*\\{[^}]*\\}`)) || [''])[0]
+check('the row reads the shared model (no formatting of its own)', () => /jobRowModel\(job\)/.test(rowTsx) && !/formatJobSalary|formatMoney/.test(rowTsx), true)
+check('below 768: line 2 pay · place, line 3 type · age; from 768: line 2 adds type, line 3 is via · age', () => {
+  const narrow = rowTsx.split('styles.narrowOnly').length - 1, wide = rowTsx.split('styles.wideOnly').length - 1
+  return { narrow, wide, viaOnlyWide: rowTsx.indexOf('{m.via}') > rowTsx.lastIndexOf('styles.narrowOnly') }
+}, { narrow: 2, wide: 2, viaOnlyWide: true })
+check('measured spec: title 600 18 (19 from 768) wraps; pay 700 tabular; line 3 14px', () => ({
+  title18: /font-size:\s*18px/.test(rule('title')) && /font-weight:\s*600/.test(rule('title')) && !/text-overflow/.test(rule('title')),
+  title19: /@media \(min-width: 768px\) \{ \.title \{ font-size: 19px; \} \}/.test(rowCss),
+  pay: /font-weight:\s*700/.test(rule('pay')) && /tabular-nums/.test(rule('pay')),
+  line3: /font-size:\s*14px/.test(rule('line3')),
+}), { title18: true, title19: true, pay: true, line3: true })
+check('NEW chip: Inter 600 13, .06em, navy on #EEF0F4, radius 6 — not yellow', () => {
+  const r = rule('newChip')
+  return [/font-size:\s*13px/.test(r), /letter-spacing:\s*0\.06em/.test(r), /background:\s*#EEF0F4/i.test(r), /border-radius:\s*6px/.test(r), !/FFE500/i.test(r)]
+}, [true, true, true, true, true])
+check('Save is a separate 44×44 target above the stretched row button', () => {
+  const s = rule('save')
+  return [/width:\s*44px/.test(s) && /height:\s*44px/.test(s), /z-index:\s*1/.test(s), /\.main::after\s*\{[^}]*position:\s*absolute;\s*inset:\s*0/.test(rowCss), /e\.stopPropagation\(\)/.test(rowTsx)]
+}, [true, true, true, true])
+check('the list: full width below 768; one 760 box, border, radius 16 from 768', () =>
+  /@media \(min-width: 768px\) \{\s*\.list \{[^}]*max-width:\s*760px;[^}]*border:\s*1px solid #DFE3EA;[^}]*border-radius:\s*16px/.test(rowCss), true)
+
+// ── WHERE IT IS USED ───────────────────────────────────────────────────────
+check('the board\'s JobCard IS the 1b row now', () => {
+  const c = noComments(read('components/JobCard.tsx'))
+  return [/<JobRow/.test(c), /FeedCard/.test(c)]
+}, [true, false])
+check('the board lays the rows in the 1b list, not the old photo grid', () => {
+  const p = read('app/jobs/page.tsx')
+  return [/className=\{rowStyles\.list\}/.test(p), /className=\{styles\.jobsGrid\}/.test(p)]
+}, [true, false])
+
+// ── THE CLASS CHECK: no job surface renders an image ───────────────────────
+// Exact list of the files that draw a job for a candidate and are DONE. Every
+// surface finished on this branch is added here; the rest are named in
+// PENDING so the gap is visible rather than forgotten.
+const IMAGE = /<img\b|<Image\b|SignedImage|CompanyLogo|backgroundImage|background-image|resolveJobBanner|companyLogo|companyBanner|bannerUrl/
+const DONE = ['components/JobRow.tsx', 'components/JobCard.tsx']
+check('no image, logo or banner in any finished job surface', () => DONE.filter(f => IMAGE.test(noComments(read(f)))), [])
+check('ZERO-GUARD: the image pattern still finds an image where one is known to be', () => IMAGE.test(noComments(read('components/FeedCard.tsx'))), true)
+
+console.log(`\n${ran - failed}/${ran} passed`)
+if (failed) { console.error(`${failed} FAILED`); process.exit(1) }

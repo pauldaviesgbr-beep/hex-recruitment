@@ -76,6 +76,84 @@ export function formatJobSalary(job: Job): string {
 }
 
 /**
+ * THE TEXT-LED CARDS' PAY (design_handoff_job_cards_text_led, 16 Oct 2026;
+ * design 25). The amount is set bold and the period follows IN WORDS — "a year",
+ * "an hour" — and a job with no pay has NO pay line: never "Competitive". So
+ * this returns parts, or null, and the card decides the type.
+ *
+ * formatJobSalary above is left as it is: it still serves surfaces that are not
+ * cards (and its "Competitive salary" is theirs to retire, not this file's).
+ *
+ * ABOVE ZERO, NOT MERELY PRESENT. Two live rows once carried a literal 0 in
+ * both columns (CLAUDE.md, "not-null and above-zero are different questions"),
+ * and "£0k a year" is a claim. Annual figures are in thousands, rounded as
+ * formatJobSalary rounds them, so the two never disagree about a number; hourly
+ * rates keep their pence. A draft with no period yet shows the figure alone.
+ */
+export type JobPay = { amount: string; period: 'a year' | 'an hour' | null; negotiable: boolean }
+
+export function jobPay(job: { salaryMin?: number | null; salaryMax?: number | null; salaryPeriod?: 'hour' | 'year' | null; tags?: string[] | null }): JobPay | null {
+  const min = job.salaryMin && job.salaryMin > 0 ? job.salaryMin : 0
+  const max = job.salaryMax && job.salaryMax > 0 ? job.salaryMax : 0
+  if (!min && !max) return null
+  const lo = min || max
+  const hi = max || min
+  const annual = job.salaryPeriod === 'year'
+  // Thousands are grouped here, not in the shared formatMoney (which every
+  // email and shift card uses): only a draft with no period yet can reach a
+  // four-figure amount on this path, and "£30000" reads as a typo.
+  const fmt = (n: number) => (annual ? `£${(n / 1000).toFixed(0)}k` : n >= 1000 ? `£${n.toLocaleString('en-GB', { maximumFractionDigits: 2 })}` : formatMoney(n))
+  const amount = lo === hi || hi < lo ? fmt(lo) : `${fmt(lo)}–${fmt(hi)}`
+  return {
+    amount,
+    period: job.salaryPeriod === 'hour' ? 'an hour' : annual ? 'a year' : null,
+    negotiable: (job.tags || []).includes('Salary negotiable'),
+  }
+}
+
+/** "£50k–£60k a year" as one string, for alt text and checks. */
+export const jobPayText = (p: JobPay | null) =>
+  p ? `${p.amount}${p.period ? ` ${p.period}` : ''}${p.negotiable ? ' (negotiable)' : ''}` : ''
+
+/**
+ * A JOB AS THE TEXT-LED CARDS SEE IT — the 1b board row and the 1a card read
+ * the same model, so they "read as one family" (the handoff) and cannot drift.
+ * Order: role → pay → place · type → "via {recruiter}" · age. No image, no
+ * logo, anywhere a job appears (Paul, 16 Oct and 15 Nov 2026).
+ *
+ * NEW means posted in the last 48 hours. The board's job carries a humanised
+ * posted string, not a timestamp, so "Today" or "Yesterday" is the nearest
+ * honest reading (getPostedDaysAgo ≤ 1). The old image card used ≤ 2, which
+ * counted up to three days as new.
+ */
+export type JobRowModel = {
+  id: string
+  title: string
+  pay: JobPay | null
+  place: string
+  type: string | null
+  via: string | null
+  age: string
+  isNew: boolean
+}
+
+export function jobRowModel(job: Job): JobRowModel {
+  const types = Array.isArray(job.employmentType)
+    ? job.employmentType
+    : (job.employmentType ? [job.employmentType as unknown as string] : [])
+  return {
+    id: job.id,
+    title: job.title,
+    pay: jobPay(job),
+    place: formatJobLocation(job),
+    type: types.length ? types.join(', ') : null,
+    via: job.company ? `via ${job.company}` : null,
+    age: job.postedAt || '',
+    isNew: getPostedDaysAgo(job.postedAt) <= 1,
+  }
+}
+
+/**
  * THE PLACE LINE — "Bath, Somerset", but never "London, London".
  *
  * NINE PLACES BUILT THIS STRING INDEPENDENTLY, all of them
