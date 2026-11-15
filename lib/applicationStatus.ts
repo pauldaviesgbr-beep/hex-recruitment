@@ -16,7 +16,10 @@ export const APPLICATION_STATUS_LABELS: Record<ApplicationStatus, string> = {
   interview: 'Interview Scheduled',
   offer: 'Offer Received',
   hired: 'Hired',
-  rejected: 'Rejected',
+  // "Not selected", not "Rejected" (design 25, decision 4): the candidate's own
+  // word, matching the notice they get ("was not selected to move forward").
+  // The employer side calls it "Not a fit" (lib/applicantStages).
+  rejected: 'Not selected',
   withdrawn: 'Withdrawn',
 }
 

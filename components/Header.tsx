@@ -635,7 +635,7 @@ export default function Header() {
           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
         </svg>
         {(totalUnreadCount > 0 || pendingRequestsCount > 0) && (
-          <span className={styles.iconBadge}>{totalUnreadCount + pendingRequestsCount}</span>
+          <span className={`${styles.iconBadge} ${styles.iconBadgeRed}`}>{totalUnreadCount + pendingRequestsCount}</span>
         )}
         <span className={styles.navTooltip}>Messages</span>
       </Link>
@@ -676,7 +676,7 @@ export default function Header() {
           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
         </svg>
         {(totalUnreadCount > 0 || pendingRequestsCount > 0) && (
-          <span className={styles.iconBadge}>{totalUnreadCount + pendingRequestsCount}</span>
+          <span className={`${styles.iconBadge} ${styles.iconBadgeRed}`}>{totalUnreadCount + pendingRequestsCount}</span>
         )}
         <span className={styles.navTooltip}>Messages</span>
       </Link>

@@ -14,6 +14,7 @@ import BoostModal from '@/components/BoostModal'
 import FeedCard from '@/components/FeedCard'
 import { cardModelFromPostedJob } from '@/lib/jobCard'
 import RemoveAdModal from '@/components/RemoveAdModal'
+import { isListed, stageOf } from '@/lib/applicantStages'
 import QuickEditJobModal, { type QuickEditValues } from '@/components/QuickEditJobModal'
 import { PAID_SURFACES_ENABLED } from '@/lib/paidSurfaces'
 import { RowInlineFields } from '@/components/RowInlineFields'
@@ -645,8 +646,23 @@ function MyJobsContent() {
     }
 
     setPostedJobs(prev => prev.map(j => j.id === job.id ? { ...j, status: 'archived' as const } : j))
-    setRemoveTarget(null)
+    // People still waiting: the dialog stays open on its "Advert removed" card
+    // and closes itself (onDone). Nobody waiting: close now, as before.
+    if (waitingFor(job.id) === 0) setRemoveTarget(null)
     await refreshJobs()
+  }
+
+  // "Still waiting" is the Applicants list's own rule (New to Offer), read from
+  // lib/applicantStages over the per-status counts this page already loads.
+  const waitingFor = (jobId: string) =>
+    Object.entries(appCountsByJob[jobId] || {}).reduce((n, [status, c]) => n + (isListed(stageOf(status)) ? c : 0), 0)
+
+  const sendWaitingUpdates = async (jobId: string): Promise<number> => {
+    const res = await fetch(`/api/jobs/${jobId}/notify-waiting`, { method: 'POST' })
+    const body = await res.json().catch(() => null)
+    if (!res.ok || !body?.ok) throw new Error('notify_failed')
+    await refreshJobs()
+    return Number(body.sent) || 0
   }
 
   // Categorise each job by its highest application status
@@ -1349,6 +1365,9 @@ function MyJobsContent() {
             applicationCount={removeTarget.applicationCount}
             onCancel={() => setRemoveTarget(null)}
             onConfirm={() => handleRemoveAd(removeTarget)}
+            waitingCount={waitingFor(removeTarget.id)}
+            onSendUpdates={() => sendWaitingUpdates(removeTarget.id)}
+            onDone={() => setRemoveTarget(null)}
           />
         )}
 

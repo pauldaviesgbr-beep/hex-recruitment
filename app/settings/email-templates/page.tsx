@@ -5,10 +5,15 @@ import { useRouter } from 'next/navigation'
 import Header from '@/components/Header'
 import { supabase } from '@/lib/supabase'
 import { getCurrentEmployerOwnerId } from '@/lib/employer'
+// THE DEFAULT SHOWN HERE IS THE DEFAULT SENT. This page used to carry its own
+// "rejected" wording, which nothing sent: the Decline box and the server used
+// another. One copy now, in lib/declineCopy.
+import { DEFAULT_REJECTED_BODY } from '@/lib/declineCopy'
 
 const TEMPLATE_TYPES = [
   { id: 'shortlisted', label: 'Shortlisted', description: 'Sent when you shortlist a candidate', defaultSubject: 'Application Shortlisted \u2014 {{jobTitle}}', defaultBody: "Great news! Your application for {{jobTitle}} at {{companyName}} has been shortlisted. We'll be in touch with next steps." },
-  { id: 'rejected', label: 'Declined', description: 'Sent when you decline a candidate', defaultSubject: 'Application Update \u2014 {{jobTitle}}', defaultBody: 'Thank you for your interest in {{jobTitle}} at {{companyName}}. After careful consideration, we have decided not to proceed with your application at this time. We wish you the best in your job search.' },
+  // The subject is emails/application-status's own default for this status.
+  { id: 'rejected', label: 'Not a fit', description: 'Sent when you mark someone as not a fit', defaultSubject: 'Update on your application at {{companyName}}', defaultBody: DEFAULT_REJECTED_BODY },
   // Withdrawn is a SEPARATE template from Declined \u2014 different semantics
   // (candidate dropped out vs. employer rejected), so employers want
   // distinct copy. Same template_type plumbing as the other types.
@@ -36,6 +41,30 @@ export default function EmailTemplatesPage() {
   const [saving, setSaving] = useState<string | null>(null)
   const [saved, setSaved] = useState<string | null>(null)
   const [editing, setEditing] = useState<string | null>(null)
+  // "Check rejection messages before they send" (design 25, decision 5). Off:
+  // Not a fit on the Applicants list sends the template below after a 6-second
+  // Undo. On: Not a fit opens the message for editing first.
+  const [reviewRejection, setReviewRejection] = useState(false)
+  const [reviewSaving, setReviewSaving] = useState(false)
+  const [reviewError, setReviewError] = useState<string | null>(null)
+  const [ownerIdState, setOwnerIdState] = useState<string | null>(null)
+
+  const toggleReview = async () => {
+    if (!ownerIdState) return
+    const next = !reviewRejection
+    setReviewSaving(true)
+    setReviewError(null)
+    const { data, error } = await supabase
+      .from('employer_profiles')
+      .update({ review_rejection_messages: next })
+      .eq('user_id', ownerIdState)
+      .select('review_rejection_messages')
+    setReviewSaving(false)
+    // Believe the row the database returns, not the click: a team member
+    // without permission is refused, and the switch must not pretend otherwise.
+    if (error || !data?.length) { setReviewError("Couldn't save that. Only the account owner can change it."); return }
+    setReviewRejection(!!data[0].review_rejection_messages)
+  }
 
   useEffect(() => {
     const load = async () => {
@@ -54,6 +83,10 @@ export default function EmailTemplatesPage() {
         map[row.template_type] = row
       }
       setTemplates(map)
+      setOwnerIdState(ownerId)
+      const { data: ep } = await supabase
+        .from('employer_profiles').select('review_rejection_messages').eq('user_id', ownerId).maybeSingle()
+      setReviewRejection(!!ep?.review_rejection_messages)
       setLoading(false)
     }
     load()
@@ -108,6 +141,33 @@ export default function EmailTemplatesPage() {
         <p style={{ color: '#64748b', marginBottom: '1.5rem', fontSize: '0.9rem' }}>
           Customise the emails sent to candidates at each stage. Use variables: {VARIABLES.map(v => <code key={v} style={{ background: '#f1f5f9', padding: '0.1rem 0.35rem', borderRadius: 3, fontSize: '0.8rem', marginLeft: 4 }}>{v}</code>)}
         </p>
+
+        {/* "Check rejection messages before they send". A real switch
+            (role="switch"), 44 tall, its state read back from the row. */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16, border: '1px solid #DFE3EA', borderRadius: 14, padding: '12px 16px', marginBottom: '1.5rem', background: '#fff' }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div id="review-rejection-label" style={{ fontWeight: 600, fontSize: 15, color: '#0F172A' }}>Check rejection messages before they send</div>
+            <div style={{ color: '#64748b', fontSize: 13, marginTop: 2 }}>
+              {reviewRejection
+                ? 'On: Not a fit opens your message so you can edit it first.'
+                : 'Off: Not a fit sends your Not a fit template below, after a short Undo.'}
+            </div>
+            {reviewError && <div role="alert" style={{ color: '#B91C1C', fontSize: 13, marginTop: 4 }}>{reviewError}</div>}
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={reviewRejection}
+            aria-labelledby="review-rejection-label"
+            onClick={toggleReview}
+            disabled={reviewSaving || !ownerIdState}
+            style={{ flexShrink: 0, width: 52, height: 44, border: 0, background: 'none', padding: 0, cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+          >
+            <span aria-hidden="true" style={{ width: 52, height: 30, borderRadius: 15, background: reviewRejection ? '#0F172A' : '#DFE3EA', position: 'relative', transition: 'background 0.15s' }}>
+              <span style={{ position: 'absolute', top: 3, left: reviewRejection ? 25 : 3, width: 24, height: 24, borderRadius: 12, background: reviewRejection ? '#FFE500' : '#fff', transition: 'left 0.15s' }} />
+            </span>
+          </button>
+        </div>
 
         {TEMPLATE_TYPES.map(type => {
           const tpl = templates[type.id]

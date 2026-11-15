@@ -4,25 +4,12 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { notify } from '@/lib/notify'
-
-// Default decline copy used when an employer has not saved a custom
-// "rejected" template. {{jobTitle}} and {{companyName}} are substituted
-// before display via applyVars below; whatever the user finally edits in
-// the textarea is sent as the single source of truth (email + in-app
-// conversation message).
-const DEFAULT_REJECTED_BODY = "Thank you for applying for the {{jobTitle}} role at {{companyName}}. Due to a high number of applications, we've decided not to move forward with yours at this time, as we don't feel your experience is quite the right match for what we're looking for. We genuinely appreciate the time you took to apply and wish you all the best in your search."
-
-// Local copy of lib/customEmailTemplate.ts:applyVariables — that module
-// instantiates a service-role Supabase client at the top level and is
-// server-only, so we re-implement the regex substitution here for the
-// client component.
-function applyVars(text: string, vars: Record<string, string>): string {
-  let result = text
-  for (const [key, value] of Object.entries(vars)) {
-    result = result.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), value)
-  }
-  return result
-}
+// The default words and the {{name}} filler are SHARED with the server sender
+// (lib/declineNotice), so the message an employer previews here is the one a
+// one-tap Not a fit sends. Whatever is finally in the textarea is sent as the
+// single source of truth (email + in-app conversation message).
+import { DEFAULT_REJECTED_BODY, fillTemplate as applyVars } from '@/lib/declineCopy'
+import styles from './DeclineModal.module.css'
 
 interface DeclineModalProps {
   applicationId: string
@@ -177,63 +164,42 @@ export default function DeclineModal({
     }
   }
 
+  // The new card style: a centred card from 768 up, a bottom sheet on a phone
+  // (Claude Design, 15 Nov 2026). The safe-area envelope lives in the
+  // stylesheet, for the same notch reason the inline version carried.
   return (
-    <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 9999,
-        background: 'rgba(0,0,0,0.5)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        // Safe-area-inset envelope — same iOS-Safari-clip rationale as
-        // ScheduleInterviewModal.module.css. Decline content includes a
-        // 7-row textarea so this modal is the tallest of the inline
-        // ones; max(1rem, env()) ensures the notch can't clip the
-        // header on a short viewport.
-        paddingTop: 'max(1rem, env(safe-area-inset-top))',
-        paddingRight: 'max(1rem, env(safe-area-inset-right))',
-        paddingBottom: 'max(1rem, env(safe-area-inset-bottom))',
-        paddingLeft: 'max(1rem, env(safe-area-inset-left))',
-      }}
-      onClick={() => !rejectSending && onClose()}
-    >
+    <div className={styles.overlay} onClick={() => !rejectSending && onClose()}>
       <div
-        style={{
-          background: '#fff',
-          borderRadius: 12,
-          maxWidth: 480,
-          width: '100%',
-          maxHeight: 'calc(100dvh - 2rem)',
-          overflowY: 'auto',
-          padding: '1.5rem',
-        }}
+        className={styles.card}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="decline-title"
         onClick={e => e.stopPropagation()}
       >
-        <h3 style={{ margin: '0 0 0.25rem', fontSize: '1.1rem', fontWeight: 700 }}>Decline application</h3>
-        <p style={{ color: '#64748b', fontSize: '0.85rem', margin: '0 0 1rem' }}>
-          {candidateName} — {jobTitle}
+        <h3 id="decline-title" className={styles.title}>Mark as not a fit</h3>
+        <p className={styles.sub}>
+          {[candidateName, jobTitle].filter(Boolean).join(' · ')}
         </p>
 
-        <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#334155', marginBottom: '0.375rem' }}>
-          Message to candidate
+        <label htmlFor="decline-message" className={styles.label}>
+          Your message to them
         </label>
         <textarea
+          id="decline-message"
+          className={styles.textarea}
           value={rejectMessage}
           onChange={e => setRejectMessage(e.target.value)}
           rows={7}
           disabled={rejectTemplateLoading || rejectSending}
           placeholder={rejectTemplateLoading ? 'Loading template…' : ''}
-          style={{ width: '100%', padding: '0.625rem', border: '1px solid #d1d5db', borderRadius: 8, fontSize: '0.9rem', resize: 'vertical', lineHeight: 1.5, background: rejectTemplateLoading ? '#f8fafc' : '#fff' }}
         />
 
-        <p style={{ fontSize: '0.75rem', color: '#64748b', margin: '0.5rem 0 0' }}>
+        <p className={styles.note}>
           {rejectTemplateLoading
             ? 'Loading your template…'
             : rejectIsCustomTemplate
-              ? 'Using your saved Declined template. '
-              : 'Using the default decline copy. '}
+              ? 'Using your saved Not a fit template. '
+              : 'Using the default message. '}
           {!rejectTemplateLoading && (
             <Link
               href="/settings/email-templates"
@@ -243,27 +209,23 @@ export default function DeclineModal({
                   if (!ok) e.preventDefault()
                 }
               }}
-              style={{ color: '#0f172a', textDecoration: 'underline' }}
             >
               Edit your template
             </Link>
           )}
         </p>
 
-        <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1rem' }}>
-          <button
-            onClick={onClose}
-            disabled={rejectSending}
-            style={{ flex: 1, padding: '0.625rem', border: '1px solid #e2e8f0', borderRadius: 8, background: '#fff', cursor: 'pointer', fontWeight: 500, fontSize: '0.9rem' }}
-          >
+        <div className={styles.actions}>
+          <button type="button" className={styles.secondary} onClick={onClose} disabled={rejectSending}>
             Cancel
           </button>
           <button
+            type="button"
+            className={styles.primary}
             onClick={handleDeclineAndSend}
             disabled={rejectSending || rejectTemplateLoading || !rejectMessage.trim()}
-            style={{ flex: 1, padding: '0.625rem', border: 'none', borderRadius: 8, background: (rejectSending || rejectTemplateLoading) ? '#94a3b8' : '#dc2626', color: '#fff', cursor: (rejectSending || rejectTemplateLoading) ? 'not-allowed' : 'pointer', fontWeight: 600, fontSize: '0.9rem' }}
           >
-            {rejectSending ? 'Sending…' : 'Send & Decline'}
+            {rejectSending ? 'Sending…' : 'Send and mark not a fit'}
           </button>
         </div>
       </div>

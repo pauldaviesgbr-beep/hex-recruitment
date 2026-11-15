@@ -1,0 +1,461 @@
+/* THE APPLICANTS LIST AND APPLICANT PAGE (design 24 section 4; Claude
+   Design's answers of 15 Nov 2026). Palette only: ink #0F172A, body #334155,
+   muted #64748b, line #DFE3EA, fill #EEF0F4, page #F6F7F9, yellow #FFE500,
+   navy #0A1628, waiting amber #B45309. */
+
+.page {
+  background: #F6F7F9;
+  min-height: 100vh;
+}
+
+.layout {
+  padding: 20px 16px 32px;
+  box-sizing: border-box;
+}
+
+/* Phone: the list, or the applicant — one at a time. */
+.detailPane { display: none; }
+.hasSelection .listPane { display: none; }
+.hasSelection .detailPane { display: block; }
+
+/* From 768: the list on the left (max 520), the applicant beside it. */
+@media (min-width: 768px) {
+  .layout {
+    display: grid;
+    grid-template-columns: minmax(0, 520px) minmax(0, 1fr);
+    gap: 24px;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 24px;
+    align-items: start;
+  }
+  .detailPane,
+  .hasSelection .listPane,
+  .hasSelection .detailPane { display: block; }
+  .detail .backLink { display: none; }
+}
+
+.title {
+  font-family: var(--font-serif), Georgia, serif;
+  font-weight: 600;
+  font-size: 28px;
+  line-height: 34px;
+  color: #0F172A;
+  margin: 0 0 16px;
+}
+
+/* ── Toast: navy, yellow Undo 44 tall ──
+   FIXED AT THE FOOT OF THE SCREEN, ABOVE THE PHONE BAR AND THE COOKIE BANNER,
+   OUTSIDE BOTH PANES. It first sat at the top of the list pane — and on a
+   phone the list pane is display:none while an applicant is open, so every
+   move made from the applicant page had an Undo nobody could see or reach
+   (found driving the preview, 15 Nov 2026). The top of a long list scrolls
+   away too. The same sum the page's bottom padding uses (globals.css). */
+.toast {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(var(--consent-h, 0px) + var(--nav-bottom-h, 0px) + max(16px, env(safe-area-inset-bottom, 0px)));
+  width: min(520px, calc(100% - 32px));
+  z-index: var(--z-dropdown, 110);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #0A1628;
+  color: #ffffff;
+  border-radius: 12px;
+  padding: 6px 8px 6px 16px;
+  box-shadow: 0 8px 24px rgba(10, 22, 40, 0.25);
+  font-size: 15px;
+  line-height: 20px;
+  min-height: 44px;
+  box-sizing: border-box;
+}
+
+.toastText { flex: 1; min-width: 0; padding: 6px 0; }
+
+.toastUndo {
+  min-height: 44px;
+  padding: 0 12px;
+  background: none;
+  border: 0;
+  color: #FFE500;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.toastUndo:focus-visible,
+.chip:focus-visible,
+.nextBtn:focus-visible,
+.notFitLink:focus-visible,
+.cardTop:focus-visible {
+  outline: 3px solid rgba(15, 23, 42, 0.35);
+  outline-offset: 2px;
+}
+
+/* ── Controls: job filter pill, then the stage chips (they WRAP) ── */
+/* minmax(0, 1fr), NOT the implicit auto column. A native select is as wide as
+   its longest option, and a grid column grows to its items' minimum width — so
+   one 70-character advert title made the select 656px on a 358px phone, the
+   chips row went with it, and Interview and Offer sat past the screen edge,
+   clipped and unreachable (measured on the preview, 15 Nov 2026). */
+.controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+/* THE PILL IS A LABEL WITH THE NATIVE SELECT LAID OVER IT, TRANSPARENT.
+   A long advert title must end in "…" at the column width (Paul, 15 Nov
+   2026), and WebKit — the iOS app — does not draw text-overflow on a select:
+   it clips mid-word (rendered side by side with Chromium at 320, 15 Nov
+   2026). So the visible text is an ordinary span, which ellipsises in every
+   engine; the select on top keeps the native picker (which lists the full
+   titles), the keyboard and the accessible name. */
+.jobFilter {
+  position: relative;
+  display: block;
+  justify-self: start;
+  min-width: 0;
+  max-width: 100%;
+  height: 44px;
+  box-sizing: border-box;
+  border: 1px solid #DFE3EA;
+  border-radius: 22px;
+  background: #ffffff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%230F172A' stroke-width='1.8' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 16px center;
+}
+
+.jobFilter:focus-within {
+  outline: 3px solid rgba(15, 23, 42, 0.35);
+  outline-offset: 2px;
+}
+
+.jobFilterShown {
+  display: block;
+  padding: 0 40px 0 16px;
+  line-height: 42px;
+  color: #0F172A;
+  font-size: 15px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.jobFilter select {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+  /* 16px: iOS zooms the page into any control with a smaller font. */
+  font-size: 16px;
+}
+
+/* CONTROLS WRAP, CONTENT SCROLLS. 40 tall, 8 apart (Claude Design, 15 Nov
+   2026). No overflow-x here, ever: a sideways row hides whole chips. */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 40px;
+  padding: 0 14px;
+  border: 1px solid #DFE3EA;
+  border-radius: 20px;
+  background: #ffffff;
+  color: #0F172A;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.chipCount { color: #64748b; font-weight: 600; }
+
+.chip[aria-pressed='true'] {
+  background: #0F172A;
+  border-color: #0F172A;
+  color: #ffffff;
+}
+
+.chip[aria-pressed='true'] .chipCount { color: #FFE500; }
+
+/* ── Cards ── */
+/* minmax(0, 1fr) for the same reason as .controls: an auto grid column grows
+   to its items' minimum width, and a card title that does not wrap (it ends
+   in "…") has a minimum width of the WHOLE title — 770px at 320 on the first
+   try, the card running off the screen instead of cutting. */
+.cards {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+}
+
+.card {
+  background: #ffffff;
+  border: 1px solid #DFE3EA;
+  border-radius: 14px;
+  padding: 14px 16px;
+}
+
+.cardSelected { border-color: #0F172A; }
+
+.cardTop {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 44px;
+  padding: 0;
+  background: none;
+  border: 0;
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+}
+
+.avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 20px;
+  background: #EEF0F4;
+  color: #0F172A;
+  font-size: 15px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.cardWho { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+
+.cardName {
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 22px;
+  color: #0F172A;
+  overflow-wrap: anywhere;
+}
+
+/* The advert title ends in "…" at the column width; the stage after it never
+   does. Safe to cut HERE because the card is already identified by the
+   person's name and the open applicant shows the full title (CLAUDE.md:
+   truncation is safe exactly when something else identifies the row). */
+.cardSub { display: flex; min-width: 0; font-size: 13px; line-height: 18px; color: #64748b; }
+.cardJob { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cardStage { flex-shrink: 0; white-space: nowrap; }
+
+.wait {
+  font-size: 13px;
+  font-weight: 600;
+  color: #64748b;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.waitOverdue { color: #B45309; }
+
+.cardActions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.nextBtn {
+  min-height: 44px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 12px;
+  background: #FFE500;
+  color: #0F172A;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.nextBtnWide { width: 100%; min-height: 48px; }
+
+.notFitLink {
+  min-height: 44px;
+  padding: 0 4px;
+  background: none;
+  border: 0;
+  color: #334155;
+  font-size: 15px;
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.empty {
+  text-align: center;
+  color: #64748b;
+  padding: 32px 16px;
+  font-size: 15px;
+}
+
+.primaryLink {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin-top: 12px;
+  padding: 0 16px;
+  border-radius: 12px;
+  background: #FFE500;
+  color: #0F172A;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+/* ── The applicant page ── */
+.detail { display: grid; gap: 14px; }
+
+.backLink {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: #0F172A;
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: none;
+  width: fit-content;
+}
+
+.detailTitle {
+  font-family: var(--font-serif), Georgia, serif;
+  font-weight: 600;
+  font-size: 28px;
+  line-height: 34px;
+  color: #0F172A;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.detailSub { margin: -8px 0 0; font-size: 14px; color: #64748b; }
+
+/* Five 4-tall bars, ink up to the current stage, an 11 label under each. */
+.progress {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.progressStep { display: grid; gap: 6px; }
+
+.progressBar { height: 4px; border-radius: 2px; background: #DFE3EA; }
+.progressDone { background: #0F172A; }
+
+.progressLabel { font-size: 11px; line-height: 14px; color: #64748b; }
+.progressNow { color: #0F172A; font-weight: 700; }
+
+.detailActions { display: grid; gap: 4px; justify-items: center; }
+
+.endNote {
+  margin: 0;
+  padding: 12px 16px;
+  background: #EEF0F4;
+  border-radius: 12px;
+  color: #334155;
+  font-size: 15px;
+}
+
+.detailCard {
+  background: #ffffff;
+  border: 1px solid #DFE3EA;
+  border-radius: 14px;
+  padding: 16px;
+  display: grid;
+  gap: 10px;
+}
+
+.detailCardTitle { margin: 0; font-size: 15px; font-weight: 600; color: #0F172A; }
+
+.facts {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 12px;
+  margin: 0;
+  font-size: 14px;
+}
+
+.facts dt { color: #64748b; }
+.facts dd { margin: 0; color: #0F172A; }
+
+.bio { margin: 0; font-size: 14px; line-height: 1.55; color: #334155; white-space: pre-line; }
+
+.skills { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.skills li { padding: 4px 10px; border-radius: 12px; background: #EEF0F4; color: #334155; font-size: 13px; }
+
+.history { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; font-size: 14px; color: #334155; }
+.historyDates { color: #64748b; }
+
+.muted { margin: 0; color: #64748b; font-size: 14px; }
+
+.cvLink {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: #0F172A;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  width: fit-content;
+}
+
+.answer { display: grid; gap: 2px; font-size: 14px; color: #334155; }
+.answer p { margin: 0; }
+.answerQ { color: #64748b; }
+
+.messageBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  border: 1px solid #0F172A;
+  border-radius: 12px;
+  background: #ffffff;
+  color: #0F172A;
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.detailPlaceholder,
+.detailEmpty {
+  color: #64748b;
+  font-size: 15px;
+  padding: 24px;
+  border: 1px dashed #DFE3EA;
+  border-radius: 14px;
+  text-align: center;
+}
+
+.detailEmpty { text-align: left; border: 0; padding: 0; }
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}

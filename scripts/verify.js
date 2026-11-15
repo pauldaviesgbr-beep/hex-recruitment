@@ -364,7 +364,33 @@ const ALL = [
   // Watched failing on purpose 14 Nov 2026: a row removed, a row pointed at a
   // route that does not exist, the bridge button renamed, the employer rail
   // left visible in the app. Four named failures; green on restore.
+  // 15 Nov 2026: the side menus are asserted as EXACT lists (label and
+  // destination, in order), not a floor; watched red on a renamed item, a
+  // moved link, and an item written in a shape the parser cannot read.
   { name: 'phonenav:prove', cmd: npm, args: ['run', 'phonenav:prove'] },
+
+  // THE APPLICANTS LIST (15 Nov 2026, design 25 branch 2). Imports the stage
+  // rules and the chat's canned answers rather than restating them; asserts the
+  // Not-a-fit update is claimed once and only after Undo, /pipeline and /offers
+  // redirect rather than orphan, the chips wrap, and Ask Thrive names no price.
+  // Also: no status is written inside an Undo window (a status change fires
+  // the trigger that cancels interviews and withdraws offers, which no Undo
+  // can put back). Filesystem only, fast tier. Watched failing on purpose
+  // 15 Nov 2026, seventeen mutations one at a time — each red on its own check,
+  // every file restored byte-identical, 36/36 green after. Includes the server-
+  // queued send (waitUntil) that stops a closed tab delaying the update.
+  { name: 'applicants:prove', cmd: npm, args: ['run', 'applicants:prove'] },
+
+  // THE BUILD FETCHES NO FONTS FROM GOOGLE (15 Nov 2026). Twice in one hour
+  // next/font/google's build-time download came back malformed and killed the
+  // build (Vercel and local), on a commit that rebuilt cleanly minutes later.
+  // The three families now live in app/fonts. Asserts no next/font/google
+  // import, and every file the layout names exists, is WOFF2 and is TRACKED IN
+  // GIT (on disk but untracked builds here and fails on Vercel), with its OFL
+  // licence. Filesystem and git, fast tier. Watched failing on purpose: red
+  // with the files unstaged (four named failures) and with a probe import of
+  // next/font/google (named the file); green after.
+  { name: 'fonts:prove', cmd: npm, args: ['run', 'fonts:prove'] },
 
   // NO COLOUR EMOJI ON ANY SURFACE A STRANGER SEES. components/icons.tsx has
   // said this since 14 Aug 2026 and had nothing behind it; seven got in anyway

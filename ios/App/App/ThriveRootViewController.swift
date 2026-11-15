@@ -57,7 +57,7 @@ class ThriveRootViewController: UIViewController, UITabBarDelegate {
         Tab(title: "Calendar", symbol: "calendar", path: "/calendar", matches: ["/calendar"], native: nil),
         Tab(title: "Messages", symbol: "bubble.left", path: "/messages", matches: ["/messages"], native: nil),
         Tab(title: "More", symbol: "ellipsis", path: "/employer/more",
-            matches: ["/employer/more", "/notifications", "/my-jobs", "/post-job", "/pipeline", "/offers", "/interviews",
+            matches: ["/employer/more", "/notifications", "/my-jobs", "/post-job", "/interviews",
                       "/candidates", "/talent-pool", "/temp-work", "/dashboard/analytics", "/reviews",
                       "/settings", "/feedback", "/admin", "/company", "/employer/analytics", "/jobs"],
             native: nil),

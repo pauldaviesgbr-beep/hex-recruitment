@@ -92,11 +92,10 @@ export const EMPLOYER_MORE: MenuGroup[] = [
     rows: [
       // Post a job is the first button on that page (inPage in the check).
       { label: 'Your job ads', href: '/my-jobs', subline: 'Post, edit, close', liveCount: true },
-      // Pipeline, Offers, Interviews and Talent pool are here because their
-      // merges have not been built. Each one leaves this list in the same
-      // change that gives it its new home, never before.
-      { label: 'Pipeline', href: '/pipeline' },
-      { label: 'Offers', href: '/offers' },
+      // Interviews and Talent pool are here because their merges have not been
+      // built. Each one leaves this list in the same change that gives it its
+      // new home, never before — as Pipeline and Offers did when the
+      // Applicants list replaced them (both redirect to /applied).
       { label: 'Interviews', href: '/interviews' },
       // CANDIDATES AND TALENT POOL ARE DIFFERENT LISTS — see EmployerSidebar.
       { label: 'Candidates', href: '/candidates', subline: 'Search people who can be found' },

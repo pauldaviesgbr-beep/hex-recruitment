@@ -967,3 +967,31 @@
      right on wide screens (they still scroll if the row is too narrow). */
   .pipeCol { flex: 1 1 0; width: auto; min-width: 190px; }
 }
+
+/* The Applicants group with nothing live (design 24 section 4): the short
+   "Nothing live right now." and a Post a job button to Your job ads. */
+.applicantsEmpty {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px;
+  color: #64748b;
+  font-size: 15px;
+}
+
+.applicantsEmpty p { margin: 0; }
+
+.applicantsEmptyBtn {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: 12px;
+  background: #FFE500;
+  color: #0F172A;
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: none;
+  flex-shrink: 0;
+}

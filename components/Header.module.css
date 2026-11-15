@@ -173,6 +173,16 @@
   box-shadow: 0 2px 4px rgba(255, 229, 0, 0.3);
 }
 
+/* The laptop header Messages count: red, 18 round, Inter 700 11 — the same
+   as the bell and the phone bar (Claude Design, 15 Nov 2026). The Calendar
+   count keeps the yellow base. */
+.iconBadgeRed {
+  background: #DC2626;
+  color: #ffffff;
+  font-size: 11px;
+  box-shadow: none;
+}
+
 .navLinkWithBadge {
   position: relative;
   display: flex;
