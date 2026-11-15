@@ -1,0 +1,80 @@
+/* 1a — THE TYPE-LED CARD (design_handoff_job_cards_text_led, measured spec
+   03). Palette only. Smallest text 14px. */
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  height: 100%;
+  box-sizing: border-box;
+  padding: 18px 8px 16px 18px;
+  background: #ffffff;
+  border: 1px solid #DFE3EA;
+  border-radius: 16px;
+  color: #0F172A;
+}
+@media (min-width: 768px) {
+  .card { padding: 20px 12px 18px 22px; }
+}
+
+.top { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 4px; align-items: start; }
+.topText { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; min-width: 0; }
+.corner { position: relative; z-index: 1; }
+
+/* NEW: the same chip as the 1b row. Not yellow. */
+.newChip {
+  display: inline-block;
+  padding: 5px 8px;
+  border-radius: 6px;
+  background: #EEF0F4;
+  color: #0F172A;
+  font-size: 13px;
+  line-height: 1;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+}
+
+/* Spec: 700 23/1.15, −0.02em, pretty wrapping; 22px below 768. The face is
+   the platform's display face (see JobTypeCard.tsx). */
+.title {
+  font-family: var(--font-display), Inter, system-ui, sans-serif;
+  font-size: 22px;
+  line-height: 1.15;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  text-wrap: pretty;
+  overflow-wrap: anywhere;
+  color: #0F172A;
+}
+@media (min-width: 768px) { .title { font-size: 23px; } }
+
+/* Pay 700 20 tabular + period 400 16, 6 apart, on one baseline. */
+.payLine { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 6px; }
+.pay { font-size: 20px; line-height: 1.2; font-weight: 700; font-variant-numeric: tabular-nums; color: #0F172A; }
+.period { font-size: 16px; line-height: 1.2; font-weight: 400; color: #334155; }
+
+/* Place, type: icons from 768; plain "London E9 · Full-time" below. */
+.placeLine { display: flex; flex-wrap: wrap; align-items: center; column-gap: 14px; row-gap: 4px; font-size: 16px; line-height: 1.4; color: #334155; }
+.placeItem { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
+.icon { flex-shrink: 0; color: #334155; display: none; }
+.narrowDot { white-space: pre; }
+@media (max-width: 767px) { .placeLine { column-gap: 0; } }
+@media (min-width: 768px) {
+  .icon { display: block; }
+  .narrowDot { display: none; }
+}
+
+/* Footer: hairline above, 44 tall at least; via over age, 2 apart. */
+.footer {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  min-height: 44px;
+  margin-top: auto;
+  padding-top: 4px;
+  border-top: 1px solid #EEF0F4;
+}
+.via { font-size: 14px; line-height: 1.35; font-weight: 500; color: #334155; }
+.age { font-size: 14px; line-height: 1.35; font-weight: 400; color: #64748b; }

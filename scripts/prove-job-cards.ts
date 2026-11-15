@@ -96,7 +96,31 @@ const DONE = [
   'app/job/[id]/page.tsx', 'app/jobs/page.tsx', 'components/JobDetailModal.tsx', 'components/ApplyNowModal.tsx',
   // step 3: the list-and-detail pages, now 1b rows
   'app/jobs/sector/[sector]/page.tsx', 'app/jobs/[city]/page.tsx', 'app/jobs/recommended/page.tsx', 'app/saved-jobs/page.tsx',
+  // step 4: the 1a card, and the small lists that use it (both dashboards)
+  'components/JobTypeCard.tsx', 'components/JobCardLink.tsx',
 ]
+
+// ── THE 1a CARD ────────────────────────────────────────────────────────────
+const cardTsx = noComments(read('components/JobTypeCard.tsx'))
+const cardCss = noComments(read('components/JobTypeCard.module.css'))
+const crule = (name: string) => (cardCss.match(new RegExp(`\\.${name}\\s*\\{[^}]*\\}`)) || [''])[0]
+check('the 1a card reads the same model as the row (one family, cannot drift)', () => /jobRowModel\(job\)/.test(cardTsx) && !/formatJobSalary|formatMoney|function formatSalary/.test(cardTsx), true)
+check('1a measured spec: card radius 16, 1px #DFE3EA, padding 20 12 18 22 (18 8 16 18 below 768); title 700, 23 (22 below 768), −0.02em', () => ({
+  card: /border-radius:\s*16px/.test(crule('card')) && /border:\s*1px solid #DFE3EA/i.test(crule('card')) && /padding:\s*18px 8px 16px 18px/.test(crule('card')),
+  wide: /@media \(min-width: 768px\) \{\s*\.card \{ padding: 20px 12px 18px 22px; \}/.test(cardCss),
+  title: /font-size:\s*22px/.test(crule('title')) && /font-weight:\s*700/.test(crule('title')) && /letter-spacing:\s*-0\.02em/.test(crule('title')),
+  title23: /@media \(min-width: 768px\) \{ \.title \{ font-size: 23px; \} \}/.test(cardCss),
+}), { card: true, wide: true, title: true, title23: true })
+check('1a pay: 700 20 tabular, period 400 16, baseline-aligned; footer at least 44 under a hairline', () => [
+  /font-size:\s*20px/.test(crule('pay')) && /font-weight:\s*700/.test(crule('pay')) && /tabular-nums/.test(crule('pay')),
+  /font-size:\s*16px/.test(crule('period')) && /font-weight:\s*400/.test(crule('period')),
+  /align-items:\s*baseline/.test(crule('payLine')),
+  /min-height:\s*44px/.test(crule('footer')) && /border-top:\s*1px solid #EEF0F4/i.test(crule('footer')),
+], [true, true, true, true])
+check('the dashboards\' small-list card IS the 1a card (no image-led markup, no seventh salary formatter)', () => {
+  const l = noComments(read('components/JobCardLink.tsx'))
+  return [/<JobTypeCard/.test(l), /jobStyles|cardScrim|function formatSalary/.test(l)]
+}, [true, false])
 check('the list-and-detail pages draw their lists with the 1b row, not their own cards', () =>
   ['app/jobs/sector/[sector]/page.tsx', 'app/jobs/[city]/page.tsx', 'app/jobs/recommended/page.tsx', 'app/saved-jobs/page.tsx']
     .filter(f => { const s = noComments(read(f)); return !/<JobRow\b/.test(s) || /styles\.listCardLogo/.test(s) }), [])

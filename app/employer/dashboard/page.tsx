@@ -218,11 +218,15 @@ function ActiveJobsScroller({ jobs, styles }: { jobs: any[]; styles: Record<stri
     <div className={styles.jobScrollWrap}>
       <div className={styles.jobScroller}>
         {jobs.map((job: any) => (
-          // The real image-led job card; tap MANAGES the post (edit), not apply.
-          // The overlay keeps the management stats (apps · views) visible.
-          <JobCardLink key={job.id} job={job} href={`/post-job?edit=${job.id}`} className={styles.jobCardItem}>
-            <span className={styles.jobOverlay}>{job.application_count || 0} apps · {job.views || 0} views</span>
-          </JobCardLink>
+          // The text-led 1a card (no image, design 25); tap MANAGES the post
+          // (edit), not apply. The management stats sit where the age would.
+          <JobCardLink
+            key={job.id}
+            job={job}
+            href={`/post-job?edit=${job.id}`}
+            className={styles.jobCardItem}
+            footerNote={`${job.application_count || 0} apps · ${job.views || 0} views`}
+          />
         ))}
       </div>
     </div>
