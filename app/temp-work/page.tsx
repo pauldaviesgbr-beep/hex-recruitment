@@ -264,6 +264,10 @@ export default function TempWorkPage() {
   const expressInterest = async (post: TempPost) => {
     if (post.isExample) return
     if (!userId) { requireSignup(); return }
+    // Tapping "I'm available" INSIDE a withdrawal's Undo window is the Undo:
+    // the row was never removed, so inserting would only re-notify the
+    // employer and post a second "I'm available" into their Messages.
+    if (pendingRef.current?.postId === post.id) { closeUndo(false); return }
     if (myInterest.has(post.id) || busyInterest === post.id) return
     setBusyInterest(post.id)
 
@@ -300,73 +304,123 @@ export default function TempWorkPage() {
   }
 
   /**
-   * Withdraw. The other half of the one-tap action.
+   * Withdraw — ONE TAP, THEN FIVE SECONDS TO UNDO (design 26, round 2).
    *
-   * Registering interest needs no confirmation BECAUSE it is reversible — and
-   * until now it wasn't, which made the argument for one tap false rather than
-   * merely optimistic.
+   * The same rule as status changes on Applicants: NOTHING IS WRITTEN DURING
+   * THE UNDO WINDOW. The button flips to "I'm available" at once and a toast
+   * offers Undo; only when the toast closes is the row removed from the
+   * employer's available list and the "no longer available" line posted into
+   * their Messages. An Undo therefore costs the employer nothing — no list
+   * flicker, no second "I'm available" notification, no stray message.
    *
-   * DESIGN 26 MAKES IT ONE TAP TOO: tapping "You're available" again undoes it.
-   * This reverses an earlier decision that withdrawing should take a deliberate
-   * second step from inside the shift, because a withdrawal posts the line
-   * below into the employer's Messages. The toast says it happened; the button
-   * flipping back to "I'm available" is the way back.
+   * If the page is closed or hidden inside the window, the withdrawal is
+   * written THEN, with keepalive requests (the conversation id and the token
+   * are fetched during the window — reads only — so nothing has to be looked
+   * up while the page is going away). A withdrawal is never silently lost.
    *
    * "Off the list", not "erased". The employer's notification stays: it was true
-   * when it was sent, and the available list — the thing they actually work from
-   * — loses the row immediately. The conversation stays too, because deleting a
-   * thread out from under an employer mid-exchange is worse than a stale opener.
-   * But it does not stay SILENT: a line goes into the conversation, so an agency
-   * finds out where they are rather than by messaging into a void and waiting.
+   * when it was sent. The conversation stays too, because deleting a thread out
+   * from under an employer mid-exchange is worse than a stale opener. But it
+   * does not stay SILENT: a line goes into the conversation, so an agency finds
+   * out where they are rather than by messaging into a void and waiting.
    */
-  const withdrawInterest = async (post: TempPost) => {
-    if (post.isExample || !userId) return
-    if (!myInterest.has(post.id) || busyInterest === post.id) return
-    setBusyInterest(post.id)
+  type PendingWithdraw = { postId: string; title: string; employerId: string; userId: string; name: string; convId: string | null; token: string | null; timer: ReturnType<typeof setTimeout> | null }
+  const UNDO_MS = 5000
+  const pendingRef = useRef<PendingWithdraw | null>(null)
+  const [undoFor, setUndoFor] = useState<{ postId: string; title: string } | null>(null)
 
-    // Optimistic, with a rollback — the badge is the only feedback there is.
-    setMyInterest(prev => { const n = new Set(prev); n.delete(post.id); return n })
+  // "No longer available", not "no longer interested". Same event, and the
+  // difference is the relationship: one is a scheduling fact, the other reads
+  // as rejecting the employer.
+  const withdrawLine = (p: PendingWithdraw) => `${p.name || 'The candidate'} is no longer available for ${p.title}.`
 
+  const findConv = async (p: PendingWithdraw): Promise<string | null> => {
+    const { data } = await supabase
+      .from('conversations').select('id')
+      .or(`and(participant_1.eq.${p.userId},participant_2.eq.${p.employerId}),and(participant_1.eq.${p.employerId},participant_2.eq.${p.userId})`)
+      .eq('related_temp_post_id', p.postId)
+      .maybeSingle()
+    return (data as { id: string } | null)?.id ?? null
+  }
+
+  // The write, when the toast closes.
+  const commitWithdraw = async (p: PendingWithdraw) => {
     const { error } = await supabase.from('temp_interest')
-      .delete().eq('temp_post_id', post.id).eq('candidate_user_id', userId)
-
+      .delete().eq('temp_post_id', p.postId).eq('candidate_user_id', p.userId)
     if (error) {
-      setMyInterest(prev => new Set(prev).add(post.id))
-      setBusyInterest(null)
+      setMyInterest(prev => new Set(prev).add(p.postId))
       flash('Could not withdraw just now. Please try again.')
       return
     }
-
-    flash('You’re no longer available for this shift.')
-
-    // Tell the thread, best-effort. The row is already gone; a failed system
-    // line must not make a successful withdrawal look broken.
+    // Tell the thread, best-effort: the row is already gone, and a failed
+    // system line must not make a successful withdrawal look broken.
     try {
-      const { data: conv } = await supabase
-        .from('conversations').select('id')
-        .or(`and(participant_1.eq.${userId},participant_2.eq.${post.employer_id}),and(participant_1.eq.${post.employer_id},participant_2.eq.${userId})`)
-        .eq('related_temp_post_id', post.id)
-        .maybeSingle()
-      if (conv) {
-        // "No longer available", not "no longer interested". Same event, and the
-        // difference is the relationship: one is a scheduling fact, the other
-        // reads as rejecting the employer.
-        const line = `${myName || 'The candidate'} is no longer available for ${post.title}.`
+      const convId = p.convId ?? await findConv(p)
+      if (convId) {
+        const line = withdrawLine(p)
         await supabase.from('messages').insert({
-          conversation_id: conv.id, sender_id: userId,
-          sender_name: myName || 'A candidate', sender_role: 'candidate',
+          conversation_id: convId, sender_id: p.userId,
+          sender_name: p.name || 'A candidate', sender_role: 'candidate',
           content: line, is_read: false,
         })
         await supabase.from('conversations')
           .update({ last_message: line, last_message_at: new Date().toISOString() })
-          .eq('id', conv.id)
+          .eq('id', convId)
       }
     } catch (e: any) {
       console.warn('[withdraw] could not post the system line:', e?.message)
     }
-
-    setBusyInterest(null)
   }
+
+  // Close the toast: commit (the window ran out) or undo (nothing was written).
+  const closeUndo = (commit: boolean) => {
+    const p = pendingRef.current
+    if (!p) return
+    if (p.timer) clearTimeout(p.timer)
+    pendingRef.current = null
+    setUndoFor(null)
+    if (commit) commitWithdraw(p)
+    else setMyInterest(prev => new Set(prev).add(p.postId))
+  }
+
+  const withdrawInterest = (post: TempPost) => {
+    if (post.isExample || !userId) return
+    if (!myInterest.has(post.id) || busyInterest === post.id) return
+    // One window at a time: starting a second closes the first, which writes.
+    if (pendingRef.current) closeUndo(true)
+    setMyInterest(prev => { const n = new Set(prev); n.delete(post.id); return n })
+    const p: PendingWithdraw = { postId: post.id, title: post.title, employerId: post.employer_id, userId, name: myName, convId: null, token: null, timer: null }
+    p.timer = setTimeout(() => { if (pendingRef.current === p) closeUndo(true) }, UNDO_MS)
+    pendingRef.current = p
+    setUndoFor({ postId: post.id, title: post.title })
+    // Readied during the window, reads only, for the keepalive path below.
+    supabase.auth.getSession().then(({ data }) => { if (pendingRef.current === p) p.token = data.session?.access_token ?? null })
+    findConv(p).then(id => { if (pendingRef.current === p) p.convId = id }).catch(() => {})
+  }
+
+  // THE PAGE GOING AWAY INSIDE THE WINDOW writes the withdrawal now. A normal
+  // supabase call may not finish while a page unloads; keepalive requests do.
+  useEffect(() => {
+    const flush = () => {
+      const p = pendingRef.current
+      if (!p) return
+      if (p.timer) clearTimeout(p.timer)
+      pendingRef.current = null
+      const url = process.env.NEXT_PUBLIC_SUPABASE_URL, key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+      if (!url || !key || !p.token) { commitWithdraw(p); return }
+      const headers = { apikey: key, Authorization: `Bearer ${p.token}`, 'Content-Type': 'application/json', Prefer: 'return=minimal' }
+      fetch(`${url}/rest/v1/temp_interest?temp_post_id=eq.${p.postId}&candidate_user_id=eq.${p.userId}`, { method: 'DELETE', headers, keepalive: true }).catch(() => {})
+      if (p.convId) {
+        const line = withdrawLine(p)
+        fetch(`${url}/rest/v1/messages`, { method: 'POST', headers, keepalive: true, body: JSON.stringify({ conversation_id: p.convId, sender_id: p.userId, sender_name: p.name || 'A candidate', sender_role: 'candidate', content: line, is_read: false }) }).catch(() => {})
+        fetch(`${url}/rest/v1/conversations?id=eq.${p.convId}`, { method: 'PATCH', headers, keepalive: true, body: JSON.stringify({ last_message: line, last_message_at: new Date().toISOString() }) }).catch(() => {})
+      }
+    }
+    const onHide = () => { if (document.visibilityState === 'hidden') flush() }
+    window.addEventListener('pagehide', flush)
+    document.addEventListener('visibilitychange', onHide)
+    return () => { window.removeEventListener('pagehide', flush); document.removeEventListener('visibilitychange', onHide); flush() }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   /**
    * Put the candidate in the employer's Messages, the way an application does.
@@ -762,6 +816,16 @@ export default function TempWorkPage() {
           </aside>
         </div>
       </div>
+
+      {/* The withdrawal's Undo (design 26, round 2): five seconds, and nothing
+          reaches the employer until it closes. Fixed above the consent bar and
+          the phone's bottom bar, like the Applicants toast. */}
+      {undoFor && (
+        <div className={styles.undoToast} role="status" aria-live="polite">
+          <span className={styles.undoText}>You’re no longer available for {undoFor.title}.</span>
+          <button type="button" className={styles.undoBtn} onClick={() => closeUndo(false)}>Undo</button>
+        </div>
+      )}
     </main>
   )
 }

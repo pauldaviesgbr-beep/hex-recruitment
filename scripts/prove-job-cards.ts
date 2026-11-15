@@ -11,7 +11,9 @@
 
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { jobPay, jobPayText, jobRowModel } from '../lib/jobCard'
+import { readdirSync, statSync } from 'node:fs'
+import * as jobCard from '../lib/jobCard'
+import { jobPay, jobPayText, jobRowModel, primaryEmploymentType } from '../lib/jobCard'
 import { shiftPay, shiftPlace, formatWhen, byStartDate, type TempPost } from '../lib/tempWork'
 
 const ROOT = join(__dirname, '..')
@@ -183,6 +185,44 @@ check('the employer\'s manage card ships with Mark filled and Close only (Edit, 
 }, [true, true, true, false, true])
 check('no advert view or card says "Competitive salary" or builds its own "per year" pay text', () =>
   DONE.filter(f => { const s = noComments(read(f)); return /'Competitive salary'|per year`|per hour`/.test(s) }), [])
+
+// ── ROUND 2 ANSWERS (design 26, second reply) ──────────────────────────────
+check('the home card\'s one type is picked by meaning: Temporary, Part-time, Full-time, Fixed-term, Contract; Flexible only alone', () =>
+  [['Flexible', 'Temporary'], ['Full-time', 'Permanent'], ['Flexible'], ['Flexible', 'Permanent'], ['Full-time', 'Part-time'], ['Contract', 'Fixed-term'], []].map(t => primaryEmploymentType(t)),
+  ['Temporary', 'Full-time', 'Flexible', 'Permanent', 'Part-time', 'Fixed-term', null])
+check('the advert pages show whole figures; cards and rows keep the short form', () => [
+  jobPayText(jobPay({ salaryMin: 42000, salaryMax: 48000, salaryPeriod: 'year' }, { full: true })),
+  jobPayText(jobPay({ salaryMin: 17.85, salaryMax: 20, salaryPeriod: 'hour' }, { full: true })),
+  jobPayText(jobPay({ salaryMin: 42000, salaryMax: 48000, salaryPeriod: 'year' })),
+], ['£42,000–£48,000 a year', '£17.85–£20 an hour', '£42k–£48k a year'])
+check('every advert view asks for the full form, and none for the short one', () => {
+  const ADVERTS = ['app/job/[id]/page.tsx', 'app/jobs/page.tsx', 'components/JobDetailModal.tsx', 'app/saved-jobs/page.tsx', 'app/jobs/recommended/page.tsx', 'app/jobs/sector/[sector]/page.tsx', 'app/jobs/[city]/page.tsx']
+  return ADVERTS.filter(f => { const s = noComments(read(f)); return !/jobPay\(\w+, \{ full: true \}\)/.test(s) || /jobPay\((job|selectedJob)\)/.test(s) })
+}, [])
+check('pay is required: no "hide salary" option or tag on post-job, its preview uses the shared formatter, and formatJobSalary is gone', () => {
+  const pj = noComments(read('app/post-job/page.tsx'))
+  return [/hideSalary|Pay on application|'Competitive salary'/.test(pj), /jobPay\(draftJob, \{ full: true \}\)/.test(pj), 'formatJobSalary' in jobCard]
+}, [false, true, false])
+// The phrase anywhere a stranger can meet it — page copy, a prompt, a fallback —
+// not only in the files this branch touched. Comments are allowed to name it.
+check('"Competitive" appears in no string anywhere in app, components or lib', () => {
+  const walk = (dir: string): string[] => readdirSync(join(ROOT, dir)).flatMap(n => {
+    const rel = `${dir}/${n}`
+    return statSync(join(ROOT, rel)).isDirectory() ? walk(rel) : /\.(ts|tsx)$/.test(n) ? [rel] : []
+  })
+  const files = ['app', 'components', 'lib'].flatMap(walk)
+  return { scanned: files.length > 200, hits: files.filter(f => /['"`][^'"`\n]*\bCompetitive\b/.test(noComments(read(f)))) }
+}, { scanned: true, hits: [] })
+check('withdrawing: nothing is written during the 5-second Undo; the page going away writes it with keepalive; "I\'m available" inside the window is the Undo', () => {
+  const tw = noComments(read('app/temp-work/page.tsx'))
+  const fn = tw.slice(tw.indexOf('const withdrawInterest = '), tw.indexOf('// THE PAGE GOING AWAY') > -1 ? tw.indexOf('const withdrawInterest = ') + 1200 : undefined)
+  return [
+    /const UNDO_MS = 5000/.test(tw),
+    /from\('temp_interest'\)/.test(fn),
+    /keepalive: true/.test(tw) && /addEventListener\('pagehide'/.test(tw),
+    /if \(pendingRef\.current\?\.postId === post\.id\) \{ closeUndo\(false\); return \}/.test(tw),
+  ]
+}, [true, false, true, true])
 check('the list-and-detail pages draw their lists with the 1b row, not their own cards', () =>
   ['app/jobs/sector/[sector]/page.tsx', 'app/jobs/[city]/page.tsx', 'app/jobs/recommended/page.tsx', 'app/saved-jobs/page.tsx']
     .filter(f => { const s = noComments(read(f)); return !/<JobRow\b/.test(s) || /styles\.listCardLogo/.test(s) }), [])

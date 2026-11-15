@@ -1070,7 +1070,13 @@
    load with the roles landed — never typed from the handoff (design's 632 and
    ~400 are estimates). From 769 the 1a cards are a fixed 248px, so the two
    rows make the reserve the same at 2x2 and 3x2. */
-/* 390: the three rows settled at 533.92px on 15 Nov 2026 (design estimated
+/* RE-MEASURE BOTH WHEN THE BOARD'S DATA CHANGES (design 26, round 2). They
+   are the settled heights of TODAY'S newest jobs: longer titles, fewer than
+   six live jobs, or a card with an extra line all change them, and a reserve
+   that no longer matches makes the page jump on a cold load. Measure on the
+   settled page (the roles AND the live-roles sentence landed) at 390 and 820.
+
+   390: the three rows settled at 533.92px on 15 Nov 2026 (design estimated
    ~400; these agency titles wrap to two lines at 390). Rows are NOT a fixed
    height — they wrap to whatever the title needs, and must, because the full
    title lives here — so this one moves with the data: re-measure it when the

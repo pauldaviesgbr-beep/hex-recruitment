@@ -23,7 +23,7 @@
 import type { ReactNode } from 'react'
 import Link from 'next/link'
 import type { Job } from '@/lib/mockJobs'
-import { jobRowModel } from '@/lib/jobCard'
+import { jobRowModel, primaryEmploymentType } from '@/lib/jobCard'
 import styles from './JobTypeCard.module.css'
 
 export default function JobTypeCard({ job, href, corner, footerNote, footerAction, variant }: {
@@ -42,11 +42,11 @@ export default function JobTypeCard({ job, href, corner, footerNote, footerActio
   const home = variant === 'home'
   // HOME: ONE TYPE, ONE LINE. The card is a fixed 248px, and "South East
   // London, Greater London" beside "Flexible, Temporary" wraps to two lines
-  // and pushed the footer out of the card (seen at 820 and 1280, 15 Nov). The
-  // design draws the first type only ("Temporary"); the place truncates if it
-  // must — the advert one tap away carries both in full.
-  const firstType = Array.isArray(job.employmentType) ? job.employmentType[0] : job.employmentType
-  const type = home ? (firstType || m.type) : m.type
+  // and pushed the footer out of the card (seen at 820 and 1280, 15 Nov). One
+  // type, picked by meaning (lib/jobCard primaryEmploymentType: Temporary
+  // before Part-time before Full-time…, Flexible only when alone); the place
+  // truncates if it must — the advert one tap away carries both in full.
+  const type = home ? (primaryEmploymentType(job.employmentType) || m.type) : m.type
   // Home: the chip slot is never empty — NEW, or the age in the same chip.
   const chip = home ? (m.isNew ? 'NEW' : (m.age || '').toUpperCase() || null) : (m.isNew ? 'NEW' : null)
   // Home: the age goes in the footer only when the chip is busy saying NEW.
