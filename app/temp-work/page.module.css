@@ -106,6 +106,8 @@
    The panel box itself (#F6F7F9, radius 12, padding 14, gap 12) is
    ShiftRow's; these are what goes in it. Smallest text 14px. */
 .pAbout { display: flex; flex-direction: column; gap: 4px; padding-bottom: 12px; border-bottom: 1px solid #DFE3EA; }
+/* An example has no thread under it: no divider separating it from nothing. */
+.pAbout:last-child { padding-bottom: 0; border-bottom: 0; }
 .pAboutLabel { font-size: 14px; font-weight: 600; color: #334155; }
 .pDesc { margin: 0; font-size: 16px; line-height: 1.5; color: #334155; white-space: pre-wrap; overflow-wrap: anywhere; }
 .pLink { align-self: flex-start; font-size: 14px; font-weight: 600; color: #0F172A; }

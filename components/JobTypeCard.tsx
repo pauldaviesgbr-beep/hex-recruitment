@@ -40,6 +40,13 @@ export default function JobTypeCard({ job, href, corner, footerNote, footerActio
 }) {
   const m = jobRowModel(job)
   const home = variant === 'home'
+  // HOME: ONE TYPE, ONE LINE. The card is a fixed 248px, and "South East
+  // London, Greater London" beside "Flexible, Temporary" wraps to two lines
+  // and pushed the footer out of the card (seen at 820 and 1280, 15 Nov). The
+  // design draws the first type only ("Temporary"); the place truncates if it
+  // must — the advert one tap away carries both in full.
+  const firstType = Array.isArray(job.employmentType) ? job.employmentType[0] : job.employmentType
+  const type = home ? (firstType || m.type) : m.type
   // Home: the chip slot is never empty — NEW, or the age in the same chip.
   const chip = home ? (m.isNew ? 'NEW' : (m.age || '').toUpperCase() || null) : (m.isNew ? 'NEW' : null)
   // Home: the age goes in the footer only when the chip is busy saying NEW.
@@ -65,23 +72,23 @@ export default function JobTypeCard({ job, href, corner, footerNote, footerActio
         </span>
       )}
 
-      {(m.place || m.type) && (
+      {(m.place || type) && (
         <span className={styles.placeLine}>
           {m.place && (
-            <span className={styles.placeItem}>
+            <span className={`${styles.placeItem} ${styles.placeWhere}`}>
               <svg className={styles.icon} width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z" /><circle cx="12" cy="9.5" r="2.5" />
               </svg>
-              {m.place}
+              <span className={styles.placeText}>{m.place}</span>
             </span>
           )}
-          {m.place && m.type && <span className={styles.narrowDot} aria-hidden="true"> · </span>}
-          {m.type && (
-            <span className={styles.placeItem}>
+          {m.place && type && <span className={styles.narrowDot} aria-hidden="true"> · </span>}
+          {type && (
+            <span className={`${styles.placeItem} ${styles.placeType}`}>
               <svg className={styles.icon} width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" />
               </svg>
-              {m.type}
+              <span className={styles.placeText}>{type}</span>
             </span>
           )}
         </span>

@@ -123,6 +123,12 @@
   overflow: hidden;
   overflow-wrap: break-word;
 }
+/* ONE LINE for place · type, so the fixed height holds: the type (one value,
+   see JobTypeCard.tsx) never shrinks, the place truncates if it must. */
+.card[data-variant='home'] .placeLine { flex-wrap: nowrap; min-width: 0; }
+.card[data-variant='home'] .placeWhere { flex: 0 1 auto; min-width: 0; }
+.card[data-variant='home'] .placeWhere .placeText { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.card[data-variant='home'] .placeType { flex: 0 0 auto; white-space: nowrap; }
 .card[data-variant='home'] .footerText { flex: 1; flex-direction: row; align-items: center; justify-content: space-between; gap: 8px; }
 .card[data-variant='home'] .via { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .card[data-variant='home'] .age { flex-shrink: 0; }
