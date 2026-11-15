@@ -950,3 +950,28 @@
 @media (max-width: 768px) {
   .logoLockup { height: 34px; }
 }
+
+/* "‹ More" — an employer page opened from the More page, INSIDE THE iOS APP
+   (design_handoff_phone_navigation, 1f). Hidden everywhere else: the rule that
+   shows it is in globals.css under html.native-nav, beside the rules that hide
+   the header in the app, because the two are one decision. It sits in the page
+   flow as the first thing in <main>, where the hidden header used to be. */
+.moreBack {
+  display: none;
+  align-items: center;
+  gap: 4px;
+  min-height: 44px;
+  padding: 0 16px;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 20px;
+  color: #0F172A;
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.moreBackChevron {
+  font-size: 22px;
+  line-height: 1;
+  color: #0F172A;
+}

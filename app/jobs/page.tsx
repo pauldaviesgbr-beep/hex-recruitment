@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect, useRef, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Header from '@/components/Header'
+import JobsChips from '@/components/JobsChips'
 import JobDetailModal from '@/components/JobDetailModal'
 import { Job } from '@/lib/mockJobs'
 import { useJobs } from '@/lib/JobsContext'
@@ -988,6 +989,7 @@ function JobsPageContent() {
       {/* Search Section */}
       <div className={styles.searchSection}>
         <div className={styles.searchInner}>
+          <JobsChips current="all" tone="dark" />
           <h1 className={styles.pageTitle}>
             {currentUserRole === 'employer' ? 'Browse Job Listings' : 'Find Your Next Role'}
           </h1>
@@ -1035,7 +1037,10 @@ function JobsPageContent() {
             </div>
           )}
         </div>
-        <div className={styles.quickLinks}>
+        {/* On a phone a signed-in candidate has the All / For you / Shifts chips
+            at the top of this band (components/JobsChips), which make the same
+            choice; two controls for one choice on one screen is one too many. */}
+        <div className={`${styles.quickLinks} ${currentUserRole === 'employee' ? styles.quickLinksChipped : ''}`}>
           <button className={styles.filterPill} onClick={clearFilters}>Browse All Jobs</button>
           <Link href="/jobs/recommended" className={styles.filterPill}>Jobs For You →</Link>
         </div>

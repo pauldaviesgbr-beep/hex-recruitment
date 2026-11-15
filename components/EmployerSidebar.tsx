@@ -280,38 +280,17 @@ export default function EmployerSidebar() {
     return false
   }
 
-  const hideHamburger = isDetailPage
-
   if (!mounted) return null
 
   return (
     <>
-      {/* Mobile hamburger */}
-      {!hideHamburger && (
-        <button
-          className={styles.mobileToggle}
-          data-sidebar-toggle=""
-          onClick={() => setMobileOpen(true)}
-          aria-label="Open navigation"
-        >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="3" y1="12" x2="21" y2="12" />
-            <line x1="3" y1="6" x2="21" y2="6" />
-            <line x1="3" y1="18" x2="21" y2="18" />
-          </svg>
-        </button>
-      )}
-
-      {/* Mobile overlay */}
-      {mobileOpen && (
-        <div
-          className={styles.overlay}
-          onClick={() => setMobileOpen(false)}
-          onTouchEnd={(e) => { e.preventDefault(); setMobileOpen(false); }}
-        />
-      )}
-
-      <aside ref={sidebarRef} className={`${styles.sidebar} ${collapsed ? styles.collapsed : styles.expanded} ${mobileOpen ? styles.mobileOpen : ''}`}>
+      {/* NO HAMBURGER (design_handoff_phone_navigation, 14 Nov 2026). On a phone
+          the bottom bar's More slot replaces this drawer, and nothing opens it.
+          The control the iOS app presses for its More tab now lives in
+          components/PhoneNav, which is mounted on every page — this component
+          is not (the stepped post-job form renders no header), so the app's
+          More tab did nothing there. */}
+      <aside ref={sidebarRef} data-employer-rail="" className={`${styles.sidebar} ${collapsed ? styles.collapsed : styles.expanded} ${mobileOpen ? styles.mobileOpen : ''}`}>
         {/* Spacer: fills the area behind the navbar */}
         <div className={styles.navSpacer} />
         {/* Header row: "Menu" label + toggle chevron */}

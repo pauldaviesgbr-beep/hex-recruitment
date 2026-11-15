@@ -356,6 +356,16 @@ const ALL = [
   // failures, the other nine still reporting.
   { name: 'consentlane:prove', cmd: npm, args: ['run', 'consentlane:prove'] },
 
+  // THE PHONE NAVIGATION (14 Nov 2026). Taking the hamburger away is only safe
+  // if every destination it held has a home on a phone — a page with no route
+  // to it still renders, so nothing else would ever go red. Reads the old
+  // menus' own links and asks where each one lives now; asserts the bridge the
+  // shipped iOS app presses still exists. Filesystem only, fast tier.
+  // Watched failing on purpose 14 Nov 2026: a row removed, a row pointed at a
+  // route that does not exist, the bridge button renamed, the employer rail
+  // left visible in the app. Four named failures; green on restore.
+  { name: 'phonenav:prove', cmd: npm, args: ['run', 'phonenav:prove'] },
+
   // NO COLOUR EMOJI ON ANY SURFACE A STRANGER SEES. components/icons.tsx has
   // said this since 14 Aug 2026 and had nothing behind it; seven got in anyway
   // — three clocks, two hourglasses, a party popper, and a video camera in an

@@ -7,7 +7,9 @@
    prove-consent-lane.ts asserts the AGREEMENT, not either number. */
 .banner {
   position: fixed;
-  bottom: 0;
+  /* Directly above the phone bottom bar, never over it (0 wherever the bar
+     is not on screen). The bar is the one fixed thing the lane sits ON. */
+  bottom: var(--nav-bottom-h, 0px);
   left: 0;
   right: 0;
   z-index: 1001;

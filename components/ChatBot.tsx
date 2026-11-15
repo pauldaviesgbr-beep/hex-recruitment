@@ -125,6 +125,17 @@ export default function ChatBot() {
     return () => window.removeEventListener('open-thrive-chatbot', handleOpen)
   }, [])
 
+  // Open from a LINK: ?ask=1 on any page. A native screen in the iOS app cannot
+  // dispatch the event above, so its Profile row "Ask Thrive" loads
+  // /support?ask=1 instead (design_handoff_phone_navigation, 1d). Keyed on the
+  // path so a client navigation to such a link opens it too.
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('ask') === '1') {
+      setIsOpen(true)
+      setShowBadge(false)
+    }
+  }, [pathname])
+
   const sendMessage = useCallback(async (content: string) => {
     const trimmed = content.trim()
     if (!trimmed) return

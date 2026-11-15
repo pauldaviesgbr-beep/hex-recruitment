@@ -121,7 +121,7 @@
   .chatWindow {
     width: calc(100% - 16px);
     height: 420px;
-    bottom: calc(8px + var(--consent-h, 0px));
+    bottom: calc(8px + var(--consent-h, 0px) + var(--nav-bottom-h, 0px));
     right: 8px;
     border-radius: 12px;
   }

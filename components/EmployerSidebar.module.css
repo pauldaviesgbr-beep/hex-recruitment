@@ -315,9 +315,8 @@ button.item {
     transform: translateX(0);
   }
 
-  .mobileToggle {
-    display: flex;
-  }
+  /* No hamburger at phone width any more: the bottom bar replaced it
+     (components/PhoneNav). .mobileToggle is no longer rendered. */
 
   .overlay {
     display: block;

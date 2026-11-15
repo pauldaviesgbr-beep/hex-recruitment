@@ -158,8 +158,16 @@ body {
      fix: it leaves the next new screen to break the same way, and it did.
      components/CookieConsent.tsx publishes its height here while the banner is
      unanswered, and 0 the moment it is not. One rule, every page, including
-     pages nobody has written yet. */
-  padding-bottom: calc(var(--chat-clear, 0px) + var(--consent-h, 0px));
+     pages nobody has written yet.
+
+     THE PHONE BOTTOM BAR IS THE THIRD TERM, ADDED 14 Nov 2026. It is fixed at
+     the foot on a phone exactly as the other two are, so it goes in THIS SUM and
+     nowhere else. components/PhoneNav.tsx publishes --nav-bottom-h from the
+     rendered box, and 0 whenever the bar is not on screen. Giving the bar a
+     bottom padding of its own is the bug this comment already describes, with a
+     third path added to the two that must agree. No braces in this comment:
+     prove-consent-lane.ts reads this rule with a scan that a brace would end. */
+  padding-bottom: calc(var(--chat-clear, 0px) + var(--consent-h, 0px) + var(--nav-bottom-h, 0px));
 }
 
 :root {
@@ -169,6 +177,9 @@ body {
   /* The Ask Thrive launcher sits fixed at the foot on a phone and needs its
      own clearance. Zero on desktop, where it does not overlap content. */
   --chat-clear: 0px;
+  /* The phone bottom bar. Declared here so no page depends on a fallback;
+     components/PhoneNav.tsx publishes the rendered height. */
+  --nav-bottom-h: 0px;
 }
 
 /* ──────────────────────────────────────────────────────────
@@ -705,12 +716,17 @@ button[data-blocked='yes']:hover {
    Signed out, and on sign-in pages, the app shows no tab bar, so the class is
    off and the website's own header stays as the only navigation.
 
-   Hidden: the site header, the candidate side menu, and the hamburger.
-   NOT hidden: the employer side menu itself, because the employer "More" tab
-   opens it (it clicks the hidden hamburger, which still works).
+   Hidden: ALL of the website's navigation, at every width — the site header,
+   both side menus, the hamburger and the phone bottom bar (which carries
+   data-hide-in-app). Until 14 Nov 2026 the employer side menu stayed, because
+   the app's More tab opened it; it now opens the More page instead
+   (EmployerSidebar.tsx), so the menu goes too — otherwise an iPad, which is
+   wider than the phone breakpoint, showed the website's rail beside the app's
+   own tab bar (design_handoff_phone_navigation, 1f).
    ========================== */
 html.native-nav [data-site-header],
 html.native-nav [data-candidate-rail],
+html.native-nav [data-employer-rail],
 html.native-nav [data-sidebar-toggle],
 html.native-nav [data-repeats-native-title],
 html.native-nav [data-hide-in-app] {
@@ -723,9 +739,17 @@ html.native-nav {
   --nav-height: env(safe-area-inset-top, 0px);
 }
 
-/* The candidate rail is gone, so the room made for it goes too. */
-html.native-nav body[data-candidate-sidebar] {
+/* The rails are gone, so the room made for them goes too. */
+html.native-nav body[data-candidate-sidebar],
+html.native-nav body[data-sidebar] {
   padding-left: 0;
+}
+
+/* "‹ More" (components/Header.tsx): the way back to the More page from a page
+   opened from it. The app's tabs have no back button of their own, so this is
+   shown in the app only; on the phone website the bottom bar does the job. */
+html.native-nav [data-more-back] {
+  display: flex;
 }
 
 /* Above 768px the header sat in the flow rather than fixed, so pages made no

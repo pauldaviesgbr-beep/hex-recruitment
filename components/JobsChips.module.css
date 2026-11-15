@@ -1,0 +1,53 @@
+/* The candidate's job chips on a phone (components/JobsChips.tsx).
+   Controls WRAP, never scroll sideways (CLAUDE.md, "Controls wrap; content
+   scrolls"). 44 tall, radius 22: the handoff's chip. */
+
+.chips {
+  display: none;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 12px;
+}
+
+@media (max-width: 768px) {
+  .chips { display: flex; }
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: 22px;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 20px;
+  text-decoration: none;
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* On the navy band of /jobs and /jobs/recommended. */
+.dark .chip {
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: transparent;
+}
+
+/* On the light page of /temp-work. */
+.light .chip {
+  color: #0F172A;
+  border: 1px solid #DFE3EA;
+  background: #ffffff;
+}
+
+.chip[data-on] {
+  background: #FFE500;
+  border-color: #FFE500;
+  color: #0F172A;
+}
+
+.chip:focus-visible {
+  outline: 3px solid rgba(255, 229, 0, 0.6);
+  outline-offset: 2px;
+}

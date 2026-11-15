@@ -14,6 +14,7 @@ const NotificationBell = dynamic(() => import('./NotificationBell'), { ssr: fals
 const EmployerSidebar = dynamic(() => import('./EmployerSidebar'), { ssr: false })
 const CandidateSidebar = dynamic(() => import('./CandidateSidebar'), { ssr: false })
 import styles from './Header.module.css'
+import { EMPLOYER_MORE_PATH, moreBackShownOn } from '@/lib/phoneNav'
 
 export default function Header() {
   const router = useRouter()
@@ -268,7 +269,7 @@ export default function Header() {
 
   // Profile Avatar with Dropdown Menu
   const ProfileAvatar = ({ profilePath }: { profilePath: string }) => (
-    <div className={styles.profileContainer} ref={profileMenuRef}>
+    <div className={`${styles.profileContainer} ${styles.mobileHide}`} ref={profileMenuRef}>
       <button
         className={styles.avatarButton}
         onClick={() => setShowProfileMenu(!showProfileMenu)}
@@ -626,10 +627,10 @@ export default function Header() {
         </div>
       </div>
       )}
-      <Link href="/feedback" className={styles.feedbackPill}>
+      <Link href="/feedback" className={`${styles.feedbackPill} ${styles.mobileHide}`}>
         Feedback
       </Link>
-      <Link href="/messages" className={styles.navIconLink} aria-label="Messages">
+      <Link href="/messages" className={`${styles.navIconLink} ${styles.mobileHide}`} aria-label="Messages">
         <svg className={styles.navIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
         </svg>
@@ -638,7 +639,7 @@ export default function Header() {
         )}
         <span className={styles.navTooltip}>Messages</span>
       </Link>
-      <Link href="/calendar" className={styles.navIconLink} aria-label="Calendar">
+      <Link href="/calendar" className={`${styles.navIconLink} ${styles.mobileHide}`} aria-label="Calendar">
         <svg className={styles.navIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
           <line x1="16" y1="2" x2="16" y2="6" />
@@ -667,10 +668,10 @@ export default function Header() {
 
   const EmployeeNav = () => (
     <>
-      <Link href="/feedback" className={styles.feedbackPill}>
+      <Link href="/feedback" className={`${styles.feedbackPill} ${styles.mobileHide}`}>
         Feedback
       </Link>
-      <Link href="/messages" className={`${styles.navIconLink} ${pathname === '/messages' ? styles.navIconLinkActive : ''}`} aria-label="Messages">
+      <Link href="/messages" className={`${styles.navIconLink} ${styles.mobileHide} ${pathname === '/messages' ? styles.navIconLinkActive : ''}`} aria-label="Messages">
         <svg className={styles.navIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
         </svg>
@@ -687,6 +688,19 @@ export default function Header() {
   const showSidebar = mounted && user && isEmployer
   const showCandidateSidebar = mounted && user && !isEmployer
   const logoHref = !mounted || !user ? '/' : isEmployer ? '/employer/dashboard' : '/dashboard'
+
+  // THE "‹ More" LINK, FOR AN EMPLOYER INSIDE THE iOS APP. The app's tabs have
+  // no native back button, so a page opened from the More page needs a way back
+  // to it that the website draws. It is rendered for employers on the More
+  // destinations and shown ONLY in app mode (globals.css, html.native-nav): on
+  // the phone website the bottom bar's More slot is already lit and one tap away.
+  // The company page carries the name in its path, compared in both encodings.
+  const companyName: string = user?.user_metadata?.company_name || ''
+  const companyPath = companyName ? `/company/${encodeURIComponent(companyName)}` : null
+  let decodedPath = pathname || ''
+  try { decodedPath = decodeURIComponent(decodedPath) } catch {}
+  const showMoreBack = !!showSidebar && !!pathname &&
+    (moreBackShownOn(pathname, companyPath) || (!!companyName && decodedPath === `/company/${companyName}`))
 
   return (
     <>
@@ -739,6 +753,11 @@ export default function Header() {
           </div>
         </div>
       </header>
+      {showMoreBack && (
+        <Link href={EMPLOYER_MORE_PATH} className={styles.moreBack} data-more-back="">
+          <span aria-hidden="true" className={styles.moreBackChevron}>‹</span> More
+        </Link>
+      )}
     </>
   )
 }
