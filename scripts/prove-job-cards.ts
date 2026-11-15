@@ -31,6 +31,7 @@ check('annual pay in thousands, en dash, "a year"', () => jobPayText(jobPay({ sa
 check('hourly pay keeps its pence, "an hour"', () => jobPayText(jobPay({ salaryMin: 16.95, salaryMax: 16.95, salaryPeriod: 'hour' })), '£16.95 an hour')
 check('NO PAY → no pay line at all (never "Competitive")', () => jobPay({ salaryMin: 0, salaryMax: 0, salaryPeriod: 'year' }), null)
 check('above zero, not merely present: a literal 0 is no pay', () => [jobPay({ salaryMin: null, salaryMax: 0 }), jobPayText(jobPay({ salaryMin: 0, salaryMax: 32000, salaryPeriod: 'year' }))], [null, '£32k a year'])
+check('two figures that print the same are one figure: never "£42k–£42k"', () => jobPayText(jobPay({ salaryMin: 41800, salaryMax: 42000, salaryPeriod: 'year' })), '£42k a year')
 check('a draft with no period yet shows the figure and claims no period', () => jobPayText(jobPay({ salaryMin: 30000, salaryMax: 30000, salaryPeriod: null })), '£30,000')
 
 // ── THE ROW MODEL: role → pay → place · type → via {recruiter} · age ──────
@@ -93,7 +94,12 @@ const DONE = [
   'components/JobRow.tsx', 'components/JobCard.tsx',
   // step 2: the advert views
   'app/job/[id]/page.tsx', 'app/jobs/page.tsx', 'components/JobDetailModal.tsx', 'components/ApplyNowModal.tsx',
+  // step 3: the list-and-detail pages, now 1b rows
+  'app/jobs/sector/[sector]/page.tsx', 'app/jobs/[city]/page.tsx', 'app/jobs/recommended/page.tsx', 'app/saved-jobs/page.tsx',
 ]
+check('the list-and-detail pages draw their lists with the 1b row, not their own cards', () =>
+  ['app/jobs/sector/[sector]/page.tsx', 'app/jobs/[city]/page.tsx', 'app/jobs/recommended/page.tsx', 'app/saved-jobs/page.tsx']
+    .filter(f => { const s = noComments(read(f)); return !/<JobRow\b/.test(s) || /styles\.listCardLogo/.test(s) }), [])
 check('no image, logo or banner in any finished job surface', () => DONE.filter(f => IMAGE.test(noComments(read(f)))), [])
 check('ZERO-GUARD: the image pattern still finds an image where one is known to be', () => IMAGE.test(noComments(read('components/FeedCard.tsx'))), true)
 

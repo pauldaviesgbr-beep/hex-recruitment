@@ -18,6 +18,7 @@
  * were stamps on the photo card).
  */
 
+import type { ReactNode } from 'react'
 import type { Job } from '@/lib/mockJobs'
 import { jobRowModel } from '@/lib/jobCard'
 import styles from './JobRow.module.css'
@@ -29,9 +30,15 @@ export interface JobRowProps {
   onToggleSave?: (job: Job) => void
   applied?: boolean
   shortlisted?: boolean
+  /** The open job in a list-and-detail page (sector, city, recommended, saved). */
+  selected?: boolean
+  /** The right-hand column when there is no Save: the match % on Recommended. */
+  aside?: ReactNode
+  /** A further quiet line under line 3: "Saved 2 days ago" on Saved jobs. */
+  extra?: ReactNode
 }
 
-export default function JobRow({ job, onSelect, saved, onToggleSave, applied, shortlisted }: JobRowProps) {
+export default function JobRow({ job, onSelect, saved, onToggleSave, applied, shortlisted, selected, aside, extra }: JobRowProps) {
   const m = jobRowModel(job)
   const pay = m.pay && (
     <span className={styles.pay}>
@@ -45,8 +52,8 @@ export default function JobRow({ job, onSelect, saved, onToggleSave, applied, sh
   )
 
   return (
-    <div className={styles.row}>
-      <button type="button" className={styles.main} onClick={onSelect ? () => onSelect(job) : undefined} disabled={!onSelect}>
+    <div className={`${styles.row} ${selected ? styles.selected : ''}`}>
+      <button type="button" className={styles.main} onClick={onSelect ? () => onSelect(job) : undefined} disabled={!onSelect} aria-current={selected ? 'true' : undefined}>
         <span className={styles.titleLine}>
           <span className={styles.title}>{m.title}</span>
           {m.isNew && <span className={styles.newChip}>NEW</span>}
@@ -69,8 +76,10 @@ export default function JobRow({ job, onSelect, saved, onToggleSave, applied, sh
         <span className={`${styles.line3} ${styles.wideOnly}`}>
           {m.via}{m.via && m.age && dot}{m.age}{own}
         </span>
+        {extra && <span className={styles.line3}>{extra}</span>}
       </button>
 
+      {typeof onToggleSave !== 'function' && aside && <span className={styles.aside}>{aside}</span>}
       {typeof onToggleSave === 'function' && (
         <button
           type="button"

@@ -103,7 +103,10 @@ export function jobPay(job: { salaryMin?: number | null; salaryMax?: number | nu
   // email and shift card uses): only a draft with no period yet can reach a
   // four-figure amount on this path, and "£30000" reads as a typo.
   const fmt = (n: number) => (annual ? `£${(n / 1000).toFixed(0)}k` : n >= 1000 ? `£${n.toLocaleString('en-GB', { maximumFractionDigits: 2 })}` : formatMoney(n))
-  const amount = lo === hi || hi < lo ? fmt(lo) : `${fmt(lo)}–${fmt(hi)}`
+  // Compared AS PRINTED: £41,800 and £42,000 are different numbers and the
+  // same "£42k", and "£42k–£42k" is what a local formatter put on the sector
+  // page's advert (seen 15 Nov 2026).
+  const amount = hi <= lo || fmt(lo) === fmt(hi) ? fmt(lo) : `${fmt(lo)}–${fmt(hi)}`
   return {
     amount,
     period: job.salaryPeriod === 'hour' ? 'an hour' : annual ? 'a year' : null,

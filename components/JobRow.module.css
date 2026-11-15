@@ -30,7 +30,7 @@
 .row {
   position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 44px;
+  grid-template-columns: minmax(0, 1fr) auto;
   column-gap: 4px;
   align-items: start;
   padding: 16px 6px 16px 18px;
@@ -38,6 +38,13 @@
   border-bottom: 1px solid #EEF0F4;
 }
 .row:hover { background: #F6F7F9; }
+/* The open job beside a detail panel: the hover fill plus an ink edge, so it
+   reads as chosen and not merely pointed at. */
+.selected { background: #F6F7F9; box-shadow: inset 3px 0 0 #0F172A; }
+/* The right column when there is no Save (Recommended's match %). Above the
+   stretched row button only if it is interactive; a plain label lets taps fall
+   through to the row. */
+.aside { align-self: start; justify-self: end; padding-top: 2px; pointer-events: none; }
 .list > .row:last-child { border-bottom: 0; }
 
 @media (min-width: 768px) {

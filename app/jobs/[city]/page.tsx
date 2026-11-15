@@ -4,15 +4,16 @@ import { useState, useMemo, useEffect } from 'react'
 import { useParams, notFound } from 'next/navigation'
 import Link from 'next/link'
 import Header from '@/components/Header'
-import CompanyLogo from '@/components/CompanyLogo'
 import JobDetailModal from '@/components/JobDetailModal'
+import JobRow from '@/components/JobRow'
+import rowStyles from '@/components/JobRow.module.css'
 import JobPostingSchema from '@/components/JobPostingSchema'
 import { Job } from '@/lib/mockJobs'
 import { isSplitPaneWidth } from '@/lib/viewport'
 import { useJobs } from '@/lib/JobsContext'
 import { SEO_CITIES } from '@/lib/seo'
 import styles from './page.module.css'
-import { formatJobLocation } from '@/lib/jobCard'
+import { formatJobLocation, jobPay, jobPayText } from '@/lib/jobCard'
 import ReportControl from '@/components/ReportControl'
 
 export default function CityJobsPage() {
@@ -128,26 +129,13 @@ export default function CityJobsPage() {
         {filteredJobs.length > 0 ? (
           <div className={styles.splitLayout}>
             <div className={styles.jobListPanel}>
-              {filteredJobs.map(job => (
-                <div
-                  key={job.id}
-                  className={`${styles.listCard} ${selectedJob?.id === job.id ? styles.listCardActive : ''}`}
-                  onClick={() => setSelectedJob(job)}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => e.key === 'Enter' && setSelectedJob(job)}
-                >
-                  <div className={styles.listCardLogo}>
-                    <CompanyLogo src={job.companyLogo} alt={job.company} className={styles.listCardLogoImg} />
-                  </div>
-                  <div className={styles.listCardContent}>
-                    <h3 className={styles.listCardTitle}>{job.title}</h3>
-                    <p className={styles.listCardCompany}>{job.company}</p>
-                    <p className={styles.listCardLocation}>{formatJobLocation(job)}</p>
-                    <p className={styles.listCardSalary}>{formatSalary(job)}</p>
-                  </div>
-                </div>
-              ))}
+              {/* The text-led 1b rows (components/JobRow): no logo, no image
+                  (design 25, 15 Nov 2026). */}
+              <div className={rowStyles.list}>
+                {filteredJobs.map(job => (
+                  <JobRow key={job.id} job={job} onSelect={setSelectedJob} selected={selectedJob?.id === job.id} />
+                ))}
+              </div>
             </div>
 
             {!isMobile && selectedJob && (
@@ -158,7 +146,7 @@ export default function CityJobsPage() {
                     <h2 className={styles.detailTitle}>{selectedJob.title}</h2>
                     <p className={styles.detailCompany}>{selectedJob.company}</p>
                     <p className={styles.detailLocation}>{formatJobLocation(selectedJob)}</p>
-                    <p className={styles.detailSalary}>{formatSalary(selectedJob)}</p>
+                    {jobPay(selectedJob) && <p className={styles.detailSalary}>{jobPayText(jobPay(selectedJob))}</p>}
                     <div className={styles.detailBadges}>
                       {selectedJob.employmentType.map(t => (
                         <span key={t} className={styles.detailBadge}>{t}</span>
