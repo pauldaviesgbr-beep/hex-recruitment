@@ -330,10 +330,8 @@ function MyJobsContent() {
     }
   }
 
-  const handleReactivateJob = async (jobId: string) => {
-    const confirmed = confirm('Make this job ad live again? It will appear in search results again.')
-    if (!confirmed) return
-
+  // Put a filled or archived ad back on the board. Returns whether it went.
+  const makeLive = async (jobId: string): Promise<boolean> => {
     try {
       const { error } = await supabase
         .from('jobs')
@@ -341,16 +339,34 @@ function MyJobsContent() {
         .eq('id', jobId)
 
       if (error) {
-        console.error('Error reactivating job:', error)
-        alert('Failed to reactivate job. Please try again.')
-        return
+        console.error('Error making job live again:', error)
+        return false
       }
 
       await ensureJobArea(jobId)
       await refreshJobs()
+      return true
     } catch (err) {
-      console.error('Error reactivating job:', err)
+      console.error('Error making job live again:', err)
+      return false
     }
+  }
+
+  // MAKE LIVE AGAIN. Every advert on Thrive shows its pay, so an ad with none
+  // does not go back on the board as it is: the quick editor opens on the pay
+  // field — the same path as "Add the pay" — and the ad goes live only once
+  // the pay is saved (handleQuickEditSave). Cancelling leaves it where it was.
+  // "No pay" is the card's own test (jobPay), so the two cannot disagree.
+  const [liveAfterPay, setLiveAfterPay] = useState<string | null>(null)
+  const handleMakeLiveAgain = async (job: PostedJob) => {
+    if (!jobPay(job)) {
+      setLiveAfterPay(job.id)
+      setEditFocus('pay')
+      setEditTarget(job)
+      return
+    }
+    if (!confirm('Make this job ad live again? It will appear in search results again.')) return
+    if (!(await makeLive(job.id))) alert('Could not make the job ad live again. Please try again.')
   }
 
   // POST AGAIN (design 26, C): start a COPY in the post-job form, filled in
@@ -444,6 +460,14 @@ function MyJobsContent() {
       salaryPeriod: values.salaryPeriod,
       description: values.description,
     } : j))
+
+    // MAKE LIVE AGAIN, waiting on its pay: the pay is now saved (the editor
+    // refuses to save without it), so the ad goes live. If that step fails the
+    // editor stays open and says so — the pay itself did save.
+    if (liveAfterPay === jobId && values.salaryMin > 0) {
+      if (!(await makeLive(jobId))) throw new Error('The pay is saved, but the ad did not go live. Close this and choose Make live again.')
+      setLiveAfterPay(null)
+    }
     setEditTarget(null)
   }
 
@@ -754,7 +778,7 @@ function MyJobsContent() {
                           ? [{ label: isBoosted ? 'Boosted (manage)' : 'Boost this job', onClick: () => { setBoostTargetJob(job); setBoostModalOpen(true) } }] : []),
                         // "Make live again" revives THIS ad; "Post again" starts a
                         // copy. Two different acts, so two different words.
-                        ...(job.status === 'archived' || job.status === 'filled' ? [{ label: 'Make live again', onClick: () => handleReactivateJob(job.id) }] : []),
+                        ...(job.status === 'archived' || job.status === 'filled' ? [{ label: 'Make live again', onClick: () => handleMakeLiveAgain(job) }] : []),
                         // ACTIVE ONLY, and only with manage_jobs: the endpoint
                         // refuses everyone else, so they are not shown the door.
                         // A danger item: ManageCard puts it last, red, below a divider.
@@ -794,7 +818,8 @@ function MyJobsContent() {
             }}
             focusField={editFocus}
             onSave={handleQuickEditSave}
-            onCancel={() => setEditTarget(null)}
+            // Cancelling a Make-live-again edit leaves the ad where it was.
+            onCancel={() => { setEditTarget(null); setLiveAfterPay(null) }}
             fullEditHref={`/post-job?edit=${editTarget.id}`}
           />
         )}

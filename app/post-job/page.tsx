@@ -1649,10 +1649,13 @@ function PostJobContent() {
                 // so it says "Draft saved" once something has actually been
                 // written, not before.
                 status={
+                  // ONE LINE ON A PHONE: "<state> · <title>", the title cut with
+                  // "…" by the CSS; the town is `extra`, shown from 768 only.
                   adStatus === 'live'
                     ? {
                         kind: 'live',
-                        text: `Live since ${(publishedAt ?? new Date()).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}${formData.title ? ` · ${formData.title}` : ''}${formData.location ? `, ${formData.location}` : ''}`,
+                        text: `Live since ${(publishedAt ?? new Date()).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}${formData.title ? ` · ${formData.title}` : ''}`,
+                        extra: formData.location ? `${formData.title ? ', ' : ' · '}${formData.location}` : undefined,
                       }
                     // A COPY IS NOT AUTOSAVED (it would overwrite the one saved
                     // draft), so it must not say it is: until it is posted,
@@ -1662,7 +1665,11 @@ function PostJobContent() {
                     : copyId
                       ? { kind: 'saving', text: 'Copy · not saved yet' }
                     : savedAt
-                      ? { kind: 'saved', text: `Draft saved${[formData.title, formData.location].filter(Boolean).length ? ` · ${[formData.title, formData.location].filter(Boolean).join(', ')}` : ''}` }
+                      ? {
+                          kind: 'saved',
+                          text: `Draft saved${formData.title ? ` · ${formData.title}` : ''}`,
+                          extra: formData.location ? `${formData.title ? ', ' : ' · '}${formData.location}` : undefined,
+                        }
                       : { kind: 'saving', text: 'Saving as you go · draft' }
                 }
               />

@@ -20,7 +20,9 @@ export function FlowAppBar({
   status,
   onBack,
 }: {
-  status: { kind: 'saving' | 'saved' | 'live'; text: string }
+  /** `extra` (the town) shows from 768 only. On a phone the status is one
+   *  line — "Draft saved · {title}", the title cut with "…". */
+  status: { kind: 'saving' | 'saved' | 'live'; text: string; extra?: string }
   onBack: () => void
 }) {
   return (
@@ -38,6 +40,7 @@ export function FlowAppBar({
       <span className={`${styles.appBarStatus} ${status.kind === 'live' ? styles.appBarStatusLive : ''}`}>
         {status.kind === 'live' && <span className={styles.liveDot} aria-hidden="true">●</span>}
         {status.text}
+        {status.extra && <span className={styles.appBarStatusExtra}>{status.extra}</span>}
       </span>
     </div>
   )

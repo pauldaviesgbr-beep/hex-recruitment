@@ -296,6 +296,30 @@ check('the manage card\'s ⋯: a danger item goes LAST, red #B42318, below a div
     /label: 'Remove ad', onClick: \(\) => setRemoveTarget\(job\), danger: true/.test(mj),
   ]
 }, [true, true, true])
+// Round 4: Make live again on an ad with no pay takes the "Add the pay" path —
+// the editor on the pay field — and goes live only once the pay is saved.
+check('/my-jobs: Make live again with no pay opens the editor on pay; the ad goes live only after the pay saves; Cancel leaves it', () => {
+  const mj = noComments(read('app/my-jobs/page.tsx'))
+  return [
+    /if \(!jobPay\(job\)\) \{\s*setLiveAfterPay\(job\.id\)\s*setEditFocus\('pay'\)\s*setEditTarget\(job\)\s*return/.test(mj),
+    /if \(liveAfterPay === jobId && values\.salaryMin > 0\) \{\s*if \(!\(await makeLive\(jobId\)\)\)/.test(mj),
+    /onCancel=\{\(\) => \{ setEditTarget\(null\); setLiveAfterPay\(null\) \}\}/.test(mj),
+    /label: 'Make live again', onClick: \(\) => handleMakeLiveAgain\(job\)/.test(mj),
+  ]
+}, [true, true, true, true])
+// Round 4: the post-job header on a phone is ONE line — "Draft saved · {title}",
+// the title cut with "…", the town from 768 only.
+check('post-job header: one line, the title cut with "…", the town shown from 768 only, the wordmark never shrinks', () => {
+  const css = noComments(read('app/post-job/flow.module.css')), fc = noComments(read('app/post-job/FlowChrome.tsx')), pj = noComments(read('app/post-job/page.tsx'))
+  return [
+    /\.appBarStatus\s*\{[^}]*min-width:\s*0;[^}]*overflow:\s*hidden;[^}]*text-overflow:\s*ellipsis;[^}]*white-space:\s*nowrap/.test(css),
+    /\.appBarWordmark\s*\{[^}]*flex:\s*none;[^}]*white-space:\s*nowrap/.test(css),
+    /@media \(max-width: 767px\)\s*\{\s*\.appBarStatusExtra\s*\{\s*display:\s*none;?\s*\}/.test(css),
+    /\{status\.extra && <span className=\{styles\.appBarStatusExtra\}>/.test(fc),
+    // the town is no longer part of the main text for either state
+    /text: `Draft saved\$\{formData\.title \? ` · \$\{formData\.title\}` : ''\}`,/.test(pj) && !/join\(', '\)\}`/.test(pj),
+  ]
+}, [true, true, true, true, true])
 check('from 768 a quiet (filled / archived) card\'s action column takes the card\'s #F6F7F9 tint', () =>
   /@media \(min-width: 768px\)\s*\{[^@]*\.card:not\(\[data-live\]\):has\(> \.actions\) \.action\s*\{\s*background:\s*#F6F7F9/.test(noComments(read('components/ManageCard.module.css'))), true)
 check('/my-jobs: the countdown is only claimed where the expiry cron will act (never on a recruiter posting); "new" is the Applicants list\'s own stage', () => {

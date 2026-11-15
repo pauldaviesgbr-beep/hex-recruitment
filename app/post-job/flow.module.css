@@ -48,15 +48,27 @@
 .appBarMark { display: inline-flex; line-height: 0; }
 
 .appBarWordmark {
+  flex: none;
+  white-space: nowrap;
   font-family: var(--font-serif), Georgia, serif;
   font-size: 17px;
   font-weight: 600;
   letter-spacing: -0.02em;
   color: #fff;
 }
+/* The town: from 768 only. On a phone the header keeps the title. */
+@media (max-width: 767px) {
+  .appBarStatusExtra { display: none; }
+}
 
+/* ONE LINE, ALWAYS. The status sits beside the wordmark and never wraps; a
+   long title is cut with "…" rather than crushing "Post a job" or running off
+   the screen. min-width: 0 is what lets a flex item shrink below its text. */
 .appBarStatus {
   margin-left: auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   font-size: 13px;
   font-weight: 500;
   color: #93a3b8;
