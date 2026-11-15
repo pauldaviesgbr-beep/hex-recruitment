@@ -64,12 +64,17 @@ export type MenuRow = {
   onlyInAppWithout?: NativeTab
 }
 
-export type MenuGroup = { heading?: string; rows: MenuRow[] }
+/** `side` places the group in one of two independent columns from 768 wide
+ *  (components/NavMenuPage.tsx). Without it the page keeps its one grid. */
+export type MenuGroup = { heading?: string; rows: MenuRow[]; side?: 'left' | 'right' }
 
 // ── THE EMPLOYER MORE PAGE ──────────────────────────────────────────────────
 
+// From 768 wide: left column Notifications then Account, right column Hiring
+// then Help (Claude Design's review, 15 Nov 2026). On a phone, this order.
 export const EMPLOYER_MORE: MenuGroup[] = [
   {
+    side: 'left',
     // No heading: the row that carries the unread count sits first, because a
     // count is only useful where it is seen. Messages has its own tab now; its
     // row and Calendar's stand in for an app that has no such tab
@@ -83,6 +88,7 @@ export const EMPLOYER_MORE: MenuGroup[] = [
   },
   {
     heading: 'Hiring',
+    side: 'right',
     rows: [
       // Post a job is the first button on that page (inPage in the check).
       { label: 'Your job ads', href: '/my-jobs', subline: 'Post, edit, close', liveCount: true },
@@ -102,6 +108,7 @@ export const EMPLOYER_MORE: MenuGroup[] = [
   },
   {
     heading: 'Account',
+    side: 'left',
     rows: [
       { label: 'Company profile', href: '/settings/company' },
       // "delete account" is true for employers: /settings/privacy offers the
@@ -113,6 +120,7 @@ export const EMPLOYER_MORE: MenuGroup[] = [
   },
   {
     heading: 'Help',
+    side: 'right',
     rows: [
       { label: 'Ask Thrive', action: 'ask-thrive' },
       { label: 'Share feedback', href: '/feedback' },

@@ -714,8 +714,18 @@ export default function MessagesPage() {
                       <span className={styles.conversationName}>
                         {conversation.participantName}
                       </span>
-                      <span className={styles.conversationTime}>
-                        {formatRelativeTime(conversation.lastMessageAt)}
+                      {/* The count hangs UNDER the date (design review, 15 Nov
+                          2026): it used to be centred on the row's right edge
+                          and sat across the date. */}
+                      <span className={styles.conversationMeta}>
+                        <span className={styles.conversationTime}>
+                          {formatRelativeTime(conversation.lastMessageAt)}
+                        </span>
+                        {conversation.unreadCount > 0 && (
+                          <span className={styles.unreadBadge} aria-label={`${conversation.unreadCount} unread`}>
+                            {conversation.unreadCount > 99 ? '99+' : conversation.unreadCount}
+                          </span>
+                        )}
                       </span>
                     </div>
                     <p className={styles.conversationRole}>
@@ -725,9 +735,6 @@ export default function MessagesPage() {
                       {conversation.lastMessage}
                     </p>
                   </div>
-                  {conversation.unreadCount > 0 && (
-                    <span className={styles.unreadBadge}>{conversation.unreadCount}</span>
-                  )}
                 </div>
               ))
             )}

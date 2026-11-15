@@ -5,7 +5,8 @@
 /* ─── Header ───────────────────────────────────────────────────────────── */
 .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; gap: 1rem; }
 .headerContent { flex: 1; }
-.title { font-size: 1.5rem; font-weight: 700; color: var(--text-dark); margin: 0 0 0.2rem 0; }
+/* Page title: the brand serif 600 28/34, the same as More (design review, 15 Nov 2026). */
+.title { font-family: var(--font-serif), Georgia, serif; font-size: 28px; line-height: 34px; font-weight: 600; color: #0F172A; margin: 0 0 0.2rem 0; }
 .subtitle { color: var(--text-gray); font-size: 0.9rem; margin: 0; }
 .postJobBtn, .browseJobsBtn { padding: 0.5rem 1.25rem; background: var(--primary-yellow); border: none; border-radius: 8px; font-size: 0.875rem; font-weight: 600; color: var(--text-dark); cursor: pointer; transition: background 0.15s; text-decoration: none; white-space: nowrap; }
 .postJobBtn:hover, .browseJobsBtn:hover { background: var(--hover-yellow); }

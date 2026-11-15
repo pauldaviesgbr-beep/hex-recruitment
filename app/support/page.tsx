@@ -69,11 +69,23 @@ export default function SupportPage() {
 
         <section className={styles.card}>
           <h2 className={styles.cardTitle}>Ask Thrive</h2>
+          {/* THIS BUTTON IS THE WAY IN FOR SOMEONE SIGNED OUT. There is no
+              floating help button any more (Claude Design, 15 Nov 2026), and a
+              signed-out visitor has no More page, Profile page or side menu,
+              so this card used to point at a control that no longer exists.
+              Point at what is HERE, never at another screen's control. */}
           <p className={styles.body}>
-            There is a help button in the bottom corner of every page. It can answer the
-            common questions straight away &mdash; how to post a job, how to apply, how
-            matching works &mdash; without waiting for a reply.
+            It can answer the common questions straight away &mdash; how to post a job, how
+            to apply, how matching works &mdash; without waiting for a reply. Signed in, you
+            will also find it under Help on your More or Profile page.
           </p>
+          <button
+            type="button"
+            className={styles.askButton}
+            onClick={() => window.dispatchEvent(new CustomEvent('open-thrive-chatbot'))}
+          >
+            Ask Thrive
+          </button>
         </section>
 
         <section className={styles.card}>

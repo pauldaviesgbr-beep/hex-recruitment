@@ -1,81 +1,7 @@
-/* THE LANE APPLIES TO FIXED THINGS TOO, AND body padding CANNOT REACH THEM.
-   The launcher sits at z-index 120 against the consent banner's 1001, so
-   while the banner is unanswered document.elementFromPoint at the launcher's
-   own centre returns the BANNER — it is not merely overlapped, it is
-   unclickable, and no amount of scrolling frees a fixed element.
-   Measured at 1440 on 23 Aug 2026: launcher 812–876, banner top 828.
-   --consent-h is 0px the moment the banner is answered, so these collapse
-   back to the original offsets on their own. */
-
-/* Chat Button */
-.chatButton {
-  position: fixed;
-  bottom: calc(24px + var(--consent-h, 0px));
-  right: 24px;
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  background: var(--dark-gray);
-  border: none;
-  cursor: pointer;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
-  z-index: var(--z-chatbot);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.3s ease;
-  animation: pulse 2s infinite;
-}
-
-.chatButton:hover {
-  transform: scale(1.1);
-  box-shadow: 0 6px 25px rgba(0, 0, 0, 0.3);
-  animation: none;
-}
-
-.chatButton.hidden {
-  transform: scale(0);
-  opacity: 0;
-  pointer-events: none;
-}
-
-@keyframes pulse {
-  0%, 100% {
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
-  }
-  50% {
-    box-shadow: 0 4px 30px rgba(30, 41, 59, 0.6);
-  }
-}
-
-.chatIcon {
-  font-size: 2rem;
-}
-
-.chatBadge {
-  position: absolute;
-  top: -28px;
-  right: -10px;
-  background: var(--dark-gray);
-  color: #FFE500;
-  font-size: 0.7rem;
-  font-weight: 600;
-  padding: 4px 10px;
-  border-radius: 12px;
-  white-space: nowrap;
-  animation: fadeIn 0.3s ease;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(5px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
+/* NO FLOATING LAUNCHER (Claude Design, 15 Nov 2026: dropped on phone, iPad
+   and laptop). The window below opens from Ask Thrive rows and the /support
+   button (ChatBot.tsx). It still rides above the consent lane and the phone
+   bar, which is what its bottom offsets are for. */
 
 /* Chat Window */
 .chatWindow {
@@ -106,18 +32,6 @@
 
 /* Mobile */
 @media (max-width: 768px) {
-  .chatButton {
-    display: none;
-  }
-
-  .chatIcon {
-    font-size: 1.25rem;
-  }
-
-  .chatBadge {
-    display: none;
-  }
-
   .chatWindow {
     width: calc(100% - 16px);
     height: 420px;

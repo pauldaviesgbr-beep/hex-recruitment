@@ -184,7 +184,7 @@ export default function CandidateSidebar() {
               )}
             </Link>
           ))}
-          <div className={`${styles.navDivider} ${styles.mobileOnly}`} />
+          <div className={styles.navDivider} />
           <button
             className={`${styles.item} ${styles.mobileOnly}`}
             data-tooltip="Share Feedback"
@@ -200,7 +200,7 @@ export default function CandidateSidebar() {
             <span className={styles.label}>Share Feedback</span>
           </button>
           <button
-            className={`${styles.item} ${styles.mobileOnly}`}
+            className={styles.item}
             data-tooltip="Ask Thrive"
             title="Ask Thrive"
             onClick={() => {

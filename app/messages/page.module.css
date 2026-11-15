@@ -31,10 +31,14 @@
   border-bottom: 1px solid var(--border-gray);
 }
 
+/* Page title: the brand serif 600 28/34, the same as More (design review,
+   15 Nov 2026 — one title style on every tab). */
 .sidebarTitle {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: var(--black);
+  font-family: var(--font-serif), Georgia, serif;
+  font-size: 28px;
+  line-height: 34px;
+  font-weight: 600;
+  color: #0F172A;
   margin: 0 0 1rem 0;
   display: flex;
   align-items: center;
@@ -241,22 +245,39 @@
   font-weight: 500;
 }
 
+/* The count hangs beside the lines under the name: keep their text out of it. */
+.conversationItem.unread .conversationRole,
+.conversationItem.unread .conversationPreview {
+  padding-right: 32px;
+}
+
+/* The date and, under it, the unread count. The count hangs below the date
+   out of the flow, so a row with a count is laid out exactly like one
+   without: the role and preview lines do not move. */
+.conversationMeta {
+  position: relative;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+/* Red, the same as the bottom bar's count: 18 round, white Inter 700 11. */
 .unreadBadge {
   position: absolute;
-  right: 1.5rem;
-  top: 50%;
-  transform: translateY(-50%);
-  min-width: 22px;
-  height: 22px;
-  padding: 0 6px;
-  background: var(--primary-yellow);
-  color: var(--black);
-  font-size: 0.75rem;
+  top: calc(100% + 4px);
+  right: 0;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  background: #DC2626;
+  color: #ffffff;
+  font-size: 11px;
   font-weight: 700;
-  border-radius: 11px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  line-height: 18px;
+  border-radius: 9px;
+  text-align: center;
+  box-sizing: border-box;
 }
 
 /* Connection Requests */

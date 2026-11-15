@@ -354,6 +354,46 @@ check('the "‹ More" link is shown in the app only',
         /data-more-back=""/.test(header),
   true)
 
+// ── CLAUDE DESIGN'S REVIEW OF BRANCH 1 (15 Nov 2026) ───────────────────────
+// Values the review asked for, held here so they cannot drift back.
+
+check('iPad More: left column Notifications then Account, right column Hiring then Help',
+  () => (['left', 'right'] as const).map(side =>
+    EMPLOYER_MORE.filter(g => g.side === side).map(g => g.heading ?? 'Notifications')),
+  [['Notifications', 'Account'], ['Hiring', 'Help']])
+
+check('and every More group names its side, or one would fall into the wrong column',
+  () => EMPLOYER_MORE.filter(g => !g.side).length, 0)
+
+check('a row with a second line is 56 tall',
+  () => {
+    const tsx = noComments(read('components/NavMenuPage.tsx'))
+    const css = noComments(read('components/NavMenuPage.module.css'))
+    return /row\.subline \? styles\.rowTall/.test(tsx) && /\.rowTall\s*\{\s*min-height:\s*56px/.test(css)
+  },
+  true)
+
+check('the bar\'s count is 18 round, Inter 700 11',
+  () => {
+    const badge = (barCssRaw().match(/\.badge\s*\{[^}]*\}/) || [''])[0]
+    return [/min-width:\s*18px/, /height:\s*18px/, /font-size:\s*11px/, /font-weight:\s*700/].map(r => r.test(badge))
+  },
+  [true, true, true, true])
+
+check('Messages: the unread count is the bar\'s red and hangs under the date',
+  () => {
+    const css = noComments(read('app/messages/page.module.css'))
+    const badge = (css.match(/\.unreadBadge\s*\{[^}]*\}/) || [''])[0]
+    const tsx = read('app/messages/page.tsx')
+    const meta = tsx.slice(tsx.indexOf('className={styles.conversationMeta}'), tsx.indexOf('className={styles.conversationMeta}') + 600)
+    return { red: /background:\s*#DC2626/i.test(badge), underDate: /top:\s*calc\(100% \+ 4px\)/.test(badge), insideMeta: meta.includes('styles.unreadBadge') }
+  },
+  { red: true, underDate: true, insideMeta: true })
+
+check('form controls take the page\'s font (no platform serif on buttons and inputs)',
+  () => /button,\s*input,\s*select,\s*textarea\s*\{\s*font:\s*inherit;?\s*\}/.test(noComments(read('app/globals.css'))),
+  true)
+
 // ── THE BAR'S OWN STYLESHEET ───────────────────────────────────────────────
 
 const barCss = noComments(read('components/PhoneNav.module.css'))

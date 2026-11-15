@@ -141,6 +141,21 @@
   scrollbar-color: #cbd5e1 transparent;
 }
 
+/* FORM CONTROLS TAKE THE PAGE'S FONT. Browsers give button, input, select
+   and textarea their own system font rather than inheriting, so every one
+   without a font-family of its own rendered in the platform default — a
+   serif on some machines, the system UI face on an iPhone, never Inter
+   (Claude Design's review of 15 Nov 2026: Calendar's Prev/Today/Next and
+   Day/Week/Month, the Messages search, the job ads filters, "Take the
+   tour", "Dismiss", the bell count). Element specificity, so any control
+   that sets its own font still wins. */
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
 html {
   scroll-behavior: smooth;
   overflow-x: clip;

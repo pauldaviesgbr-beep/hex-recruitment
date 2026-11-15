@@ -2744,7 +2744,7 @@ export default function AnalyticsContent() {
         <div className={styles.pageHeader}>
           <div>
             <h1 className={styles.title}>Insights</h1>
-            <p className={styles.subtitle}>Recruitment insights for {companyName}</p>
+            <p className={styles.subtitle}>How your job ads are performing</p>
           </div>
           <div className={styles.headerControls}>
             <div className={styles.dateFilter}>

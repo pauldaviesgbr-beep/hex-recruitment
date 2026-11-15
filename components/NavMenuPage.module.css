@@ -36,6 +36,31 @@
   }
 }
 
+/* When the groups name a side (lib/phoneNav.ts, MenuGroup.side), two
+   independent stacks replace the grid from 768 up; see NavMenuPage.tsx. */
+.columns {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .groupsPhoneOnly {
+    display: none;
+  }
+
+  .columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    align-items: start;
+  }
+
+  .column {
+    display: grid;
+    gap: 14px;
+    min-width: 0;
+  }
+}
+
 .group {
   min-width: 0;
 }
@@ -99,6 +124,11 @@
 .row:focus-visible {
   outline: 3px solid rgba(15, 23, 42, 0.35);
   outline-offset: -3px;
+}
+
+/* A row with a second line is 56 tall (design 24, 3c). */
+.rowTall {
+  min-height: 56px;
 }
 
 /* The top group carries the unread counts and is a step heavier. */

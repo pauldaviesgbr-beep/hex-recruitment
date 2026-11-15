@@ -49,15 +49,10 @@ const settingsCards: SettingCard[] = [
     href: '/settings/profile',
     forUserTypes: ['employee'],
   },
-  {
-    id: 'company',
-    title: 'Company Profile',
-    description: 'Update your company information and branding',
-    icon: 'building',
-    href: '/settings/company',
-    forUserTypes: ['employer'],
-    requiresCap: 'edit_company',
-  },
+  // No Company Profile card (design review, 15 Nov 2026): it is a row on
+  // More (phone and app) and in the avatar menu (laptop), so it was the
+  // third way to the same page. Checked before removing it — those two still
+  // link /settings/company, and the page enforces edit_company itself.
   {
     id: 'availability',
     title: 'Interview Availability',
@@ -203,7 +198,7 @@ export default function SettingsPage() {
                 <h3 className={styles.cardTitle}>{card.title}</h3>
                 <p className={styles.cardDescription}>{card.description}</p>
               </div>
-              <div className={styles.cardArrow}>→</div>
+              <div className={styles.cardArrow} aria-hidden="true">›</div>
             </Link>
           ))}
         </div>

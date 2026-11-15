@@ -18,8 +18,11 @@
   gap: 16px;
 }
 
+/* Inter, the page's font. It named a mono face the site never loads, so it
+   fell back to the platform's monospace (Claude Design's review, 15 Nov
+   2026; the sweep's palette has no monospace labels). */
 .label {
-  font-family: var(--font-mono, 'IBM Plex Mono'), ui-monospace, monospace;
+  font-family: inherit;
   font-size: 12px;
   font-weight: 500;
   letter-spacing: 0.06em;

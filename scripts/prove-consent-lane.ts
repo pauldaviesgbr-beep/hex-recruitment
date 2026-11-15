@@ -300,10 +300,10 @@ check(
 )
 
 // WHAT THE 80px WAS HOLDING UP. Removing a clearance is only safe while the
-// thing it cleared is not there. The launcher is display:none at phone width;
-// if a later change shows it again, this goes red and the reserve needs its
-// term back, rather than the button quietly sitting on the last row of every
-// page.
+// thing it cleared is not there. The launcher went altogether on 15 Nov 2026
+// (Claude Design: no floating Ask Thrive anywhere). If one comes back, this
+// goes red and the reserve needs a term for it, rather than the button quietly
+// sitting on the last row of every page.
 check(
   'no launcher clearance is left anywhere in the stylesheet',
   () => /--chat-clear/.test(globals.replace(/\/\*[\s\S]*?\*\//g, '')),
@@ -311,10 +311,13 @@ check(
 )
 
 check(
-  'because the launcher is still hidden on a phone, which is what made it safe to drop',
-  () => /@media \(max-width: 768px\)\s*\{\s*\.chatButton\s*\{\s*display:\s*none;?\s*\}/.test(
-    read('components/ChatBot.module.css').replace(/\/\*[\s\S]*?\*\//g, '')),
-  true
+  'because there is no floating launcher: no launcher button and no launcher rule',
+  () => {
+    const code = read('components/ChatBot.tsx').replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '')
+    const css = read('components/ChatBot.module.css').replace(/\/\*[\s\S]*?\*\//g, '')
+    return { buttonInComponent: /styles\.chatButton|aria-label="Open Ask Thrive chat"/.test(code), ruleInStylesheet: /\.chatButton\b/.test(css) }
+  },
+  { buttonInComponent: false, ruleInStylesheet: false }
 )
 
 // ── IT MUST GO BACK TO ZERO ────────────────────────────────────────────────
