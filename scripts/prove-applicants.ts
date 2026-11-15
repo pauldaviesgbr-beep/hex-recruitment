@@ -97,6 +97,28 @@ check('the toast lives OUTSIDE both panes and is fixed above the phone bar and t
 check('the controls column can shrink below the select\'s longest option (minmax(0, 1fr))',
   () => /\.controls\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)/.test(css), true)
 
+// Paul, 15 Nov 2026: while the toast shows, the page gets room at the bottom
+// so the last card's buttons stay visible and tappable; a long advert title
+// ends in "…" at the column width — in WebKit too, which does not draw
+// text-overflow on a select, so the pill's text is a span over a transparent select.
+check('while the toast shows, the page gets bottom room measured from the toast',
+  () => {
+    const v = read('components/applicants/ApplicantsView.tsx')
+    return [/ref=\{toastEl\}/.test(v), /setToastSpace\(toast && toastEl\.current \? Math\.ceil\(toastEl\.current\.getBoundingClientRect\(\)\.height\)/.test(v), /paddingBottom: `calc\(32px \+ \$\{toastSpace\}px\)`/.test(v)]
+  }, [true, true, true])
+
+check('long advert titles end in "…": the pill text is a span over a transparent select; the card cuts the title, never the stage',
+  () => {
+    const rule = (n: string) => (css.match(new RegExp(`\\.${n}\\s*\\{[^}]*\\}`)) || [''])[0]
+    const ellipsis = (r: string) => /white-space:\s*nowrap/.test(r) && /overflow:\s*hidden/.test(r) && /text-overflow:\s*ellipsis/.test(r)
+    return {
+      pillText: ellipsis(rule('jobFilterShown')),
+      selectTransparentOver: /opacity:\s*0/.test(rule('jobFilter select')) && /position:\s*absolute/.test(rule('jobFilter select')),
+      cardTitle: ellipsis(rule('cardJob')),
+      stageKept: /flex-shrink:\s*0/.test(rule('cardStage')),
+    }
+  }, { pillText: true, selectTransparentOver: true, cardTitle: true, stageKept: true })
+
 check('the page uses every class it names (a missing CSS-module class renders unstyled, silently)',
   () => {
     const used = new Set<string>()

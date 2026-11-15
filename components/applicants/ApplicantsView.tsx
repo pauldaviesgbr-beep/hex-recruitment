@@ -29,7 +29,7 @@
  * there is only ever one Undo on screen and it always means the last thing.
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Header from '@/components/Header'
@@ -70,6 +70,14 @@ export default function ApplicantsView() {
   // updater twice, and the candidate would get two bell notices.
   const toastRef = useRef<Toast | null>(null)
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // The toast is fixed over the foot of the page, so while it shows the page
+  // gets that much more room at the bottom — measured, because the message can
+  // wrap to two lines — and the last card's buttons can always scroll clear.
+  const toastEl = useRef<HTMLDivElement | null>(null)
+  const [toastSpace, setToastSpace] = useState(0)
+  useLayoutEffect(() => {
+    setToastSpace(toast && toastEl.current ? Math.ceil(toastEl.current.getBoundingClientRect().height) + 16 : 0)
+  }, [toast])
   // Not a fit updates still owed by this page. Sent on expiry, on leaving, on hiding.
   const owed = useRef<Set<string>>(new Set())
 
@@ -232,13 +240,21 @@ export default function ApplicantsView() {
   return (
     <main className={styles.page}>
       <Header />
-      <div className={`${styles.layout} ${selectedId ? styles.hasSelection : ''}`}>
+      <div
+        className={`${styles.layout} ${selectedId ? styles.hasSelection : ''}`}
+        style={toastSpace ? { paddingBottom: `calc(32px + ${toastSpace}px)` } : undefined}
+      >
         <section className={styles.listPane} aria-label="Applicants">
           <h1 className={styles.title}>Applicants</h1>
 
           <div className={styles.controls}>
             <label className={styles.jobFilter}>
               <span className={styles.srOnly}>Job ad</span>
+              {/* What the pill SHOWS: an ordinary span, so a long title ends in
+                  "…" in WebKit too. The select over it is transparent. */}
+              <span className={styles.jobFilterShown} aria-hidden="true">
+                {jobFilter === 'live' ? 'All job ads' : (jobs.find(j => j.id === jobFilter)?.title || 'Job ad')}
+              </span>
               <select value={jobFilter} onChange={e => setJobFilter(e.target.value)}>
                 <option value="live">All job ads</option>
                 {liveJobs.length > 0 && (
@@ -292,7 +308,10 @@ export default function ApplicantsView() {
                       <span className={styles.avatar} aria-hidden="true">{initialsOf(r.name)}</span>
                       <span className={styles.cardWho}>
                         <span className={styles.cardName}>{r.name || 'Name not given'}</span>
-                        <span className={styles.cardSub}>{r.jobTitle} · {STAGE_LABEL[r.stage]}</span>
+                        <span className={styles.cardSub}>
+                          <span className={styles.cardJob}>{r.jobTitle}</span>
+                          <span className={styles.cardStage}>&nbsp;· {STAGE_LABEL[r.stage]}</span>
+                        </span>
                       </span>
                       <span className={`${styles.wait} ${days !== null && days >= OVERDUE_DAYS ? styles.waitOverdue : ''}`}>
                         {waitLabel(days)}
@@ -331,7 +350,7 @@ export default function ApplicantsView() {
           list pane is hidden while an applicant is open, and a toast inside it
           was an Undo nobody could see (Applicants.module.css, .toast). */}
       {toast && (
-        <div className={styles.toast} role="status">
+        <div className={styles.toast} role="status" ref={toastEl}>
           <span className={styles.toastText}>{toast.text}</span>
           {toast.undo && (
             <button
