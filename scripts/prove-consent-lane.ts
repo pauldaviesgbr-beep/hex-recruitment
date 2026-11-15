@@ -258,7 +258,9 @@ check(
 // The old check asked whether the calc EXISTS, which was true the entire time
 // it was being overridden — a question with the same answer in both states.
 // The question with two different answers is HOW MANY bottom reserves there
-// are. The launcher's 80px is a token feeding the one rule now.
+// are. The launcher's 80px became a token feeding the one rule, and on 15 Nov
+// 2026 it went altogether (design 25): the launcher is hidden on a phone, so
+// it had nothing to clear. The checks at the foot of this section hold that.
 
 check(
   'BODY HAS EXACTLY ONE BOTTOM RESERVE IN THE WHOLE STYLESHEET',
@@ -267,10 +269,10 @@ check(
 )
 
 check(
-  'and it is the sum, so neither the launcher nor the lane can erase the other',
+  'and it is the sum, so neither the lane nor the bar can erase the other',
   () => {
     const reserve = bodyRules.find(r => /padding-bottom\s*:/.test(r)) || ''
-    return /padding-bottom:\s*calc\(\s*var\(--chat-clear[^)]*\)\s*\+\s*var\(--consent-h/.test(reserve)
+    return /padding-bottom:\s*calc\(\s*var\(--consent-h[^)]*\)\s*\+\s*var\(--nav-bottom-h/.test(reserve)
   },
   true
 )
@@ -297,9 +299,21 @@ check(
   true
 )
 
+// WHAT THE 80px WAS HOLDING UP. Removing a clearance is only safe while the
+// thing it cleared is not there. The launcher is display:none at phone width;
+// if a later change shows it again, this goes red and the reserve needs its
+// term back, rather than the button quietly sitting on the last row of every
+// page.
 check(
-  'the launcher clearance is a token, declared at both widths',
-  () => /--chat-clear:\s*0px/.test(globals) && /--chat-clear:\s*80px/.test(globals),
+  'no launcher clearance is left anywhere in the stylesheet',
+  () => /--chat-clear/.test(globals.replace(/\/\*[\s\S]*?\*\//g, '')),
+  false
+)
+
+check(
+  'because the launcher is still hidden on a phone, which is what made it safe to drop',
+  () => /@media \(max-width: 768px\)\s*\{\s*\.chatButton\s*\{\s*display:\s*none;?\s*\}/.test(
+    read('components/ChatBot.module.css').replace(/\/\*[\s\S]*?\*\//g, '')),
   true
 )
 

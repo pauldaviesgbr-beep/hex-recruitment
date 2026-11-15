@@ -165,18 +165,22 @@ body {
      nowhere else. components/PhoneNav.tsx publishes --nav-bottom-h from the
      rendered box, and 0 whenever the bar is not on screen. Giving the bar a
      bottom padding of its own is the bug this comment already describes, with a
-     third path added to the two that must agree. No braces in this comment:
-     prove-consent-lane.ts reads this rule with a scan that a brace would end. */
-  padding-bottom: calc(var(--chat-clear, 0px) + var(--consent-h, 0px) + var(--nav-bottom-h, 0px));
+     third path added to the two that must agree.
+
+     THE ASK THRIVE LAUNCHER'S 80px TERM WENT ON 15 Nov 2026 (design 25,
+     decision 8). It was a phone-only clearance for a launcher that has been
+     display none at phone width since March, so every phone page ended in 80px
+     of nothing. prove-consent-lane.ts asserts the launcher is still hidden
+     there: if it ever comes back on a phone, it needs a term in this sum again.
+     No braces in this comment: prove-consent-lane.ts reads this rule with a
+     scan that a brace would end. */
+  padding-bottom: calc(var(--consent-h, 0px) + var(--nav-bottom-h, 0px));
 }
 
 :root {
   /* Declared so the fallback is never needed and the variable is greppable
      from the stylesheet as well as the component that sets it. */
   --consent-h: 0px;
-  /* The Ask Thrive launcher sits fixed at the foot on a phone and needs its
-     own clearance. Zero on desktop, where it does not overlap content. */
-  --chat-clear: 0px;
   /* The phone bottom bar. Declared here so no page depends on a fallback;
      components/PhoneNav.tsx publishes the rendered height. */
   --nav-bottom-h: 0px;
@@ -565,16 +569,12 @@ body[data-sidebar="expanded"] {
     padding-left: 0;
   }
 
-  /* THE LAUNCHER'S FOOTPRINT IS A TOKEN, NOT A SECOND padding-bottom.
-     It used to be `body { padding-bottom: 80px }` right here, which is a
-     later rule at the same specificity — so it silently WON over the
-     consent reserve, and on a phone (the width where both faults happened)
-     --consent-h was published and then ignored. Two things that must agree
-     need one path that sets both: body has ONE bottom reserve and this
-     feeds it. */
-  :root { --chat-clear: 80px; }
+  /* There was a launcher clearance here, first as a second body
+     padding-bottom (which silently beat the consent reserve) and then as an
+     80px token in the one reserve. Both are gone: the launcher is hidden at
+     this width, so it had nothing to clear (design 25, decision 8). */
 
-  /* Fixed header on mobile + chatbot button clearance */
+  /* Fixed header on mobile */
   body {
     padding-top: 0;
     overflow-x: hidden;
@@ -750,6 +750,23 @@ html.native-nav body[data-sidebar] {
    shown in the app only; on the phone website the bottom bar does the job. */
 html.native-nav [data-more-back] {
   display: flex;
+}
+
+/* ROWS ON THE MORE PAGE THAT STAND IN FOR A TAB THE APP DOES NOT DRAW
+   (lib/phoneNav.ts, onlyInAppWithout; design 25, decision 1). Build 30's
+   employer tabs have no Messages and no Calendar, so its More page must carry
+   them. From build 31 the app lists the tabs it draws in
+   html[data-native-tabs] (ThriveBridgeViewController.setNativeNav), and a row
+   whose tab is in that list stays hidden. Hidden on the website always: its
+   bar has both. The question is what the app DRAWS, not which version it is,
+   so nothing here needs changing when 31 is approved. */
+[data-only-app-without] {
+  display: none;
+}
+
+html.native-nav:not([data-native-tabs~='messages']) [data-only-app-without='messages'],
+html.native-nav:not([data-native-tabs~='calendar']) [data-only-app-without='calendar'] {
+  display: block;
 }
 
 /* Above 768px the header sat in the flow rather than fixed, so pages made no

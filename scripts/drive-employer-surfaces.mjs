@@ -182,7 +182,7 @@ try {
   // — the navigation alone — so it measured a page that had not rendered yet
   // and reported "no message". Third time this project has made that mistake.
   await surface('shift manage (zero posts)', '/temp-work/manage',
-    () => /Your temp work/.test(document.body.innerText))
+    () => /Your (temp work|shifts)/.test(document.body.innerText))
   const manage = await page.evaluate(() => {
     const t = document.body.innerText
     // The real copy, not a guessed string: the page explains what the space is
@@ -245,7 +245,7 @@ try {
       const r = el.getBoundingClientRect()
       return `${s}: ${Math.round(r.width)}x${Math.round(r.height)}`
     })
-    const btn = [...document.querySelectorAll('button')].find(b => /Post to Temp Work/i.test(b.innerText))
+    const btn = [...document.querySelectorAll('button')].find(b => /Post (to Temp Work|the shift)/i.test(b.innerText))
     const br = btn ? btn.getBoundingClientRect() : null
     const labels = [...document.querySelectorAll('label')].map(l => l.innerText.trim().split('\n')[0]).filter(Boolean)
     return {
@@ -267,7 +267,7 @@ try {
   await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight))
   await page.waitForTimeout(400)
   const bottom = await page.evaluate(() => {
-    const btn = [...document.querySelectorAll('button')].find(b => /Post to Temp Work/i.test(b.innerText))
+    const btn = [...document.querySelectorAll('button')].find(b => /Post (to Temp Work|the shift)/i.test(b.innerText))
     if (!btn) return { found: false }
     const r = btn.getBoundingClientRect()
     const painted = document.elementFromPoint(Math.round(r.left + r.width / 2), Math.round(r.top + r.height / 2))

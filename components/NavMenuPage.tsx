@@ -19,6 +19,7 @@ import Header from './Header'
 import { supabase } from '@/lib/supabase'
 import { DEV_MODE, getMockUser } from '@/lib/mockAuth'
 import { isAdmin } from '@/lib/admin-client'
+import { getCurrentEmployerOwnerId } from '@/lib/employer'
 import { useMessages } from '@/lib/MessagesContext'
 import { useNotifications } from '@/lib/NotificationsContext'
 import type { MenuGroup, MenuRow } from '@/lib/phoneNav'
@@ -34,8 +35,12 @@ export default function NavMenuPage({ title, groups, foot }: Props) {
   const router = useRouter()
   const [email, setEmail] = useState<string | null>(null)
   const [companyName, setCompanyName] = useState('')
+  // null until the count has answered: the subline then carries no number at
+  // all rather than a guessed one.
+  const [liveAds, setLiveAds] = useState<number | null>(null)
   const { totalUnreadCount } = useMessages()
   const { unreadCount } = useNotifications()
+  const wantsLiveCount = groups.some(g => g.rows.some(r => r.liveCount))
 
   useEffect(() => {
     if (DEV_MODE) {
@@ -44,11 +49,22 @@ export default function NavMenuPage({ title, groups, foot }: Props) {
       setCompanyName(u?.user_metadata?.company_name || '')
       return
     }
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       setEmail(session?.user?.email ?? null)
       setCompanyName(session?.user?.user_metadata?.company_name || '')
+      if (!wantsLiveCount || !session) return
+      // The same set the job ads page shows as Live: this employer's adverts
+      // (keyed on the OWNER's id, so a team member counts the company's), with
+      // status 'active'.
+      const owner = (await getCurrentEmployerOwnerId(supabase)) ?? session.user.id
+      const { count, error } = await supabase
+        .from('jobs')
+        .select('id', { count: 'exact', head: true })
+        .eq('employer_id', owner)
+        .eq('status', 'active')
+      if (!error && typeof count === 'number') setLiveAds(count)
     })
-  }, [])
+  }, [wantsLiveCount])
 
   const logOut = async () => {
     if (DEV_MODE) {
@@ -74,7 +90,11 @@ export default function NavMenuPage({ title, groups, foot }: Props) {
       <>
         <span className={styles.rowText}>
           <span className={styles.rowLabel}>{row.label}</span>
-          {row.subline && <span className={styles.rowSubline}>{row.subline}</span>}
+          {row.subline && (
+            <span className={styles.rowSubline}>
+              {row.liveCount && liveAds !== null ? `${liveAds} live · ` : ''}{row.subline}
+            </span>
+          )}
         </span>
         {count > 0 && (
           <span className={styles.badge} aria-label={`${count} unread`}>{count > 99 ? '99+' : count}</span>
@@ -97,7 +117,11 @@ export default function NavMenuPage({ title, groups, foot }: Props) {
                 {group.heading && <h2 className={styles.groupLabel}>{group.heading}</h2>}
                 <ul className={`${styles.card} ${gi === 0 && !group.heading ? styles.cardTop : ''}`}>
                   {rows.map(row => (
-                    <li key={row.label} className={styles.rowItem}>
+                    <li
+                      key={row.label}
+                      className={styles.rowItem}
+                      data-only-app-without={row.onlyInAppWithout}
+                    >
                       {row.action === 'log-out' ? (
                         <button type="button" className={`${styles.row} ${styles.rowDanger}`} onClick={logOut}>
                           {rowInner(row, false)}

@@ -18,7 +18,7 @@ import { join } from 'node:path'
 import {
   EMPLOYER_BAR, CANDIDATE_BAR, EMPLOYER_MORE, CANDIDATE_PROFILE, EMPLOYER_MORE_FOOT,
   EMPLOYER_MORE_PATH, CANDIDATE_PROFILE_PATH, activeSlot, barHiddenOn, moreBackShownOn,
-  type MenuGroup,
+  moreOwnHrefs, type MenuGroup,
 } from '../lib/phoneNav'
 
 const ROOT = join(__dirname, '..')
@@ -145,8 +145,13 @@ check('each slot lights itself on its own page',
     ...CANDIDATE_BAR.map(s => activeSlot('candidate', s.href) === s.label),
   ].every(Boolean), true)
 
+// The rows standing in for an older app's missing tabs are left out: their
+// pages ARE slots of the bar (Messages, Calendar) and light themselves.
 check('a page reached from More keeps More lit',
-  () => rowHrefs(EMPLOYER_MORE).filter(h => activeSlot('employer', h) !== 'More'), [])
+  () => moreOwnHrefs(EMPLOYER_MORE).filter(h => activeSlot('employer', h) !== 'More'), [])
+
+check('and Your job ads, and the Post a job it leads to, are reached from More',
+  () => [activeSlot('employer', '/my-jobs'), activeSlot('employer', '/post-job')], ['More', 'More'])
 
 check('a page reached from Profile keeps Profile lit',
   () => rowHrefs(CANDIDATE_PROFILE).filter(h => activeSlot('candidate', h) !== 'Profile'), [])
@@ -159,9 +164,10 @@ check('pushed pages hide the bar; the board does not',
   () => [barHiddenOn('/job/abc'), barHiddenOn('/post-job'), barHiddenOn('/jobs'), barHiddenOn('/jobs/recommended')],
   [true, true, false, false])
 
-check('the app\'s "‹ More" link: on a More page, not on /messages or a settings sub-page',
-  () => [moreBackShownOn('/candidates', null), moreBackShownOn('/messages', null), moreBackShownOn('/settings/team', null)],
-  [true, false, false])
+check('the app\'s "‹ More" link: on a More page, not on /messages, /calendar or a settings sub-page',
+  () => [moreBackShownOn('/candidates', null), moreBackShownOn('/my-jobs', null), moreBackShownOn('/messages', null),
+         moreBackShownOn('/calendar', null), moreBackShownOn('/settings/team', null)],
+  [true, true, false, false, false])
 
 // ── THE BRIDGE FOR THE APP ALREADY IN PEOPLE'S HANDS ───────────────────────
 // Build 30's More tab presses [aria-label="Open navigation"]. The selector is
@@ -241,9 +247,74 @@ check('and the app\'s More tab lights on exactly the pages the website\'s More s
   },
   { missingInApp: [], extraInApp: [] })
 
-check('the next build\'s badge reads the endpoint that exists',
+check('the next build\'s badges read the endpoint that exists',
   () => /ThriveAPI\.get\("\/me\/unread"/.test(rootSwift) && existsSync(join(ROOT, 'app/api/app/me/unread/route.ts')),
   true)
+
+check('badges: Messages carries unread messages, More carries notifications (app); More has none on the website',
+  () => ({
+    app: /tab\.path == "\/messages" \{ items\[i\]\.badgeValue = label\(unreadMessages\) \}/.test(rootSwift) &&
+         /tab\.path == "\/employer\/more" \{ items\[i\]\.badgeValue = label\(unreadNotifications\) \}/.test(rootSwift),
+    webMessages: EMPLOYER_BAR.find(s => s.label === 'Messages')?.badge ?? null,
+    webMore: EMPLOYER_BAR.find(s => s.label === 'More')?.badge ?? null,
+  }),
+  { app: true, webMessages: 'messages', webMore: null })
+
+// ── THE APP IN PEOPLE'S HANDS HAS FEWER TABS THAN THE NEXT ONE ─────────────
+// Design 25, decision 1. Build 30's employer tabs are Home · Job ads ·
+// Applicants · More (read from 3595eed, the main it was built from; a shipped
+// binary cannot change, so this record cannot go stale). Any slot of the
+// website's bar that build 30 does not draw must have a stand-in row on More,
+// or an employer in build 30 cannot reach that page at all.
+
+const BUILD_30_EMPLOYER_TABS = ['home', 'job ads', 'applicants', 'more']
+const moreRows = EMPLOYER_MORE.flatMap(g => g.rows)
+
+check('every slot build 30 lacks has a stand-in row on More, keyed by that tab',
+  () => EMPLOYER_BAR
+    .filter(s => !BUILD_30_EMPLOYER_TABS.includes(s.label.toLowerCase()))
+    .filter(s => !moreRows.some(r => r.href === s.href && r.onlyInAppWithout === s.label.toLowerCase()))
+    .map(s => s.label),
+  [])
+
+check('ZERO-GUARD: there is at least one such slot to check (Messages, Calendar)',
+  () => EMPLOYER_BAR.filter(s => !BUILD_30_EMPLOYER_TABS.includes(s.label.toLowerCase())).map(s => s.label),
+  ['Calendar', 'Messages'])
+
+// The keys only work if the app sends the same words: build 31 sends its tab
+// titles, lowercased. Assert the AGREEMENT between the row keys and the titles.
+check('and the app declares those tabs by the same names the rows are keyed on',
+  () => {
+    const titles = employerTabsSwift.map(t => t.title.toLowerCase())
+    const keys = Array.from(new Set(moreRows.map(r => r.onlyInAppWithout).filter(Boolean)))
+    return {
+      sendsTitles: /bridge\.setNativeNav\(true, tabs: wanted\.map \{ \$0\.title\.lowercased\(\) \}/.test(rootSwift),
+      keysNotInApp: keys.filter(k => !titles.includes(k as string)),
+    }
+  },
+  { sendsTitles: true, keysNotInApp: [] })
+
+check('the bridge writes the list onto <html> and restores it before each page draws',
+  () => [
+    /d\.setAttribute\('data-native-tabs','\\\(list\)'\)/.test(swift),
+    /sessionStorage\.getItem\('thriveNativeTabs'\)/.test(swift) && /setAttribute\('data-native-tabs',t\)/.test(swift),
+  ],
+  [true, true])
+
+check('the More page marks each stand-in row, and the stylesheet acts on the mark',
+  () => {
+    // Read here: the shared `globals` below is declared later in the file.
+    const css = noComments(read('app/globals.css'))
+    const keys = Array.from(new Set(moreRows.map(r => r.onlyInAppWithout).filter(Boolean))) as string[]
+    const shows = (k: string) => new RegExp(
+      `html\\.native-nav:not\\(\\[data-native-tabs~='${k}'\\]\\) \\[data-only-app-without='${k}'\\]`).test(css)
+    return {
+      marked: /data-only-app-without=\{row\.onlyInAppWithout\}/.test(noComments(read('components/NavMenuPage.tsx'))),
+      hiddenByDefault: /\[data-only-app-without\]\s*\{\s*display:\s*none;?\s*\}/.test(css),
+      shownOnlyWhereMissing: keys.filter(k => !shows(k)),
+    }
+  },
+  { marked: true, hiddenByDefault: true, shownOnlyWhereMissing: [] })
 
 check('the native Profile rows open pages that exist (Notifications, Ask Thrive, Share feedback)',
   () => {
