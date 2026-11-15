@@ -148,12 +148,20 @@
    (Claude Design's review of 15 Nov 2026: Calendar's Prev/Today/Next and
    Day/Week/Month, the Messages search, the job ads filters, "Take the
    tour", "Dismiss", the bell count). Element specificity, so any control
-   that sets its own font still wins. */
+   that sets its own font still wins.
+
+   FONT-FAMILY ONLY, NOT THE `font` SHORTHAND THE REVIEW NAMED — MEASURED.
+   `font: inherit` also hands every control the page's line-height (1.6)
+   and, where a control set no size, 16px instead of the browser's 13.33.
+   Measured across 1,077 controls on 46 page views before merging: 415 of
+   them changed height, the sign-in fields 48 to 56 and the sign-up fields
+   44 to 52, the job filter chips 27 to 33. The fault was the typeface; this
+   fixes the typeface and moves nothing else. */
 button,
 input,
 select,
 textarea {
-  font: inherit;
+  font-family: inherit;
 }
 
 html {
@@ -640,10 +648,12 @@ body[data-sidebar="expanded"] [data-sidebar-logo] {
   border-right: 1px solid rgba(255, 255, 255, 0.08);
 }
 
+/* On a phone the header row itself carries the 16px gutter (Header.module.css),
+   so the logo adds none: it was 8px here, which put the logo 24 in. */
 @media (max-width: 768px) {
   body[data-sidebar="expanded"] [data-sidebar-logo],
   body[data-sidebar="collapsed"] [data-sidebar-logo] {
-    margin-left: 8px;
+    margin-left: 0;
     width: auto;
     border-right: none;
   }

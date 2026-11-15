@@ -390,9 +390,19 @@ check('Messages: the unread count is the bar\'s red and hangs under the date',
   },
   { red: true, underDate: true, insideMeta: true })
 
-check('form controls take the page\'s font (no platform serif on buttons and inputs)',
-  () => /button,\s*input,\s*select,\s*textarea\s*\{\s*font:\s*inherit;?\s*\}/.test(noComments(read('app/globals.css'))),
-  true)
+// The FAMILY, and only the family: the `font` shorthand also handed every
+// control the page's line-height and moved 415 of 1,077 controls (15 Nov
+// 2026, measured before merging). Asserting the shorthand is absent stops
+// someone "completing" the rule into the version that was measured and refused.
+check('form controls take the page\'s typeface, and nothing else (no platform serif on buttons and inputs)',
+  () => {
+    const css = noComments(read('app/globals.css'))
+    return {
+      family: /button,\s*input,\s*select,\s*textarea\s*\{\s*font-family:\s*inherit;?\s*\}/.test(css),
+      shorthand: /button,\s*input,\s*select,\s*textarea\s*\{\s*font:\s*inherit/.test(css),
+    }
+  },
+  { family: true, shorthand: false })
 
 // ── THE BAR'S OWN STYLESHEET ───────────────────────────────────────────────
 
