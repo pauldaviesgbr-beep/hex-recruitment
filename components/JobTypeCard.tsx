@@ -19,10 +19,12 @@ import type { Job } from '@/lib/mockJobs'
 import { jobRowModel } from '@/lib/jobCard'
 import styles from './JobTypeCard.module.css'
 
-export default function JobTypeCard({ job, corner, footerNote }: {
+export default function JobTypeCard({ job, corner, reserveCorner, footerNote }: {
   job: Job
   /** Top-right, where Save sits in the spec. */
   corner?: ReactNode
+  /** Keep the 44×44 corner free for a control the caller floats over it. */
+  reserveCorner?: boolean
   /** Replaces the age under "via {recruiter}" (the employer's apps · views). */
   footerNote?: ReactNode
 }) {
@@ -34,7 +36,9 @@ export default function JobTypeCard({ job, corner, footerNote }: {
           {m.isNew && <span className={styles.newChip}>NEW</span>}
           <span className={styles.title}>{m.title}</span>
         </div>
-        {corner && <div className={styles.corner}>{corner}</div>}
+        {corner
+          ? <div className={styles.corner}>{corner}</div>
+          : reserveCorner && <div className={styles.cornerSpace} aria-hidden="true" />}
       </div>
 
       {m.pay && (

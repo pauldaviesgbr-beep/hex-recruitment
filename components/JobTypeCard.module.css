@@ -21,6 +21,9 @@
 .top { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 4px; align-items: start; }
 .topText { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; min-width: 0; }
 .corner { position: relative; z-index: 1; }
+/* The spec's 44×44 Save slot, kept free when the caller floats its own control
+   there (the dashboard's "Not interested"), so the title wraps before it. */
+.cornerSpace { width: 44px; height: 44px; }
 
 /* NEW: the same chip as the 1b row. Not yellow. */
 .newChip {
@@ -59,7 +62,13 @@
 .placeItem { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
 .icon { flex-shrink: 0; color: #334155; display: none; }
 .narrowDot { white-space: pre; }
-@media (max-width: 767px) { .placeLine { column-gap: 0; } }
+/* Below 768 it is one line of TEXT that wraps like text — "Gloucestershire ·
+   Full-time, Permanent" — not two flex items, which stranded the dot at the end
+   of a line on the dashboard at 390 (seen 15 Nov 2026). */
+@media (max-width: 767px) {
+  .placeLine { display: block; }
+  .placeItem { display: inline; }
+}
 @media (min-width: 768px) {
   .icon { display: block; }
   .narrowDot { display: none; }

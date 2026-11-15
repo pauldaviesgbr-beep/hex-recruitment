@@ -34,7 +34,9 @@ export default function JobCardLink({
 }) {
   return (
     <Link href={href ?? `/job/${job.id}`} className={className}>
-      <JobTypeCard job={job} footerNote={footerNote} />
+      {/* A child (the dashboard's "Not interested") floats in the corner, so
+          the card keeps that 44×44 slot free and the title wraps before it. */}
+      <JobTypeCard job={job} footerNote={footerNote} reserveCorner={!!children} />
       {children}
     </Link>
   )
