@@ -9,44 +9,57 @@ import SessionGuard from '@/components/SessionGuard'
 import NativeAuthBridge from '@/components/NativeAuthBridge'
 import { MessagesProvider } from '@/lib/MessagesContext'
 import type { Metadata, Viewport } from 'next'
-import { Inter, Dancing_Script, Fraunces } from 'next/font/google'
+import localFont from 'next/font/local'
 import { Providers } from './providers'
 import { foundingPhraseShort } from '@/lib/trialUtils'
 import { EMPLOYER_COHORT_CAP } from '@/lib/constants/cohort'
 import { BRAND_FULL } from '@/lib/constants/brand'
 import './globals.css'
 
+// THE FONTS ARE HOSTED WITH THE SITE, NOT FETCHED FROM GOOGLE AT BUILD TIME
+// (15 Nov 2026). next/font/google downloads the files during every build, and
+// twice in one hour that download came back malformed — the loader's
+// `/\.(woff|woff2|…)$/.exec(url)[1]` met a null and the build died ("An error
+// occured in next/font"), once on Vercel and once locally, on a commit that
+// rebuilt cleanly minutes later. These are the same latin variable files
+// Google serves (Inter v20, Fraunces v38, Dancing Script v29), so the site
+// already served exactly these bytes from its own domain; only the moment of
+// download moved, from every build to once. Licences: app/fonts/OFL-*.txt.
+
 // Body font. Also does double duty as the display face (see
 // --font-display below) so that numbers and headings share the same
 // family across the whole platform — one clean sans-serif look.
-const inter = Inter({
-  subsets: ['latin'],
+const inter = localFont({
+  src: './fonts/inter-latin-var.woff2',
+  weight: '100 900',
   display: 'swap',
 })
 // Keep the --font-display CSS variable in place (many components already
 // reference it) but point it at a heavier-weight Inter instance so stat
 // pills and hero numbers stand out without switching family. Tabular
 // numerals are enabled globally below so counts line up in columns.
-const interDisplay = Inter({
-  subsets: ['latin'],
+const interDisplay = localFont({
+  src: './fonts/inter-latin-var.woff2',
+  weight: '500 700',
   variable: '--font-display',
-  weight: ['500', '600', '700'],
   display: 'swap',
 })
-const dancingScript = Dancing_Script({
-  subsets: ['latin'],
+const dancingScript = localFont({
+  src: './fonts/dancing-script-latin-var.woff2',
+  weight: '400 700',
   variable: '--font-cursive',
-  weight: ['400', '700'],
   display: 'swap',
+  adjustFontFallback: 'Times New Roman',
 })
 // Serif display face for the candidate job-card role titles (and matching
 // "Find your next role" header) — the image-led card design uses a serif over
 // the photo scrim. Exposed as --font-serif; only used where opted in.
-const fraunces = Fraunces({
-  subsets: ['latin'],
+const fraunces = localFont({
+  src: './fonts/fraunces-latin-var.woff2',
+  weight: '500 700',
   variable: '--font-serif',
-  weight: ['500', '600', '700'],
   display: 'swap',
+  adjustFontFallback: 'Times New Roman',
 })
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://thrivecareer.co.uk'

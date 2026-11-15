@@ -377,6 +377,17 @@ const ALL = [
   // every file restored byte-identical, 34/34 green after.
   { name: 'applicants:prove', cmd: npm, args: ['run', 'applicants:prove'] },
 
+  // THE BUILD FETCHES NO FONTS FROM GOOGLE (15 Nov 2026). Twice in one hour
+  // next/font/google's build-time download came back malformed and killed the
+  // build (Vercel and local), on a commit that rebuilt cleanly minutes later.
+  // The three families now live in app/fonts. Asserts no next/font/google
+  // import, and every file the layout names exists, is WOFF2 and is TRACKED IN
+  // GIT (on disk but untracked builds here and fails on Vercel), with its OFL
+  // licence. Filesystem and git, fast tier. Watched failing on purpose: red
+  // with the files unstaged (four named failures) and with a probe import of
+  // next/font/google (named the file); green after.
+  { name: 'fonts:prove', cmd: npm, args: ['run', 'fonts:prove'] },
+
   // NO COLOUR EMOJI ON ANY SURFACE A STRANGER SEES. components/icons.tsx has
   // said this since 14 Aug 2026 and had nothing behind it; seven got in anyway
   // — three clocks, two hourglasses, a party popper, and a video camera in an
