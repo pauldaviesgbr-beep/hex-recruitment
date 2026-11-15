@@ -5,15 +5,16 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Header from '@/components/Header'
 import JobsChips from '@/components/JobsChips'
-import { ThumbsUp, MessageCircle } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import {
-  ROLE_GROUPS, rolesInGroup, roleKeyFromTitle, cardModelFromShift, retiredLabel, timeAgo, initialsOf, DISCLAIMER,
+  ROLE_GROUPS, rolesInGroup, roleKeyFromTitle, byStartDate, timeAgo, DISCLAIMER,
   type TempPost, type TempComment,
 } from '@/lib/tempWork'
 import { EXAMPLE_TEMP_POSTS } from '@/lib/tempExamples'
-import JobCard from '@/components/JobCard'
-import FeedCard from '@/components/FeedCard'
+import JobRow from '@/components/JobRow'
+import ShiftRow, { FeedGroupLabel } from '@/components/ShiftRow'
+import rowStyles from '@/components/JobRow.module.css'
+import { useSavedJobs } from '@/lib/useSavedJobs'
 import { supabaseJobToJob } from '@/lib/types'
 import type { Job } from '@/lib/mockJobs'
 import ReportControl from '@/components/ReportControl'
@@ -31,16 +32,14 @@ import styles from './page.module.css'
 // dates, times and a headcount that a jobs row has nowhere to put, so it keeps
 // its own table and its own card. Nothing is copied between the two.
 //
-// They render in one feed, each in the card its data can actually fill. A
-// vacancy gets the job-board card so this page and /jobs read as one product; a
-// shift gets the shift card because a job card has no slot for "three needed,
-// 7am–3pm".
-type FeedItem =
-  | { kind: 'job'; at: string; job: Job }
-  | { kind: 'shift'; at: string; post: TempPost }
+// They render in ONE bordered list in two labelled groups (design 26, round 2,
+// B): "Posted shifts" first, by start date, as text-led shift rows; then
+// "Short-term jobs", newest first, as the board's 1b row unchanged. No images
+// on either. Separate blocks made shifts and jobs look like two products.
 
 export default function TempWorkPage() {
   const router = useRouter()
+  const { isSaved, toggleSave } = useSavedJobs()
   const [posts, setPosts] = useState<TempPost[]>([])
   const [loading, setLoading] = useState(true)
   const [userId, setUserId] = useState<string | null>(null)
@@ -52,18 +51,13 @@ export default function TempWorkPage() {
   // Which posts I've already put myself forward for. The unique constraint on
   // (temp_post_id, candidate_user_id) means a second attempt is a 23505 rather
   // than a duplicate — so this exists to present that as STATE ("You're
-  // available for this") instead of letting someone tap into an error.
+  // available") instead of letting someone tap into an error.
+  //
+  // THE PRIVATE NOTE IS GONE (design 26): availability is one tap on the row,
+  // and saying you're available opens a private chat with the employer in
+  // Messages, which is where anything private now goes.
   const [myName, setMyName] = useState('')
   const [myInterest, setMyInterest] = useState<Set<string>>(new Set())
-  // Whether MY availability on a post carried a note. The panel claimed "your
-  // name and note" unconditionally, which was a lie for anyone who registered
-  // from the card — that path deliberately sends no note.
-  const [myNoteSent, setMyNoteSent] = useState<Set<string>>(new Set())
-  // Posts I have just withdrawn from. A removal's success looks identical to a
-  // removal that failed — both leave an absence — so it has to be stated, and
-  // stated persistently rather than in a toast that's gone before you look up.
-  const [withdrawnFrom, setWithdrawnFrom] = useState<Set<string>>(new Set())
-  const [interestNote, setInterestNote] = useState('')
   const [busyInterest, setBusyInterest] = useState<string | null>(null)
 
   const [openThread, setOpenThread] = useState<string | null>(null)
@@ -114,14 +108,14 @@ export default function TempWorkPage() {
 
   const load = useCallback(async () => {
     const [shifts, jobs] = await Promise.all([
-      // Open shifts, plus FILLED ones that haven't reached their date yet.
-      // A Saturday shift is still a real thing happening on Saturday whether or
-      // not it has been booked — and leaving it up keeps its comment thread
-      // reachable for the candidate who got it, who is the person the reply
-      // notification is aimed at. The RLS policy enforces the same rule, so this
-      // filter is the query agreeing with the database rather than guarding it.
+      // OPEN SHIFTS ONLY (design 26, round 2: "Filled shifts leave the
+      // candidate feed straight away"). This used to keep FILLED ones up until
+      // their date, so the thread stayed reachable for whoever got the shift.
+      // The cost of the change, accepted: a reply notification about a filled
+      // shift now lands on the "no longer on the board" message below rather
+      // than on its thread. The employer still has the thread on /manage.
       supabase.from('temp_posts').select('*')
-        .or(`status.eq.open,and(status.eq.filled,expires_at.gt.${new Date().toISOString()})`)
+        .eq('status', 'open')
         .order('created_at', { ascending: false }),
       // 'Temporary' rather than 'Flexible' or salary_type='hourly'. It says what
       // it means: Flexible misses the one Temporary role that isn't flagged
@@ -150,10 +144,9 @@ export default function TempWorkPage() {
         setMyLikes(new Set((likes || []).map((r: { post_id: string }) => r.post_id)))
         // …and which I've already put myself forward for. RLS restricts this to
         // my own rows, so it cannot leak who else is interested.
-        const { data: mine } = await supabase.from('temp_interest').select('temp_post_id, message').eq('candidate_user_id', uid)
-        const rows = (mine || []) as { temp_post_id: string; message: string | null }[]
+        const { data: mine } = await supabase.from('temp_interest').select('temp_post_id').eq('candidate_user_id', uid)
+        const rows = (mine || []) as { temp_post_id: string }[]
         setMyInterest(new Set(rows.map(r => r.temp_post_id)))
-        setMyNoteSent(new Set(rows.filter(r => (r.message || '').trim()).map(r => r.temp_post_id)))
         // Name for the email only. The notification's name is resolved by the
         // database trigger from candidate_profiles, so the client cannot spoof
         // the one the employer sees in their bell.
@@ -164,9 +157,11 @@ export default function TempWorkPage() {
     init()
   }, [load])
 
-  // Examples only when there is genuinely NOTHING — no shifts AND no temp jobs.
-  // With six real roles on the board they can no longer fire.
-  const usingExamples = !loading && posts.length === 0 && tempJobs.length === 0
+  // Examples only when there is genuinely NOTHING — no shifts AND no temp jobs —
+  // AND ONLY ON A TEST BUILD (design 26: examples are "test builds only", and
+  // the row says so in place of its age). On production an empty feed now
+  // shows its empty state rather than made-up shifts.
+  const usingExamples = previewAllowed && !loading && posts.length === 0 && tempJobs.length === 0
   const visible: TempPost[] = usingExamples
     ? EXAMPLE_TEMP_POSTS
     : previewShifts ? [...posts, ...EXAMPLE_TEMP_POSTS] : posts
@@ -195,25 +190,12 @@ export default function TempWorkPage() {
     return true
   }), [tempJobs, group, role, loc, minRate]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  /**
-   * One feed: live work first, newest first — then filled shifts, newest first.
-   *
-   * Filled ones stay on the board until their date passes, which is worth having
-   * twice over: the thread a candidate was notified about stays reachable, and a
-   * feed carrying FILLED stamps tells every other chef that shifts here actually
-   * get taken. An empty board says nothing happens on this platform.
-   *
-   * But they sort BELOW the open ones, always. If an agency fills three shifts
-   * and posts a fourth, the fourth is the one that matters.
-   */
-  const feed: FeedItem[] = useMemo(() => ([
-    ...filteredJobs.map(({ job, at }) => ({ kind: 'job' as const, at, job })),
-    ...filteredPosts.map(post => ({ kind: 'shift' as const, at: post.created_at || '', post })),
-  ]).sort((a, b) => {
-    const taken = (i: FeedItem) => (i.kind === 'shift' && i.post.status === 'filled' ? 1 : 0)
-    return taken(a) - taken(b) || new Date(b.at).getTime() - new Date(a.at).getTime()
-  }),
-  [filteredJobs, filteredPosts])
+  // The two groups. Posted shifts by START DATE (lib/tempWork byStartDate);
+  // short-term jobs newest first, as before.
+  const shiftList = useMemo(() => [...filteredPosts].sort(byStartDate), [filteredPosts])
+  const jobList = useMemo(() => [...filteredJobs]
+    .sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())
+    .map(({ job }) => job), [filteredJobs])
 
   // A reply notification links to /temp-work?post=<id>. Honour it by opening
   // that post, so the notification lands ON the thread rather than on a feed the
@@ -279,17 +261,19 @@ export default function TempWorkPage() {
    * A candidate who has already committed must never be shown a failure because
    * a downstream side effect wobbled.
    */
-  const expressInterest = async (post: TempPost, withNote = false) => {
+  const expressInterest = async (post: TempPost) => {
     if (post.isExample) return
-    if (!userId) { requireLogin(); return }
+    if (!userId) { requireSignup(); return }
+    // Tapping "I'm available" INSIDE a withdrawal's Undo window is the Undo:
+    // the row was never removed, so inserting would only re-notify the
+    // employer and post a second "I'm available" into their Messages.
+    if (pendingRef.current?.postId === post.id) { closeUndo(false); return }
     if (myInterest.has(post.id) || busyInterest === post.id) return
     setBusyInterest(post.id)
 
-    // interestNote is ONE piece of state shared by the whole feed, because only
-    // one panel is ever open. The card badge must therefore send no note at all
-    // — otherwise typing a note under shift A and then tapping the badge on
-    // shift B would silently attach A's note to B.
-    const note = withNote ? (interestNote.trim() || null) : null
+    // No note any more (design 26): one tap, and anything private goes in the
+    // Messages chat this opens. The column stays; it is simply not written.
+    const note: string | null = null
     const { error } = await supabase.from('temp_interest').insert({
       temp_post_id: post.id, candidate_user_id: userId, message: note,
     })
@@ -303,9 +287,6 @@ export default function TempWorkPage() {
     }
 
     setMyInterest(prev => new Set(prev).add(post.id))
-    setMyNoteSent(prev => { const n = new Set(prev); note ? n.add(post.id) : n.delete(post.id); return n })
-    setWithdrawnFrom(prev => { const n = new Set(prev); n.delete(post.id); return n })
-    setInterestNote('')
     flash('You’re available for this shift — the employer has been told.')
 
     const { data: { session } } = await supabase.auth.getSession()
@@ -323,69 +304,123 @@ export default function TempWorkPage() {
   }
 
   /**
-   * Withdraw. The other half of the one-tap action.
+   * Withdraw — ONE TAP, THEN FIVE SECONDS TO UNDO (design 26, round 2).
    *
-   * Registering interest needs no confirmation BECAUSE it is reversible — and
-   * until now it wasn't, which made the argument for one tap false rather than
-   * merely optimistic.
+   * The same rule as status changes on Applicants: NOTHING IS WRITTEN DURING
+   * THE UNDO WINDOW. The button flips to "I'm available" at once and a toast
+   * offers Undo; only when the toast closes is the row removed from the
+   * employer's available list and the "no longer available" line posted into
+   * their Messages. An Undo therefore costs the employer nothing — no list
+   * flicker, no second "I'm available" notification, no stray message.
+   *
+   * If the page is closed or hidden inside the window, the withdrawal is
+   * written THEN, with keepalive requests (the conversation id and the token
+   * are fetched during the window — reads only — so nothing has to be looked
+   * up while the page is going away). A withdrawal is never silently lost.
    *
    * "Off the list", not "erased". The employer's notification stays: it was true
-   * when it was sent, and the available list — the thing they actually work from
-   * — loses the row immediately. The conversation stays too, because deleting a
-   * thread out from under an employer mid-exchange is worse than a stale opener.
-   * But it does not stay SILENT: a line goes into the conversation, so an agency
-   * finds out where they are rather than by messaging into a void and waiting.
+   * when it was sent. The conversation stays too, because deleting a thread out
+   * from under an employer mid-exchange is worse than a stale opener. But it
+   * does not stay SILENT: a line goes into the conversation, so an agency finds
+   * out where they are rather than by messaging into a void and waiting.
    */
-  const withdrawInterest = async (post: TempPost) => {
-    if (post.isExample || !userId) return
-    if (!myInterest.has(post.id) || busyInterest === post.id) return
-    setBusyInterest(post.id)
+  type PendingWithdraw = { postId: string; title: string; employerId: string; userId: string; name: string; convId: string | null; token: string | null; timer: ReturnType<typeof setTimeout> | null }
+  const UNDO_MS = 5000
+  const pendingRef = useRef<PendingWithdraw | null>(null)
+  const [undoFor, setUndoFor] = useState<{ postId: string; title: string } | null>(null)
 
-    // Optimistic, with a rollback — the badge is the only feedback there is.
-    setMyInterest(prev => { const n = new Set(prev); n.delete(post.id); return n })
+  // "No longer available", not "no longer interested". Same event, and the
+  // difference is the relationship: one is a scheduling fact, the other reads
+  // as rejecting the employer.
+  const withdrawLine = (p: PendingWithdraw) => `${p.name || 'The candidate'} is no longer available for ${p.title}.`
 
+  const findConv = async (p: PendingWithdraw): Promise<string | null> => {
+    const { data } = await supabase
+      .from('conversations').select('id')
+      .or(`and(participant_1.eq.${p.userId},participant_2.eq.${p.employerId}),and(participant_1.eq.${p.employerId},participant_2.eq.${p.userId})`)
+      .eq('related_temp_post_id', p.postId)
+      .maybeSingle()
+    return (data as { id: string } | null)?.id ?? null
+  }
+
+  // The write, when the toast closes.
+  const commitWithdraw = async (p: PendingWithdraw) => {
     const { error } = await supabase.from('temp_interest')
-      .delete().eq('temp_post_id', post.id).eq('candidate_user_id', userId)
-
+      .delete().eq('temp_post_id', p.postId).eq('candidate_user_id', p.userId)
     if (error) {
-      setMyInterest(prev => new Set(prev).add(post.id))
-      setBusyInterest(null)
+      setMyInterest(prev => new Set(prev).add(p.postId))
       flash('Could not withdraw just now. Please try again.')
       return
     }
-
-    setMyNoteSent(prev => { const n = new Set(prev); n.delete(post.id); return n })
-    setWithdrawnFrom(prev => new Set(prev).add(post.id))
-    flash('You’re no longer available for this shift.')
-
-    // Tell the thread, best-effort. The row is already gone; a failed system
-    // line must not make a successful withdrawal look broken.
+    // Tell the thread, best-effort: the row is already gone, and a failed
+    // system line must not make a successful withdrawal look broken.
     try {
-      const { data: conv } = await supabase
-        .from('conversations').select('id')
-        .or(`and(participant_1.eq.${userId},participant_2.eq.${post.employer_id}),and(participant_1.eq.${post.employer_id},participant_2.eq.${userId})`)
-        .eq('related_temp_post_id', post.id)
-        .maybeSingle()
-      if (conv) {
-        // "No longer available", not "no longer interested". Same event, and the
-        // difference is the relationship: one is a scheduling fact, the other
-        // reads as rejecting the employer.
-        const line = `${myName || 'The candidate'} is no longer available for ${post.title}.`
+      const convId = p.convId ?? await findConv(p)
+      if (convId) {
+        const line = withdrawLine(p)
         await supabase.from('messages').insert({
-          conversation_id: conv.id, sender_id: userId,
-          sender_name: myName || 'A candidate', sender_role: 'candidate',
+          conversation_id: convId, sender_id: p.userId,
+          sender_name: p.name || 'A candidate', sender_role: 'candidate',
           content: line, is_read: false,
         })
         await supabase.from('conversations')
           .update({ last_message: line, last_message_at: new Date().toISOString() })
-          .eq('id', conv.id)
+          .eq('id', convId)
       }
     } catch (e: any) {
       console.warn('[withdraw] could not post the system line:', e?.message)
     }
-
-    setBusyInterest(null)
   }
+
+  // Close the toast: commit (the window ran out) or undo (nothing was written).
+  const closeUndo = (commit: boolean) => {
+    const p = pendingRef.current
+    if (!p) return
+    if (p.timer) clearTimeout(p.timer)
+    pendingRef.current = null
+    setUndoFor(null)
+    if (commit) commitWithdraw(p)
+    else setMyInterest(prev => new Set(prev).add(p.postId))
+  }
+
+  const withdrawInterest = (post: TempPost) => {
+    if (post.isExample || !userId) return
+    if (!myInterest.has(post.id) || busyInterest === post.id) return
+    // One window at a time: starting a second closes the first, which writes.
+    if (pendingRef.current) closeUndo(true)
+    setMyInterest(prev => { const n = new Set(prev); n.delete(post.id); return n })
+    const p: PendingWithdraw = { postId: post.id, title: post.title, employerId: post.employer_id, userId, name: myName, convId: null, token: null, timer: null }
+    p.timer = setTimeout(() => { if (pendingRef.current === p) closeUndo(true) }, UNDO_MS)
+    pendingRef.current = p
+    setUndoFor({ postId: post.id, title: post.title })
+    // Readied during the window, reads only, for the keepalive path below.
+    supabase.auth.getSession().then(({ data }) => { if (pendingRef.current === p) p.token = data.session?.access_token ?? null })
+    findConv(p).then(id => { if (pendingRef.current === p) p.convId = id }).catch(() => {})
+  }
+
+  // THE PAGE GOING AWAY INSIDE THE WINDOW writes the withdrawal now. A normal
+  // supabase call may not finish while a page unloads; keepalive requests do.
+  useEffect(() => {
+    const flush = () => {
+      const p = pendingRef.current
+      if (!p) return
+      if (p.timer) clearTimeout(p.timer)
+      pendingRef.current = null
+      const url = process.env.NEXT_PUBLIC_SUPABASE_URL, key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+      if (!url || !key || !p.token) { commitWithdraw(p); return }
+      const headers = { apikey: key, Authorization: `Bearer ${p.token}`, 'Content-Type': 'application/json', Prefer: 'return=minimal' }
+      fetch(`${url}/rest/v1/temp_interest?temp_post_id=eq.${p.postId}&candidate_user_id=eq.${p.userId}`, { method: 'DELETE', headers, keepalive: true }).catch(() => {})
+      if (p.convId) {
+        const line = withdrawLine(p)
+        fetch(`${url}/rest/v1/messages`, { method: 'POST', headers, keepalive: true, body: JSON.stringify({ conversation_id: p.convId, sender_id: p.userId, sender_name: p.name || 'A candidate', sender_role: 'candidate', content: line, is_read: false }) }).catch(() => {})
+        fetch(`${url}/rest/v1/conversations?id=eq.${p.convId}`, { method: 'PATCH', headers, keepalive: true, body: JSON.stringify({ last_message: line, last_message_at: new Date().toISOString() }) }).catch(() => {})
+      }
+    }
+    const onHide = () => { if (document.visibilityState === 'hidden') flush() }
+    window.addEventListener('pagehide', flush)
+    document.addEventListener('visibilitychange', onHide)
+    return () => { window.removeEventListener('pagehide', flush); document.removeEventListener('visibilitychange', onHide); flush() }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   /**
    * Put the candidate in the employer's Messages, the way an application does.
@@ -464,6 +499,9 @@ export default function TempWorkPage() {
     }
   }
   const requireLogin = () => router.push(`/login/employee?redirect=${encodeURIComponent('/temp-work')}`)
+  // Design 26: signed out, "I'm available" opens SIGN-UP, not log-in — the
+  // person tapping it on a public feed is more likely new than returning.
+  const requireSignup = () => router.push(`/register/employee?redirect=${encodeURIComponent('/temp-work')}`)
 
   const toggleLike = async (post: TempPost) => {
     if (post.isExample) return
@@ -630,280 +668,120 @@ export default function TempWorkPage() {
             {toast && <div className={styles.toast}>{toast}</div>}
             {usingExamples && <div className={styles.exNote}>No live shifts yet — here’s what posts look like. Real shifts replace these the moment one is posted.</div>}
             {previewShifts && !usingExamples && <div className={styles.previewNote}>
-              PREVIEW MODE — the dashed cards below are illustrative examples, not real shifts, and are visible only because <code>?preview=shifts</code> is in the URL on a non-production build. Nothing has been written to the database.
+              PREVIEW MODE — the shifts marked EXAMPLE below are illustrative, not real, and are visible only because <code>?preview=shifts</code> is in the URL on a non-production build. Nothing has been written to the database.
             </div>}
 
             {loading ? (
               <div className={styles.empty}>Loading shifts…</div>
-            ) : feed.length === 0 ? (
-              <div className={styles.empty}>No shifts match your filters right now.</div>
-            ) : feed.map(item => item.kind === 'job' ? (
-              <div key={`job-${item.job.id}`} className={styles.jobCardWrap}>
-                <JobCard job={item.job} onSelect={j => router.push(`/jobs?id=${j.id}`)} />
+            ) : shiftList.length + jobList.length === 0 ? (
+              <div className={styles.empty}>
+                {anyFilter ? 'No shifts or short-term jobs match your filters right now.' : 'No shifts or short-term jobs right now.'}
               </div>
-            ) : (() => {
-              const post = item.post
-              const liked = myLikes.has(post.id)
-              const isEx = !!post.isExample
-              const isOwner = !!userId && post.employer_id === userId
-              const thread = comments[post.id] || []
-              const threadOpen = openThread === post.id
-              // Null while the shift is live. Drives the stamp AND the wash, so
-              // a card that has stopped being available also stops looking it.
-              const retiredWord = retiredLabel(post.status)
-              return (
-                <article key={post.id} id={`post-${post.id}`} className={`${styles.shiftItem} ${threadOpen ? styles.shiftItemOpen : ''}`}>
-                  {/* The SAME card a job gets — see lib/tempWork cardModelFromShift.
-                      The description and the thread live below it, revealed on tap,
-                      so the card itself stays exactly a job card's shape. */}
-                  <div className={styles.jobCardWrap}>
-                    <FeedCard
-                      model={{
-                        ...cardModelFromShift(post),
-                        badges: [
-                          ...cardModelFromShift(post).badges,
-                          // THE ACTION, ON THE CARD. One tap, mirroring
-                          // "Easy apply" on a job. Four viewer states, which
-                          // collapse to three visible ones: the owner simply
-                          // gets no action badge rather than a fourth label.
-                          ...(isEx || post.status === 'filled' || isOwner ? [] : [
-                            // THE TWO DIRECTIONS ARE NOT SYMMETRIC.
-                            //
-                            // Going IN is harmless — a name on a list you can
-                            // take off — so it stays one tap on the card.
-                            // Coming OUT is not: you would silently drop off an
-                            // agency's list, and by the time you noticed, a "no
-                            // longer available" line would already be sitting in
-                            // their inbox. Its undo is not free.
-                            //
-                            // So the registered badge OPENS the shift rather
-                            // than withdrawing. Leaving is done deliberately,
-                            // from inside, against an explicit label — which is
-                            // the job a confirmation dialog would otherwise do.
-                            myInterest.has(post.id)
-                              ? {
-                                  label: '✓ You’re available',
-                                  onClick: () => openComments(post),
-                                }
-                              : {
-                                  label: busyInterest === post.id ? 'Sending…' : 'I’m available',
-                                  accent: true,
-                                  disabled: busyInterest === post.id,
-                                  onClick: () => expressInterest(post),
-                                },
-                          ]),
-                        ],
-                      }}
-                      example={isEx}
-                      retired={retiredWord ? { label: retiredWord } : undefined}
-                      attached={threadOpen}
-                      onSelect={() => openComments(post)}
-                      controls={
-                        <div className={styles.shiftControls}>
-                          {isEx && <span className={styles.exampleBadge}>Example</span>}
-                          <button
-                            className={`${styles.iconBtn} ${liked ? styles.iconBtnOn : ''}`}
-                            onClick={e => { e.stopPropagation(); toggleLike(post) }}
-                            disabled={isEx || busyLike === post.id}
-                            aria-label={liked ? 'Unlike this shift' : 'Like this shift'}
-                            title={isEx ? 'This is an example post' : liked ? 'Unlike' : 'Like'}
-                          >
-                            <ThumbsUp size={15} strokeWidth={2.2} fill={liked ? 'currentColor' : 'none'} />
-                            {post.like_count > 0 && <span className={styles.iconBtnCount}>{post.like_count}</span>}
-                          </button>
-                          <button
-                            className={`${styles.iconBtn} ${threadOpen ? styles.iconBtnOn : ''}`}
-                            onClick={e => { e.stopPropagation(); openComments(post) }}
-                            disabled={isEx}
-                            aria-label="Comments"
-                            title={isEx ? 'This is an example post' : 'Comment'}
-                          >
-                            <MessageCircle size={15} strokeWidth={2.2} />
-                            {post.comment_count > 0 && <span className={styles.iconBtnCount}>{post.comment_count}</span>}
-                          </button>
-                        </div>
-                      }
-                    />
-                  </div>
-
-                  {threadOpen && (
-                    <div className={styles.shiftDetail}>
-                      {/* THE ADVERT, NOT THE FIRST MESSAGE.
-                          Bare prose sitting directly above a run of labelled,
-                          avatared comments reads as the opening line of the
-                          conversation. It needs to look like a different KIND of
-                          thing, not just be further away — so it gets a label
-                          and a tinted panel, and the thread below keeps the
-                          avatars. Whose words these are is then obvious at a
-                          glance rather than by reading. */}
+            ) : (
+              // ONE BORDERED LIST, TWO LABELLED GROUPS (design 26, B). The same
+              // list box as /jobs (components/JobRow.module.css): full width on
+              // a phone, one 760-wide bordered list from 768.
+              <div className={rowStyles.list}>
+                {shiftList.length > 0 && <FeedGroupLabel>Posted shifts · {shiftList.length}</FeedGroupLabel>}
+                {shiftList.map(post => {
+                  const isOwner = !!userId && post.employer_id === userId
+                  const thread = comments[post.id] || []
+                  return (
+                    <ShiftRow
+                      key={post.id}
+                      post={post}
+                      liked={myLikes.has(post.id)}
+                      available={myInterest.has(post.id)}
+                      busy={busyInterest === post.id}
+                      isOwner={isOwner}
+                      threadOpen={openThread === post.id}
+                      onAvailable={() => (myInterest.has(post.id) ? withdrawInterest(post) : expressInterest(post))}
+                      onLike={() => toggleLike(post)}
+                      onToggleThread={() => openComments(post)}
+                    >
+                      {/* THE SHIFT'S OWN WORDS FIRST. The design's panel is the
+                          thread; the description used to be shown only when a
+                          shift was opened, so it stays here or it is lost. A
+                          label and its own block keep it from reading as the
+                          first comment. */}
                       {post.description && (
-                        <div className={styles.aboutBox}>
-                          <div className={styles.aboutLabel}>About this shift</div>
-                          <p className={styles.desc}>{post.description}</p>
+                        <div className={styles.pAbout}>
+                          <div className={styles.pAboutLabel}>About this shift</div>
+                          <p className={styles.pDesc}>{post.description}</p>
+                          {post.external_link && <a href={post.external_link} target="_blank" rel="noopener noreferrer" className={styles.pLink}>More details ↗</a>}
                         </div>
                       )}
-                      <p className={styles.detailMeta}>Posted {timeAgo(post.created_at)}</p>
-                      {post.external_link && <a href={post.external_link} target="_blank" rel="noopener noreferrer" className={styles.extLink}>More details ↗</a>}
 
-                      {/* PUTTING YOURSELF FORWARD — the actual application.
-                          Comments are for questions; this is the thing an
-                          employer can work through, and it writes temp_interest,
-                          which was built for exactly this and then abandoned. */}
-                      {/* WHO GETS OFFERED THIS.
-                          Only a signed-in viewer who does not own the post. The
-                          owner was being offered a button the database is
-                          designed to ignore — temp_interest_notify refuses to
-                          notify when the owner is the candidate — and a logged-out
-                          visitor was being offered one that could only end in a
-                          redirect. Both are the same fault: a control that can't
-                          do the thing it invites. */}
-                      {!isEx && (
-                        post.status === 'filled' ? (
-                          /* The action is gone, so the control goes with it —
-                             but say which it is. Someone who put themselves
-                             forward should be able to tell whether they were the
-                             one booked without having to ask. */
-                          <div className={styles.interestOwn}>
-                            This shift has been filled.
-                            {myInterest.has(post.id) && ' You were available for this one.'}
-                          </div>
-                        ) : isOwner ? (
-                          <div className={styles.interestOwn}>
-                            This is your shift.{' '}
-                            <Link href="/temp-work/manage" className={styles.interestOwnLink}>See who’s available →</Link>
-                          </div>
-                        ) : !userId ? (
-                          <div className={styles.interestBox}>
-                            <button className={styles.interestBtn} onClick={() => requireLogin()}>
-                              Log in to say you’re available
-                            </button>
-                            <span className={styles.interestHint}>Takes a minute, and the employer gets your name and availability.</span>
-                          </div>
-                        ) : myInterest.has(post.id) ? (
-                          <div className={styles.interestDone}>
-                            {/* "and note" only when a note actually went. The
-                                card path deliberately sends none, so claiming one
-                                was a promise about what the employer can see. */}
-                            <span>✓ You’re available for this shift. The employer has your name{myNoteSent.has(post.id) ? ' and note' : ''}.</span>
-                            <button
-                              className={styles.withdrawBtn}
-                              disabled={busyInterest === post.id}
-                              onClick={() => withdrawInterest(post)}
-                            >
-                              {busyInterest === post.id ? 'Updating…' : 'I’m no longer available'}
-                            </button>
-                          </div>
-                        ) : withdrawnFrom.has(post.id) ? (
-                          /* A REMOVAL HAS TO SAY IT WORKED.
-                             Reverting to the starting state is indistinguishable
-                             from the tap having failed — an addition confirms
-                             itself by appearing, a removal cannot. So this
-                             persists while the shift is open rather than living
-                             in a toast that's gone before you look up, and it
-                             carries the way back. */
-                          <div className={styles.withdrawnBox}>
-                            <span>You’re no longer available for this shift.</span>
-                            <button
-                              className={styles.withdrawBtn}
-                              disabled={busyInterest === post.id}
-                              onClick={() => expressInterest(post)}
-                            >
-                              {busyInterest === post.id ? 'Updating…' : 'Make me available again'}
-                            </button>
-                          </div>
-                        ) : (
-                          <div className={styles.interestBox}>
-                            <textarea
-                              className={styles.interestNote}
-                              rows={2}
-                              placeholder="Anything they should know? e.g. “Free from 5pm, I have my own knives” (optional)"
-                              value={interestNote}
-                              onChange={e => setInterestNote(e.target.value)}
-                            />
-                            <button
-                              className={styles.interestBtn}
-                              disabled={busyInterest === post.id}
-                              onClick={() => expressInterest(post, true)}
-                            >
-                              {busyInterest === post.id ? 'Sending…' : 'I’m available'}
-                            </button>
-                          </div>
-                        )
-                      )}
-                    </div>
-                  )}
-
-                  {threadOpen && !isEx && (
-                    <div className={styles.thread}>
-                      <p className={styles.threadHead}>Comments</p>
-                      {thread.length === 0 && <p className={styles.threadEmpty}>Be the first to comment — say when you’re free.</p>}
-                      {thread.map(c => {
-                        // Only candidates have a profile page; the route enforces the
-                        // app's existing employer-only gate, so we just link to it.
-                        // AN ERASED AUTHOR HAS NO user_id, AND WITHOUT THIS GUARD THE LINK
-                        // BECOMES /candidates/null — a broken page rather than a comment
-                        // that quietly has nobody behind it.
-                        const profileHref = c.user_id && c.author_role === 'candidate' ? `/candidates/${c.user_id}` : null
-                        const avatarInner = c.author_avatar
-                          // eslint-disable-next-line @next/next/no-img-element
-                          ? <img src={c.author_avatar} alt="" className={styles.avatarImg} />
-                          : <span className={styles.cInitials}>{initialsOf(c.author_name || '?')}</span>
-                        return (
-                          <div key={c.id} className={styles.comment}>
-                            {profileHref
-                              ? <Link href={profileHref} className={styles.cAvatar} title={`View ${c.author_name || 'profile'}`}>{avatarInner}</Link>
-                              : <span className={styles.cAvatar}>{avatarInner}</span>}
-                            <div className={styles.cBubble}>
-                              <div className={styles.cHead}>
-                                {profileHref
-                                  ? <Link href={profileHref} className={styles.cNameLink}>{c.author_name || 'Someone'}</Link>
-                                  : <span className={styles.cName}>{c.author_name || 'Someone'}</span>}
-                                {c.hidden && <span className={styles.cName}> · hidden</span>}
-                                <span className={styles.cTime}>{timeAgo(c.created_at)}</span>
+                      {!post.isExample && (
+                        <>
+                          {thread.length === 0 && <p className={styles.pEmpty}>No comments yet. Ask a question, or say when you’re free.</p>}
+                          {thread.map(c => {
+                            // Only candidates have a profile page; an erased
+                            // author has no user_id, so no link (never /candidates/null).
+                            const profileHref = c.user_id && c.author_role === 'candidate' ? `/candidates/${c.user_id}` : null
+                            const name = c.author_name || 'Someone'
+                            return (
+                              <div key={c.id} className={styles.pComment}>
+                                <div className={styles.pHead}>
+                                  {profileHref
+                                    ? <Link href={profileHref} className={styles.pName}>{name}</Link>
+                                    : <span className={styles.pName}>{name}</span>}
+                                  {c.author_role === 'employer' && <span className={styles.pMeta}> · employer</span>}
+                                  {c.hidden && <span className={styles.pMeta}> · hidden</span>}
+                                  <span className={styles.pMeta}> · {timeAgo(c.created_at)}</span>
+                                </div>
+                                <p className={styles.pBody}>{c.body}</p>
+                                {c.user_id === userId ? (
+                                  <button type="button" className={styles.pSmall} onClick={() => deleteComment(post, c)}>Delete</button>
+                                ) : (
+                                  /* THE ONE GENUINELY USER-GENERATED SURFACE: a
+                                     candidate's words render here publicly, so
+                                     anyone else's comment can be reported. */
+                                  <ReportControl targetType="comment" targetId={c.id} className={styles.pSmall} />
+                                )}
                               </div>
-                              <p className={styles.cBody}>{c.body}</p>
-                              {c.user_id === userId ? (
-                                <button className={styles.cDelete} onClick={() => deleteComment(post, c)}>Delete</button>
-                              ) : (
-                                /* THE ONE SURFACE ON THIS PLATFORM THAT IS GENUINELY
-                                   USER-GENERATED. Commenting has no role gate — the
-                                   INSERT policy is user_id = auth.uid() — so a
-                                   candidate's words render here publicly under their
-                                   own name. Reporting your OWN comment is pointless;
-                                   you can delete it, which is the branch above. */
-                                <ReportControl targetType="comment" targetId={c.id} className={styles.cDelete} />
-                              )}
-                            </div>
-                          </div>
-                        )
-                      })}
+                            )
+                          })}
 
-                      <div className={styles.commentBox}>
-                        <textarea
-                          className={styles.commentInput}
-                          rows={2}
-                          placeholder={userId ? 'Add a comment — e.g. “I’m free Saturday, happy to help”' : 'Log in to comment'}
-                          value={draft}
-                          onFocus={() => { if (!userId) requireLogin() }}
-                          onChange={e => setDraft(e.target.value)}
-                        />
-                        <button className={styles.commentSend} disabled={busyComment || !draft.trim()} onClick={() => sendComment(post)}>
-                          {busyComment ? 'Posting…' : 'Comment'}
-                        </button>
-                      </div>
-                      {/* Said out loud because the difference is invisible and
-                          the failure is permanent: a chef who wants to be sure
-                          the agency sees them will put their phone number in a
-                          comment. Filled threads staying up for longer makes
-                          that worse, so the warning arrives with the change. */}
-                      <p className={styles.commentPrivacy}>
-                        Public — anyone can read this. Your availability note is private.
-                      </p>
-                    </div>
-                  )}
-                </article>
-              )
-            })())}
+                          <form className={styles.pForm} onSubmit={e => { e.preventDefault(); sendComment(post) }}>
+                            <input
+                              className={styles.pInput}
+                              type="text"
+                              aria-label="Add a comment"
+                              placeholder={userId ? 'Add a comment' : 'Log in to comment'}
+                              value={draft}
+                              onFocus={() => { if (!userId) requireLogin() }}
+                              onChange={e => setDraft(e.target.value)}
+                            />
+                            <button type="submit" className={styles.pPost} disabled={busyComment || !draft.trim()}>
+                              {busyComment ? 'Posting…' : 'Post'}
+                            </button>
+                          </form>
+                          {/* Said out loud because the difference is invisible
+                              and the failure is permanent: someone who wants to
+                              be sure the employer sees them will put a phone
+                              number in a public comment. */}
+                          <p className={styles.pPrivacy}>
+                            Comments are public. Saying you’re available opens a private chat with the employer in Messages.
+                          </p>
+                        </>
+                      )}
+                    </ShiftRow>
+                  )
+                })}
+
+                {jobList.length > 0 && <FeedGroupLabel>Short-term jobs · {jobList.length}</FeedGroupLabel>}
+                {jobList.map(job => (
+                  <JobRow
+                    key={job.id}
+                    job={job}
+                    onSelect={j => router.push(`/jobs?id=${j.id}`)}
+                    saved={isSaved(job.id)}
+                    onToggleSave={j => toggleSave(j.id)}
+                  />
+                ))}
+              </div>
+            )}
 
             <p className={styles.disclaimer}>{DISCLAIMER}</p>
           </div>
@@ -938,6 +816,16 @@ export default function TempWorkPage() {
           </aside>
         </div>
       </div>
+
+      {/* The withdrawal's Undo (design 26, round 2): five seconds, and nothing
+          reaches the employer until it closes. Fixed above the consent bar and
+          the phone's bottom bar, like the Applicants toast. */}
+      {undoFor && (
+        <div className={styles.undoToast} role="status" aria-live="polite">
+          <span className={styles.undoText}>You’re no longer available for {undoFor.title}.</span>
+          <button type="button" className={styles.undoBtn} onClick={() => closeUndo(false)}>Undo</button>
+        </div>
+      )}
     </main>
   )
 }

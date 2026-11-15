@@ -308,19 +308,6 @@
   text-overflow: ellipsis;
 }
 
-.listCardMatch {
-  position: absolute;
-  top: 0.5rem;
-  right: 0.5rem;
-  font-size: 0.7rem;
-  font-weight: 700;
-  color: var(--primary-yellow);
-  background: var(--dark-gray);
-  padding: 0.15rem 0.4rem;
-  border-radius: 4px;
-  line-height: 1;
-}
-
 .listCardCompany {
   font-size: 0.875rem;
   color: var(--text-gray);

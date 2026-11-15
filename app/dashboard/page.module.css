@@ -474,30 +474,9 @@
   scroll-snap-align: start;
   text-decoration: none;
 }
-/* "Not interested" — explicit button; preventDefault in the handler stops the
-   card's tap-through navigation. No swipe gesture triggers it. */
-.recDismiss {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  z-index: 4;
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  border: none;
-  background: rgba(10, 22, 40, 0.55);
-  -webkit-backdrop-filter: blur(3px);
-  backdrop-filter: blur(3px);
-  color: #fff;
-  font-size: 18px;
-  line-height: 1;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-}
-.recDismiss:hover { background: rgba(220, 38, 38, 0.92); }
+/* "Not interested" is now a text button in the 1a card's footer
+   (components/JobCardLink, design 26); the grey × circle that floated over the
+   title is gone. */
 
 /* Horizontal scroll affordances for the recommended row. */
 .recScrollWrap { position: relative; }

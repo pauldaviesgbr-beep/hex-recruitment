@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Header from '@/components/Header'
 import JobDetailModal from '@/components/JobDetailModal'
-import CompanyLogo from '@/components/CompanyLogo'
+import JobRow from '@/components/JobRow'
+import rowStyles from '@/components/JobRow.module.css'
 import JobPostingSchema from '@/components/JobPostingSchema'
 import { Job } from '@/lib/mockJobs'
 import { isSplitPaneWidth } from '@/lib/viewport'
@@ -17,7 +18,7 @@ import { getTagCategory } from '@/lib/jobTags'
 import CompanyReviewsSummary from '@/components/CompanyReviewsSummary'
 import { useAnalyticsTracking } from '@/hooks/useAnalyticsTracking'
 import styles from './page.module.css'
-import { formatJobLocation } from '@/lib/jobCard'
+import { formatJobLocation, jobPay, jobPayText } from '@/lib/jobCard'
 import ReportControl from '@/components/ReportControl'
 
 export default function SavedJobsPage() {
@@ -189,15 +190,10 @@ export default function SavedJobsPage() {
     if (direction === 'next' && idx < savedJobs.length - 1) setSelectedJob(savedJobs[idx + 1])
   }
 
-  const formatSalary = (job: Job) => {
-    if (job.salaryPeriod === 'hour') return `£${job.salaryMin}-${job.salaryMax}/hr`
-    return `£${job.salaryMin.toLocaleString()}-${job.salaryMax.toLocaleString()}/yr`
-  }
 
-  const formatSalaryFull = (job: Job) => {
-    if (job.salaryPeriod === 'hour') return `£${job.salaryMin} - £${job.salaryMax} per hour`
-    return `£${job.salaryMin.toLocaleString()} - £${job.salaryMax.toLocaleString()} per year`
-  }
+  // The shared pay text (lib/jobCard jobPay, design 17): no pay → null, never
+  // "Competitive salary" (design 26: never, anywhere) and never "£0 per year".
+  const formatSalaryFull = (job: Job): string | null => { const p = jobPay(job, { full: true }); return p ? jobPayText(p) : null }
 
   const getGoogleMapsUrl = (job: Job) => {
     let locationString: string
@@ -308,39 +304,27 @@ export default function SavedJobsPage() {
           <div className={styles.splitLayout}>
             {/* LEFT PANEL - Saved Jobs List */}
             <div className={styles.jobListPanel} ref={listRef}>
-              {savedJobs.map(job => (
-                <div
-                  key={job.id}
-                  className={`${styles.listCard} ${selectedJob?.id === job.id ? styles.listCardActive : ''}`}
-                  onClick={() => selectJob(job)}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => e.key === 'Enter' && selectJob(job)}
-                >
-                  <div className={styles.listCardLogo}>
-                    <CompanyLogo
-                      src={job.companyLogo}
-                      alt={job.company}
-                      className={styles.listCardLogoImg}
-                    />
-                  </div>
-                  <div className={styles.listCardContent}>
-                    <h3 className={styles.listCardTitle}>{job.title}</h3>
-                    <p className={styles.listCardCompany}>{job.company}</p>
-                    <p className={styles.listCardLocation}>{formatJobLocation(job)}</p>
-                    <p className={styles.listCardSalary}>{formatSalary(job)}</p>
-                    {savedTimestamps[job.id] && (
-                      <p className={styles.listCardSavedAt}>{formatSavedDate(savedTimestamps[job.id])}</p>
-                    )}
-                    {job.status && job.status !== 'active' && (
-                      <p className={styles.listCardExpired}>This job may no longer be available</p>
-                    )}
-                  </div>
-                  {shortlistedJobIds.has(job.id) && (
-                    <span className={styles.listCardStamp}>SHORTLISTED</span>
-                  )}
-                </div>
-              ))}
+              {/* The text-led 1b rows (components/JobRow): no logo, no image
+                  (design 25, 15 Nov 2026). */}
+              <div className={rowStyles.list}>
+                {savedJobs.map(job => (
+                  <JobRow
+                    key={job.id}
+                    job={job}
+                    onSelect={selectJob}
+                    selected={selectedJob?.id === job.id}
+                    shortlisted={shortlistedJobIds.has(job.id)}
+                    extra={(savedTimestamps[job.id] || (job.status && job.status !== 'active')) ? (
+                      <>
+                        {savedTimestamps[job.id] && formatSavedDate(savedTimestamps[job.id])}
+                        {job.status && job.status !== 'active' && (
+                          <span className={styles.listCardExpired}>{savedTimestamps[job.id] ? ' · ' : ''}This job may no longer be available</span>
+                        )}
+                      </>
+                    ) : undefined}
+                  />
+                ))}
+              </div>
             </div>
 
             {/* RIGHT PANEL - Job Detail (desktop only) */}
@@ -349,16 +333,7 @@ export default function SavedJobsPage() {
                 <JobPostingSchema job={selectedJob} />
                 <div className={styles.detailInner}>
 
-                  {/* Banner */}
-                  {selectedJob.companyBanner && (
-                    <div className={styles.detailBanner}>
-                      <img
-                        src={selectedJob.companyBanner}
-                        alt={selectedJob.company}
-                        className={styles.detailBannerImg}
-                      />
-                    </div>
-                  )}
+                  {/* No banner (design 25, 15 Nov 2026: no images on job pages). */}
 
                   {/* Header */}
                   <div className={styles.detailHeader}>
@@ -384,7 +359,7 @@ export default function SavedJobsPage() {
                         ? `${selectedJob.fullLocation.addressLine1}, ${selectedJob.fullLocation.city} ${selectedJob.fullLocation.postcode}`
                         : [selectedJob.location, selectedJob.area].filter(Boolean).join(', ')}
                     </a>
-                    <p className={styles.detailSalary}>{formatSalaryFull(selectedJob)}</p>
+                    {formatSalaryFull(selectedJob) && <p className={styles.detailSalary}>{formatSalaryFull(selectedJob)}</p>}
                     <div className={styles.detailBadges}>
                       {Array.isArray(selectedJob.employmentType)
                         ? selectedJob.employmentType.map((type, i) => (
@@ -427,7 +402,7 @@ export default function SavedJobsPage() {
                     <div className={styles.detailGrid}>
                       <div className={styles.detailGridItem}>
                         <span className={styles.detailGridLabel}>Pay</span>
-                        <span className={styles.detailGridValue}>{formatSalaryFull(selectedJob)}</span>
+                        <span className={styles.detailGridValue}>{formatSalaryFull(selectedJob) ?? 'Not stated'}</span>
                       </div>
                       <div className={styles.detailGridItem}>
                         <span className={styles.detailGridLabel}>Job type</span>

@@ -6,7 +6,8 @@ import { useRouter } from 'next/navigation'
 import Header from '@/components/Header'
 import JobsChips from '@/components/JobsChips'
 import JobDetailModal from '@/components/JobDetailModal'
-import CompanyLogo from '@/components/CompanyLogo'
+import JobRow from '@/components/JobRow'
+import rowStyles from '@/components/JobRow.module.css'
 import JobPostingSchema from '@/components/JobPostingSchema'
 import ApplyNowModal from '@/components/ApplyNowModal'
 import { Job } from '@/lib/mockJobs'
@@ -22,7 +23,7 @@ import { getTagCategory, WORK_STYLE_TAGS } from '@/lib/jobTags'
 import { useAnalyticsTracking } from '@/hooks/useAnalyticsTracking'
 import styles from './page.module.css'
 import { Ico } from '@/components/icons'
-import { formatJobLocation } from '@/lib/jobCard'
+import { formatJobAddress, jobPay, jobPayText } from '@/lib/jobCard'
 import ReportControl from '@/components/ReportControl'
 
 export default function RecommendedJobsPage() {
@@ -231,18 +232,6 @@ export default function RecommendedJobsPage() {
     return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(locationString)}`
   }
 
-  const formatSalary = (job: Job) => {
-    if (job.salaryPeriod === 'hour') {
-      return `£${job.salaryMin}-${job.salaryMax}/hr`
-    }
-    return `£${(job.salaryMin / 1000).toFixed(0)}k-${(job.salaryMax / 1000).toFixed(0)}k/yr`
-  }
-
-  const formatSalaryFull = (job: Job) => {
-    if (job.salaryPeriod === 'hour') return `£${job.salaryMin} - £${job.salaryMax} per hour`
-    return `£${job.salaryMin.toLocaleString()} - £${job.salaryMax.toLocaleString()} per year`
-  }
-
   const renderDescription = (text: string) => {
     if (typeof window !== 'undefined' && text.includes('<') && text.includes('>')) {
       const DOMPurify = require('dompurify')
@@ -378,40 +367,23 @@ export default function RecommendedJobsPage() {
               <div className={styles.splitLayout}>
                 {/* LEFT PANEL - Job List */}
                 <div className={styles.jobListPanel} ref={listRef}>
-                  {recommendedJobs.map(job => (
-                    <div
-                      key={job.id}
-                      className={`${styles.listCard} ${selectedJob?.id === job.id ? styles.listCardActive : ''}`}
-                      onClick={() => selectJob(job)}
-                      role="button"
-                      tabIndex={0}
-                      onKeyDown={(e) => e.key === 'Enter' && selectJob(job)}
-                    >
-                      <div className={styles.listCardLogo}>
-                        <CompanyLogo
-                          src={job.companyLogo}
-                          alt={job.company}
-                          className={styles.listCardLogoImg}
-                        />
-                      </div>
-                      <div className={styles.listCardContent}>
-                        <h3 className={styles.listCardTitle}>{job.title}</h3>
-                        <p className={styles.listCardCompany}>{job.company}</p>
-                        <p className={styles.listCardLocation}>{formatJobLocation(job)}</p>
-                        <p className={styles.listCardSalary}>{formatSalary(job)}</p>
-                      </div>
-                      {shortlistedJobIds.has(job.id) && (
-                        <span className={styles.listCardStamp}>SHORTLISTED</span>
-                      )}
-                      {/* NOTHING WHERE THE NUMBER WAS, when the candidate told
-                          us nothing to match on. See the note on the detail
-                          banner below — one rule, two render sites, and the
-                          same condition as the dashboard heading. */}
-                      {showMatchPercent(job) && (
-                        <span className={styles.listCardMatch}>{job.matchPercentage}%</span>
-                      )}
-                    </div>
-                  ))}
+                  {/* The text-led 1b rows (components/JobRow): no logo, no
+                      image (design 25, 15 Nov 2026). NOTHING WHERE THE NUMBER
+                      WAS when the candidate told us nothing to match on — see
+                      the note on the detail banner below; one rule, two
+                      render sites, the same condition as the dashboard. */}
+                  <div className={rowStyles.list}>
+                    {recommendedJobs.map(job => (
+                      <JobRow
+                        key={job.id}
+                        job={job}
+                        onSelect={() => selectJob(job)}
+                        selected={selectedJob?.id === job.id}
+                        shortlisted={shortlistedJobIds.has(job.id)}
+                        tag={showMatchPercent(job) ? `${job.matchPercentage}% match` : undefined}
+                      />
+                    ))}
+                  </div>
                 </div>
 
                 {/* RIGHT PANEL - Job Detail (desktop only) */}
@@ -467,16 +439,7 @@ export default function RecommendedJobsPage() {
                         </div>
                       )}
 
-                      {/* Banner image */}
-                      {selectedJob.companyBanner && (
-                        <div className={styles.detailBanner}>
-                          <img
-                            src={selectedJob.companyBanner}
-                            alt={selectedJob.company}
-                            className={styles.detailBannerImg}
-                          />
-                        </div>
-                      )}
+                      {/* No banner (design 25, 15 Nov 2026: no images on job pages). */}
 
                       {/* Header */}
                       <div className={styles.detailHeader}>
@@ -498,11 +461,11 @@ export default function RecommendedJobsPage() {
                           rel="noopener noreferrer"
                           className={styles.detailLocation}
                         >
-                          <Ico name="map-pin" size={16} /> {selectedJob.fullLocation?.addressLine1
-                            ? `${selectedJob.fullLocation.addressLine1}, ${selectedJob.fullLocation.city} ${selectedJob.fullLocation.postcode}`
-                            : [selectedJob.location, selectedJob.area].filter(Boolean).join(', ')}
+                          <Ico name="map-pin" size={16} /> {formatJobAddress(selectedJob)}
                         </a>
-                        <p className={styles.detailSalary}>{formatSalaryFull(selectedJob)}</p>
+                        {/* The shared pay text (design 17): no pay line at all
+                            when there is no pay, never "£0 - £0 per year". */}
+                        {jobPay(selectedJob, { full: true }) && <p className={styles.detailSalary}>{jobPayText(jobPay(selectedJob, { full: true }))}</p>}
                         <div className={styles.detailBadges}>
                           {Array.isArray(selectedJob.employmentType)
                             ? selectedJob.employmentType.map((type, i) => (
@@ -552,7 +515,7 @@ export default function RecommendedJobsPage() {
                         <div className={styles.detailGrid}>
                           <div className={styles.detailGridItem}>
                             <span className={styles.detailGridLabel}>Pay</span>
-                            <span className={styles.detailGridValue}>{formatSalaryFull(selectedJob)}</span>
+                            <span className={styles.detailGridValue}>{jobPay(selectedJob, { full: true }) ? jobPayText(jobPay(selectedJob, { full: true })) : 'Not stated'}</span>
                           </div>
                           <div className={styles.detailGridItem}>
                             <span className={styles.detailGridLabel}>Job type</span>

@@ -3,6 +3,7 @@
 import type { FeedCardModel } from '@/components/FeedCard'
 import type { IconName } from '@/components/icons'
 import { formatMoney } from '@/lib/money'
+import { formatPostedAt } from '@/lib/types'
 
 // ── Grouped role taxonomy (one source for the composer picker AND the filter) ──
 export interface RoleDef { key: string; label: string }
@@ -154,8 +155,19 @@ export interface TempComment {
 export const DISCLAIMER =
   'Thrive connects workers and employers. Bookings, pay and compliance are arranged directly between you — Thrive is not the employer or agency.'
 
-export function formatWhen(p: Pick<TempPost, 'is_ongoing' | 'date_from' | 'date_to' | 'start_time' | 'end_time'>): string {
-  if (p.is_ongoing) return 'Ongoing · flexible'
+/**
+ * When a shift is. ONE formatter, two presentations: the text-led shift row
+ * (design 26) reads "30 Nov · 10:00–17:00" and "Ongoing, flexible" — no
+ * weekday, a comma — while the email and the employer's Shifts box keep the
+ * older "Sat 30 Nov" / "Ongoing · flexible". Options rather than a second
+ * function, so the date arithmetic exists once.
+ */
+export function formatWhen(
+  p: Pick<TempPost, 'is_ongoing' | 'date_from' | 'date_to' | 'start_time' | 'end_time'>,
+  opts: { weekday?: boolean; ongoing?: string } = {},
+): string {
+  const { weekday = true, ongoing = 'Ongoing · flexible' } = opts
+  if (p.is_ongoing) return ongoing
   if (!p.date_from) return 'Flexible dates'
   const from = new Date(`${p.date_from}T00:00:00`)
   const to = p.date_to && p.date_to !== p.date_from ? new Date(`${p.date_to}T00:00:00`) : null
@@ -170,9 +182,68 @@ export function formatWhen(p: Pick<TempPost, 'is_ongoing' | 'date_from' | 'date_
     const toLbl = to.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
     datePart = sameMonth ? `${fromLbl}–${toLbl}` : `${fromLbl} – ${toLbl}`
   } else {
-    datePart = from.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
+    datePart = from.toLocaleDateString('en-GB', weekday ? { weekday: 'short', day: 'numeric', month: 'short' } : { day: 'numeric', month: 'short' })
   }
   return times ? `${datePart} · ${times}` : datePart
+}
+
+// ── THE TEXT-LED SHIFT ROW (design 26, round 2, section B) ─────────────────
+// A shift is the 1b row with a date line and an action row. Same order and
+// vocabulary as a job row beside it in the same list: pay bold with the period
+// IN WORDS, nothing at all when there is no pay, "via {employer} · {age}".
+
+const RATE_WORDS: Record<RateType, string> = { hour: 'an hour', shift: 'a shift', day: 'a day' }
+
+export interface ShiftPay { amount: string; period: string }
+
+/** "£130 a day". Above zero, not merely present: a literal 0 is no pay. */
+export function shiftPay(p: Pick<TempPost, 'hourly_rate' | 'rate_type'>): ShiftPay | null {
+  if (p.hourly_rate == null || !(Number(p.hourly_rate) > 0)) return null
+  return { amount: formatMoney(Number(p.hourly_rate)), period: RATE_WORDS[p.rate_type] || `a ${p.rate_type}` }
+}
+
+/** "Manchester M2": the town, then the postcode's outward part only. */
+export function shiftPlace(p: Pick<TempPost, 'location_area' | 'postcode'>): string {
+  const outward = (p.postcode || '').trim().split(/\s+/)[0]?.toUpperCase() || ''
+  return [(p.location_area || '').trim(), outward].filter(Boolean).join(' ')
+}
+
+export interface ShiftRowModel {
+  title: string
+  isNew: boolean
+  pay: ShiftPay | null
+  place: string
+  when: string
+  needed: string
+  via: string
+  age: string
+}
+
+export function shiftRowModel(p: TempPost): ShiftRowModel {
+  return {
+    title: p.title,
+    isNew: Date.now() - new Date(p.created_at).getTime() <= 48 * 3600_000,
+    pay: shiftPay(p),
+    place: shiftPlace(p),
+    when: formatWhen(p, { weekday: false, ongoing: 'Ongoing, flexible' }),
+    needed: `${Math.max(1, p.headcount || 1)} needed`,
+    via: `via ${p.company_name || 'a hospitality employer'}`,
+    age: formatPostedAt(p.created_at),
+  }
+}
+
+/**
+ * Posted shifts, in the order design 26 gives: by START DATE, soonest first.
+ * Ongoing and undated shifts have no start to sort on, so they follow the dated
+ * ones, newest first among themselves.
+ */
+export function byStartDate(a: TempPost, b: TempPost): number {
+  const da = !a.is_ongoing && a.date_from ? a.date_from : null
+  const db = !b.is_ongoing && b.date_from ? b.date_from : null
+  if (da && db && da !== db) return da < db ? -1 : 1
+  if (da && !db) return -1
+  if (!da && db) return 1
+  return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
 }
 
 /**

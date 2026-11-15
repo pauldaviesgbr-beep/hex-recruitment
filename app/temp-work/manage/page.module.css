@@ -1,0 +1,56 @@
+/* /temp-work/manage — the employer's shifts (design 26, round 2, B3). The
+   card itself is components/ManageCard; this is the page around it and what
+   goes inside a card's review panel. Smallest text 14px. */
+
+.wrap { max-width: 720px; margin: 0 auto; padding: 24px 16px 48px; }
+@media (min-width: 768px) { .wrap { padding: 32px 32px 64px; } }
+.centre { text-align: center; color: #64748b; }
+
+.head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 6px; }
+.h1 { margin: 0; font-size: 24px; line-height: 1.2; font-weight: 700; letter-spacing: -0.02em; color: #0F172A; }
+.postBtn {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: 12px;
+  background: var(--primary-yellow, #FFE500);
+  color: #0F172A;
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.intro { margin: 0 0 20px; font-size: 15px; line-height: 1.5; color: #64748b; }
+.emptyState { text-align: center; padding: 40px 16px; font-size: 15px; color: #64748b; }
+.emptyState a { color: #0F172A; font-weight: 600; }
+
+.list { display: flex; flex-direction: column; gap: 12px; }
+
+/* Card body lines. */
+.pay { font-weight: 700; color: #0F172A; font-variant-numeric: tabular-nums; }
+.when { color: #0F172A; font-variant-numeric: tabular-nums; }
+
+/* The review panel's two sections: who's available, then the thread. */
+.section { display: flex; flex-direction: column; gap: 10px; }
+.section + .section { padding-top: 14px; border-top: 1px solid #DFE3EA; }
+.sectionRow { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.sectionHead { margin: 0; font-size: 14px; font-weight: 600; color: #334155; }
+.muted { margin: 0; font-size: 14px; line-height: 1.45; color: #64748b; }
+
+.person { display: flex; flex-direction: column; gap: 2px; }
+.person[data-hidden] { opacity: 0.6; }
+.personHead { font-size: 14px; line-height: 1.4; }
+.name { font-weight: 600; color: #0F172A; text-decoration: none; }
+a.name:hover { text-decoration: underline; }
+.meta { color: #64748b; }
+.body { margin: 0; font-size: 16px; line-height: 1.45; color: #334155; white-space: pre-wrap; overflow-wrap: anywhere; }
+.smallRow { display: flex; flex-wrap: wrap; gap: 16px; }
+.textBtn { min-height: 32px; padding: 0; border: 0; background: none; font: inherit; font-size: 14px; font-weight: 600; color: #334155; cursor: pointer; }
+.textBtn:disabled { color: #94a3b8; cursor: default; }
+
+.reply { display: flex; flex-direction: column; gap: 8px; }
+.replyInput { width: 100%; box-sizing: border-box; padding: 10px 14px; border: 1px solid #DFE3EA; border-radius: 12px; background: #ffffff; font: inherit; font-size: 16px; color: #0F172A; resize: vertical; }
+.replyInput:focus { outline: 3px solid rgba(15, 23, 42, 0.2); outline-offset: 0; border-color: #0F172A; }
+.replyBtn { align-self: flex-start; min-height: 44px; padding: 0 16px; border: 0; border-radius: 12px; box-shadow: inset 0 0 0 1.5px #0F172A; background: #ffffff; font: inherit; font-size: 15px; font-weight: 600; color: #0F172A; cursor: pointer; }
+.replyBtn:disabled { opacity: 0.45; cursor: default; }

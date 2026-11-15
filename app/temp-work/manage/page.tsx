@@ -4,14 +4,12 @@ import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Header from '@/components/Header'
-import { ThumbsUp } from 'lucide-react'
 import ReportControl from '@/components/ReportControl'
 import { supabase } from '@/lib/supabase'
 import { getCurrentEmployerOwnerId, getEmployerCapabilities } from '@/lib/employer'
-import { roleMeta, formatWhen, formatRate, timeAgo, initialsOf, type TempPost, type TempComment } from '@/lib/tempWork'
-import { Ico } from '@/components/icons'
-
-const C = { border: '#e2e8f0', sub: '#64748b', ink: '#0f172a', yellow: '#ffe500' }
+import { shiftRowModel, timeAgo, type TempPost, type TempComment } from '@/lib/tempWork'
+import ManageCard from '@/components/ManageCard'
+import styles from './page.module.css'
 
 export default function ManageTempWorkPage() {
   const router = useRouter()
@@ -30,6 +28,9 @@ export default function ManageTempWorkPage() {
   // until now it offered only Hide and Delete.
   const [replyTo, setReplyTo] = useState<string | null>(null)
   const [replyDraft, setReplyDraft] = useState('')
+
+  // Which card's review panel is open: who's available, and the thread.
+  const [openId, setOpenId] = useState<string | null>(null)
 
   // WHO IS LOOKING, not who owns the post — and they are different people on a
   // team account. The report control is hidden on your OWN comment, and the
@@ -164,243 +165,153 @@ export default function ManageTempWorkPage() {
     setBusy(null)
   }
 
-  const wrap: React.CSSProperties = { maxWidth: 720, margin: '2rem auto', padding: '0 1rem' }
-  const pill = (bg: string, color: string): React.CSSProperties => ({ fontSize: '0.7rem', fontWeight: 700, color, background: bg, padding: '0.15rem 0.5rem', borderRadius: 6 })
-  const btn = (color: string): React.CSSProperties => ({ padding: '5px 10px', border: `1px solid ${C.border}`, background: '#fff', color, borderRadius: 7, fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer' })
+  if (phase === 'loading') return <main><Header /><div className={styles.wrap}><p className={styles.centre}>Loading…</p></div></main>
+  if (phase === 'denied') return <main><Header /><div className={styles.wrap}><p className={styles.centre}>You need the “manage jobs” permission to manage shifts.</p></div></main>
 
-  if (phase === 'loading') return <main><Header /><div style={{ ...wrap, textAlign: 'center', color: C.sub }}>Loading…</div></main>
-  if (phase === 'denied') return <main><Header /><div style={{ ...wrap, textAlign: 'center' }}><p style={{ color: C.sub }}>You need the “manage jobs” permission to manage shifts.</p></div></main>
+  // The status line's fact: when the shift starts, or that it is ongoing. Only
+  // ever something true of this shift.
+  const startLabel = (p: TempPost) => p.is_ongoing ? 'ongoing'
+    : p.date_from ? new Date(`${p.date_from}T00:00:00`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : undefined
 
   return (
     <main>
       <Header />
-      <div style={wrap}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: '0.35rem' }}>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: C.ink }}>Your shifts</h1>
-          <Link href="/temp-work/post" style={{ padding: '9px 16px', background: C.yellow, color: C.ink, fontWeight: 700, fontSize: '0.9rem', borderRadius: 9, textDecoration: 'none' }}>+ Post</Link>
+      <div className={styles.wrap}>
+        <div className={styles.head}>
+          <h1 className={styles.h1}>Your shifts</h1>
+          <Link href="/temp-work/post" className={styles.postBtn}>+ Post a shift</Link>
         </div>
-        {/* TWO STATES, TWO SENTENCES.
-            One line ran here regardless, explaining how to work a list of
-            people — the available list, the comments, replying. Good copy for
-            someone with three shifts running, and the wrong sentence entirely
-            for someone with none, which is what an employer's FIRST view of
-            this page always is.
-
-            Fourth instance of the same fault this week: a sentence describing a
-            state the page isn't in. */}
-        <p style={{ color: C.sub, fontSize: '0.9rem', marginBottom: '1.5rem' }}>
+        {/* TWO STATES, TWO SENTENCES: an employer's FIRST view of this page
+            has no shifts, and instructions for working a list nobody is on
+            describe a state the page isn't in. */}
+        <p className={styles.intro}>
           {posts.length === 0
             ? <>Post a shift and people put their names down here. You’ll see who’s available and be able to answer their questions, without handing out your number.</>
-            : <>Who’s available for each shift, and what’s been asked. The <strong>available</strong> list is the one to work from — comments are usually questions. Reply and they’ll be told straight away.</>}
+            : <>Who’s available for each shift, and what’s been asked. Reply and they’ll be told straight away.</>}
         </p>
 
         {posts.length === 0 ? (
-          <div style={{ textAlign: 'center', color: '#94a3b8', padding: '2.5rem 1rem' }}>
-            No temp posts yet. <Link href="/temp-work/post" style={{ color: '#334155' }}>Post your first shift →</Link>
-          </div>
-        ) : posts.map(post => {
-          const rows = comments[post.id] || []
-          const meta = roleMeta(post.category)
-          const rate = formatRate(post)
-          return (
-            <div key={post.id} style={{ border: `1px solid ${C.border}`, borderRadius: 12, marginBottom: '1rem', overflow: 'hidden' }}>
-              <div style={{ padding: '0.9rem 1rem', background: '#fbfcfd', borderBottom: `1px solid ${C.border}` }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
-                  <div>
-                    <div style={{ fontWeight: 700, color: C.ink, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                      {/* `meta.icon` IS A NAME, NOT A CHARACTER — this was
-                          `{meta.icon} {post.title}` and rendered the literal
-                          words "chef-hat" and "utensils" beside the title,
-                          on camera, in a take for Apple.
-
-                          It used to hold an emoji, so printing it was right.
-                          The emoji sweep changed the VALUE to an icon name and
-                          this reader kept doing what it always had: still
-                          valid JSX, still compiled, still rendered — just
-                          wrong. A data change leaving a consumer behind looks
-                          nothing like a broken build.
-
-                          It is the ONLY reader of .icon in the codebase, so
-                          the icon has never once rendered correctly here. */}
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                        <Ico name={meta.icon} size={16} />
-                        {post.title}
-                      </span>
-                      {post.status !== 'open' && <span style={pill('#f1f5f9', '#475569')}>{post.status}</span>}
-                    </div>
-                    <div style={{ fontSize: '0.82rem', color: C.sub, marginTop: 2 }}>
-                      {formatWhen(post)} · {post.location_area}{rate ? ` · ${rate}` : ''} · posted {timeAgo(post.created_at)}
-                    </div>
-                    <div style={{ fontSize: '0.82rem', color: C.sub, marginTop: 4, display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                      <ThumbsUp size={13} strokeWidth={2.4} style={{ color: '#2563eb' }} /> {post.like_count} like{post.like_count === 1 ? '' : 's'} · <Ico name="message-square" size={16} /> {post.comment_count} comment{post.comment_count === 1 ? '' : 's'}
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexShrink: 0 }}>
-                    {/* CLOSE EXISTS IN EVERY STATE THAT ISN'T ALREADY CLOSED.
-                        It used to be offered only while a post was OPEN, so the
-                        moment you marked a shift filled the only button left was
-                        Re-open — and closing it meant re-opening first, which
-                        publicly re-lists a shift you are trying to take down.
-                        Marking filled is the step that makes closing likely, and
-                        it was the step that removed the control.
-
-                        Same fault as the reply button that only appeared once
-                        someone had replied: a control that doesn't exist in the
-                        state you're actually in. Filled is a state you close
-                        FROM, not a state you have to escape first. */}
-                    {post.status === 'open' && (
-                      <button disabled={busy === post.id} style={btn('#166534')} onClick={() => setPostStatus(post, 'filled')}>Mark filled</button>
-                    )}
-                    {post.status !== 'closed' && (
-                      <button disabled={busy === post.id} style={btn('#991b1b')} onClick={() => setPostStatus(post, 'closed')}>Close</button>
-                    )}
-                    {post.status !== 'open' && (
-                      <button disabled={busy === post.id} style={btn('#334155')} onClick={() => setPostStatus(post, 'open')}>Re-open</button>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* AVAILABLE — the list to work from. Above the comments on
-                  purpose: these people have said yes, the commenters have asked
-                  a question. Conflating the two is what made this page unusable. */}
-              <div style={{ padding: '0.75rem 1rem', borderBottom: `1px solid ${C.border}`, background: '#fcfefc' }}>
-                <div style={{ fontSize: '0.78rem', fontWeight: 700, color: C.sub, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.6rem' }}>
-                  {(interest[post.id] || []).length} available
-                </div>
-                {(interest[post.id] || []).length === 0 ? (
-                  <p style={{ fontSize: '0.85rem', color: '#94a3b8', margin: 0 }}>Nobody has said they’re available yet.</p>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                    {(interest[post.id] || []).map(r => (
-                      <div key={r.id} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-                        <span style={{ width: 34, height: 34, borderRadius: '50%', background: '#dcfce7', display: 'grid', placeItems: 'center', flexShrink: 0, fontWeight: 800, color: '#166534', fontSize: '0.72rem' }}>
-                          {initialsOf(r.name)}
-                        </span>
-                        <div style={{ minWidth: 0, flex: 1 }}>
-                          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
-                            <Link href={`/candidates/${r.candidate_user_id}`} style={{ fontWeight: 700, color: C.ink, fontSize: '0.88rem', textDecoration: 'none' }}>{r.name}</Link>
-                            <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>{timeAgo(r.created_at)}</span>
-                          </div>
-                          {r.message && <p style={{ fontSize: '0.88rem', color: '#334155', margin: '0.2rem 0 0', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{r.message}</p>}
+          <p className={styles.emptyState}>No shifts yet. <Link href="/temp-work/post">Post your first shift →</Link></p>
+        ) : (
+          <div className={styles.list}>
+            {posts.map(post => {
+              const rows = comments[post.id] || []
+              const avail = interest[post.id] || []
+              const m = shiftRowModel(post)
+              const live = post.status === 'open'
+              const start = startLabel(post)
+              const statusDetail = post.status === 'open' ? (start === 'ongoing' ? 'ongoing' : start ? `starts ${start}` : undefined) : start !== 'ongoing' ? start : undefined
+              return (
+                <ManageCard
+                  key={post.id}
+                  live={live}
+                  statusWord={post.status === 'open' ? 'Live' : post.status}
+                  statusDetail={statusDetail}
+                  title={post.title}
+                  lines={[
+                    <>{m.pay && <span className={styles.pay}>{m.pay.amount} {m.pay.period}</span>}{m.pay && m.place && ' · '}{m.place}</>,
+                    // Design 26 decisions: no booking exists, so the date line
+                    // says what does — "8 needed · 5 available".
+                    <><span className={styles.when}>{m.when}</span> · {m.needed} · {avail.length} available</>,
+                    // The total, not a "new" count: nothing records which
+                    // comments the employer has already seen.
+                    <>{post.comment_count === 0 ? 'No comments yet' : `${post.comment_count} comment${post.comment_count === 1 ? '' : 's'}`}</>,
+                  ]}
+                  attention={live && avail.length > 0 ? `${avail.length} ${avail.length === 1 ? 'person' : 'people'} available` : undefined}
+                  open={openId === post.id}
+                  onToggleOpen={() => setOpenId(openId === post.id ? null : post.id)}
+                  // Design 26 decisions: ship with Mark filled and Close only.
+                  // Edit shift, Duplicate and Post again are hidden until built.
+                  actions={live ? [{ label: busy === post.id ? 'Saving…' : 'Mark filled', onClick: () => setPostStatus(post, 'filled'), disabled: busy === post.id }] : []}
+                  // CLOSE EXISTS IN EVERY STATE THAT ISN'T ALREADY CLOSED — a
+                  // filled shift is a state you close FROM. RE-OPEN STAYS: it is
+                  // the only undo for a mistaken "Mark filled", and it existed
+                  // before this design, which does not mention it.
+                  menu={[
+                    ...(post.status !== 'closed' ? [{ label: 'Close', onClick: () => setPostStatus(post, 'closed'), disabled: busy === post.id }] : []),
+                    ...(post.status !== 'open' ? [{ label: 'Re-open', onClick: () => setPostStatus(post, 'open'), disabled: busy === post.id }] : []),
+                  ]}
+                  menuLabel={`More actions for ${post.title}`}
+                >
+                  {/* AVAILABLE — the list to work from, above the comments on
+                      purpose: these people have said yes; commenters asked. */}
+                  <section className={styles.section}>
+                    <h4 className={styles.sectionHead}>{avail.length} available</h4>
+                    {avail.length === 0 ? (
+                      <p className={styles.muted}>Nobody has said they’re available yet.</p>
+                    ) : avail.map(r => (
+                      <div key={r.id} className={styles.person}>
+                        <div className={styles.personHead}>
+                          <Link href={`/candidates/${r.candidate_user_id}`} className={styles.name}>{r.name}</Link>
+                          <span className={styles.meta}> · {timeAgo(r.created_at)}</span>
                         </div>
+                        {r.message && <p className={styles.body}>{r.message}</p>}
                       </div>
                     ))}
-                  </div>
-                )}
-              </div>
+                  </section>
 
-              <div style={{ padding: '0.75rem 1rem' }}>
-                {/* Reply lives HERE, not inside the comments loop.
-                    It used to render per comment, so a post with none showed no
-                    Reply button at all — an employer could only ever reply
-                    SECOND and could never open a thread. Which is precisely the
-                    case that matters: someone has put themselves forward and
-                    said nothing, and the employer wants to ask when they can
-                    start. A control has to exist in the empty state or it isn't
-                    a control, it's a reward for the happy path. */}
-                {/* Named and ruled so the thread declares what it belongs to.
-                    The ORDER stays: the available list sits above this, because
-                    that is the surface an agency works from and chatter must not
-                    push it down. Deliberately a different treatment from the
-                    candidate feed, which needed containment because its blocks
-                    were siblings — here they are already one box and only the
-                    labelling was missing. */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 10, marginBottom: '0.6rem' }}>
-                  <div style={{ fontSize: '0.78rem', fontWeight: 700, color: C.sub, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                    {rows.length} comment{rows.length === 1 ? '' : 's'} on this shift
-                  </div>
-                  <button
-                    onClick={() => { setReplyTo(replyTo === post.id ? null : post.id); setReplyDraft('') }}
-                    style={{ background: 'none', border: 'none', padding: 0, fontSize: '0.78rem', fontWeight: 700, color: C.ink, cursor: 'pointer' }}
-                  >
-                    {replyTo === post.id ? 'Cancel' : 'Reply'}
-                  </button>
-                </div>
-                {rows.length === 0 ? (
-                  <p style={{ fontSize: '0.85rem', color: '#94a3b8', margin: 0, borderLeft: `3px solid ${C.border}`, paddingLeft: '0.85rem' }}>No comments yet — sit tight.</p>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.7rem', borderLeft: `3px solid ${C.border}`, paddingLeft: '0.85rem' }}>
-                    {rows.map(c => {
-                      // Candidates have a profile page (route enforces the employer gate); employers don't.
-                      // An erased author has no user_id; without this the href is
-                      // /candidates/null.
+                  <section className={styles.section}>
+                    <div className={styles.sectionRow}>
+                      <h4 className={styles.sectionHead}>{rows.length} comment{rows.length === 1 ? '' : 's'}</h4>
+                      {/* Reply lives HERE, not per comment: a shift with no
+                          comments still needs a way to start the thread. */}
+                      <button type="button" className={styles.textBtn} onClick={() => { setReplyTo(replyTo === post.id ? null : post.id); setReplyDraft('') }}>
+                        {replyTo === post.id ? 'Cancel' : 'Reply'}
+                      </button>
+                    </div>
+                    {rows.length === 0 ? (
+                      <p className={styles.muted}>No comments yet.</p>
+                    ) : rows.map(c => {
+                      // Candidates have a profile page; an erased author has no
+                      // user_id, so no link (never /candidates/null).
                       const profileHref = c.user_id && c.author_role === 'candidate' ? `/candidates/${c.user_id}` : null
-                      const avatarBox: React.CSSProperties = { width: 34, height: 34, borderRadius: '50%', background: C.yellow, display: 'grid', placeItems: 'center', flexShrink: 0, overflow: 'hidden' }
-                      const avatarInner = c.author_avatar
-                        // eslint-disable-next-line @next/next/no-img-element
-                        ? <img src={c.author_avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                        : <span style={{ fontWeight: 800, color: C.ink, fontSize: '0.72rem' }}>{initialsOf(c.author_name || '?')}</span>
                       return (
-                      <div key={c.id} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', borderTop: `1px solid #f1f5f9`, paddingTop: '0.6rem', opacity: c.hidden ? 0.55 : 1 }}>
-                        {profileHref
-                          ? <Link href={profileHref} style={avatarBox} title={`View ${c.author_name || 'profile'}`}>{avatarInner}</Link>
-                          : <span style={avatarBox}>{avatarInner}</span>}
-                        <div style={{ minWidth: 0, flex: 1 }}>
-                          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
+                        <div key={c.id} className={styles.person} data-hidden={c.hidden || undefined}>
+                          <div className={styles.personHead}>
                             {profileHref
-                              ? <Link href={profileHref} style={{ fontWeight: 700, color: C.ink, fontSize: '0.88rem', textDecoration: 'none' }}>{c.author_name || 'Someone'}</Link>
-                              : <span style={{ fontWeight: 700, color: C.ink, fontSize: '0.88rem' }}>{c.author_name || 'Someone'}</span>}
-                            <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>{timeAgo(c.created_at)}</span>
-                            {c.hidden && <span style={pill('#f1f5f9', '#475569')}>Hidden</span>}
+                              ? <Link href={profileHref} className={styles.name}>{c.author_name || 'Someone'}</Link>
+                              : <span className={styles.name}>{c.author_name || 'Someone'}</span>}
+                            {c.author_role === 'employer' && <span className={styles.meta}> · employer</span>}
+                            {c.hidden && <span className={styles.meta}> · hidden</span>}
+                            <span className={styles.meta}> · {timeAgo(c.created_at)}</span>
                           </div>
-                          <p style={{ fontSize: '0.88rem', color: '#334155', margin: '0.2rem 0 0', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{c.body}</p>
-                          <div style={{ display: 'flex', gap: 12, marginTop: 4 }}>
-                            <button disabled={busy === c.id} onClick={() => setCommentHidden(c, !c.hidden)} style={{ background: 'none', border: 'none', padding: 0, fontSize: '0.74rem', fontWeight: 600, color: C.sub, cursor: 'pointer' }}>
-                              {c.hidden ? 'Unhide' : 'Hide'}
-                            </button>
-                            <button disabled={busy === c.id} onClick={() => deleteComment(c)} style={{ background: 'none', border: 'none', padding: 0, fontSize: '0.74rem', fontWeight: 600, color: '#b91c1c', cursor: 'pointer' }}>
-                              Delete
-                            </button>
-                            {/* HIDE AND DELETE ARE NOT A REPORT. They are the
-                                owner tidying their own post; nobody is told, and
-                                nothing is recorded for us to look at. An employer
-                                who receives something abusive needs to be able to
-                                REPORT it as well as remove it — and this is the
-                                second of the two comment renderers, which is why
-                                reportcontrol:prove asserts the class rather than
-                                naming files.
-
-                                Not on your own comment: filing a report against
-                                yourself files a real row somebody has to read. */}
-                            {c.user_id !== me && (
-                              <ReportControl targetType="comment" targetId={c.id} />
-                            )}
+                          <p className={styles.body}>{c.body}</p>
+                          <div className={styles.smallRow}>
+                            <button type="button" className={styles.textBtn} disabled={busy === c.id} onClick={() => setCommentHidden(c, !c.hidden)}>{c.hidden ? 'Unhide' : 'Hide'}</button>
+                            <button type="button" className={styles.textBtn} disabled={busy === c.id} onClick={() => deleteComment(c)}>Delete</button>
+                            {/* HIDE AND DELETE ARE NOT A REPORT: an employer who
+                                receives something abusive must be able to report
+                                it as well as remove it. Not on your own comment. */}
+                            {c.user_id !== me && <ReportControl targetType="comment" targetId={c.id} className={styles.textBtn} />}
                           </div>
                         </div>
-                      </div>
                       )
                     })}
-                  </div>
-                )}
 
-                {/* The reply box. An ordinary comment from the post owner, which
-                    is what makes the notification to everyone waiting fire. */}
-                {replyTo === post.id && (
-                  <div style={{ marginTop: '0.8rem', display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    <textarea
-                      rows={2}
-                      value={replyDraft}
-                      onChange={e => setReplyDraft(e.target.value)}
-                      placeholder="Reply — e.g. “Yes still open, can you do 5pm till close?”"
-                      style={{ width: '100%', resize: 'vertical', padding: '0.6rem 0.7rem', border: `1px solid ${C.border}`, borderRadius: 9, font: 'inherit', fontSize: '0.88rem', color: C.ink }}
-                    />
-                    <button
-                      disabled={busy === post.id || !replyDraft.trim()}
-                      onClick={() => sendReply(post)}
-                      style={{ alignSelf: 'flex-start', padding: '0.5rem 1rem', background: C.yellow, color: C.ink, fontWeight: 700, fontSize: '0.85rem', border: 'none', borderRadius: 8, cursor: 'pointer', opacity: (busy === post.id || !replyDraft.trim()) ? 0.6 : 1 }}
-                    >
-                      {busy === post.id ? 'Sending…' : 'Send reply'}
-                    </button>
-                    <span style={{ fontSize: '0.74rem', color: '#94a3b8' }}>
-                      Everyone who commented or said they’re available will be notified.
-                    </span>
-                  </div>
-                )}
-              </div>
-            </div>
-          )
-        })}
+                    {/* An ordinary comment from the post owner, which is what
+                        makes the notification to everyone waiting fire. */}
+                    {replyTo === post.id && (
+                      <div className={styles.reply}>
+                        <textarea
+                          rows={2}
+                          className={styles.replyInput}
+                          aria-label="Your reply"
+                          value={replyDraft}
+                          onChange={e => setReplyDraft(e.target.value)}
+                          placeholder="Reply, e.g. “Yes, still open. Can you do 5pm till close?”"
+                        />
+                        <button type="button" className={styles.replyBtn} disabled={busy === post.id || !replyDraft.trim()} onClick={() => sendReply(post)}>
+                          {busy === post.id ? 'Sending…' : 'Send reply'}
+                        </button>
+                        <span className={styles.muted}>Everyone who commented or said they’re available will be told.</span>
+                      </div>
+                    )}
+                  </section>
+                </ManageCard>
+              )
+            })}
+          </div>
+        )}
       </div>
     </main>
   )

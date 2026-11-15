@@ -392,6 +392,15 @@ const ALL = [
   // next/font/google (named the file); green after.
   { name: 'fonts:prove', cmd: npm, args: ['run', 'fonts:prove'] },
 
+  // THE TEXT-LED JOB CARDS (design_handoff_job_cards_text_led; design 25,
+  // 15 Nov 2026: no images anywhere jobs appear). Imports the card model and
+  // asserts the pay rules (period in words, nothing when there is no pay), the
+  // order, NEW = 48h, the measured row spec, and — the class check — that no
+  // finished job surface renders an image, logo or banner. Filesystem only,
+  // fast tier. Watched failing on purpose 15 Nov 2026: an image in the row,
+  // "/hr" back, NEW at 3 days, an ellipsis on the title; each red, restored.
+  { name: 'jobcards:prove', cmd: npm, args: ['run', 'jobcards:prove'] },
+
   // NO COLOUR EMOJI ON ANY SURFACE A STRANGER SEES. components/icons.tsx has
   // said this since 14 Aug 2026 and had nothing behind it; seven got in anyway
   // — three clocks, two hourglasses, a party popper, and a video camera in an

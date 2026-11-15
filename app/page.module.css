@@ -180,9 +180,12 @@
    to, not estimated:
 
        width   newest-roles   247 line   founding strip
-        1440       268px        21px         46px
-         820       318px        20px         46px
-         393       361px        20px         67px
+        1440       637px*       21px         46px
+         820       637px*       20px         46px
+         390       534px*       20px         67px
+
+   * The newest-roles reserves were re-measured for the text-led home cards
+     (design 26, 15 Nov 2026); they are the last two rules in this file.
 
    VISUAL ONLY. No fetch, no gate and no claim changed — a block that does not
    know its value still says nothing, it just says nothing in the right amount
@@ -206,10 +209,10 @@
 .heroRolesSection {
   background: var(--off-white);
   padding: 22px 0 26px;
-  /* Reserved — see the note above .heroUnderline. box-sizing so this number is
-     the rendered box height, which is the thing that was measured. */
+  /* Reserved — the two min-heights are the LAST rules in this file (see the
+     note above .heroUnderline). box-sizing so the number is the rendered box
+     height, which is the thing that was measured. */
   box-sizing: border-box;
-  min-height: 268px;
 }
 
 .heroRolesInner {
@@ -248,7 +251,7 @@
    submit, a yellow Sign up and a yellow browse route, and the answer to "which
    one is for me" becomes "all of them", which is no answer.
 
-   #0F172A is .heroRoleTitle's ink, so the link belongs to the board it points
+   #0F172A is the job titles' ink, so the link belongs to the board it points
    at. 600 against the eyebrow's 12px grey is what makes one of the two read as
    a control rather than as a caption pair.
 
@@ -313,58 +316,16 @@
   text-underline-offset: 3px;
 }
 
-.heroRoles {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 10px;
-  text-align: left;
-}
-
-.heroRoleCard {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  background: #fff;
-  border-radius: 12px;
-  padding: 14px 16px;
-  text-decoration: none;
-  border: 1px solid transparent;
-  transition: border-color 0.15s, transform 0.1s;
-}
-
-.heroRoleCard:hover {
-  border-color: #CBD5E1;
-  transform: translateY(-1px);
-}
-
-.heroRoleEmployer {
-  font-size: 12.5px;
-  color: #64748B;
-}
-
-/* NO CLAMP. The title is the only thing telling two listings apart — 40 live
-   roles share "Chef De Partie" and one employer — so it wraps to whatever
-   height it needs rather than being cut. */
-.heroRoleTitle {
-  font-family: var(--font-display), Inter, system-ui, sans-serif;
-  font-size: 17px;
-  font-weight: 600;
-  letter-spacing: -0.02em;
-  line-height: 1.25;
-  color: #0F172A;
-}
-
-.heroRoleMeta {
-  font-size: 14.5px;
-  font-weight: 600;
-  color: #475569;
-  margin-top: 2px;
-}
-
-/* TWO CARDS AT 390, FOUR AT 1440. The third and fourth are hidden rather than
-   not fetched — one query either way, and the desktop breakpoint does not need
-   a second round trip to fill out. */
-.heroRoleCardWide { display: none; }
+/* THE TEXT-LED HOME CARDS (design 26, A).
+   PHONE: three 1b rows in ONE BOXED LIST — the board's list (JobRow.module.css
+   .list) is full-bleed on a phone; here it sits inside the 16px gutter with
+   its own border, as the design draws it. Two classes beat .list's one, so
+   the override does not depend on which module's CSS loads first.
+   FROM 769: the 1a card (variant="home", a fixed 248px), 2x2 to 1023 and
+   3x2 from 1024. The fifth and sixth are hidden below 1024 rather than not
+   fetched — one query either way. */
+.heroRolesInner .homeList { width: auto; margin: 0; border: 1px solid #DFE3EA; border-radius: 16px; overflow: hidden; }
+.homeGrid { display: none; }
 
 /* ── THE BOTTOM CALL TO ACTION ────────────────────────────────────────────
    These three are NOT hero classes any more. The hero that used them is gone;
@@ -511,12 +472,9 @@
   .heroRolesSection { padding: 34px 0; }
   .heroRolesInner { padding: 0 40px; }
 
-  .heroRoles {
-    grid-template-columns: repeat(4, 1fr);
-    gap: 18px;
-  }
-
-  .heroRoleCardWide { display: flex; }
+  .heroRolesInner .homeList { display: none; }
+  .homeGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+  .homeCardWide { display: none; }
 }
 
 
@@ -531,10 +489,7 @@
      deliberately — measured 836 -> 782 for the section below. */
   .hero { padding: 26px 0 28px; }
 
-  .heroRoles {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 14px;
-  }
+
 }
 
 /* Section Shared Styles */
@@ -925,44 +880,17 @@
 /* Responsive */
 /* Tablet (≤1024px) — headline 32px per spec */
 @media (max-width: 1024px) {
-  /* Reserved — measured at 820px. See the note above .heroUnderline. */
-  .heroRolesSection { min-height: 318px; }
+
 
   .heroTitle {
     font-size: 2rem; /* 32px */
   }
 }
 
-/* THE RESERVE FOR THE 2x2, AND IT HAS TO SIT HERE RATHER THAN IN THE TABLET
-   BLOCK ABOVE. A MEDIA QUERY ADDS NO SPECIFICITY: the <=1024 rule directly
-   above declares min-height 318px and, being later in the file than the
-   769-1199 block, it won. The first attempt put this rule up there, the diff
-   read correctly, and the computed value stayed 318 — measured, not assumed.
-   318px was measured against a ONE-COLUMN, TWO-CARD render; a 2x2 of four
-   settles at 385px at 820. Re-measured in a browser, not nudged. */
-@media (min-width: 769px) and (max-width: 1199px) {
-  /* 385 -> 386. The eyebrow row gained the See-all link, and with the
-     line-height matched the row still settles 1px taller than the bare label:
-     baseline alignment unions the two boxes, so a smaller line box does not
-     guarantee a smaller row. Driven at 820: the section renders 385.56, which
-     a 385px reserve does not cover.
 
-     A RESERVE THAT IS GENEROUS AND TRUE BEATS ONE THAT IS EXACT AND FALSE.
-     386 covers the settled height, so the rendered height IS the reserve and
-     the cold load moves nothing. Re-measured at this width independently of
-     390 — the two carry different reserves and share no arithmetic. */
-  .heroRolesSection { min-height: 386px; }
-}
 
 @media (max-width: 768px) {
-  /* Reserved — measured at 393px, the width the App Store recording is shot
-     at. See the note above .heroUnderline. The strip is taller here because
-     the sentence wraps to two lines. */
-  /* 361 -> 362, for the same reason as 386 above and measured separately at
-     390: the section renders 361.56 with the link in the row. The two widths
-     landing on the same 0.56px residual is the row growing by the same 1px in
-     both, not one number doing duty for two — each was driven on its own. */
-  .heroRolesSection { min-height: 362px; }
+
   .foundingStrip { min-height: 67px; }
 
   /* NO min-height ON THIS ROW, DELIBERATELY. It carried 44px for one commit to
@@ -1125,4 +1053,39 @@
 @media (max-width: 760px) {
   .demoRow, .demoRow:nth-child(even) { flex-direction: column; gap: 1rem; }
   .demoText { text-align: center; }
+}
+
+/* ── 3x2 FROM 1024 (design 26, A) ── */
+@media (min-width: 1024px) {
+  .homeGrid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .homeCardWide { display: block; }
+}
+
+/* ── THE RESERVES FOR THE TEXT-LED HOME CARDS ────────────────────────────
+   LAST IN THE FILE ON PURPOSE. A media query adds no specificity, so a later
+   rule wins; these were three numbers in three blocks (318, 386, 362) and the
+   2x2 one was once silently beaten by a later <=1024 rule. Two rules, one
+   place, nothing after them.
+   Each is the SETTLED HEIGHT of the section, measured in a browser on a cold
+   load with the roles landed — never typed from the handoff (design's 632 and
+   ~400 are estimates). From 769 the 1a cards are a fixed 248px, so the two
+   rows make the reserve the same at 2x2 and 3x2. */
+/* RE-MEASURE BOTH WHEN THE BOARD'S DATA CHANGES (design 26, round 2). They
+   are the settled heights of TODAY'S newest jobs: longer titles, fewer than
+   six live jobs, or a card with an extra line all change them, and a reserve
+   that no longer matches makes the page jump on a cold load. Measure on the
+   settled page (the roles AND the live-roles sentence landed) at 390 and 820.
+
+   390: the three rows settled at 533.92px on 15 Nov 2026 (design estimated
+   ~400; these agency titles wrap to two lines at 390). Rows are NOT a fixed
+   height — they wrap to whatever the title needs, and must, because the full
+   title lives here — so this one moves with the data: re-measure it when the
+   board changes shape. From 769: 636.19px at both 820 and 1280 (design's 632
+   assumed 64px of section padding; it is 68), and fixed, because the 1a home
+   card is a fixed 248px. */
+@media (max-width: 768px) {
+  .heroRolesSection { min-height: 534px; }
+}
+@media (min-width: 769px) {
+  .heroRolesSection { min-height: 637px; }
 }

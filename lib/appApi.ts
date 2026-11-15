@@ -3,7 +3,7 @@
 // The native screens (design_handoff_ios_native_layer, step 3) show jobs, saved
 // jobs and applications. They do NOT reformat anything themselves: pay, place,
 // region and "New" come from the same functions the website uses
-// (formatJobSalary, formatJobLocation, resolveJobArea), so the app cannot drift
+// (jobPay, formatJobLocation, resolveJobArea), so the app cannot drift
 // from the site. The app keeps a copy of what this returns for offline reading.
 //
 // Signed-in calls carry the web session's own access token as a Bearer header.
@@ -14,7 +14,7 @@
 import { createClient, type SupabaseClient, type User } from '@supabase/supabase-js'
 import type { NextRequest } from 'next/server'
 import { supabaseJobToJob } from '@/lib/types'
-import { formatJobSalary, formatJobLocation } from '@/lib/jobCard'
+import { jobPay, jobPayText, formatJobLocation } from '@/lib/jobCard'
 import { resolveJobArea, regionName } from '@/lib/areas'
 import { formatMoney } from '@/lib/money'
 
@@ -55,7 +55,7 @@ export type AppJob = {
   title: string
   company: string
   place: string          // "Bath, Somerset" — formatJobLocation
-  pay: string | null     // formatJobSalary; null when there is no figure (never "Competitive")
+  pay: string | null     // jobPay's short form; null when there is no figure, never a placeholder
   type: string | null    // "Full time" — what the row says, nothing assumed
   postedAt: string | null
   postedLabel: string    // "Today", "Yesterday", "Fri 9 Oct"
@@ -166,7 +166,7 @@ export function plainText(s: string | null | undefined): string {
 }
 
 /** Pay for the app's cards and job page (design H1, H5). Same rounding as the
- *  website's formatJobSalary (whole thousands a year) and the same pounds-and-
+ *  website's jobPay (whole thousands a year) and the same pounds-and-
  *  pence formatter, with the period in words as the website's new cards write it. */
 export function appPay(row: any): { payShort: string | null; payLong: string | null } {
   const min = Number(row.salary_min) || 0
@@ -200,7 +200,9 @@ export async function toAppJob(row: any): Promise<AppJob> {
     title: row.title,
     company: row.company,
     place: formatJobLocation(row),
-    pay: hasPay ? formatJobSalary(job) : null,
+    // The cards' short form ("£42k–£48k a year"), from the one shared
+    // formatter; formatJobSalary ("£42k/year") is gone (design 26, round 2).
+    pay: hasPay ? (jobPayText(jobPay(job)) || null) : null,
     type: typeOf(row),
     postedAt: posted,
     postedLabel: postedLabel(posted),

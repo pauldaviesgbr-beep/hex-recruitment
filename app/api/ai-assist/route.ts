@@ -88,7 +88,7 @@ Rules:
         userPrompt = `Write a job ad from these notes:
 Job Title: ${data.title || 'Not specified'}
 Location: ${data.location || 'Not specified'}
-Salary: ${data.salaryMin ? `£${data.salaryMin}${data.salaryMax ? ` - £${data.salaryMax}` : ''} per ${data.salaryPeriod || 'hour'}` : 'Competitive'}
+Salary: ${data.salaryMin ? `£${data.salaryMin}${data.salaryMax ? ` - £${data.salaryMax}` : ''}${data.salaryPeriod ? ` per ${data.salaryPeriod}` : ''}` : 'Not specified'}
 Employment Type: ${data.employmentType || 'Full-time'}
 ${data.description || ''}`
       } else {
@@ -208,7 +208,7 @@ Candidate: ${data.candidateName || 'The Candidate'}
 Candidate Address:
 ${addressBlock}
 Job Title: ${data.jobTitle || 'The Role'}
-Salary: ${data.salary || 'Competitive'}
+Salary: ${data.salary || 'To be confirmed'}
 Start Date: ${data.startDate || 'TBC'}
 Contract Type: ${data.contractType || 'Full-time'}
 Sector: ${data.sector || 'General'}

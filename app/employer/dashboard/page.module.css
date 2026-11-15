@@ -887,20 +887,14 @@
    with nothing scrolling sideways there is no reason for a card to stop short
    of the edge and imply there is more to the right. */
 .jobCardItem { width: 100%; max-width: none; text-decoration: none; }
-/* The shared BrandedJobFallback paints a top-left Thrive lockup (mark + "Thrive"
-   wordmark + slogan) to brand candidate-facing job cards. On the employer's OWN
-   compact Active Jobs cards that lockup (a) doesn't belong and (b) lands in the
-   same top-left corner as the company chip, so the two stack. Hide it here — the
-   navy panel + ghost company initial remain. Scoped to .jobCardItem, so /jobs and
-   FeaturedJobs are untouched. */
-.jobCardItem :global([class*='BrandedJobFallback_brand']) { display: none; }
 
 /* The shared job card is 16/11; at the dashboard's compact width that's too short
    for a 3-line role title, so its bottom-anchored content overflows upward and
    clips the company chip. Give just these cards a touch more height so a 3-line
    title fits cleanly. Targets the card (the Link's only child) without depending
    on the shared module's hashed class name. */
-.jobCardItem > div { aspect-ratio: auto; height: 200px; }
+/* The 200px height and the 16/11 ratio were for the image-led card; the
+   text-led 1a card sizes to its content (design 25, 15 Nov 2026). */
 
 .jobOverlay { position: absolute; bottom: 8px; right: 8px; z-index: 3; background: rgba(10, 22, 40, 0.62); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); color: #fff; font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 999px; white-space: nowrap; box-shadow: 0 1px 4px rgba(0,0,0,.3); }
 
@@ -960,7 +954,7 @@
   }
   .jobCardItem { width: auto; max-width: none; }
   /* Natural card proportions on desktop (the 200px height was a mobile chip-clip fix). */
-  .jobCardItem > div { height: auto; aspect-ratio: 16 / 11; }
+
   .jobNav { display: none; }
 
   /* Pipeline: let the stage columns share the row so there's no dead space at the

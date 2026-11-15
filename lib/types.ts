@@ -311,7 +311,9 @@ export function supabaseProfileToCandidate(row: any): Candidate {
 
 // ─── Helpers ─────────────────────────────────────────────────────
 
-function formatPostedAt(isoDate: string | null): string {
+// Exported so a shift row says "2 days ago" in exactly the words a job row
+// beside it does (lib/tempWork shiftRowModel) — one feed, one vocabulary.
+export function formatPostedAt(isoDate: string | null): string {
   if (!isoDate) return 'Recently'
   const now = new Date()
   const posted = new Date(isoDate)

@@ -1,100 +1,57 @@
 'use client'
 
-import type { ReactNode } from 'react'
-import Link from 'next/link'
 import type { Job } from '@/lib/mockJobs'
-import { resolveJobBanner } from '@/lib/jobBanner'
-import { selectQuote } from '@/lib/jobQuote'
-import BrandedJobFallback from '@/components/BrandedJobFallback'
-import CompanyLogo from '@/components/CompanyLogo'
-import jobStyles from '@/app/jobs/page.module.css'
-import { formatJobLocation } from '@/lib/jobCard'
+import JobTypeCard from '@/components/JobTypeCard'
+import SaveJobButton from '@/components/SaveJobButton'
+import cardStyles from '@/components/JobTypeCard.module.css'
 
-// Single-source image-led job card. The card visual lives in /jobs
-// (page.module.css `jobCard*` classes); this wraps that exact markup so the
-// consuming surfaces share ONE card instead of duplicating it. Links to the
-// cold-safe /job/<id> page.
+// THE SMALL-LIST JOB CARD: the text-led 1a card (design_handoff_job_cards
+// _text_led: "1a goes on the home page and anywhere showing 6 or fewer jobs";
+// design 25: no images anywhere jobs appear; design 26 round 2).
 //
-// FeaturedJobs used to be one of those surfaces and IS NO LONGER MOUNTED
-// (24 Aug 2026) — the home hero shows the newest roles itself and the two
-// together put the same three jobs on screen twice inside one scroll. The
-// component still exists and is now rendered nowhere.
-// `children` is an optional overlay slot (e.g. a dismiss button) rendered inside
-// the card — overlay controls must call preventDefault/stopPropagation so they
-// don't trigger the card's navigation.
-
-function formatSalary(job: Job): string {
-  const single = !job.salaryMax || job.salaryMin === job.salaryMax
-  if (job.salaryPeriod === 'hour') {
-    return single ? `£${job.salaryMin}/hr` : `£${job.salaryMin}–£${job.salaryMax}/hr`
-  }
-  return single
-    ? `£${Math.round(job.salaryMin / 1000)}k`
-    : `£${Math.round(job.salaryMin / 1000)}k–£${Math.round(job.salaryMax / 1000)}k`
-}
+// It is no longer one big <a>. The card's TITLE is the link, stretched over the
+// card, so the controls design 26 puts on it — Save in the corner, "Not
+// interested" in the footer — are real buttons beside the link rather than
+// buttons inside it (which HTML does not allow, and which is why the
+// dashboard's grey × used to float over the title).
+//
+// Used by the candidate dashboard's Recommended row (Save + Not interested),
+// the employer dashboard's Active jobs (footerNote "N applicants · N views"),
+// and the home page grid (variant="home", with Save).
 
 export default function JobCardLink({
   job,
   className,
-  children,
   href,
+  footerNote,
+  saved,
+  onToggleSave,
+  onNotInterested,
+  variant,
 }: {
   job: Job
   className?: string
-  children?: ReactNode
-  // Optional tap target. Defaults to the candidate apply page /job/<id> (so the
-  // candidate dashboard is unchanged); the employer dashboard passes
-  // /post-job?edit=<id> to manage its own post instead.
   href?: string
+  footerNote?: string
+  saved?: boolean
+  onToggleSave?: (job: Job) => void
+  onNotInterested?: (job: Job) => void
+  variant?: 'home'
 }) {
-  const banner = resolveJobBanner({
-    id: job.id,
-    companyBanner: job.companyBanner,
-    company: job.company,
-    category: job.category,
-  })
-  const initial = (job.company || '?').trim().charAt(0).toUpperCase() || '?'
   return (
-    <Link href={href ?? `/job/${job.id}`} className={className}>
-      <div className={`${jobStyles.jobCard} ${banner ? '' : jobStyles.jobCardFallback}`}>
-        {banner ? (
-          <div className={jobStyles.cardBg} style={{ backgroundImage: `url(${banner})` }} aria-hidden="true" />
-        ) : (
-          <BrandedJobFallback
-            company={job.company}
-            brandColour={job.brandColour}
-            quote={selectQuote(job)}
-            tags={job.tags}
-          />
-        )}
-        <div className={jobStyles.cardScrim} aria-hidden="true" />
-        <div className={jobStyles.cardContent}>
-          <div className={jobStyles.cardCompanyRow}>
-            {/* THE AVATAR IS ON BOTH CARDS. Same rule as FeedCard — see there
-                for why it came off and why it went back. These two share the
-                stylesheet, so they have to agree or the home strip and the
-                board disagree about the same advert. */}
-            <span className={jobStyles.cardChip}>
-              {job.companyLogo ? (
-                <CompanyLogo src={job.companyLogo} alt={job.company} className={jobStyles.cardChipImg} />
-              ) : (
-                initial
-              )}
-            </span>
-            <span className={jobStyles.cardCompany}>
-              {job.company}
-              {job.isRecruiterPosting && <span className={jobStyles.cardViaRecruiter}> · via recruiter</span>}
-            </span>
-          </div>
-          <h3 className={jobStyles.cardRole}>{job.title}</h3>
-          <div className={jobStyles.cardMeta}>
-            <span>{formatJobLocation(job)}</span>
-            <span className={jobStyles.cardDot}>·</span>
-            <span className={jobStyles.cardSalary}>{formatSalary(job)}</span>
-          </div>
-        </div>
-        {children}
-      </div>
-    </Link>
+    <div className={className}>
+      <JobTypeCard
+        job={job}
+        href={href ?? `/job/${job.id}`}
+        footerNote={footerNote}
+        variant={variant}
+        corner={onToggleSave ? <SaveJobButton saved={!!saved} onToggle={() => onToggleSave(job)} title={job.title} /> : undefined}
+        footerAction={onNotInterested ? (
+          <button type="button" className={cardStyles.textAction} aria-label={`Not interested in ${job.title}`} onClick={() => onNotInterested(job)}>
+            Not interested
+          </button>
+        ) : undefined}
+      />
+    </div>
   )
 }

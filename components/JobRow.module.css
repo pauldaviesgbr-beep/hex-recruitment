@@ -1,0 +1,134 @@
+/* 1b — THE TEXT-LED BOARD ROW (design_handoff_job_cards_text_led, measured
+   specs 01 and 02). Palette only: #0F172A #334155 #64748b #DFE3EA #EEF0F4
+   #F6F7F9. Smallest text 14px. */
+
+/* ── The list ──
+   Below 768: rows run the full width of the screen, no side margin, each with
+   a 1px divider. From 768: one box, max 760, 1px border, radius 16, the rows
+   divided inside it. */
+.list {
+  display: block;
+  /* Full bleed below 768, whatever padding the page gives its container. */
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  background: #ffffff;
+  border-top: 1px solid #EEF0F4;
+}
+
+@media (min-width: 768px) {
+  .list {
+    width: auto;
+    max-width: 760px;
+    margin: 0 auto;
+    border: 1px solid #DFE3EA;
+    border-radius: 16px;
+    overflow: hidden;
+  }
+}
+
+/* ── One row ── */
+.row {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: 4px;
+  align-items: start;
+  padding: 16px 6px 16px 18px;
+  background: #ffffff;
+  border-bottom: 1px solid #EEF0F4;
+}
+.row:hover { background: #F6F7F9; }
+/* The open job beside a detail panel: the hover fill plus an ink edge, so it
+   reads as chosen and not merely pointed at. */
+.selected { background: #F6F7F9; box-shadow: inset 3px 0 0 #0F172A; }
+.list > .row:last-child { border-bottom: 0; }
+/* No Save (Recommended): the right padding equals the left (design 26). */
+.noSave { padding-right: 18px; }
+
+@media (min-width: 768px) {
+  .row { padding: 18px 10px 18px 22px; column-gap: 8px; }
+  .noSave { padding-right: 22px; }
+}
+
+/* The row's own button carries the whole row: stretched over it with ::after,
+   so the padding and the space under Save open the job too. */
+.main {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+.main::after { content: ''; position: absolute; inset: 0; }
+.main:focus-visible { outline: none; }
+.main:focus-visible::after { outline: 3px solid rgba(15, 23, 42, 0.35); outline-offset: -3px; }
+.main:disabled { cursor: default; }
+
+@media (min-width: 768px) {
+  .main { gap: 5px; }
+}
+
+.titleLine { display: flex; flex-wrap: wrap; align-items: center; column-gap: 10px; row-gap: 4px; }
+
+/* Wraps, never truncated (spec 1). */
+.title {
+  font-size: 18px;
+  line-height: 1.25;
+  font-weight: 600;
+  color: #0F172A;
+  overflow-wrap: anywhere;
+}
+@media (min-width: 768px) { .title { font-size: 19px; } }
+
+/* NEW: posted in the last 48h. Not yellow. */
+.newChip {
+  display: inline-block;
+  padding: 5px 8px;
+  border-radius: 6px;
+  background: #EEF0F4;
+  color: #0F172A;
+  font-size: 13px;
+  line-height: 1;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+}
+
+.line2 { font-size: 16px; line-height: 1.4; font-weight: 400; color: #334155; }
+.pay { font-weight: 700; color: #0F172A; font-variant-numeric: tabular-nums; }
+.negotiable { font-weight: 400; color: #334155; }
+
+.line3 { font-size: 14px; line-height: 1.4; font-weight: 400; color: #64748b; }
+/* "99% match" on Recommended: the NEW chip's treatment, on line 3 after the
+   age (design 26). It replaced the last yellow on a job row. */
+.tagChip {
+  display: inline-block;
+  padding: 3px 7px;
+  border-radius: 6px;
+  background: #EEF0F4;
+  color: #0F172A;
+  font-size: 13px;
+  line-height: 1.2;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+/* Type and age stay together (spec 3: "nowrap on the pair"). */
+.pair { white-space: nowrap; }
+.own { font-weight: 600; color: #0F172A; }
+.dot { white-space: pre; }
+
+/* One model, two arrangements. */
+.narrowOnly { display: block; }
+.wideOnly { display: none; }
+@media (min-width: 768px) {
+  .narrowOnly { display: none; }
+  .wideOnly { display: block; }
+}
+
+/* Save is components/SaveJobButton (shared with the 1a card's corner). */

@@ -16,14 +16,12 @@ import { useSavedJobs } from '@/lib/useSavedJobs'
 import { getTagCategory } from '@/lib/jobTags'
 import { Boost } from '@/lib/boostTypes'
 import CompanyReviewsSummary from '@/components/CompanyReviewsSummary'
-import CompanyLogo from '@/components/CompanyLogo'
 import JobCard from '@/components/JobCard'
+import rowStyles from '@/components/JobRow.module.css'
+import { formatJobAddress, jobPay, jobPayText } from '@/lib/jobCard'
 import { WORK_TYPES } from '@/lib/workTypes'
 import { annualisedOrNull } from '@/lib/salaryInput'
-import { resolveJobBanner } from '@/lib/jobBanner'
-import BrandedJobFallback from '@/components/BrandedJobFallback'
 import JobPostingSchema from '@/components/JobPostingSchema'
-import { selectQuote } from '@/lib/jobQuote'
 import { useAnalyticsTracking } from '@/hooks/useAnalyticsTracking'
 import styles from './page.module.css'
 
@@ -596,17 +594,9 @@ function JobsPageContent() {
     return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(locationString)}`
   }
 
-  const formatSalaryFull = (job: Job) => {
-    if (!job.salaryMin && !job.salaryMax) return 'Competitive salary'
-    const negotiable = (job.tags || []).includes('Salary negotiable') ? ' (negotiable)' : ''
-    const single = !job.salaryMax || job.salaryMin === job.salaryMax
-    if (job.salaryPeriod === 'hour') {
-      return single ? `£${job.salaryMin} per hour${negotiable}` : `£${job.salaryMin} - £${job.salaryMax} per hour${negotiable}`
-    }
-    return single
-      ? `£${job.salaryMin.toLocaleString()} per year${negotiable}`
-      : `£${job.salaryMin.toLocaleString()} - £${job.salaryMax.toLocaleString()} per year${negotiable}`
-  }
+  // The shared pay text (lib/jobCard jobPay, design 17): no pay → null, never
+  // "Competitive salary" (design 26: never, anywhere) and never "£0 per year".
+  const formatSalaryFull = (job: Job): string | null => { const p = jobPay(job, { full: true }); return p ? jobPayText(p) : null }
 
   const renderDescription = (text: string) => {
     if (typeof window !== 'undefined' && text.includes('<') && text.includes('>')) {
@@ -877,17 +867,6 @@ function JobsPageContent() {
     }
   }
 
-  const formatSalary = (job: Job) => {
-    if (!job.salaryMin && !job.salaryMax) return 'Competitive salary'
-    const negotiable = (job.tags || []).includes('Salary negotiable') ? ' (negotiable)' : ''
-    const single = !job.salaryMax || job.salaryMin === job.salaryMax
-    if (job.salaryPeriod === 'hour') {
-      return single ? `£${job.salaryMin}/hr${negotiable}` : `£${job.salaryMin}-${job.salaryMax}/hr${negotiable}`
-    }
-    return single
-      ? `£${(job.salaryMin / 1000).toFixed(0)}k/year${negotiable}`
-      : `£${(job.salaryMin / 1000).toFixed(0)}k-${(job.salaryMax / 1000).toFixed(0)}k/year${negotiable}`
-  }
 
   const getTagStyle = (index: number) => {
     const tagStyles = [styles.tagGreen, styles.tagBlue, styles.tagYellow]
@@ -1036,13 +1015,16 @@ function JobsPageContent() {
               ))}
             </div>
           )}
-        </div>
         {/* On a phone a signed-in candidate has the All / For you / Shifts chips
             at the top of this band (components/JobsChips), which make the same
-            choice; two controls for one choice on one screen is one too many. */}
+            choice; two controls for one choice on one screen is one too many.
+            INSIDE .searchInner (design 26: the pills touched the screen edge
+            at every width). It gives them the search fields' own gutter —
+            16 on a phone — and lines them up under the fields above. */}
         <div className={`${styles.quickLinks} ${currentUserRole === 'employee' ? styles.quickLinksChipped : ''}`}>
           <button className={styles.filterPill} onClick={clearFilters}>Browse All Jobs</button>
           <Link href="/jobs/recommended" className={styles.filterPill}>Jobs For You →</Link>
+        </div>
         </div>
       </div>
 
@@ -1243,7 +1225,9 @@ function JobsPageContent() {
             </button>
           </div>
         ) : filteredJobs.length > 0 ? (
-          <div className={styles.jobsGrid} ref={listRef}>
+          // The 1b list: full width below 768, one 760 box from 768
+          // (components/JobRow.module.css). Was a 1/2/3-column photo grid.
+          <div className={rowStyles.list} ref={listRef}>
             {filteredJobs.map(job => (
               <JobCard
                 key={job.id}
@@ -1297,25 +1281,9 @@ function JobsPageContent() {
             </div>
 
             <div className={styles.modalBody}>
-              {(() => {
-                // Banner cascade so the detail header is never bare (incl. jobs
-                // saved without a banner, like Goldenkeys "Head Chef").
-                const detailBanner = resolveJobBanner({ id: selectedJob.id, companyBanner: selectedJob.companyBanner, company: selectedJob.company, category: selectedJob.category })
-                return (
-                  <div className={styles.detailBanner}>
-                    {detailBanner
-                      ? <img src={detailBanner} alt={selectedJob.company} className={styles.detailBannerImg} />
-                      : <BrandedJobFallback
-                          company={selectedJob.company}
-                          brandColour={selectedJob.brandColour}
-                          quote={selectQuote(selectedJob)}
-                          tags={selectedJob.tags}
-                          variant="header"
-                        />}
-                  </div>
-                )
-              })()}
-
+              {/* NO BANNER AND NO BRANDED PANEL (design 25, 15 Nov 2026; the
+                  text-led handoff replaces both the photo and the no-photo
+                  panel). The advert opens on its title. */}
               <div className={styles.detailHeader}>
                 <h1 className={styles.detailTitle}>{selectedJob.title}</h1>
                 <p className={styles.detailCompany}>{selectedJob.company}</p>
@@ -1325,11 +1293,13 @@ function JobsPageContent() {
                   </a>
                 )}
                 <a href={getGoogleMapsUrl(selectedJob)} target="_blank" rel="noopener noreferrer" className={styles.detailLocation}>
-                  <Ico name="map-pin" size={16} /> {selectedJob.fullLocation?.addressLine1
-                    ? `${selectedJob.fullLocation.addressLine1}, ${selectedJob.fullLocation.city} ${selectedJob.fullLocation.postcode}`
-                    : [selectedJob.location, selectedJob.area].filter(Boolean).join(', ')}
+                  {/* formatJobAddress, not an inline template: the template
+                      printed "Cardiff," — a comma pointing at nothing — on
+                      every advert whose address is only a town (seen 15 Nov
+                      2026; the job page was fixed the same way in August). */}
+                  <Ico name="map-pin" size={16} /> {formatJobAddress(selectedJob)}
                 </a>
-                <p className={styles.detailSalary}>{formatSalaryFull(selectedJob)}</p>
+                {formatSalaryFull(selectedJob) && <p className={styles.detailSalary}>{formatSalaryFull(selectedJob)}</p>}
                 {selectedJob.expiresDate && (() => {
                   const daysLeft = Math.ceil((new Date(selectedJob.expiresDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
                   if (daysLeft <= 7 && daysLeft >= 0) {
@@ -1373,7 +1343,7 @@ function JobsPageContent() {
               <div className={styles.detailSection}>
                 <h2 className={styles.detailSectionTitle}>Job Details</h2>
                 <div className={styles.detailGrid}>
-                  <div className={styles.detailGridItem}><span className={styles.detailGridLabel}>Pay</span><span className={styles.detailGridValue}>{formatSalaryFull(selectedJob)}</span></div>
+                  <div className={styles.detailGridItem}><span className={styles.detailGridLabel}>Pay</span><span className={styles.detailGridValue}>{formatSalaryFull(selectedJob) ?? 'Not stated'}</span></div>
                   <div className={styles.detailGridItem}><span className={styles.detailGridLabel}>Job type</span><span className={styles.detailGridValue}>{Array.isArray(selectedJob.employmentType) ? selectedJob.employmentType.join(', ') : selectedJob.employmentType || 'Not specified'}</span></div>
                   <div className={styles.detailGridItem}><span className={styles.detailGridLabel}>Shift & schedule</span><span className={styles.detailGridValue}>{selectedJob.shiftSchedule || 'Not specified'}</span></div>
                   <div className={styles.detailGridItem}><span className={styles.detailGridLabel}>Work location</span><span className={styles.detailGridValue}>{selectedJob.workLocationType || 'In person'}</span></div>
@@ -1468,7 +1438,7 @@ function JobsPageContent() {
                 <div className={styles.applyBody}>
                   <div className={styles.applyJobInfo}>
                     <h3>{selectedJob.title}</h3>
-                    <p>{selectedJob.location} • {formatSalaryFull(selectedJob)}</p>
+                    <p>{selectedJob.location}{formatSalaryFull(selectedJob) ? ` • ${formatSalaryFull(selectedJob)}` : ''}</p>
                   </div>
                   <div className={styles.applyField}>
                     <label>Cover Letter (optional)</label>

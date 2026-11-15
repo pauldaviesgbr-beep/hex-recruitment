@@ -4,12 +4,9 @@ import { useState, useEffect, useRef } from 'react'
 import { Job } from '@/lib/mockJobs'
 import { supabase } from '@/lib/supabase'
 import { useSavedJobs } from '@/lib/useSavedJobs'
-import CompanyLogo from '@/components/CompanyLogo'
-import { resolveJobBanner } from '@/lib/jobBanner'
-import BrandedJobFallback from '@/components/BrandedJobFallback'
 import JobPostingSchema from '@/components/JobPostingSchema'
 import { getTagCategory, WORK_STYLE_TAGS } from '@/lib/jobTags'
-import { selectQuote } from '@/lib/jobQuote'
+import { jobPay, jobPayText } from '@/lib/jobCard'
 import CompanyReviewsSummary from '@/components/CompanyReviewsSummary'
 import { useAnalyticsTracking, ViewSource } from '@/hooks/useAnalyticsTracking'
 import ApplyNowModal from '@/components/ApplyNowModal'
@@ -173,15 +170,9 @@ export default function JobDetailModal({
     setShowApplyModal(true)
   }
 
-  const formatSalary = () => {
-    const single = !job.salaryMax || job.salaryMin === job.salaryMax
-    if (job.salaryPeriod === 'hour') {
-      return single ? `£${job.salaryMin} per hour` : `£${job.salaryMin} - £${job.salaryMax} per hour`
-    }
-    return single
-      ? `£${job.salaryMin.toLocaleString()} per year`
-      : `£${job.salaryMin.toLocaleString()} - £${job.salaryMax.toLocaleString()} per year`
-  }
+  // The shared pay text (lib/jobCard jobPay, design 17): no pay → null, never
+  // "£0 per year" (two live imported adverts store a literal 0).
+  const formatSalary = (): string | null => { const p = jobPay(job, { full: true }); return p ? jobPayText(p) : null }
 
   const renderDescription = (text: string) => {
     if (typeof window !== 'undefined' && text.includes('<') && text.includes('>')) {
@@ -252,30 +243,10 @@ export default function JobDetailModal({
         <div className={styles.content} ref={contentRef}>
           {/* Header with Banner */}
           <div className={styles.header}>
-            {(() => {
-              // Banner cascade: job/employer banner → sector-matched stock → navy
-              // fallback, so the detail header is never bare (incl. existing jobs
-              // like the Goldenkeys "Head Chef" that were saved without a banner).
-              const detailBanner = resolveJobBanner({ id: job.id, companyBanner: job.companyBanner, company: job.company, category: job.category })
-              return (
-                <div className={styles.bannerWrapper}>
-                  {detailBanner
-                    ? <img src={detailBanner} alt="" className={styles.banner} />
-                    : <BrandedJobFallback
-                        company={job.company}
-                        brandColour={job.brandColour}
-                        quote={selectQuote(job)}
-                        tags={job.tags}
-                        variant="header"
-                      />}
-                  <div className={styles.bannerOverlay} />
-                </div>
-              )
-            })()}
+            {/* NO BANNER, NO BRANDED PANEL, NO LOGO (design 25, 15 Nov 2026;
+                design_handoff_job_cards_text_led). The header opens on the
+                title, on its own dark band. */}
             <div className={styles.headerContent}>
-              <div className={styles.companyLogo}>
-                <CompanyLogo src={job.companyLogo} alt={job.company} />
-              </div>
               <div className={styles.headerInfo}>
                 <h1 className={styles.jobTitle}>{job.title}</h1>
                 <p className={styles.companyName}>
@@ -308,7 +279,7 @@ export default function JobDetailModal({
                       ? `${job.fullLocation.addressLine1}, ${job.fullLocation.city} ${job.fullLocation.postcode}`
                       : [job.location, job.area].filter(Boolean).join(', ')}
                   </a>
-                  <span className={styles.salary}>{formatSalary()}</span>
+                  {formatSalary() && <span className={styles.salary}>{formatSalary()}</span>}
                 </div>
                 <div className={styles.employmentBadges}>
                   {Array.isArray(job.employmentType)
@@ -386,7 +357,7 @@ export default function JobDetailModal({
             <div className={styles.detailsGrid}>
               <div className={styles.detailItem}>
                 <span className={styles.detailLabel}>Pay</span>
-                <span className={styles.detailValue}>{formatSalary()}</span>
+                <span className={styles.detailValue}>{formatSalary() ?? 'Not stated'}</span>
               </div>
               <div className={styles.detailItem}>
                 <span className={styles.detailLabel}>Job type</span>

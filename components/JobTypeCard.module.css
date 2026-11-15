@@ -1,0 +1,134 @@
+/* 1a — THE TYPE-LED CARD (design_handoff_job_cards_text_led, measured spec
+   03). Palette only. Smallest text 14px. */
+
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  height: 100%;
+  box-sizing: border-box;
+  padding: 18px 8px 16px 18px;
+  background: #ffffff;
+  border: 1px solid #DFE3EA;
+  border-radius: 16px;
+  color: #0F172A;
+}
+@media (min-width: 768px) {
+  .card { padding: 20px 12px 18px 22px; }
+}
+
+.top { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 4px; align-items: start; }
+.topText { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; min-width: 0; }
+/* Save, in the spec's 44×44 corner, ABOVE the stretched title link. */
+.corner { position: relative; z-index: 1; }
+
+/* NEW: the same chip as the 1b row. Not yellow. */
+.newChip {
+  display: inline-block;
+  padding: 5px 8px;
+  border-radius: 6px;
+  background: #EEF0F4;
+  color: #0F172A;
+  font-size: 13px;
+  line-height: 1;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+}
+
+/* Spec: 700 23/1.15, −0.02em, pretty wrapping; 22px below 768. The face is
+   the platform's display face (see JobTypeCard.tsx). */
+.title {
+  font-family: var(--font-display), Inter, system-ui, sans-serif;
+  font-size: 22px;
+  line-height: 1.15;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  text-wrap: pretty;
+  overflow-wrap: anywhere;
+  color: #0F172A;
+}
+@media (min-width: 768px) { .title { font-size: 23px; } }
+
+/* The title is the card's link, stretched over the whole card, so a tap
+   anywhere opens the job while the corner and footer controls stay their own. */
+.titleLink { text-decoration: none; }
+.titleLink::after { content: ''; position: absolute; inset: 0; border-radius: 16px; }
+.titleLink:focus-visible { outline: none; }
+.titleLink:focus-visible::after { outline: 3px solid rgba(15, 23, 42, 0.35); outline-offset: -3px; }
+
+/* Pay 700 20 tabular + period 400 16, 6 apart, on one baseline. */
+.payLine { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 6px; }
+.pay { font-size: 20px; line-height: 1.2; font-weight: 700; font-variant-numeric: tabular-nums; color: #0F172A; }
+.period { font-size: 16px; line-height: 1.2; font-weight: 400; color: #334155; }
+
+/* Place, type: icons from 768; plain "London E9 · Full-time" below. */
+.placeLine { display: flex; flex-wrap: wrap; align-items: center; column-gap: 14px; row-gap: 4px; font-size: 16px; line-height: 1.4; color: #334155; }
+.placeItem { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
+.icon { flex-shrink: 0; color: #334155; display: none; }
+.narrowDot { white-space: pre; }
+/* Below 768 it is one line of TEXT that wraps like text — "Gloucestershire ·
+   Full-time, Permanent" — not two flex items, which stranded the dot at the end
+   of a line on the dashboard at 390 (seen 15 Nov 2026). */
+@media (max-width: 767px) {
+  .placeLine { display: block; }
+  .placeItem { display: inline; }
+}
+@media (min-width: 768px) {
+  .icon { display: block; }
+  .narrowDot { display: none; }
+}
+
+/* Footer: hairline above, 44 tall at least; via over age, 2 apart. */
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 44px;
+  margin-top: auto;
+  padding-top: 4px;
+  border-top: 1px solid #EEF0F4;
+}
+.footerText { display: flex; flex-direction: column; justify-content: center; gap: 2px; min-width: 0; }
+/* "Not interested" (design 26): at the right of the footer, above the link. */
+.footerAction { position: relative; z-index: 1; flex-shrink: 0; }
+.textAction {
+  min-height: 44px;
+  padding: 0 4px;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  color: #334155;
+  cursor: pointer;
+}
+.textAction:focus-visible { outline: 3px solid rgba(15, 23, 42, 0.35); outline-offset: 0; border-radius: 6px; }
+.via { font-size: 14px; line-height: 1.35; font-weight: 500; color: #334155; }
+.age { font-size: 14px; line-height: 1.35; font-weight: 400; color: #64748b; }
+
+/* ── variant="home" (design 26, A) ──────────────────────────────────────
+   A FIXED 248px whether NEW shows or not, so the grid lines up and the home
+   section's reserved height is exact. The title clamps to two lines with an
+   ellipsis — the one place a 1a title is allowed to, because the card's
+   height is the contract. Via on the left, the age on the right (only when
+   the chip says NEW). */
+.card[data-variant='home'] { height: 248px; }
+.card[data-variant='home'] .title {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: break-word;
+}
+/* ONE LINE for place · type, so the fixed height holds: the type (one value,
+   see JobTypeCard.tsx) never shrinks, the place truncates if it must. */
+.card[data-variant='home'] .placeLine { flex-wrap: nowrap; min-width: 0; }
+.card[data-variant='home'] .placeWhere { flex: 0 1 auto; min-width: 0; }
+.card[data-variant='home'] .placeWhere .placeText { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.card[data-variant='home'] .placeType { flex: 0 0 auto; white-space: nowrap; }
+.card[data-variant='home'] .footerText { flex: 1; flex-direction: row; align-items: center; justify-content: space-between; gap: 8px; }
+.card[data-variant='home'] .via { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.card[data-variant='home'] .age { flex-shrink: 0; }

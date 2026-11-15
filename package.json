@@ -50,6 +50,7 @@
     "phonenav:prove": "npx tsx scripts/prove-phone-nav.ts",
     "applicants:prove": "npx tsx scripts/prove-applicants.ts",
     "fonts:prove": "node scripts/prove-self-hosted-fonts.mjs",
+    "jobcards:prove": "npx tsx scripts/prove-job-cards.ts",
     "noemoji:prove": "npx tsx scripts/prove-no-emoji.ts",
     "dedupsilence:prove": "npx tsx --conditions=react-server scripts/prove-dedup-not-silent.ts",
     "applesignin:prove": "npx tsx --conditions=react-server scripts/prove-apple-signin.ts",

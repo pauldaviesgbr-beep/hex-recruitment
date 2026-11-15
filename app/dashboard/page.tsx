@@ -157,7 +157,7 @@ export default function DashboardPage() {
   const router = useRouter()
   const { jobs } = useJobs()
   const { conversations, totalUnreadCount } = useMessages()
-  const { savedCount } = useSavedJobs()
+  const { savedCount, isSaved, toggleSave } = useSavedJobs()
 
   // Core state
   const [user, setUser] = useState<any>(null)
@@ -870,17 +870,17 @@ export default function DashboardPage() {
                     </button>
                     <div className={styles.recScroller} ref={recScrollerRef}>
                       {recommendedJobs.map(job => (
-                        <JobCardLink key={job.id} job={job} className={styles.recItem}>
-                          <button
-                            type="button"
-                            className={styles.recDismiss}
-                            aria-label={`Not interested in ${job.title}`}
-                            title="Not interested"
-                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); dismissJob(job.id) }}
-                          >
-                            &times;
-                          </button>
-                        </JobCardLink>
+                        // Design 26: Save in the 1a corner (the board's own save,
+                        // lib/useSavedJobs), "Not interested" as a text button at
+                        // the right of the footer. The grey × circle is gone.
+                        <JobCardLink
+                          key={job.id}
+                          job={job}
+                          className={styles.recItem}
+                          saved={isSaved(job.id)}
+                          onToggleSave={j => toggleSave(j.id)}
+                          onNotInterested={j => dismissJob(j.id)}
+                        />
                       ))}
                     </div>
                     <button
