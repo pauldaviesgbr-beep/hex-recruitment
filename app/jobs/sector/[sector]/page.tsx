@@ -144,7 +144,7 @@ export default function SectorJobsPage() {
                     <h2 className={styles.detailTitle}>{selectedJob.title}</h2>
                     <p className={styles.detailCompany}>{selectedJob.company}</p>
                     <p className={styles.detailLocation}>{formatJobLocation(selectedJob)}</p>
-                    {jobPay(selectedJob) && <p className={styles.detailSalary}>{jobPayText(jobPay(selectedJob))}</p>}
+                    {jobPay(selectedJob, { full: true }) && <p className={styles.detailSalary}>{jobPayText(jobPay(selectedJob, { full: true }))}</p>}
                     <div className={styles.detailBadges}>
                       {selectedJob.employmentType.map(t => (
                         <span key={t} className={styles.detailBadge}>{t}</span>

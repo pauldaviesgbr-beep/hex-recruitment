@@ -465,7 +465,7 @@ export default function RecommendedJobsPage() {
                         </a>
                         {/* The shared pay text (design 17): no pay line at all
                             when there is no pay, never "£0 - £0 per year". */}
-                        {jobPay(selectedJob) && <p className={styles.detailSalary}>{jobPayText(jobPay(selectedJob))}</p>}
+                        {jobPay(selectedJob, { full: true }) && <p className={styles.detailSalary}>{jobPayText(jobPay(selectedJob, { full: true }))}</p>}
                         <div className={styles.detailBadges}>
                           {Array.isArray(selectedJob.employmentType)
                             ? selectedJob.employmentType.map((type, i) => (
@@ -515,7 +515,7 @@ export default function RecommendedJobsPage() {
                         <div className={styles.detailGrid}>
                           <div className={styles.detailGridItem}>
                             <span className={styles.detailGridLabel}>Pay</span>
-                            <span className={styles.detailGridValue}>{jobPay(selectedJob) ? jobPayText(jobPay(selectedJob)) : 'Not stated'}</span>
+                            <span className={styles.detailGridValue}>{jobPay(selectedJob, { full: true }) ? jobPayText(jobPay(selectedJob, { full: true })) : 'Not stated'}</span>
                           </div>
                           <div className={styles.detailGridItem}>
                             <span className={styles.detailGridLabel}>Job type</span>

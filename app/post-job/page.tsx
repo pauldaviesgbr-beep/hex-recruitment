@@ -30,7 +30,7 @@ import { FlowAppBar, Stepper, StepProgress } from './FlowChrome'
 import styles from './page.module.css'
 import flow from './flow.module.css'
 import { Ico, type IconName } from '@/components/icons'
-import { formatJobLocation } from '@/lib/jobCard'
+import { formatJobLocation, jobPay, jobPayText } from '@/lib/jobCard'
 
 const RichTextEditor = dynamic(() => import('@/components/RichTextEditor'), { ssr: false })
 
@@ -176,7 +176,9 @@ function PostJobContent() {
   const [hasSubscription, setHasSubscription] = useState(false)
   const [isOwnCompany, setIsOwnCompany] = useState(true)
   const [employerProfile, setEmployerProfile] = useState<any>(null)
-  const [hideSalary, setHideSalary] = useState(false)
+  // PAY IS REQUIRED (design 26, round 2). The "Pay on application" option —
+  // stored as salary 0 plus a "Competitive salary" tag — is gone: the home page
+  // promises "the salary on every one", and an advert without pay breaks it.
   const [salaryNegotiable, setSalaryNegotiable] = useState(false)
   const [currentUser, setCurrentUser] = useState<{ id: string; companyName: string } | null>(null)
   // Edit mode state
@@ -332,7 +334,8 @@ function PostJobContent() {
       }
       if (d.guidedFields) setGuidedFields(d.guidedFields)
       if (d.screeningQuestions) setScreeningQuestions(d.screeningQuestions)
-      if (typeof d.hideSalary === 'boolean') setHideSalary(d.hideSalary)
+      // An old draft's hideSalary flag is ignored: pay is required now, so the
+      // draft comes back asking for the figure.
       if (typeof d.salaryNegotiable === 'boolean') setSalaryNegotiable(d.salaryNegotiable)
       // Step 3 included: it is a pre-publish step now, so a draft abandoned
       // there has to come back there rather than to step 2.
@@ -355,7 +358,6 @@ function PostJobContent() {
           savedAt: when.toISOString(),
           step,
           adStatus,
-          hideSalary,
           salaryNegotiable,
           guidedFields,
           screeningQuestions,
@@ -368,7 +370,7 @@ function PostJobContent() {
       }
     }, 600)
     return () => clearTimeout(t)
-  }, [stepped, restored, adStatus, step, formData, guidedFields, screeningQuestions, hideSalary, salaryNegotiable])
+  }, [stepped, restored, adStatus, step, formData, guidedFields, screeningQuestions, salaryNegotiable])
 
   const clearDraft = () => { try { window.localStorage.removeItem(DRAFT_KEY) } catch {} }
 
@@ -384,7 +386,8 @@ function PostJobContent() {
    *
    * Built through the same fields the payload uses, so what she sees here is
    * what the board will show, including the pay formatter collapsing a single
-   * figure and falling back to "Competitive salary".
+   * figure (and showing no pay line until there is a figure — never
+   * "Competitive salary").
    */
   const draftJob: JobType = {
     id: publishedJobId || 'draft',
@@ -395,10 +398,10 @@ function PostJobContent() {
     employerId: currentUser?.id,
     title: formData.title || 'Your job title',
     jobReference: formData.jobReference || '',
-    salaryMin: hideSalary ? 0 : parseInt(formData.salaryMin || '0'),
-    salaryMax: hideSalary ? 0 : parseInt(formData.salaryMax || '0'),
-    // NOT `|| 'year'`. See formatJobSalary — an unchosen period now shows the
-    // figure without claiming a period, rather than asserting one she never picked.
+    salaryMin: parseInt(formData.salaryMin || '0'),
+    salaryMax: parseInt(formData.salaryMax || '0'),
+    // NOT `|| 'year'`. lib/jobCard jobPay shows an unchosen period as the
+    // figure alone, rather than asserting one she never picked.
     salaryPeriod: formData.salaryPeriod as 'hour' | 'year',
     employmentType: [formData.employmentType, formData.contractType].filter(Boolean) as WorkType[],
     location: formData.location || 'Location',
@@ -868,8 +871,8 @@ function PostJobContent() {
             title: formData.title,
             company: formData.company,
             location: formData.location,
-            salaryMin: hideSalary ? '' : formData.salaryMin,
-            salaryMax: hideSalary ? '' : formData.salaryMax,
+            salaryMin: formData.salaryMin,
+            salaryMax: formData.salaryMax,
             salaryPeriod: formData.salaryPeriod,
             employmentType: formData.employmentType,
             contractType: formData.contractType,
@@ -1031,16 +1034,14 @@ function PostJobContent() {
           : { field: 'contractType', message: 'Please choose a contract type — permanent, temporary or fixed-term' }
     }
 
-    if (!hideSalary) {
-      // A SINGLE FIGURE IS A VALID ANSWER, and until recently it wasn't allowed.
-      // Validation required BOTH boxes, so an employer paying a flat £32,000 had
-      // no way to say so — the only route past was typing the same number twice.
-      if (!formData.salaryMin) return { field: 'salaryMin', message: 'Please enter a pay figure, or choose "Pay on application"' }
-      // The period is a claim about the job, not a formatting preference.
-      if (!formData.salaryPeriod) return { field: 'salaryPeriod', message: 'Please choose whether the pay is per hour or per year' }
-      if (formData.salaryMax && parseInt(formData.salaryMin) > parseInt(formData.salaryMax)) {
-        return { field: 'salaryMin', message: 'The bottom of the range is higher than the top — please swap them' }
-      }
+    // PAY IS REQUIRED (design 26). A SINGLE FIGURE IS A VALID ANSWER: validation
+    // once required BOTH boxes, so an employer paying a flat £32,000 had no way
+    // to say so — the only route past was typing the same number twice.
+    if (!formData.salaryMin || !(parseInt(formData.salaryMin) > 0)) return { field: 'salaryMin', message: 'Please enter the pay — every advert on Thrive shows it' }
+    // The period is a claim about the job, not a formatting preference.
+    if (!formData.salaryPeriod) return { field: 'salaryPeriod', message: 'Please choose whether the pay is per hour or per year' }
+    if (formData.salaryMax && parseInt(formData.salaryMin) > parseInt(formData.salaryMax)) {
+      return { field: 'salaryMin', message: 'The bottom of the range is higher than the top — please swap them' }
     }
     return null
   }
@@ -1129,16 +1130,14 @@ function PostJobContent() {
       return
     }
 
-    if (!hideSalary) {
-      // A SINGLE FIGURE IS A VALID ANSWER, and until now it wasn't allowed.
-      // This required BOTH boxes, so an employer paying a flat £32,000 had no
-      // way to say so — the only way past the validation was to type the same
-      // number twice. 210 of the 247 live rows have salary_min equal to
-      // salary_max, which is what that looks like at scale. The renderers all
-      // already collapse min == max to one figure; the form was the thing
-      // manufacturing the ranges.
-      if (!formData.salaryMin) {
-        showError('Please enter a salary, or tick "Competitive salary" to hide it', 'salaryMin')
+    {
+      // PAY IS REQUIRED (design 26, round 2: the home page promises "the
+      // salary on every one"). A SINGLE FIGURE IS A VALID ANSWER: this once
+      // required BOTH boxes, so an employer paying a flat £32,000 had no way to
+      // say so. 210 of the 247 live rows then had salary_min equal to
+      // salary_max, which is what that looks like at scale.
+      if (!formData.salaryMin || !(parseInt(formData.salaryMin) > 0)) {
+        showError('Please enter the pay — every advert on Thrive shows it', 'salaryMin')
         setLoading(false)
         return
       }
@@ -1273,8 +1272,8 @@ function PostJobContent() {
         companyBanner,
         title: formData.title,
         jobReference,
-        salaryMin: hideSalary ? 0 : parseInt(formData.salaryMin || '0'),
-        salaryMax: hideSalary ? 0 : parseInt(formData.salaryMax || '0'),
+        salaryMin: parseInt(formData.salaryMin || '0'),
+        salaryMax: parseInt(formData.salaryMax || '0'),
         // Validation above guarantees this is set; narrowed here so an empty
         // string can never reach the column that six code paths do arithmetic on.
         salaryPeriod: (formData.salaryPeriod || undefined) as 'hour' | 'year' | undefined,
@@ -1301,7 +1300,7 @@ function PostJobContent() {
         },
         description: shortDescription,
         fullDescription: composedDescription || '',
-        tags: [...tags, ...(salaryNegotiable ? ['Salary negotiable'] : []), ...(hideSalary ? ['Competitive salary'] : [])],
+        tags: [...tags, ...(salaryNegotiable ? ['Salary negotiable'] : [])],
         urgent: formData.tags.has('Urgent hire') || formData.tags.has('Immediate start') || formData.tags.has('Interviews this week'),
         noExperience: formData.tags.has('No experience required'),
         category: formData.category,
@@ -1994,39 +1993,24 @@ function PostJobContent() {
 
             <div className={styles.formGroup}>
               <label className={styles.label} htmlFor="salaryMin">
-                Salary Range {!hideSalary && <span className={styles.required}>*</span>}
+                Salary Range <span className={styles.required}>*</span>
               </label>
 
-              {/* "Pay on application" is the handoff's name for what this form
-                  called "Competitive salary (don't show)". Same flag, same
-                  column, different words — the old label asserted the pay was
-                  competitive, which is a claim the employer never made, and it
-                  is the label a candidate never sees anyway. Rendered as a chip
-                  so it sits in the pay row as one of the answers rather than as
-                  a checkbox below it. */}
+              {/* "PAY ON APPLICATION" IS GONE (design 26, round 2): pay is
+                  required, because the home page promises "the salary on every
+                  one". Negotiable stays — it qualifies a figure, it does not
+                  replace one. */}
               <div className={flow.chipRow} style={{ marginBottom: '0.6rem' }}>
                 <button
                   type="button"
-                  id="payOnApplication"
-                  aria-pressed={hideSalary}
-                  className={`${flow.chip} ${hideSalary ? flow.chipSelected : ''}`}
-                  onClick={() => { const v = !hideSalary; setHideSalary(v); if (v) setSalaryNegotiable(false) }}
+                  aria-pressed={salaryNegotiable}
+                  className={`${flow.chip} ${salaryNegotiable ? flow.chipSelected : ''}`}
+                  onClick={() => setSalaryNegotiable(v => !v)}
                 >
-                  Pay on application
+                  Negotiable
                 </button>
-                {!hideSalary && (
-                  <button
-                    type="button"
-                    aria-pressed={salaryNegotiable}
-                    className={`${flow.chip} ${salaryNegotiable ? flow.chipSelected : ''}`}
-                    onClick={() => setSalaryNegotiable(v => !v)}
-                  >
-                    Negotiable
-                  </button>
-                )}
               </div>
 
-              {!hideSalary && (
               <div className={styles.salaryGroup}>
                 <div className={styles.salaryInputs}>
                   <input
@@ -2067,33 +2051,24 @@ function PostJobContent() {
                 </select>
                 <FieldError activeField={errorField} name="salaryPeriod" message={error} />
               </div>
-              )}
 
               {/* Says what the now-optional second box does, at the moment the
                   decision is made. Without this the empty box reads as an
                   unfinished field rather than a deliberate single figure. */}
-              {!hideSalary && (
-                <p style={{ fontSize: '0.8rem', color: '#64748b', margin: '0.4rem 0 0' }}>
-                  Leave the second box empty for a single figure — the ad will read{' '}
-                  <strong style={{ color: '#334155' }}>
-                    {/* Grouped, because this line exists to demonstrate what the
-                        ad will read — "£32000/yr" undercuts its own point. */}
-                    {/* Does not guess the period either. Saying "/hr" before
-                        she has chosen would be the same assertion the default
-                        used to make, just one layer down. */}
-                    £{formData.salaryMin
-                      ? Number(formData.salaryMin).toLocaleString('en-GB')
-                      : '32,000'}{formData.salaryPeriod === 'year' ? '/yr' : formData.salaryPeriod === 'hour' ? '/hr' : ''}
-                  </strong>
-                  , not a range.
-                </p>
-              )}
-
-              {hideSalary && (
-                <p style={{ fontSize: '0.8rem', color: '#64748b', fontStyle: 'italic', margin: '0.25rem 0 0' }}>
-                  Salary will show as &quot;Competitive&quot; on the job listing.
-                </p>
-              )}
+              <p style={{ fontSize: '0.8rem', color: '#64748b', margin: '0.4rem 0 0' }}>
+                Leave the second box empty for a single figure — the ad will read{' '}
+                <strong style={{ color: '#334155' }}>
+                  {/* The SHARED pay formatter, in the advert's full form, so
+                      this line says exactly what the advert will. It does not
+                      guess the period: before she has chosen, it shows the
+                      figure alone. */}
+                  {jobPayText(jobPay({
+                    salaryMin: formData.salaryMin ? Number(formData.salaryMin) : 32000,
+                    salaryPeriod: (formData.salaryPeriod || null) as 'hour' | 'year' | null,
+                  }, { full: true }))}
+                </strong>
+                , not a range.
+              </p>
             </div>
           </div>
           </>)}
@@ -2970,18 +2945,14 @@ function PostJobContent() {
 
                 <div className={styles.previewDetails}>
                   <span className={styles.previewDetail}><Ico name="map-pin" size={16} /> {formatJobLocation({ location: formData.location || 'Location', area: formData.area })}</span>
-                  {/* Collapses to one figure exactly as the board and the detail
-                      page do. It printed "£0 - £0" before either box was
-                      touched, and would have contradicted the helper text
-                      underneath the field it previews. */}
-                  <span className={styles.previewDetail}><Ico name="banknote" size={16} /> {hideSalary
-                    ? 'Competitive salary'
-                    : !formData.salaryMin
-                      ? 'Pay not set yet'
-                      : (!formData.salaryMax || formData.salaryMax === formData.salaryMin)
-                        ? `£${formData.salaryMin}${formData.salaryPeriod ? ` / ${formData.salaryPeriod}` : ''}`
-                        : `£${formData.salaryMin} - £${formData.salaryMax}${formData.salaryPeriod ? ` / ${formData.salaryPeriod}` : ''}`
-                  }{salaryNegotiable ? ' (negotiable)' : ''}</span>
+                  {/* THE SHARED PAY FORMATTER, in the advert's full form (design
+                      26: "point the post-job preview at the shared pay
+                      formatter"), so the preview says exactly what the advert
+                      will — "£32,000 a year", "£17.85–£20 an hour". It built
+                      its own "£32000 / year" before. */}
+                  <span className={styles.previewDetail}><Ico name="banknote" size={16} /> {jobPay(draftJob, { full: true })
+                    ? jobPayText(jobPay({ ...draftJob, tags: salaryNegotiable ? ['Salary negotiable'] : [] }, { full: true }))
+                    : 'Pay not set yet'}</span>
                   <span className={styles.previewDetail}><Ico name="file-text" size={16} /> {formData.employmentType} · {formData.contractType}</span>
                   <span className={styles.previewDetail}><Ico name="building" size={16} /> {formData.workLocationType}</span>
                 </div>

@@ -45,35 +45,12 @@ export function getPostedDaysAgo(postedAt: string): number {
  * 'annual' | 'hourly'. That mismatch between the two vocabularies is what broke
  * the email formatter; here it is handled at the mapper and must stay there.
  */
-export function formatJobSalary(job: Job): string {
-  if (!job.salaryMin && !job.salaryMax) return 'Competitive salary'
-  const negotiable = (job.tags || []).includes('Salary negotiable') ? ' (negotiable)' : ''
-  const single = !job.salaryMax || job.salaryMin === job.salaryMax
-
-  // A DRAFT CAN CARRY A FIGURE BEFORE IT CARRIES A PERIOD, and this formatter's
-  // else-branch is "year". Every STORED job has a period — the mapper normalises
-  // it — so this is only ever reachable from the post-job preview, which renders
-  // while the employer is still filling the form. Defaulting there showed them
-  // "£32k/year" against a pay period they had not chosen, next to placeholders
-  // that were obviously placeholders, so it read as a decision rather than a
-  // gap. Show the figure and claim nothing until they pick.
-  if (!job.salaryPeriod) {
-    return single
-      ? `${formatMoney(job.salaryMin)}${negotiable}`
-      : `${formatMoney(job.salaryMin)}-${formatMoney(job.salaryMax)}${negotiable}`
-  }
-
-  if (job.salaryPeriod === 'hour') {
-    return single
-      ? `${formatMoney(job.salaryMin)}/hr${negotiable}`
-      : `${formatMoney(job.salaryMin)}-${formatMoney(job.salaryMax)}/hr${negotiable}`
-  }
-
-  const k = (n: number) => `£${(n / 1000).toFixed(0)}k`
-  return single
-    ? `${k(job.salaryMin)}/year${negotiable}`
-    : `${k(job.salaryMin)}-${k(job.salaryMax)}/year${negotiable}`
-}
+// formatJobSalary LIVED HERE AND IS GONE (design 26, round 2: "pay becomes
+// required"). It printed "£42k/year" with a hyphen, and "Competitive salary"
+// for a job with no pay — the phrase the home page's "the salary on every one"
+// cannot coexist with. Its last callers (the app API and the post-job preview)
+// read jobPay below. A DRAFT WITH NO PERIOD YET still shows the figure and
+// claims no period: jobPay returns period null for it, as this did.
 
 /**
  * THE TEXT-LED CARDS' PAY (design_handoff_job_cards_text_led, 16 Oct 2026;
@@ -81,18 +58,24 @@ export function formatJobSalary(job: Job): string {
  * "an hour" — and a job with no pay has NO pay line: never "Competitive". So
  * this returns parts, or null, and the card decides the type.
  *
- * formatJobSalary above is left as it is: it still serves surfaces that are not
- * cards (and its "Competitive salary" is theirs to retire, not this file's).
+ * The only pay formatter for a job (formatJobSalary is gone; see above).
  *
  * ABOVE ZERO, NOT MERELY PRESENT. Two live rows once carried a literal 0 in
  * both columns (CLAUDE.md, "not-null and above-zero are different questions"),
- * and "£0k a year" is a claim. Annual figures are in thousands, rounded as
- * formatJobSalary rounds them, so the two never disagree about a number; hourly
+ * and "£0k a year" is a claim. Annual figures are in whole thousands; hourly
  * rates keep their pence. A draft with no period yet shows the figure alone.
  */
 export type JobPay = { amount: string; period: 'a year' | 'an hour' | null; negotiable: boolean }
 
-export function jobPay(job: { salaryMin?: number | null; salaryMax?: number | null; salaryPeriod?: 'hour' | 'year' | null; tags?: string[] | null }): JobPay | null {
+/**
+ * `full`: THE ADVERT PAGE'S FORM (design 26, round 2). Cards and rows keep the
+ * short "£42k–£48k a year"; the advert views — the job page, the board's
+ * slide-in, the advert modal, the list-and-detail panels and the post-job
+ * preview — show whole figures, "£42,000–£48,000 a year". Hourly rates read
+ * the same either way ("£17.85–£20 an hour"). One function, so the two forms
+ * can never disagree about which figures a job has.
+ */
+export function jobPay(job: { salaryMin?: number | null; salaryMax?: number | null; salaryPeriod?: 'hour' | 'year' | null; tags?: string[] | null }, opts: { full?: boolean } = {}): JobPay | null {
   const min = job.salaryMin && job.salaryMin > 0 ? job.salaryMin : 0
   const max = job.salaryMax && job.salaryMax > 0 ? job.salaryMax : 0
   if (!min && !max) return null
@@ -100,9 +83,9 @@ export function jobPay(job: { salaryMin?: number | null; salaryMax?: number | nu
   const hi = max || min
   const annual = job.salaryPeriod === 'year'
   // Thousands are grouped here, not in the shared formatMoney (which every
-  // email and shift card uses): only a draft with no period yet can reach a
-  // four-figure amount on this path, and "£30000" reads as a typo.
-  const fmt = (n: number) => (annual ? `£${(n / 1000).toFixed(0)}k` : n >= 1000 ? `£${n.toLocaleString('en-GB', { maximumFractionDigits: 2 })}` : formatMoney(n))
+  // email and shift card uses): "£30000" reads as a typo.
+  const grouped = (n: number) => (n >= 1000 ? `£${n.toLocaleString('en-GB', { maximumFractionDigits: 2 })}` : formatMoney(n))
+  const fmt = (n: number) => (annual && !opts.full ? `£${(n / 1000).toFixed(0)}k` : grouped(n))
   // Compared AS PRINTED: £41,800 and £42,000 are different numbers and the
   // same "£42k", and "£42k–£42k" is what a local formatter put on the sector
   // page's advert (seen 15 Nov 2026).
@@ -117,6 +100,26 @@ export function jobPay(job: { salaryMin?: number | null; salaryMax?: number | nu
 /** "£50k–£60k a year" as one string, for alt text and checks. */
 export const jobPayText = (p: JobPay | null) =>
   p ? `${p.amount}${p.period ? ` ${p.period}` : ''}${p.negotiable ? ' (negotiable)' : ''}` : ''
+
+/**
+ * THE ONE EMPLOYMENT TYPE A FIXED-HEIGHT CARD HAS ROOM FOR (the home page's
+ * 1a card; design 26, round 2). Picked BY MEANING, not by the order the advert
+ * lists them: Host lists "Flexible, Temporary", and "Flexible" says least.
+ * Priority: Temporary, Part-time, Full-time, Fixed-term, Contract. Flexible
+ * only when it is the only value; anything else (Permanent…) when none of the
+ * priority types is there.
+ */
+const TYPE_PRIORITY = ['temporary', 'part-time', 'full-time', 'fixed-term', 'contract']
+export function primaryEmploymentType(types: readonly string[] | string | null | undefined): string | null {
+  const list = (Array.isArray(types) ? types : types ? [types as string] : []).filter(Boolean) as string[]
+  if (!list.length) return null
+  const key = (s: string) => s.trim().toLowerCase().replace(/[\s_]+/g, '-')
+  for (const want of TYPE_PRIORITY) {
+    const hit = list.find(t => key(t) === want)
+    if (hit) return hit
+  }
+  return list.find(t => key(t) !== 'flexible') ?? list[0]
+}
 
 /**
  * A JOB AS THE TEXT-LED CARDS SEE IT — the 1b board row and the 1a card read
@@ -319,10 +322,8 @@ export function cardModelFromPostedJob(job: {
     companyNote: null,
     title: job.title,
     where: job.location,
-    pay: formatJobSalary({
-      salaryMin: job.salaryMin, salaryMax: job.salaryMax,
-      salaryPeriod: job.salaryPeriod, tags: [],
-    } as unknown as Job),
+    // The shared short form; no pay → no pay line (never "Competitive salary").
+    pay: jobPayText(jobPay({ salaryMin: job.salaryMin, salaryMax: job.salaryMax, salaryPeriod: job.salaryPeriod })) || null,
     isNew: days <= 2,
     badges: employmentBadges.map(label => ({ label })),
 
@@ -351,7 +352,7 @@ export function cardModelFromJob(job: Job): FeedCardModel {
     companyNote: job.isRecruiterPosting ? '· via recruiter' : null,
     title: job.title,
     where: formatJobLocation(job),
-    pay: formatJobSalary(job),
+    pay: jobPayText(jobPay(job)) || null,
     isNew: getPostedDaysAgo(job.postedAt) <= 2,
     badges: [
       ...employmentBadges.map(label => ({ label })),

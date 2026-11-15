@@ -172,7 +172,7 @@ export default function JobDetailModal({
 
   // The shared pay text (lib/jobCard jobPay, design 17): no pay → null, never
   // "£0 per year" (two live imported adverts store a literal 0).
-  const formatSalary = (): string | null => { const p = jobPay(job); return p ? jobPayText(p) : null }
+  const formatSalary = (): string | null => { const p = jobPay(job, { full: true }); return p ? jobPayText(p) : null }
 
   const renderDescription = (text: string) => {
     if (typeof window !== 'undefined' && text.includes('<') && text.includes('>')) {

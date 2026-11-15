@@ -159,7 +159,7 @@ export default function JobDetailPage() {
 
   // The shared pay text (lib/jobCard jobPay, design 17): no pay → null, never
   // "Competitive salary" (design 26: never, anywhere) and never "£0 per year".
-  const formatSalary = (): string | null => { if (!job) return null; const p = jobPay(job); return p ? jobPayText(p) : null }
+  const formatSalary = (): string | null => { if (!job) return null; const p = jobPay(job, { full: true }); return p ? jobPayText(p) : null }
 
   const renderDescription = (text: string) => {
     if (typeof window !== 'undefined' && text.includes('<') && text.includes('>')) {

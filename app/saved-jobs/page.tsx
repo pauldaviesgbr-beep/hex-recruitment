@@ -193,7 +193,7 @@ export default function SavedJobsPage() {
 
   // The shared pay text (lib/jobCard jobPay, design 17): no pay → null, never
   // "Competitive salary" (design 26: never, anywhere) and never "£0 per year".
-  const formatSalaryFull = (job: Job): string | null => { const p = jobPay(job); return p ? jobPayText(p) : null }
+  const formatSalaryFull = (job: Job): string | null => { const p = jobPay(job, { full: true }); return p ? jobPayText(p) : null }
 
   const getGoogleMapsUrl = (job: Job) => {
     let locationString: string
