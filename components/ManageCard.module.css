@@ -143,6 +143,9 @@
   cursor: pointer;
 }
 .menuItem:hover, .menuItem:focus-visible { background: #F6F7F9; outline: none; }
+/* Destructive (Remove ad): last, red, below a divider that runs the menu's width. */
+.menuSep { height: 1px; margin: 6px -6px; background: #EEF0F4; }
+.menuDanger { color: #B42318; }
 
 /* LAPTOP: THE ACTIONS SIT INLINE AT THE RIGHT (design 26, C). From 768 the
    bar becomes a column beside the body, cells stacked over a hairline, so a
@@ -158,4 +161,8 @@
   }
   .card:has(> .actions) .action + .action { border-left: 0; border-top: 1px solid #EEF0F4; }
   .card:has(> .actions) .menuWrap { right: 156px; }
+  /* A quiet card (filled, archived, closed) is tinted all the way across: the
+     action column takes the card's #F6F7F9 too. The divider stays. */
+  .card:not([data-live]):has(> .actions) .action { background: #F6F7F9; }
+  .card:not([data-live]):has(> .actions) .action:active { background: #EEF0F4; }
 }

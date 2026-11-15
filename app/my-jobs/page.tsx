@@ -99,7 +99,6 @@ function MyJobsContent() {
   const [loading, setLoading] = useState(true)
   const [postedJobs, setPostedJobs] = useState<PostedJob[]>([])
   const [appliedJobs, setAppliedJobs] = useState<AppliedJob[]>([])
-  const [companyName, setCompanyName] = useState('')
   // Interviews, offers and hires USED TO BE LOADED HERE for the Interviewing /
   // Offers / Hired tabs. Design 26 (C) drops those tabs — they are applicant
   // stages, and they live on Applicants — so the three queries went with them.
@@ -147,10 +146,8 @@ function MyJobsContent() {
 
       if (userRole === 'employer') {
         setIsEmployer(true)
-        const company = session.user.user_metadata?.company_name || 'Your Company'
         // Multi-user: jobs/apps are keyed employer_id = owner user_id.
         const employerId = (await getCurrentEmployerOwnerId(supabase)) ?? session.user.id
-        setCompanyName(company)
 
         // The is_recruiter read that used to live here went with the flag —
         // see the note where the state was removed. A query kept alive to feed
@@ -334,7 +331,7 @@ function MyJobsContent() {
   }
 
   const handleReactivateJob = async (jobId: string) => {
-    const confirmed = confirm('Reactivate this job listing? It will appear in search results again.')
+    const confirmed = confirm('Make this job ad live again? It will appear in search results again.')
     if (!confirmed) return
 
     try {
@@ -356,55 +353,12 @@ function MyJobsContent() {
     }
   }
 
-  const handleRepostJob = async (job: PostedJob) => {
-    const confirmed = confirm(`Repost "${job.title}" as a new active listing?`)
-    if (!confirmed) return
-
-    try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) return
-
-      // Fetch the full original job data from Supabase
-      const { data: originalJob } = await supabase
-        .from('jobs')
-        .select('*')
-        .eq('id', job.id)
-        .single()
-
-      if (!originalJob) {
-        alert('Could not find original job data.')
-        return
-      }
-
-      // Create a copy with new status, reference, and timestamps
-      const { id, created_at, updated_at, posted_at, view_count, application_count, ...jobData } = originalJob
-      const { data: reposted, error } = await supabase
-        .from('jobs')
-        .insert({
-          ...jobData,
-          status: 'active',
-          view_count: 0,
-          application_count: 0,
-          job_reference: `JOB-${Date.now().toString(36).toUpperCase()}`,
-        })
-        .select('id')
-        .single()
-
-      if (error) {
-        console.error('Error reposting job:', error)
-        alert('Failed to repost job. Please try again.')
-        return
-      }
-
-      // The copy inherits the original's area, but resolve anyway: if the
-      // original predates preferred-areas its area columns are empty.
-      if (reposted?.id) await ensureJobArea(reposted.id)
-      await refreshJobs()
-      router.push('/my-jobs')
-    } catch (err) {
-      console.error('Error reposting job:', err)
-    }
-  }
+  // POST AGAIN (design 26, C): start a COPY in the post-job form, filled in
+  // from this advert. It used to insert the copy straight onto the live board
+  // after a browser confirm box — which skipped the form, and so skipped the
+  // rule that every advert shows its pay. The form checks pay before anything
+  // is published; the employer reviews the copy and posts it.
+  const handlePostAgain = (job: PostedJob) => router.push(`/post-job?copy=${job.id}`)
 
   // Take a live advert off the public board.
   //
@@ -764,12 +718,15 @@ function MyJobsContent() {
                       title={job.title}
                       lines={[
                         // The 1b pay rules: "£42k–£48k a year · Bath · Full-time".
-                        // NO PAY: candidates see no pay line; the employer sees
-                        // "Add the pay", which opens the editor on the pay field.
+                        // NO PAY: candidates see no pay line. On a LIVE ad the
+                        // employer sees "Add the pay", which opens the editor on
+                        // the pay field. On a filled or archived ad the pay is
+                        // simply left out: Post again goes through the form,
+                        // which asks for the pay before anything is published.
                         <>
                           {pay && <><span className={styles.adsPay}>{jobPayText(pay)}</span>{' · '}</>}
                           {[place, type].filter(Boolean).join(' · ')}
-                          {!pay && <>{' · '}<button type="button" className={styles.adsAddPay} onClick={() => { setEditFocus('pay'); setEditTarget(job) }}>Add the pay</button></>}
+                          {!pay && isLiveTab && <>{' · '}<button type="button" className={styles.adsAddPay} onClick={() => { setEditFocus('pay'); setEditTarget(job) }}>Add the pay</button></>}
                         </>,
                         <>
                           {job.applicationCount === 0 ? 'No applicants yet' : `${job.applicationCount} applicant${job.applicationCount === 1 ? '' : 's'}`}
@@ -782,22 +739,26 @@ function MyJobsContent() {
                       // The title opens this advert's applicants (the September card).
                       open={false}
                       onToggleOpen={() => openApplicants()}
-                      // Live: Edit ad / View. Filled or archived: Reuse (repost it).
+                      // Live: Edit ad / View. Filled or archived: Post again —
+                      // the same word the shift card uses for the same act.
                       actions={job.status === 'active' || job.status === 'paused'
                         ? [
                             { label: 'Edit ad', onClick: () => { setEditFocus(undefined); setEditTarget(job) } },
                             { label: 'View', onClick: () => router.push(`/job/${job.id}?from=my-jobs`) },
                           ]
-                        : [{ label: 'Reuse', onClick: () => handleRepostJob(job) }]}
+                        : [{ label: 'Post again', onClick: () => handlePostAgain(job) }]}
                       menu={[
                         { label: 'View analytics', onClick: () => router.push(`/employer/analytics/${job.id}`) },
                         // Boost is a paid surface: hidden while PAID_SURFACES_ENABLED is false.
                         ...(PAID_SURFACES_ENABLED && job.status === 'active'
                           ? [{ label: isBoosted ? 'Boosted (manage)' : 'Boost this job', onClick: () => { setBoostTargetJob(job); setBoostModalOpen(true) } }] : []),
+                        // "Make live again" revives THIS ad; "Post again" starts a
+                        // copy. Two different acts, so two different words.
+                        ...(job.status === 'archived' || job.status === 'filled' ? [{ label: 'Make live again', onClick: () => handleReactivateJob(job.id) }] : []),
                         // ACTIVE ONLY, and only with manage_jobs: the endpoint
                         // refuses everyone else, so they are not shown the door.
-                        ...(job.status === 'active' && canManageJobs ? [{ label: 'Remove ad', onClick: () => setRemoveTarget(job) }] : []),
-                        ...(job.status === 'archived' || job.status === 'filled' ? [{ label: 'Reactivate', onClick: () => handleReactivateJob(job.id) }] : []),
+                        // A danger item: ManageCard puts it last, red, below a divider.
+                        ...(job.status === 'active' && canManageJobs ? [{ label: 'Remove ad', onClick: () => setRemoveTarget(job), danger: true }] : []),
                       ]}
                       menuLabel={`More actions for ${job.title}`}
                     />

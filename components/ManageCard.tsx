@@ -24,10 +24,12 @@
  * top-right but comes last for a keyboard user, because it holds Close.
  */
 
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { Fragment, useEffect, useRef, useState, type ReactNode } from 'react'
 import styles from './ManageCard.module.css'
 
-export interface ManageCardAction { label: string; onClick: () => void; disabled?: boolean }
+/** `danger` (menu only): destructive — rendered LAST, in red, below a divider,
+ *  wherever the page happened to list it. */
+export interface ManageCardAction { label: string; onClick: () => void; disabled?: boolean; danger?: boolean }
 
 export interface ManageCardProps {
   /** "LIVE", "FILLED", "CLOSED". Caps come from the CSS. */
@@ -113,8 +115,12 @@ export default function ManageCard({ statusWord, statusDetail, live, title, line
           </button>
           {menuOpen && (
             <div className={styles.menu} role="menu">
-              {menu.map(a => (
-                <button key={a.label} type="button" role="menuitem" className={styles.menuItem} disabled={a.disabled} onClick={() => { setMenuOpen(false); a.onClick() }}>{a.label}</button>
+              {/* Ordinary items first, destructive ones last under a divider. */}
+              {[...menu.filter(a => !a.danger), ...menu.filter(a => a.danger)].map((a, i, all) => (
+                <Fragment key={a.label}>
+                  {a.danger && i > 0 && !all[i - 1].danger && <div role="separator" className={styles.menuSep} />}
+                  <button type="button" role="menuitem" className={`${styles.menuItem} ${a.danger ? styles.menuDanger : ''}`} disabled={a.disabled} onClick={() => { setMenuOpen(false); a.onClick() }}>{a.label}</button>
+                </Fragment>
               ))}
             </div>
           )}

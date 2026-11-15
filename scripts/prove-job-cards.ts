@@ -47,7 +47,10 @@ check('card pay never rounds: "£41.8k", "£41.8k–£48k", whole thousands stay
   jobPayText(jobPay({ salaryMin: 42000, salaryMax: 42000, salaryPeriod: 'year' })),
   jobPayText(jobPay({ salaryMin: 41960, salaryMax: 41960, salaryPeriod: 'year' })),
   jobPayText(jobPay({ salaryMin: 41800, salaryMax: 42000, salaryPeriod: 'year' })),
-], ['£41.8k a year', '£41.8k–£48k a year', '£42k a year', '£41.9k a year', '£41.8k–£42k a year'])
+  // Agreed (design 26, round 3): under £100 above a thousand reads as the
+  // thousand — "£41k", never "£41.0k".
+  jobPayText(jobPay({ salaryMin: 41050, salaryMax: 41050, salaryPeriod: 'year' })),
+], ['£41.8k a year', '£41.8k–£48k a year', '£42k a year', '£41.9k a year', '£41.8k–£42k a year', '£41k a year'])
 check('the app\'s pay (lib/appApi appPay) follows the same rule, through the same function', () => [
   appPay({ salary_min: 41800, salary_max: 48000, salary_type: 'annual' }).payShort,
   appPay({ salary_min: 42000, salary_max: 42000, salary_type: 'annual' }).payShort,
@@ -247,10 +250,49 @@ check('/my-jobs: Live · Filled · Archived on the shared ManageCard, counts fro
     />Job ads<\/h1>/.test(mj) && /aria-label=\{searchOpen \? 'Close search' : 'Search job ads'\}/.test(mj),
   ]
 }, [true, true, false, false, true])
-check('/my-jobs: no pay shows "Add the pay" (opening the editor on the pay field), and the quick editor requires pay', () => {
+check('/my-jobs: no pay shows "Add the pay" ON A LIVE AD ONLY (opening the editor on the pay field), and the quick editor requires pay', () => {
   const mj = noComments(read('app/my-jobs/page.tsx')), qe = noComments(read('components/QuickEditJobModal.tsx'))
-  return [/Add the pay/.test(mj) && /setEditFocus\('pay'\)/.test(mj) && /focusField=\{editFocus\}/.test(mj), /payRef/.test(qe) && /!\(values\.salaryMin > 0\)/.test(qe)]
-}, [true, true])
+  return [
+    /Add the pay/.test(mj) && /setEditFocus\('pay'\)/.test(mj) && /focusField=\{editFocus\}/.test(mj),
+    // round 3: filled and archived cards leave the pay out
+    /\{!pay && isLiveTab && </.test(mj),
+    /payRef/.test(qe) && /!\(values\.salaryMin > 0\)/.test(qe),
+  ]
+}, [true, true, true])
+// Design 26, round 3. "Post again" (the shift card's word) starts a COPY in
+// the post-job form — the old Reuse inserted it onto the board behind a
+// confirm box, skipping the pay rule. "Make live again" revives the SAME ad.
+check('/my-jobs: filled and archived ads say "Post again", which opens a copy in the form; nothing on the page inserts an advert; "Make live again", never "Reuse" or "Reactivate"', () => {
+  const mj = noComments(read('app/my-jobs/page.tsx'))
+  return [
+    /label: 'Post again', onClick: \(\) => handlePostAgain\(job\)/.test(mj) && /router\.push\(`\/post-job\?copy=\$\{job\.id\}`\)/.test(mj),
+    /\.from\('jobs'\)\s*\.insert\(/.test(mj),
+    /label: 'Make live again'/.test(mj),
+    /label: '(Reuse|Reactivate)'/.test(mj),
+  ]
+}, [true, false, true, false])
+check('post-job ?copy=: this employer\'s own ad only, a NEW advert (fresh reference, no expiry), never the saved draft, applied once', () => {
+  const pj = noComments(read('app/post-job/page.tsx'))
+  return [
+    /const copyId = searchParams\.get\('edit'\) \? null : searchParams\.get\('copy'\)/.test(pj),
+    /\.eq\('id', copyId\)\.eq\('employer_id', ownerId\)/.test(pj),
+    /jobReference: '',\s*expiresAt: '',/.test(pj),
+    /if \(!stepped \|\| restored \|\| copyId\) return/.test(pj),
+    /if \(asCopy\) setCopySource\(null\)/.test(pj),
+    // a copy never switches the form into edit mode
+    /if \(editId\) \{\s*setIsEditMode\(true\)/.test(pj),
+  ]
+}, [true, true, true, true, true, true])
+check('the manage card\'s ⋯: a danger item goes LAST, red #B42318, below a divider; Remove ad is the danger item', () => {
+  const mc = noComments(read('components/ManageCard.tsx')), css = noComments(read('components/ManageCard.module.css')), mj = noComments(read('app/my-jobs/page.tsx'))
+  return [
+    /\[\.\.\.menu\.filter\(a => !a\.danger\), \.\.\.menu\.filter\(a => a\.danger\)\]/.test(mc) && /role="separator"/.test(mc),
+    /\.menuDanger\s*\{\s*color:\s*#B42318;?\s*\}/.test(css) && /\.menuSep\s*\{[^}]*background:\s*#EEF0F4/.test(css),
+    /label: 'Remove ad', onClick: \(\) => setRemoveTarget\(job\), danger: true/.test(mj),
+  ]
+}, [true, true, true])
+check('from 768 a quiet (filled / archived) card\'s action column takes the card\'s #F6F7F9 tint', () =>
+  /@media \(min-width: 768px\)\s*\{[^@]*\.card:not\(\[data-live\]\):has\(> \.actions\) \.action\s*\{\s*background:\s*#F6F7F9/.test(noComments(read('components/ManageCard.module.css'))), true)
 check('/my-jobs: the countdown is only claimed where the expiry cron will act (never on a recruiter posting); "new" is the Applicants list\'s own stage', () => {
   const mj = noComments(read('app/my-jobs/page.tsx'))
   return [/if \(job\.isRecruiterPosting\) return null/.test(mj), /stageOf\(status\) === 'new'/.test(mj), /\/applied\?job=\$\{job\.id\}/.test(mj)]
