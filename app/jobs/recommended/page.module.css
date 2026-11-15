@@ -308,10 +308,13 @@
   text-overflow: ellipsis;
 }
 
+/* The match % in the 1b row's right-hand column (JobRow's `aside`). It sits IN
+   that column: it was `position: absolute` from the old photo card, which took
+   it out of the grid and laid it over the title ("…Country House" ran under
+   the chip at 390, seen 15 Nov 2026). */
 .listCardMatch {
-  position: absolute;
-  top: 0.5rem;
-  right: 0.5rem;
+  display: inline-block;
+  white-space: nowrap;
   font-size: 0.7rem;
   font-weight: 700;
   color: var(--primary-yellow);

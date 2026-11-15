@@ -124,6 +124,10 @@ check('the dashboards\' small-list card IS the 1a card (no image-led markup, no 
 check('the list-and-detail pages draw their lists with the 1b row, not their own cards', () =>
   ['app/jobs/sector/[sector]/page.tsx', 'app/jobs/[city]/page.tsx', 'app/jobs/recommended/page.tsx', 'app/saved-jobs/page.tsx']
     .filter(f => { const s = noComments(read(f)); return !/<JobRow\b/.test(s) || /styles\.listCardLogo/.test(s) }), [])
+check('Recommended\'s match % sits in the row\'s right-hand column, not laid over the title (no absolute positioning)', () => {
+  const r = (noComments(read('app/jobs/recommended/page.module.css')).match(/\.listCardMatch\s*\{[^}]*\}/) || [''])[0]
+  return [r.length > 0, /position:\s*absolute/.test(r)]
+}, [true, false])
 check('no image, logo or banner in any finished job surface', () => DONE.filter(f => IMAGE.test(noComments(read(f)))), [])
 check('ZERO-GUARD: the image pattern still finds an image where one is known to be', () => IMAGE.test(noComments(read('components/FeedCard.tsx'))), true)
 
