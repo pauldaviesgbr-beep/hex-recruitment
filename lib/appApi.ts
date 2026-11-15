@@ -14,7 +14,7 @@
 import { createClient, type SupabaseClient, type User } from '@supabase/supabase-js'
 import type { NextRequest } from 'next/server'
 import { supabaseJobToJob } from '@/lib/types'
-import { jobPay, jobPayText, formatJobLocation } from '@/lib/jobCard'
+import { jobPay, jobPayText, payThousands, formatJobLocation } from '@/lib/jobCard'
 import { resolveJobArea, regionName } from '@/lib/areas'
 import { formatMoney } from '@/lib/money'
 
@@ -166,7 +166,7 @@ export function plainText(s: string | null | undefined): string {
 }
 
 /** Pay for the app's cards and job page (design H1, H5). Same rounding as the
- *  website's jobPay (whole thousands a year) and the same pounds-and-
+ *  website's jobPay ("£42k", "£41.8k" a year) and the same pounds-and-
  *  pence formatter, with the period in words as the website's new cards write it. */
 export function appPay(row: any): { payShort: string | null; payLong: string | null } {
   const min = Number(row.salary_min) || 0
@@ -175,7 +175,9 @@ export function appPay(row: any): { payShort: string | null; payLong: string | n
   const lo = min > 0 ? min : max
   const single = max <= 0 || min <= 0 || min === max
   if (row.salary_type === 'annual') {
-    const k = (n: number) => `£${(n / 1000).toFixed(0)}k`
+    // The website's own short-form rule (lib/jobCard payThousands): "£41.8k",
+    // never "£42k" for £41,800 — one function, so the app cannot drift.
+    const k = payThousands
     const full = (n: number) => `£${Math.round(n).toLocaleString('en-GB')}`
     return single
       ? { payShort: k(lo), payLong: `${full(lo)} a year` }

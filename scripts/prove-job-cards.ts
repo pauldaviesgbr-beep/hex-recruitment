@@ -15,6 +15,7 @@ import { readdirSync, statSync } from 'node:fs'
 import * as jobCard from '../lib/jobCard'
 import { jobPay, jobPayText, jobRowModel, primaryEmploymentType } from '../lib/jobCard'
 import { shiftPay, shiftPlace, formatWhen, byStartDate, type TempPost } from '../lib/tempWork'
+import { appPay } from '../lib/appApi'
 
 const ROOT = join(__dirname, '..')
 const read = (rel: string) => readFileSync(join(ROOT, rel), 'utf8')
@@ -34,7 +35,22 @@ check('annual pay in thousands, en dash, "a year"', () => jobPayText(jobPay({ sa
 check('hourly pay keeps its pence, "an hour"', () => jobPayText(jobPay({ salaryMin: 16.95, salaryMax: 16.95, salaryPeriod: 'hour' })), '£16.95 an hour')
 check('NO PAY → no pay line at all (never "Competitive")', () => jobPay({ salaryMin: 0, salaryMax: 0, salaryPeriod: 'year' }), null)
 check('above zero, not merely present: a literal 0 is no pay', () => [jobPay({ salaryMin: null, salaryMax: 0 }), jobPayText(jobPay({ salaryMin: 0, salaryMax: 32000, salaryPeriod: 'year' }))], [null, '£32k a year'])
-check('two figures that print the same are one figure: never "£42k–£42k"', () => jobPayText(jobPay({ salaryMin: 41800, salaryMax: 42000, salaryPeriod: 'year' })), '£42k a year')
+check('two figures that print the same are one figure: never "£42k–£42k"', () => jobPayText(jobPay({ salaryMin: 42000, salaryMax: 42050, salaryPeriod: 'year' })), '£42k a year')
+// Design 26 follow-up: CARD PAY MUST NOT ROUND. £41,800 printed "£42k" on the
+// card beside "£41,800 a year" on the advert. One decimal when not a whole
+// thousand, truncated (never rounded up), and the app reads the same rule.
+check('card pay never rounds: "£41.8k", "£41.8k–£48k", whole thousands stay "£42k", and nothing rounds UP to a whole thousand', () => [
+  jobPayText(jobPay({ salaryMin: 41800, salaryMax: 41800, salaryPeriod: 'year' })),
+  jobPayText(jobPay({ salaryMin: 41800, salaryMax: 48000, salaryPeriod: 'year' })),
+  jobPayText(jobPay({ salaryMin: 42000, salaryMax: 42000, salaryPeriod: 'year' })),
+  jobPayText(jobPay({ salaryMin: 41960, salaryMax: 41960, salaryPeriod: 'year' })),
+  jobPayText(jobPay({ salaryMin: 41800, salaryMax: 42000, salaryPeriod: 'year' })),
+], ['£41.8k a year', '£41.8k–£48k a year', '£42k a year', '£41.9k a year', '£41.8k–£42k a year'])
+check('the app\'s pay (lib/appApi appPay) follows the same rule, through the same function', () => [
+  appPay({ salary_min: 41800, salary_max: 48000, salary_type: 'annual' }).payShort,
+  appPay({ salary_min: 42000, salary_max: 42000, salary_type: 'annual' }).payShort,
+  /payThousands/.test(noComments(read('lib/appApi.ts'))) && !/toFixed\(0\)\}k/.test(noComments(read('lib/appApi.ts'))),
+], ['£41.8k–£48k', '£42k', true])
 check('a draft with no period yet shows the figure and claims no period', () => jobPayText(jobPay({ salaryMin: 30000, salaryMax: 30000, salaryPeriod: null })), '£30,000')
 
 // ── THE ROW MODEL: role → pay → place · type → via {recruiter} · age ──────
@@ -107,7 +123,7 @@ const DONE = [
   // round 2 (design 26): the shared Save, the Shifts feed and its shift row,
   // the employer's manage view and its card, and the home page's role cards
   'components/SaveJobButton.tsx', 'components/ShiftRow.tsx', 'app/temp-work/page.tsx',
-  'components/ManageCard.tsx', 'app/temp-work/manage/page.tsx', 'app/page.tsx',
+  'components/ManageCard.tsx', 'app/temp-work/manage/page.tsx', 'app/page.tsx', 'app/HomeClient.tsx',
 ]
 
 // ── THE 1a CARD ────────────────────────────────────────────────────────────

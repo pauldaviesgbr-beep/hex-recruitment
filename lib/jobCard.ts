@@ -62,10 +62,28 @@ export function getPostedDaysAgo(postedAt: string): number {
  *
  * ABOVE ZERO, NOT MERELY PRESENT. Two live rows once carried a literal 0 in
  * both columns (CLAUDE.md, "not-null and above-zero are different questions"),
- * and "£0k a year" is a claim. Annual figures are in whole thousands; hourly
+ * and "£0k a year" is a claim. Annual figures are in thousands, with one
+ * decimal when not a whole thousand (payThousands); hourly
  * rates keep their pence. A draft with no period yet shows the figure alone.
  */
 export type JobPay = { amount: string; period: 'a year' | 'an hour' | null; negotiable: boolean }
+
+/**
+ * THE SHORT FORM'S ANNUAL FIGURE: "£42k", "£41.8k" (design 26, round 2 follow-
+ * up: "card pay must not round"). £41,800 printed "£42k" on the card beside
+ * "£41,800 a year" on the advert — a £200 overstatement on every card. Whole
+ * thousands stay whole; anything else keeps ONE decimal.
+ *
+ * TRUNCATED, NOT ROUNDED, to the hundred: £41,960 reads "£41.9k". Rounding
+ * would print "£42k" — a whole thousand the figure is not, which is the exact
+ * fault this replaces — and would overstate the pay by up to £50. The short
+ * form may lose a few pounds; it never adds any. Used by the website's cards
+ * and rows (jobPay) AND the app's (lib/appApi appPay), so the two cannot drift.
+ */
+export function payThousands(n: number): string {
+  const tenths = Math.floor(Math.round(n) / 100) / 10
+  return `£${Number.isInteger(tenths) ? tenths : tenths.toFixed(1)}k`
+}
 
 /**
  * `full`: THE ADVERT PAGE'S FORM (design 26, round 2). Cards and rows keep the
@@ -85,7 +103,7 @@ export function jobPay(job: { salaryMin?: number | null; salaryMax?: number | nu
   // Thousands are grouped here, not in the shared formatMoney (which every
   // email and shift card uses): "£30000" reads as a typo.
   const grouped = (n: number) => (n >= 1000 ? `£${n.toLocaleString('en-GB', { maximumFractionDigits: 2 })}` : formatMoney(n))
-  const fmt = (n: number) => (annual && !opts.full ? `£${(n / 1000).toFixed(0)}k` : grouped(n))
+  const fmt = (n: number) => (annual && !opts.full ? payThousands(n) : grouped(n))
   // Compared AS PRINTED: £41,800 and £42,000 are different numbers and the
   // same "£42k", and "£42k–£42k" is what a local formatter put on the sector
   // page's advert (seen 15 Nov 2026).

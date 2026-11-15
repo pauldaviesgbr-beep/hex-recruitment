@@ -27,7 +27,9 @@ import { join } from 'node:path'
 
 const ROOT = join(__dirname, '..')
 const read = (rel: string) => readFileSync(join(ROOT, rel), 'utf8')
-const page = read('app/page.tsx')
+// The home page's markup lives in app/HomeClient.tsx since the founding count
+// moved to the server (app/page.tsx is now the small server page around it).
+const page = read('app/HomeClient.tsx')
 const css = read('app/page.module.css')
 const stripComments = (src: string) =>
   src.replace(/\/\*[\s\S]*?\*\//g, '').split(/\r?\n/).filter(l => !/^\s*\/\//.test(l)).join('\n')
@@ -265,6 +267,25 @@ check(
   },
   [true, true, true, 2]
 )
+// THE FOUNDING COUNT COMES WITH THE PAGE (design 26, round 2 follow-up): it
+// landed ~6s after first paint on the iPad, because the browser fetched a
+// cold dynamic API. The server page counts it (cached, revalidate) and hands
+// it in; the client fetch is only the fallback for a null.
+check(
+  'the founding count is server-rendered and cached; the client fetches it only when the server could not',
+  () => {
+    const server = read('app/page.tsx')
+    return [
+      !/^\s*['"]use client['"]/m.test(server),
+      /export const revalidate = \d+/.test(server),
+      /initialSpotsRemaining=\{/.test(server) && /getFoundingSpotsRemaining\(\)/.test(server),
+      /useState<number \| null>\(initialSpotsRemaining\)/.test(pageCode),
+      /if \(initialSpotsRemaining !== null\) return/.test(pageCode),
+    ]
+  },
+  [true, true, true, true, true]
+)
+
 check(
   'the fields can shrink — a flex child defaults to refusing to',
   () => /\.heroField\s*\{[^}]*min-width:\s*0/.test(css) && /\.heroInput\s*\{[^}]*min-width:\s*0/.test(css),
