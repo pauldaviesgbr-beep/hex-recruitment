@@ -1,0 +1,160 @@
+/* A POSTED SHIFT AS A TEXT ROW (design 26, round 2, B). The 1b row with a
+   date line and an action row. Palette only: #0F172A #334155 #64748b #DFE3EA
+   #EEF0F4 #F6F7F9, plus the yellow tick on "You're available". */
+
+.row {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: 16px 18px;
+  background: #ffffff;
+  border-bottom: 1px solid #EEF0F4;
+}
+@media (min-width: 768px) {
+  .row { padding: 18px 22px; }
+}
+
+/* The text block opens the panel. Not stretched over the row: the action row
+   and the panel inside it are their own targets. */
+.main {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+.main:focus-visible { outline: 3px solid rgba(15, 23, 42, 0.35); outline-offset: 4px; border-radius: 6px; }
+@media (min-width: 768px) {
+  .main { gap: 5px; }
+}
+
+.titleLine { display: flex; flex-wrap: wrap; align-items: center; column-gap: 10px; row-gap: 4px; }
+/* Same title as the 1b job row beside it: 600 18, 19 from 768, wraps. */
+.title { font-size: 18px; line-height: 1.25; font-weight: 600; color: #0F172A; overflow-wrap: anywhere; }
+@media (min-width: 768px) { .title { font-size: 19px; } }
+
+.newChip {
+  display: inline-block;
+  padding: 5px 8px;
+  border-radius: 6px;
+  background: #EEF0F4;
+  color: #0F172A;
+  font-size: 13px;
+  line-height: 1;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+}
+/* Test builds only: dashed, transparent. */
+.exampleChip {
+  display: inline-block;
+  padding: 4px 7px;
+  border-radius: 6px;
+  border: 1px dashed #64748b;
+  background: transparent;
+  color: #0F172A;
+  font-size: 13px;
+  line-height: 1;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+}
+
+.line2 { font-size: 16px; line-height: 1.4; color: #334155; }
+.pay { font-weight: 700; color: #0F172A; font-variant-numeric: tabular-nums; }
+
+.dateLine { display: flex; align-items: flex-start; gap: 8px; font-size: 16px; line-height: 1.4; }
+.calIcon { flex-shrink: 0; margin-top: 2px; color: #0F172A; }
+.when { font-weight: 500; color: #0F172A; font-variant-numeric: tabular-nums; }
+.needed { font-weight: 400; color: #334155; }
+
+.line4 { font-size: 14px; line-height: 1.4; color: #64748b; }
+.dot { white-space: pre; }
+
+/* The action row: 8 above, everything 44 tall. */
+.actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+/* I'm available: outlined, NOT yellow — several shifts share a screen and
+   yellow stays rare. Once tapped it is navy with a yellow tick. */
+.availBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 12px;
+  box-shadow: inset 0 0 0 1.5px #0F172A;
+  background: #ffffff;
+  color: #0F172A;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.availBtn:focus-visible { outline: 3px solid rgba(15, 23, 42, 0.35); outline-offset: 2px; }
+.availBtn[aria-disabled='true'] { cursor: default; }
+.availOn { background: #0F172A; color: #ffffff; box-shadow: none; }
+.tick { color: var(--primary-yellow, #FFE500); }
+
+.counts { display: inline-flex; align-items: center; gap: 4px; }
+.countBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 44px;
+  height: 44px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  color: #334155;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+.countBtn:focus-visible { outline: 3px solid rgba(15, 23, 42, 0.35); outline-offset: 0; }
+.countBtn[aria-disabled='true'] { cursor: default; }
+.countLiked { color: #0F172A; }
+.countOpen { background: #EEF0F4; color: #0F172A; }
+
+/* The open panel, inside the row below the actions. */
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 14px;
+  border-radius: 12px;
+  background: #F6F7F9;
+}
+
+/* The feed's group labels: "Posted shifts · N" / "Short-term jobs · N". */
+.groupLabel {
+  margin: 0;
+  padding: 12px 18px;
+  background: #F6F7F9;
+  border-bottom: 1px solid #EEF0F4;
+  font-size: 14px;
+  line-height: 1.3;
+  font-weight: 600;
+  color: #334155;
+}
+@media (min-width: 768px) {
+  .groupLabel { padding: 12px 22px; }
+}

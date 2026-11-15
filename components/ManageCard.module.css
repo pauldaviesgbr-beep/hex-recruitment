@@ -1,0 +1,145 @@
+/* THE EMPLOYER'S MANAGE CARD (design 26, round 2, B3 and C). Values from the
+   design reference; palette as the text-led rows plus the status greens and
+   the attention yellow the September card introduced. */
+
+.card {
+  position: relative;
+  background: #ffffff;
+  border: 1px solid #DFE3EA;
+  border-radius: 16px;
+}
+/* Quiet when it needs nothing: filled or closed. */
+.card:not([data-live]) { background: #F6F7F9; }
+
+.body { display: flex; flex-direction: column; gap: 4px; padding: 16px 18px; }
+
+/* A 7px dot plus 13px caps. Never a filled pill. Room on the right for ⋯. */
+.status {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0 40px 4px 0;
+  font-size: 13px;
+  line-height: 1.3;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+.status[data-live] { color: #0a7a4b; }
+.dot { width: 7px; height: 7px; border-radius: 50%; background: #64748b; flex: none; }
+.status[data-live] .dot { background: #12a05f; }
+
+/* Wraps, never truncates. */
+.title { margin: 0 0 2px; font-size: 18px; line-height: 1.25; font-weight: 600; color: #0F172A; }
+.card:not([data-live]) .title { font-weight: 500; color: #334155; }
+.titleBtn { display: block; width: 100%; padding: 0; border: 0; background: none; font: inherit; color: inherit; text-align: left; cursor: pointer; overflow-wrap: anywhere; }
+.titleBtn:focus-visible { outline: 3px solid rgba(15, 23, 42, 0.35); outline-offset: 2px; border-radius: 4px; }
+
+.line { margin: 0; font-size: 16px; line-height: 1.4; color: #334155; }
+.card:not([data-live]) .line { color: #64748b; }
+.info { margin: 0; font-size: 14px; line-height: 1.4; color: #64748b; }
+
+/* THE ONE ATTENTION SURFACE, only while somebody is waiting. */
+.attn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  margin-top: 10px;
+  padding: 10px 14px;
+  background: #fffbe0;
+  border: 1px solid #f0e08a;
+  border-radius: 10px;
+  color: #0F172A;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.attnLead { font-size: 15px; font-weight: 600; }
+.attnGo { font-size: 15px; font-weight: 600; flex: none; }
+.attn:focus-visible { outline: 3px solid rgba(15, 23, 42, 0.35); outline-offset: 2px; }
+
+/* The review panel: who's available, and the thread. */
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 12px;
+  padding: 14px;
+  border-radius: 12px;
+  background: #F6F7F9;
+}
+.card:not([data-live]) .panel { background: #ffffff; }
+
+/* Two 48-tall cells over a hairline. The bottom corners follow the card's,
+   so the card needs no overflow:hidden — which is what lets the ⋯ menu drop
+   out of it. */
+.actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border-top: 1px solid #EEF0F4;
+  border-radius: 0 0 15px 15px;
+  overflow: hidden;
+}
+.actions[data-single] { grid-template-columns: 1fr; }
+.action {
+  min-height: 48px;
+  border: 0;
+  background: #ffffff;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  color: #0F172A;
+  cursor: pointer;
+}
+.action + .action { border-left: 1px solid #EEF0F4; }
+.action:active { background: #F6F7F9; }
+.action:disabled { color: #64748b; cursor: default; }
+.action:focus-visible { outline: 3px solid rgba(15, 23, 42, 0.35); outline-offset: -3px; }
+
+/* ⋯ — a 44 target in the corner, its menu dropping below it. */
+.menuWrap { position: absolute; top: 6px; right: 6px; }
+.kebab {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  color: #334155;
+  cursor: pointer;
+}
+.kebab:focus-visible { outline: 3px solid rgba(15, 23, 42, 0.35); outline-offset: 0; }
+.menu {
+  position: absolute;
+  top: 46px;
+  right: 0;
+  z-index: 5;
+  min-width: 160px;
+  padding: 6px;
+  background: #ffffff;
+  border: 1px solid #DFE3EA;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+}
+.menuItem {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 500;
+  color: #0F172A;
+  text-align: left;
+  cursor: pointer;
+}
+.menuItem:hover, .menuItem:focus-visible { background: #F6F7F9; outline: none; }
