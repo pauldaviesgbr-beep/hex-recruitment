@@ -103,8 +103,11 @@ const inPage: Record<string, { page: string; link: RegExp }> = {
 const homeless = (sources: string[], homes: string[]) =>
   sources.filter(h => !homes.includes(h) && !inPage[h])
 
+// 12 until 15 Nov 2026; design 25 branch 2 removed Pipeline and Offers on
+// purpose (both redirect to /applied), leaving exactly 10. The guard is about
+// the SCAN finding links, not about how many the menu should have.
 check('ZERO-GUARD: the employer sidebar scan still finds its links',
-  () => hrefsIn(employerSidebar).length >= 12, true)
+  () => hrefsIn(employerSidebar).length >= 10, true)
 check('ZERO-GUARD: the candidate sidebar scan still finds its links',
   () => hrefsIn(candidateSidebar).length >= 9, true)
 

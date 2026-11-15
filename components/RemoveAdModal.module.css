@@ -1,0 +1,92 @@
+/* The follow-up card after Remove ad (design 25, decision 7; layout from
+   Claude Design, 15 Nov 2026): title "Advert removed", one line, a yellow
+   "Send updates" button and a "Not now" text link. Card style; a bottom
+   sheet on a phone, like the Decline box. */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal, 200);
+  background: rgba(10, 22, 40, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+}
+
+.card {
+  background: #ffffff;
+  border: 1px solid #DFE3EA;
+  border-radius: 14px;
+  width: 100%;
+  max-width: 440px;
+  padding: 20px;
+  box-sizing: border-box;
+  display: grid;
+  gap: 12px;
+}
+
+@media (max-width: 767px) {
+  .overlay { align-items: flex-end; padding: 0; }
+  .card {
+    max-width: none;
+    border-radius: 16px 16px 0 0;
+    border-bottom: 0;
+    padding: 20px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-serif), Georgia, serif;
+  font-size: 22px;
+  line-height: 28px;
+  font-weight: 600;
+  color: #0F172A;
+}
+
+.line { margin: 0; font-size: 15px; line-height: 1.5; color: #334155; }
+
+.error { margin: 0; font-size: 14px; color: #B91C1C; }
+
+/* Controls wrap. */
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+  margin-top: 4px;
+}
+
+.primary {
+  min-height: 44px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 12px;
+  background: #FFE500;
+  color: #0F172A;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.primary:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.textLink {
+  min-height: 44px;
+  padding: 0 4px;
+  background: none;
+  border: 0;
+  color: #334155;
+  font-size: 15px;
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.primary:focus-visible,
+.textLink:focus-visible {
+  outline: 3px solid rgba(15, 23, 42, 0.35);
+  outline-offset: 2px;
+}

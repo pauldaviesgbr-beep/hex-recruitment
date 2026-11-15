@@ -1,0 +1,400 @@
+/* THE APPLICANTS LIST AND APPLICANT PAGE (design 24 section 4; Claude
+   Design's answers of 15 Nov 2026). Palette only: ink #0F172A, body #334155,
+   muted #64748b, line #DFE3EA, fill #EEF0F4, page #F6F7F9, yellow #FFE500,
+   navy #0A1628, waiting amber #B45309. */
+
+.page {
+  background: #F6F7F9;
+  min-height: 100vh;
+}
+
+.layout {
+  padding: 20px 16px 32px;
+  box-sizing: border-box;
+}
+
+/* Phone: the list, or the applicant — one at a time. */
+.detailPane { display: none; }
+.hasSelection .listPane { display: none; }
+.hasSelection .detailPane { display: block; }
+
+/* From 768: the list on the left (max 520), the applicant beside it. */
+@media (min-width: 768px) {
+  .layout {
+    display: grid;
+    grid-template-columns: minmax(0, 520px) minmax(0, 1fr);
+    gap: 24px;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 24px;
+    align-items: start;
+  }
+  .detailPane,
+  .hasSelection .listPane,
+  .hasSelection .detailPane { display: block; }
+  .detail .backLink { display: none; }
+}
+
+.title {
+  font-family: var(--font-serif), Georgia, serif;
+  font-weight: 600;
+  font-size: 28px;
+  line-height: 34px;
+  color: #0F172A;
+  margin: 0 0 16px;
+}
+
+/* ── Toast: navy, at the top of the list, yellow Undo 44 tall ── */
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #0A1628;
+  color: #ffffff;
+  border-radius: 12px;
+  padding: 6px 8px 6px 16px;
+  margin: 0 0 14px;
+  font-size: 15px;
+  line-height: 20px;
+  min-height: 44px;
+  box-sizing: border-box;
+}
+
+.toastText { flex: 1; min-width: 0; padding: 6px 0; }
+
+.toastUndo {
+  min-height: 44px;
+  padding: 0 12px;
+  background: none;
+  border: 0;
+  color: #FFE500;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.toastUndo:focus-visible,
+.chip:focus-visible,
+.nextBtn:focus-visible,
+.notFitLink:focus-visible,
+.cardTop:focus-visible {
+  outline: 3px solid rgba(15, 23, 42, 0.35);
+  outline-offset: 2px;
+}
+
+/* ── Controls: job filter pill, then the stage chips (they WRAP) ── */
+.controls {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.jobFilter { display: block; }
+
+.jobFilter select {
+  appearance: none;
+  -webkit-appearance: none;
+  height: 44px;
+  max-width: 100%;
+  padding: 0 40px 0 16px;
+  border: 1px solid #DFE3EA;
+  border-radius: 22px;
+  background: #ffffff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%230F172A' stroke-width='1.8' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 16px center;
+  color: #0F172A;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* CONTROLS WRAP, CONTENT SCROLLS. 40 tall, 8 apart (Claude Design, 15 Nov
+   2026). No overflow-x here, ever: a sideways row hides whole chips. */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 40px;
+  padding: 0 14px;
+  border: 1px solid #DFE3EA;
+  border-radius: 20px;
+  background: #ffffff;
+  color: #0F172A;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.chipCount { color: #64748b; font-weight: 600; }
+
+.chip[aria-pressed='true'] {
+  background: #0F172A;
+  border-color: #0F172A;
+  color: #ffffff;
+}
+
+.chip[aria-pressed='true'] .chipCount { color: #FFE500; }
+
+/* ── Cards ── */
+.cards {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.card {
+  background: #ffffff;
+  border: 1px solid #DFE3EA;
+  border-radius: 14px;
+  padding: 14px 16px;
+}
+
+.cardSelected { border-color: #0F172A; }
+
+.cardTop {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 44px;
+  padding: 0;
+  background: none;
+  border: 0;
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+}
+
+.avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 20px;
+  background: #EEF0F4;
+  color: #0F172A;
+  font-size: 15px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.cardWho { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+
+.cardName {
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 22px;
+  color: #0F172A;
+  overflow-wrap: anywhere;
+}
+
+.cardSub { font-size: 13px; line-height: 18px; color: #64748b; }
+
+.wait {
+  font-size: 13px;
+  font-weight: 600;
+  color: #64748b;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.waitOverdue { color: #B45309; }
+
+.cardActions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.nextBtn {
+  min-height: 44px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 12px;
+  background: #FFE500;
+  color: #0F172A;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.nextBtnWide { width: 100%; min-height: 48px; }
+
+.notFitLink {
+  min-height: 44px;
+  padding: 0 4px;
+  background: none;
+  border: 0;
+  color: #334155;
+  font-size: 15px;
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.empty {
+  text-align: center;
+  color: #64748b;
+  padding: 32px 16px;
+  font-size: 15px;
+}
+
+.primaryLink {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin-top: 12px;
+  padding: 0 16px;
+  border-radius: 12px;
+  background: #FFE500;
+  color: #0F172A;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+/* ── The applicant page ── */
+.detail { display: grid; gap: 14px; }
+
+.backLink {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: #0F172A;
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: none;
+  width: fit-content;
+}
+
+.detailTitle {
+  font-family: var(--font-serif), Georgia, serif;
+  font-weight: 600;
+  font-size: 28px;
+  line-height: 34px;
+  color: #0F172A;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.detailSub { margin: -8px 0 0; font-size: 14px; color: #64748b; }
+
+/* Five 4-tall bars, ink up to the current stage, an 11 label under each. */
+.progress {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.progressStep { display: grid; gap: 6px; }
+
+.progressBar { height: 4px; border-radius: 2px; background: #DFE3EA; }
+.progressDone { background: #0F172A; }
+
+.progressLabel { font-size: 11px; line-height: 14px; color: #64748b; }
+.progressNow { color: #0F172A; font-weight: 700; }
+
+.detailActions { display: grid; gap: 4px; justify-items: center; }
+
+.endNote {
+  margin: 0;
+  padding: 12px 16px;
+  background: #EEF0F4;
+  border-radius: 12px;
+  color: #334155;
+  font-size: 15px;
+}
+
+.detailCard {
+  background: #ffffff;
+  border: 1px solid #DFE3EA;
+  border-radius: 14px;
+  padding: 16px;
+  display: grid;
+  gap: 10px;
+}
+
+.detailCardTitle { margin: 0; font-size: 15px; font-weight: 600; color: #0F172A; }
+
+.facts {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 12px;
+  margin: 0;
+  font-size: 14px;
+}
+
+.facts dt { color: #64748b; }
+.facts dd { margin: 0; color: #0F172A; }
+
+.bio { margin: 0; font-size: 14px; line-height: 1.55; color: #334155; white-space: pre-line; }
+
+.skills { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.skills li { padding: 4px 10px; border-radius: 12px; background: #EEF0F4; color: #334155; font-size: 13px; }
+
+.history { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; font-size: 14px; color: #334155; }
+.historyDates { color: #64748b; }
+
+.muted { margin: 0; color: #64748b; font-size: 14px; }
+
+.cvLink {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: #0F172A;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  width: fit-content;
+}
+
+.answer { display: grid; gap: 2px; font-size: 14px; color: #334155; }
+.answer p { margin: 0; }
+.answerQ { color: #64748b; }
+
+.messageBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  border: 1px solid #0F172A;
+  border-radius: 12px;
+  background: #ffffff;
+  color: #0F172A;
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.detailPlaceholder,
+.detailEmpty {
+  color: #64748b;
+  font-size: 15px;
+  padding: 24px;
+  border: 1px dashed #DFE3EA;
+  border-radius: 14px;
+  text-align: center;
+}
+
+.detailEmpty { text-align: left; border: 0; padding: 0; }
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}

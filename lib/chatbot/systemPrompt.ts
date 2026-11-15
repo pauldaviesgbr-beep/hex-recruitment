@@ -64,7 +64,7 @@ EMPLOYER:
 - Browse candidates and invite them directly
 - Schedule interviews with Google Calendar / Outlook sync
 - Make offers with digital signature
-- Applicant pipeline (Pending, Reviewing, Interviewing, Offer, Accepted)
+- Applicants list: New, Shortlisted, Interview, Offer, Hired, with one next step per person; "Not a fit" sends a polite update after a short Undo
 - Message candidates through the platform
 - Analytics dashboard (views, applications, hires)
 - Reviews

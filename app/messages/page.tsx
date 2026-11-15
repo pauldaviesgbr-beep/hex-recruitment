@@ -640,7 +640,7 @@ export default function MessagesPage() {
           <div className={styles.sidebarHeader}>
             {candidateParam && (
               <button onClick={() => router.back()} style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#6b7280', fontSize: '14px', background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginBottom: '8px' }}>
-                ← Back to Candidates
+                ← Back
               </button>
             )}
             {/* Inside the iOS app the navy bar already says Messages (design E2 rule 2). */}

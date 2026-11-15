@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import styles from './RemoveAdModal.module.css'
 
 // Confirm step for taking a live advert off the public board.
 //
@@ -31,11 +32,27 @@ interface RemoveAdModalProps {
   applicationCount?: number | null
   onCancel: () => void
   onConfirm: () => Promise<void>
+  /**
+   * AFTER REMOVAL: "Advert removed — {n} people are still waiting to hear
+   * back. Send them a polite update?" (design 25, decision 7; layout from
+   * Claude Design, 15 Nov 2026). n = applicants still at New to Offer, by the
+   * Applicants list's own rule. Skipped entirely when n is 0 or unknown, and
+   * when no onSendUpdates is given (the post-job form's copy of this dialog).
+   */
+  waitingCount?: number | null
+  onSendUpdates?: () => Promise<number>
+  /** Closes the dialog after the follow-up card. */
+  onDone?: () => void
 }
 
-export default function RemoveAdModal({ jobTitle, applicationCount, onCancel, onConfirm }: RemoveAdModalProps) {
+export default function RemoveAdModal({ jobTitle, applicationCount, onCancel, onConfirm, waitingCount, onSendUpdates, onDone }: RemoveAdModalProps) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // 'confirm' → the advert is still live; 'removed' → the follow-up card;
+  // 'sent' → the updates have gone.
+  const [phase, setPhase] = useState<'confirm' | 'removed' | 'sent'>('confirm')
+  const [sentCount, setSentCount] = useState(0)
+  const offerUpdates = typeof waitingCount === 'number' && waitingCount > 0 && !!onSendUpdates
   const cancelRef = useRef<HTMLButtonElement>(null)
 
   // Focus lands on Cancel, not Remove — the safe option is the one under the
@@ -53,6 +70,7 @@ export default function RemoveAdModal({ jobTitle, applicationCount, onCancel, on
     setError(null)
     try {
       await onConfirm()
+      if (offerUpdates) { setBusy(false); setPhase('removed') }
     } catch (err) {
       // Stay open on failure. Closing on an error is how "it didn't work" gets
       // read as "it worked" — the row would still be listed and the employer
@@ -60,6 +78,59 @@ export default function RemoveAdModal({ jobTitle, applicationCount, onCancel, on
       setError(err instanceof Error ? err.message : 'Could not remove the advert. Please try again.')
       setBusy(false)
     }
+  }
+
+  const sendUpdates = async () => {
+    if (!onSendUpdates) return
+    setBusy(true)
+    setError(null)
+    try {
+      setSentCount(await onSendUpdates())
+      setPhase('sent')
+    } catch {
+      setError('Could not send the updates. Please try again.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const finish = () => (onDone ?? onCancel)()
+
+  // ── After removal: the follow-up card ──
+  if (phase !== 'confirm') {
+    const n = waitingCount ?? 0
+    return (
+      <div className={styles.overlay} role="presentation" onClick={() => !busy && finish()}>
+        <div className={styles.card} role="dialog" aria-modal="true" aria-labelledby="advert-removed-title" onClick={e => e.stopPropagation()}>
+          <h2 id="advert-removed-title" className={styles.title}>Advert removed</h2>
+          {phase === 'removed' ? (
+            <>
+              <p className={styles.line}>
+                {n === 1
+                  ? '1 person is still waiting to hear back. Send them a polite update?'
+                  : `${n} people are still waiting to hear back. Send them a polite update?`}
+              </p>
+              {error && <p role="alert" className={styles.error}>{error}</p>}
+              <div className={styles.actions}>
+                <button type="button" className={styles.primary} onClick={sendUpdates} disabled={busy}>
+                  {busy ? 'Sending…' : 'Send updates'}
+                </button>
+                <button type="button" className={styles.textLink} onClick={finish} disabled={busy}>Not now</button>
+              </div>
+            </>
+          ) : (
+            <>
+              <p className={styles.line}>
+                {sentCount === 1 ? 'We sent 1 polite update.' : `We sent ${sentCount} polite updates.`}
+              </p>
+              <div className={styles.actions}>
+                <button type="button" className={styles.primary} onClick={finish}>Done</button>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -118,9 +189,11 @@ export default function RemoveAdModal({ jobTitle, applicationCount, onCancel, on
                   ? '1 person has applied to this ad'
                   : `${applicationCount} people have applied to this ad`}
               </strong>
+              {/* "and your pipeline is unchanged" named a page that is gone
+                  (the Applicants list replaced it), so it went with it. */}
               {applicationCount === 1
-                ? ' — their application will be kept, and your pipeline is unchanged.'
-                : ' — their applications will be kept, and your pipeline is unchanged.'}
+                ? ' — their application will be kept.'
+                : ' — their applications will be kept.'}
             </li>
           )}
           {/* ONE sentence, true on every surface it can be read from. It used to

@@ -114,16 +114,6 @@ export default function EmployerSidebar() {
       ),
     },
     {
-      label: 'Pipeline',
-      href: '/pipeline',
-      icon: (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <line x1="8" y1="6" x2="21" y2="6" /><line x1="8" y1="12" x2="21" y2="12" /><line x1="8" y1="18" x2="21" y2="18" />
-          <line x1="3" y1="6" x2="3.01" y2="6" /><line x1="3" y1="12" x2="3.01" y2="12" /><line x1="3" y1="18" x2="3.01" y2="18" />
-        </svg>
-      ),
-    },
-    {
       label: 'Interviews',
       href: '/interviews',
       icon: (
@@ -132,18 +122,6 @@ export default function EmployerSidebar() {
           <line x1="16" y1="2" x2="16" y2="6" />
           <line x1="8" y1="2" x2="8" y2="6" />
           <line x1="3" y1="10" x2="21" y2="10" />
-        </svg>
-      ),
-    },
-    {
-      label: 'Offers',
-      // Pen — signing metaphor, visually distinct from the clipboard /
-      // document icons used by Applicants and Manage Job Ads.
-      href: '/offers',
-      icon: (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M12 20h9" />
-          <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
         </svg>
       ),
     },

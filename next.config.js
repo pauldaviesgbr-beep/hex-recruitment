@@ -38,6 +38,11 @@ const nextConfig = {
   // permanent: true (308) here, unlike the four below — these are not a switch
   // that gets flipped back, they are URLs that will never be routes.
   redirects: async () => [
+    // THE APPLICANTS LIST REPLACES THE PIPELINE BOARD AND THE OFFERS PAGE
+    // (design 25, decision 2). Not permanent: these are product decisions, and
+    // a permanent redirect is cached by browsers past the point of undoing it.
+    { source: '/pipeline', destination: '/applied', permanent: false },
+    { source: '/offers', destination: '/applied?stage=offer', permanent: false },
     { source: '/pricing', destination: '/', permanent: true },
     { source: '/for-employers', destination: '/register/employer-free', permanent: true },
     { source: '/employers', destination: '/register/employer-free', permanent: true },

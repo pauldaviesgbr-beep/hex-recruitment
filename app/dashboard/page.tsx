@@ -79,7 +79,8 @@ const STATUS_LABELS: Record<string, string> = {
   interview: 'Interview',
   offered: 'Offered',
   hired: 'Hired',
-  rejected: 'Rejected',
+  // The candidate's word (design 25, decision 4); lib/applicationStatus has the same.
+  rejected: 'Not selected',
 }
 
 function getStatusColor(status: string): string {

@@ -366,6 +366,17 @@ const ALL = [
   // left visible in the app. Four named failures; green on restore.
   { name: 'phonenav:prove', cmd: npm, args: ['run', 'phonenav:prove'] },
 
+  // THE APPLICANTS LIST (15 Nov 2026, design 25 branch 2). Imports the stage
+  // rules and the chat's canned answers rather than restating them; asserts the
+  // Not-a-fit update is claimed once and only after Undo, /pipeline and /offers
+  // redirect rather than orphan, the chips wrap, and Ask Thrive names no price.
+  // Also: no status is written inside an Undo window (a status change fires
+  // the trigger that cancels interviews and withdraws offers, which no Undo
+  // can put back). Filesystem only, fast tier. Watched failing on purpose
+  // 15 Nov 2026, fourteen mutations one at a time — each red on its own check,
+  // every file restored byte-identical, 34/34 green after.
+  { name: 'applicants:prove', cmd: npm, args: ['run', 'applicants:prove'] },
+
   // NO COLOUR EMOJI ON ANY SURFACE A STRANGER SEES. components/icons.tsx has
   // said this since 14 Aug 2026 and had nothing behind it; seven got in anyway
   // — three clocks, two hourglasses, a party popper, and a video camera in an

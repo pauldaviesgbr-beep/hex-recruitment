@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { Bot } from 'lucide-react'
 import { getKeywordResponse } from '@/lib/chatbot/keywordFallback'
 import { detectHighStakes, interceptsEnabled } from '@/lib/chatbot/intercepts'
+import { supabase } from '@/lib/supabase'
 import styles from './ChatBot.module.css'
 import { Ico } from '@/components/icons'
 
@@ -29,15 +30,9 @@ interface HistoryEntry {
   content: string
 }
 
-const WELCOME_TEXT =
-  "Hi! I'm here to help. Ask me about pricing, posting jobs, scheduling interviews, or anything else."
-
-const suggestedQuestions = [
-  'How does the trial work?',
-  'Can I hire for tech or finance roles?',
-  'How do I schedule interviews?',
-  'What support do you offer?',
-]
+// The opening line and the suggestions by who is asking: one copy, in
+// lib/chatbot/opening (no prices, no trials; Claude Design, 15 Nov 2026).
+import { WELCOME_TEXT, SUGGESTED, type Asker } from '@/lib/chatbot/opening'
 
 const MAX_HISTORY_TURNS = 15
 const FIRST_BYTE_TIMEOUT_MS = 15000
@@ -64,6 +59,16 @@ export default function ChatBot() {
   const [messages, setMessages] = useState<Message[]>([])
   const [inputValue, setInputValue] = useState('')
   const [isTyping, setIsTyping] = useState(false)
+  // Which suggestions to offer. The session's role is read for DISPLAY only —
+  // it decides which four example questions show, nothing else.
+  const [asker, setAsker] = useState<Asker>('signedOut')
+  useEffect(() => {
+    const roleOf = (u: any): Asker => !u ? 'signedOut' : u.user_metadata?.role === 'employer' ? 'employer' : 'candidate'
+    supabase.auth.getSession().then(({ data: { session } }) => setAsker(roleOf(session?.user)))
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => setAsker(roleOf(session?.user)))
+    return () => subscription.unsubscribe()
+  }, [])
+  const suggestedQuestions = SUGGESTED[asker]
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   // Conversation ID is regenerated on first open AND on "New

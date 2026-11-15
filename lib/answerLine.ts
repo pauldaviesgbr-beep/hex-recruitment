@@ -25,6 +25,9 @@ export interface EmployerAnswerState {
   activeJobs: number
   /** Views in the last 7 days. Held back until the counts are comparable. */
   viewsThisWeek?: number | null
+  /** People on LIVE adverts, still at New to Offer, who have been in their
+   *  current stage two weeks or more (design 24 section 4; decision 6). */
+  waitingOverTwoWeeks?: number
 }
 
 /**
@@ -81,6 +84,20 @@ export function employerAnswerLine(state: EmployerAnswerState): AnswerLineModel 
   const stalledDays = state.stalled?.days ?? 0
   const isStalled = !!state.stalled && stalledDays >= ANSWER_LINE_STALL_DAYS
   const hasNew = state.newApplications > 0
+
+  // ROW 0 — PEOPLE HAVE WAITED OVER TWO WEEKS (design 24 section 4: "{n}
+  // people have waited over 2 weeks for you." and it opens the list, which
+  // sorts longest wait first). It outranks the rows below because it is the
+  // same fact they each describe in part, said about everyone at once — and
+  // counted on live adverts only, so a closed role cannot keep it lit.
+  const waited = state.waitingOverTwoWeeks ?? 0
+  if (waited > 0) {
+    return {
+      eyebrow: 'Today',
+      sentence: `${waited} ${plural(waited, 'person has', 'people have')} waited over 2 weeks for you.`,
+      action: { label: 'Review applicants', href: '/applied' },
+    }
+  }
 
   // ROWS 1 + 2 COMBINED. Where both are true the spec asks for one sentence of
   // at most two clauses, because two separate lines is two things to read and

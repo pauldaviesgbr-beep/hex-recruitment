@@ -113,7 +113,8 @@ const responsePatterns: ResponsePattern[] = [
   // ── EMPLOYER: POSTING JOBS ──
   {
     keywords: ['post job', 'post a job', 'add job', 'create job', 'new job', 'advertise', 'list job', 'job listing'],
-    response: "To post a job on Thrive:\n1. Subscribe to a plan (or start a free trial)\n2. Click \"Post Job\" in the sidebar\n3. Fill in the job details: title, description, salary, location, job type, and category\n4. Publish and your job is live!\n\nYour listing will be visible to thousands of candidates across the UK.",
+    // No plan, no trial: the product publishes no price and no trial length.
+    response: "To post a job:\n1. Open Your job ads (on a phone it's under More; on a laptop, Post Job is in the side menu)\n2. Press \"+ Post a job\"\n3. Add the role, pay, place and description\n4. Publish, and it goes live straight away.",
     links: [{ text: 'Post a Job', href: '/post-job' }]
   },
   {
@@ -126,7 +127,8 @@ const responsePatterns: ResponsePattern[] = [
   },
   {
     keywords: ['delete job', 'remove job', 'close job'],
-    response: "You can delete a job listing from the \"Manage Job Ads\" page. Click the \"Delete\" button on the job card. Please note that deleting a job will also remove all associated applications."
+    // "will also remove all associated applications" was false: they are kept.
+    response: "Open Your job ads, choose the advert's menu, and press Remove ad. It comes off the board straight away. Applications are kept, and you can send the people still waiting a polite update. You can restore it from the Archived tab."
   },
 
   // ── EMPLOYER: BROWSING CANDIDATES ──
@@ -136,18 +138,28 @@ const responsePatterns: ResponsePattern[] = [
     links: [{ text: 'Browse Candidates', href: '/candidates' }]
   },
 
-  // ── EMPLOYER: MY CANDIDATES (HIRING PIPELINE) ──
+  // ── CANDIDATE: MY APPLICATIONS — AHEAD OF THE EMPLOYER ENTRY BELOW ──
+  // "Where can I see my applications?" (a suggested question) contains
+  // "application", which the employer entry also matches, and the first match
+  // wins. So the candidate phrasings come first.
   {
-    keywords: ['my candidate', 'my jobs', 'application', 'applicant', 'pipeline', 'hiring pipeline', 'manage candidate'],
-    response: "The \"Manage Job Ads\" page is your central hiring dashboard! It shows all your job listings and their applicants. You can:\n\n• View all candidates who applied to your jobs\n• Review their profiles and CVs\n• Move candidates through stages: Reviewing, Interviewing, Offers, Hired\n• Filter by status to focus on what needs attention\n\nUse the sidebar links to quickly jump to Interviews, Offers, or Hired views.",
-    links: [{ text: 'Manage Job Ads', href: '/my-jobs' }]
+    keywords: ['my applications', 'see my application', 'track application', 'application status', 'my application', 'where is my application'],
+    response: "Your applications are on the Applications tab. Each one shows where it stands: Applied, Viewed, Shortlisted, Interview, Offer, Hired or Not selected. You'll get a notification when it changes.",
+    links: [{ text: 'My applications', href: '/applications' }]
+  },
+
+  // ── EMPLOYER: APPLICANTS ──
+  {
+    keywords: ['move an applicant', 'applicant', 'my candidate', 'application', 'pipeline', 'manage candidate'],
+    response: "Open Applicants. Each person has one next step: Shortlist, Invite to interview, Make offer or Mark hired. \"Not a fit\" sends them a polite update after a few seconds, so you can Undo. The stage chips show who is where, longest waiting first.",
+    links: [{ text: 'Applicants', href: '/applied' }]
   },
 
   // ── EMPLOYER: INTERVIEWS ──
   {
     keywords: ['interview', 'schedule interview', 'interview date', 'interview time', 'calendar', 'book interview'],
-    response: "Thrive makes interview scheduling easy!\n\n• Schedule interviews directly from a candidate's application\n• Set the date, time, duration, and interview type (in-person, video, or phone)\n• Add a location or video call link\n• Interviews sync with Google Calendar automatically\n• Track all upcoming interviews from the \"Interviews\" tab in the sidebar\n\nThe Interviews view shows today's, this week's, pending confirmation, and completed interviews.",
-    links: [{ text: 'View Interviews', href: '/my-jobs?filter=interviewing' }]
+    response: "On Applicants, press \"Invite to interview\" for someone you've shortlisted. Choose in person, video or phone, and they pick a time from your availability. Every interview shows on your Calendar, and can sync with Google Calendar.",
+    links: [{ text: 'Calendar', href: '/calendar' }, { text: 'Applicants', href: '/applied' }]
   },
   {
     keywords: ['reschedule', 'change interview', 'move interview', 'cancel interview'],
@@ -210,8 +222,8 @@ const responsePatterns: ResponsePattern[] = [
   },
   {
     keywords: ['cv', 'resume', 'upload cv', 'upload resume', 'document'],
-    response: "You can upload your CV when creating or editing your candidate profile. Employers can view and download it when considering you for positions.\n\n• PDF format is recommended\n• Keep it up to date with your latest experience\n• A strong CV increases your chances of getting noticed\n\nYou can update your CV at any time from your profile settings.",
-    links: [{ text: 'Create Profile', href: '/register/employee' }]
+    response: "Open the CV builder (Profile › CV builder on a phone). It starts from your profile, so add your experience and skills, then download it or use it when you apply. You can also upload a CV you already have.",
+    links: [{ text: 'CV builder', href: '/cv-builder' }]
   },
   {
     keywords: ['availability', 'available', 'status', 'looking for work', 'open to work'],
@@ -221,12 +233,8 @@ const responsePatterns: ResponsePattern[] = [
   // ── CANDIDATE: BROWSING & APPLYING ──
   {
     keywords: ['job seeker', 'find job', 'apply', 'get hired', 'search job', 'browse job', 'look for job'],
-    response: "Job seekers can use Thrive completely FREE!\n\n• Browse hundreds of jobs across all UK sectors\n• Filter by location, category, salary, and job type\n• Apply with one click using your profile and CV\n• Track your applications and their status\n• Receive messages from interested employers\n\nCreate your free profile to get started!",
+    response: "Job seekers can use Thrive completely FREE!\n\n• Browse the live jobs\n• Filter by location, category, salary, and job type\n• Apply with one click using your profile and CV\n• Track your applications and their status\n• Receive messages from interested employers\n\nCreate your free profile to get started!",
     links: [{ text: 'Browse Jobs', href: '/jobs' }, { text: 'Create Profile', href: '/register/employee' }]
-  },
-  {
-    keywords: ['track application', 'application status', 'my application', 'where is my application'],
-    response: "You can track all your job applications from your dashboard. Each application shows its current status:\n\n• **Pending** — Submitted, awaiting employer review\n• **Reviewing** — Employer is reviewing your profile\n• **Interviewing** — You've been invited for an interview\n• **Offer** — You've received a job offer\n• **Accepted** — Congratulations, you're hired!\n\nYou'll receive notifications when your application status changes."
   },
 
   // ── CANDIDATE: INTERVIEWS ──
@@ -289,15 +297,24 @@ const responsePatterns: ResponsePattern[] = [
 ]
 
 const defaultResponse: KeywordResponse = {
-  response: "I'm here to help! You can ask me about:\n\n**For Employers:**\n• Posting jobs & pricing\n• Browsing candidates\n• Interviews, offers & hiring\n• Analytics dashboard\n\n**For Job Seekers:**\n• Creating a free profile\n• Browsing & applying for jobs\n• Tracking applications\n\nWhat would you like to know?",
+  response: "I'm here to help! You can ask me about:\n\n**For Employers:**\n• Posting jobs\n• Managing applicants\n• Browsing candidates\n• Interviews, offers & hiring\n• Analytics dashboard\n\n**For Job Seekers:**\n• Creating a free profile\n• Browsing & applying for jobs\n• Tracking applications\n\nWhat would you like to know?",
   links: [{ text: 'Browse Jobs', href: '/jobs' }, { text: 'Post a Job', href: '/post-job' }]
 }
 
 export function getKeywordResponse(message: string): KeywordResponse {
   const lowerMessage = message.toLowerCase()
 
+  // SHORT KEYWORDS MATCH WHOLE WORDS ONLY. Substring matching made "ta" (in
+  // the thanks entry) match "contact", so "How do I contact support?" — now a
+  // suggested question — was answered "You're welcome!"; "hi" matched "this"
+  // and "which" the same way. Three letters or fewer must be a word of its own.
+  const hit = (keyword: string) =>
+    keyword.length <= 3
+      ? new RegExp(`(^|[^a-z])${keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}([^a-z]|$)`).test(lowerMessage)
+      : lowerMessage.includes(keyword)
+
   for (const pattern of responsePatterns) {
-    if (pattern.keywords.some(keyword => lowerMessage.includes(keyword))) {
+    if (pattern.keywords.some(hit)) {
       return { response: pattern.response, links: pattern.links }
     }
   }

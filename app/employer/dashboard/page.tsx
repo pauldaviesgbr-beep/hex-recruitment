@@ -21,6 +21,7 @@ import SetupStrip from '@/components/SetupStrip'
 import { employerAnswerLine, justPostedAnswerLine, nothingLiveShort } from '@/lib/answerLine'
 import { readJustPosted, type JustPosted } from '@/lib/justPosted'
 import PipelineRows from '@/components/PipelineRows'
+import { LISTED_STAGES, OVERDUE_DAYS, STAGE_LABEL, daysWaiting, isListed, stageOf } from '@/lib/applicantStages'
 // The same function StageDurationBadge uses, so "waiting 4d" on a phone and
 // "4 days in Shortlisted" on desktop can never disagree.
 import { daysInStage } from '@/lib/stageDuration'
@@ -977,6 +978,32 @@ export default function EmployerDashboardPage() {
   const [justPosted, setJustPosted] = useState<JustPosted | null>(null)
   useEffect(() => { setJustPosted(readJustPosted()) }, [])
 
+  // ── THE APPLICANTS GROUP AND THE TODAY CARD'S COUNT (design 24 section 4) ──
+  // The Applicants list's own definitions, read from lib/applicantStages and
+  // never restated: live adverts only (decision 6), stages New to Offer, and
+  // "waiting" from when they entered their current stage.
+  const liveListed = useMemo(() => {
+    const live = new Set(jobsData.filter((j: any) => j.status === 'active').map((j: any) => j.id))
+    return applications.filter((a: any) => live.has(a.job_id) && isListed(stageOf(a.status)))
+  }, [applications, jobsData])
+
+  const waitingOverTwoWeeks = useMemo(() =>
+    liveListed.filter((a: any) => (daysWaiting(a.stage_entered_at || a.created_at) ?? 0) >= OVERDUE_DAYS).length
+  , [liveListed])
+
+  const applicantGroupRows = useMemo(() => LISTED_STAGES.map(s => {
+    const inStage = liveListed.filter((a: any) => stageOf(a.status) === s)
+    const longest = inStage.reduce((max: number, a: any) => Math.max(max, daysWaiting(a.stage_entered_at || a.created_at) ?? 0), 0)
+    return {
+      key: s,
+      label: STAGE_LABEL[s],
+      count: inStage.length,
+      note: inStage.length > 0 && longest > 0 ? `${longest}d waiting` : null,
+      // Opens the list with this stage's chip selected.
+      href: `/applied?stage=${s}`,
+    }
+  }), [liveListed])
+
   const answerLineModel = useMemo(() => {
     // THE ONE EVENT THAT OUTRANKS THE STATE. An employer who has just pressed
     // publish is owed confirmation before they are told what is quiet — and
@@ -1009,8 +1036,9 @@ export default function EmployerDashboardPage() {
       // Held back until 11 August — see VIEWS_COMPARABLE_FROM. Passed anyway so
       // the clause turns itself on rather than needing a code change.
       viewsThisWeek: null,
+      waitingOverTwoWeeks,
     })
-  }, [applications, lastSeenAt, totalJobs, activeJobs, justPosted])
+  }, [applications, lastSeenAt, totalJobs, activeJobs, justPosted, waitingOverTwoWeeks])
 
   const statusCounts = useMemo(() => {
     const counts: Record<string, number> = {}
@@ -1180,79 +1208,31 @@ export default function EmployerDashboardPage() {
             fake and never touches the DB. ── */}
         {totalJobs === 0 && showTourExamples && <ExampleShowcase />}
 
-        {/* ── STALE APPLICATIONS NUDGE ────────────────── */}
-        {/* Whole banner links to /applied (the "New Applications" awaiting-review
-            queue) — staleApplications counts pending apps older than 2 weeks. */}
-        {staleApplications > 0 && (
-          <Link href="/applied" className={styles.staleNudge}>
-            <span className={styles.staleNudgeIcon}><Ico name="clock" size={20} /></span>
-            <div className={styles.staleNudgeText}>
-              <strong>{staleApplications} application{staleApplications !== 1 ? 's' : ''}</strong> {staleApplications !== 1 ? 'have' : 'has'} been waiting for review for over 2 weeks.
-            </div>
-            <span className={styles.staleNudgeLink}>Review now →</span>
-          </Link>
-        )}
-
-
+        {/* The amber "N applications have been waiting for review" banner is
+            gone (Claude Design, 15 Nov 2026): the Today card above now says the
+            same thing about everyone at once, and amber is not in the palette. */}
 
         <div className={styles.grid}>
 
-          {/* ── FULL WIDTH: Pipeline ── */}
+          {/* ── FULL WIDTH: Applicants ──
+              Replaces the Application Pipeline section, at every width
+              (design 24 section 4; Claude Design, 15 Nov 2026): a count per
+              stage and the longest wait, each row opening the Applicants list
+              with that stage's chip selected. Live adverts only. */}
           <div className={styles.colFull}>
-            <div className={`${styles.card} ${styles.aBlue}`}>
+            <div className={styles.card}>
               <div className={styles.cardHeader}>
-                <h2 className={styles.cardTitle}>Application Pipeline</h2>
-                <Link href="/pipeline" className={styles.cardLink}>View All</Link>
+                <h2 className={styles.cardTitle}>Applicants</h2>
+                <Link href="/applied" className={styles.cardLink}>See all</Link>
               </div>
-              {/* PHONE: six full-width rows. DESKTOP: the Kanban columns,
-                  untouched. Two renderings of one pipeline, switched on the
-                  same isMobile the rest of this page uses — not a CSS
-                  display:none pair, because the desktop columns mount real
-                  candidate cards and rendering both would double the work on
-                  the device least able to afford it. */}
-              <div className={styles.cardBody} style={isMobile ? { padding: 0 } : undefined}>
-                {isMobile ? (
-                  <PipelineRows rows={pipelineRows} />
+              <div className={styles.cardBody} style={{ padding: 0 }}>
+                {activeJobs === 0 ? (
+                  <div className={styles.applicantsEmpty}>
+                    <p>{nothingLiveShort()}</p>
+                    <Link href="/my-jobs" className={styles.applicantsEmptyBtn}>Post a job</Link>
+                  </div>
                 ) : (
-                <div className={styles.pipelineScroller}>
-                  {PIPELINE_STAGES.filter(s => s !== 'rejected').map(s => {
-                    // Mirror the /pipeline board: a stage column (coloured header +
-                    // count pill) with the real candidate cards (initials avatar,
-                    // name, role, "N days in stage" badge, Review →). Read-only.
-                    const color = s === 'pending' ? '#f59e0b' : (STAGE_COLORS[s as keyof typeof STAGE_COLORS] || '#6b7280')
-                    const label = s === 'pending' ? 'Applied' : (STAGE_LABELS[s as keyof typeof STAGE_LABELS] || STATUS_LABELS[s] || s)
-                    const count = statusCounts[s] || 0
-                    const candidates = candidatesByStage[s] || []
-                    return (
-                      <div key={s} className={styles.pipeCol}>
-                        <div className={styles.pipeColHead} style={{ borderTopColor: color }}>
-                          <span className={styles.pipeColLabel}>{label}</span>
-                          <span className={styles.pipeColCount} style={{ background: `color-mix(in srgb, ${color} 14%, transparent)`, color }}>{count}</span>
-                        </div>
-                        <div className={styles.pipeColBody}>
-                          {candidates.length === 0 ? (
-                            <span className={styles.pipeColEmpty}>No candidates</span>
-                          ) : candidates.slice(0, 2).map((app: any) => (
-                            <Link key={app.id} href="/pipeline" className={styles.pipeCard}>
-                              <div className={styles.pipeCardTop}>
-                                <span className={styles.pipeAvatar} style={{ background: color }}>{getInitials(app.candidate_name || 'C')}</span>
-                                <div className={styles.pipeCardInfo}>
-                                  <span className={styles.pipeCardName}>{app.candidate_name || 'Candidate'}</span>
-                                  <span className={styles.pipeCardRole}>{app.candidate_job_title || app.job_title || ''}</span>
-                                </div>
-                              </div>
-                              {app.stage_entered_at && (
-                                <StageDurationBadge stageEnteredAt={app.stage_entered_at} stageLabel={label} stageColor={color} />
-                              )}
-                              <span className={styles.pipeReview}>Review &rarr;</span>
-                            </Link>
-                          ))}
-                          {candidates.length > 2 && <Link href="/pipeline" className={styles.pipeColMore}>+{candidates.length - 2} more</Link>}
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
+                  <PipelineRows rows={applicantGroupRows} />
                 )}
               </div>
             </div>
