@@ -21,6 +21,7 @@
 import type { ReactNode } from 'react'
 import type { Job } from '@/lib/mockJobs'
 import { jobRowModel } from '@/lib/jobCard'
+import SaveJobButton from '@/components/SaveJobButton'
 import styles from './JobRow.module.css'
 
 export interface JobRowProps {
@@ -32,13 +33,18 @@ export interface JobRowProps {
   shortlisted?: boolean
   /** The open job in a list-and-detail page (sector, city, recommended, saved). */
   selected?: boolean
-  /** The right-hand column when there is no Save: the match % on Recommended. */
-  aside?: ReactNode
+  /** A grey chip on line 3 after the age: "99% match" on Recommended
+   *  (design 26: not in the right column, and not yellow). */
+  tag?: string
   /** A further quiet line under line 3: "Saved 2 days ago" on Saved jobs. */
   extra?: ReactNode
+  /** The home page's phone rows (design 26, A): line 3 reads
+   *  "via {recruiter} · age" in place of type below 768 too — the home page is
+   *  a teaser, and the recruiter is what a candidate recognises. */
+  viaLine?: boolean
 }
 
-export default function JobRow({ job, onSelect, saved, onToggleSave, applied, shortlisted, selected, aside, extra }: JobRowProps) {
+export default function JobRow({ job, onSelect, saved, onToggleSave, applied, shortlisted, selected, tag, extra, viaLine }: JobRowProps) {
   const m = jobRowModel(job)
   const pay = m.pay && (
     <span className={styles.pay}>
@@ -50,9 +56,13 @@ export default function JobRow({ job, onSelect, saved, onToggleSave, applied, sh
   const own = (applied || shortlisted) && (
     <>{dot}<span className={styles.own}>{shortlisted ? 'Shortlisted' : 'Applied'}</span></>
   )
+  const tagChip = tag && <>{' '}<span className={styles.tagChip}>{tag}</span></>
+  const hasSave = typeof onToggleSave === 'function'
 
   return (
-    <div className={`${styles.row} ${selected ? styles.selected : ''}`}>
+    // No Save, no right-hand column: the right padding then equals the left
+    // (design 26), instead of the 6px kept for the bookmark's own 44px box.
+    <div className={`${styles.row} ${selected ? styles.selected : ''} ${hasSave ? '' : styles.noSave}`}>
       <button type="button" className={styles.main} onClick={onSelect ? () => onSelect(job) : undefined} disabled={!onSelect} aria-current={selected ? 'true' : undefined}>
         <span className={styles.titleLine}>
           <span className={styles.title}>{m.title}</span>
@@ -68,31 +78,20 @@ export default function JobRow({ job, onSelect, saved, onToggleSave, applied, sh
           {pay}{pay && m.place && dot}{m.place}{m.type && <>{dot}{m.type}</>}
         </span>
 
-        {/* Below 768: type · age */}
+        {/* Below 768: type · age (or via · age on the home page) */}
         <span className={`${styles.line3} ${styles.narrowOnly}`}>
-          <span className={styles.pair}>{m.type}{m.type && m.age && dot}{m.age}</span>{own}
+          {viaLine
+            ? <>{m.via}{m.via && m.age && dot}{m.age}{own}{tagChip}</>
+            : <><span className={styles.pair}>{m.type}{m.type && m.age && dot}{m.age}</span>{own}{tagChip}</>}
         </span>
         {/* From 768: via {recruiter} · age */}
         <span className={`${styles.line3} ${styles.wideOnly}`}>
-          {m.via}{m.via && m.age && dot}{m.age}{own}
+          {m.via}{m.via && m.age && dot}{m.age}{own}{tagChip}
         </span>
         {extra && <span className={styles.line3}>{extra}</span>}
       </button>
 
-      {typeof onToggleSave !== 'function' && aside && <span className={styles.aside}>{aside}</span>}
-      {typeof onToggleSave === 'function' && (
-        <button
-          type="button"
-          className={styles.save}
-          aria-pressed={!!saved}
-          aria-label={saved ? `Unsave ${m.title}` : `Save ${m.title}`}
-          onClick={e => { e.stopPropagation(); onToggleSave(job) }}
-        >
-          <svg width="24" height="24" viewBox="0 0 24 24" fill={saved ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.9" strokeLinejoin="round" aria-hidden="true">
-            <path d="M18 21l-6-4.5L6 21V4.5A1.5 1.5 0 0 1 7.5 3h9A1.5 1.5 0 0 1 18 4.5z" />
-          </svg>
-        </button>
-      )}
+      {hasSave && <SaveJobButton saved={!!saved} onToggle={() => onToggleSave!(job)} title={m.title} />}
     </div>
   )
 }

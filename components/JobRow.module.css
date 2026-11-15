@@ -41,14 +41,13 @@
 /* The open job beside a detail panel: the hover fill plus an ink edge, so it
    reads as chosen and not merely pointed at. */
 .selected { background: #F6F7F9; box-shadow: inset 3px 0 0 #0F172A; }
-/* The right column when there is no Save (Recommended's match %). Above the
-   stretched row button only if it is interactive; a plain label lets taps fall
-   through to the row. */
-.aside { align-self: start; justify-self: end; padding-top: 2px; pointer-events: none; }
 .list > .row:last-child { border-bottom: 0; }
+/* No Save (Recommended): the right padding equals the left (design 26). */
+.noSave { padding-right: 18px; }
 
 @media (min-width: 768px) {
   .row { padding: 18px 10px 18px 22px; column-gap: 8px; }
+  .noSave { padding-right: 22px; }
 }
 
 /* The row's own button carries the whole row: stretched over it with ::after,
@@ -105,6 +104,20 @@
 .negotiable { font-weight: 400; color: #334155; }
 
 .line3 { font-size: 14px; line-height: 1.4; font-weight: 400; color: #64748b; }
+/* "99% match" on Recommended: the NEW chip's treatment, on line 3 after the
+   age (design 26). It replaced the last yellow on a job row. */
+.tagChip {
+  display: inline-block;
+  padding: 3px 7px;
+  border-radius: 6px;
+  background: #EEF0F4;
+  color: #0F172A;
+  font-size: 13px;
+  line-height: 1.2;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
 /* Type and age stay together (spec 3: "nowrap on the pair"). */
 .pair { white-space: nowrap; }
 .own { font-weight: 600; color: #0F172A; }
@@ -118,20 +131,4 @@
   .wideOnly { display: block; }
 }
 
-/* Save: 44 target, 24 bookmark, ABOVE the stretched row button. */
-.save {
-  position: relative;
-  z-index: 1;
-  width: 44px;
-  height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  border: 0;
-  border-radius: 10px;
-  background: none;
-  color: #0F172A;
-  cursor: pointer;
-}
-.save:focus-visible { outline: 3px solid rgba(15, 23, 42, 0.35); outline-offset: 0; }
+/* Save is components/SaveJobButton (shared with the 1a card's corner). */

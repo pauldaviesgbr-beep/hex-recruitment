@@ -1,43 +1,57 @@
 'use client'
 
-import type { ReactNode } from 'react'
-import Link from 'next/link'
 import type { Job } from '@/lib/mockJobs'
 import JobTypeCard from '@/components/JobTypeCard'
+import SaveJobButton from '@/components/SaveJobButton'
+import cardStyles from '@/components/JobTypeCard.module.css'
 
-// THE SMALL-LIST JOB CARD, NOW THE TEXT-LED 1a CARD (design_handoff_job_cards
+// THE SMALL-LIST JOB CARD: the text-led 1a card (design_handoff_job_cards
 // _text_led: "1a goes on the home page and anywhere showing 6 or fewer jobs";
-// design 25, 15 Nov 2026: no images anywhere jobs appear). It used to wrap the
-// board's image-led markup — a banner or the branded panel, a scrim, a logo
-// chip — and carried the SEVENTH local salary formatter, which printed
-// "£19.63–£31.38/hr" one way and the board another. Both are gone: the card
-// reads lib/jobCard's shared model.
+// design 25: no images anywhere jobs appear; design 26 round 2).
 //
-// Used by the candidate dashboard's Recommended row and the employer
-// dashboard's Active jobs. The whole card is the link; `children` still render
-// beside the card inside it (the dashboard's "Not interested" button is
-// positioned against its own list item), and `footerNote` replaces the age —
-// the employer sees "N apps · N views" there.
+// It is no longer one big <a>. The card's TITLE is the link, stretched over the
+// card, so the controls design 26 puts on it — Save in the corner, "Not
+// interested" in the footer — are real buttons beside the link rather than
+// buttons inside it (which HTML does not allow, and which is why the
+// dashboard's grey × used to float over the title).
+//
+// Used by the candidate dashboard's Recommended row (Save + Not interested),
+// the employer dashboard's Active jobs (footerNote "N applicants · N views"),
+// and the home page grid (variant="home", with Save).
 
 export default function JobCardLink({
   job,
   className,
-  children,
   href,
   footerNote,
+  saved,
+  onToggleSave,
+  onNotInterested,
+  variant,
 }: {
   job: Job
   className?: string
-  children?: ReactNode
   href?: string
-  footerNote?: ReactNode
+  footerNote?: string
+  saved?: boolean
+  onToggleSave?: (job: Job) => void
+  onNotInterested?: (job: Job) => void
+  variant?: 'home'
 }) {
   return (
-    <Link href={href ?? `/job/${job.id}`} className={className}>
-      {/* A child (the dashboard's "Not interested") floats in the corner, so
-          the card keeps that 44×44 slot free and the title wraps before it. */}
-      <JobTypeCard job={job} footerNote={footerNote} reserveCorner={!!children} />
-      {children}
-    </Link>
+    <div className={className}>
+      <JobTypeCard
+        job={job}
+        href={href ?? `/job/${job.id}`}
+        footerNote={footerNote}
+        variant={variant}
+        corner={onToggleSave ? <SaveJobButton saved={!!saved} onToggle={() => onToggleSave(job)} title={job.title} /> : undefined}
+        footerAction={onNotInterested ? (
+          <button type="button" className={cardStyles.textAction} aria-label={`Not interested in ${job.title}`} onClick={() => onNotInterested(job)}>
+            Not interested
+          </button>
+        ) : undefined}
+      />
+    </div>
   )
 }

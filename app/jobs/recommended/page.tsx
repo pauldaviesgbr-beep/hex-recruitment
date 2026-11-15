@@ -23,7 +23,7 @@ import { getTagCategory, WORK_STYLE_TAGS } from '@/lib/jobTags'
 import { useAnalyticsTracking } from '@/hooks/useAnalyticsTracking'
 import styles from './page.module.css'
 import { Ico } from '@/components/icons'
-import { formatJobLocation } from '@/lib/jobCard'
+import { formatJobAddress, jobPay, jobPayText } from '@/lib/jobCard'
 import ReportControl from '@/components/ReportControl'
 
 export default function RecommendedJobsPage() {
@@ -232,18 +232,6 @@ export default function RecommendedJobsPage() {
     return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(locationString)}`
   }
 
-  const formatSalary = (job: Job) => {
-    if (job.salaryPeriod === 'hour') {
-      return `£${job.salaryMin}-${job.salaryMax}/hr`
-    }
-    return `£${(job.salaryMin / 1000).toFixed(0)}k-${(job.salaryMax / 1000).toFixed(0)}k/yr`
-  }
-
-  const formatSalaryFull = (job: Job) => {
-    if (job.salaryPeriod === 'hour') return `£${job.salaryMin} - £${job.salaryMax} per hour`
-    return `£${job.salaryMin.toLocaleString()} - £${job.salaryMax.toLocaleString()} per year`
-  }
-
   const renderDescription = (text: string) => {
     if (typeof window !== 'undefined' && text.includes('<') && text.includes('>')) {
       const DOMPurify = require('dompurify')
@@ -392,7 +380,7 @@ export default function RecommendedJobsPage() {
                         onSelect={() => selectJob(job)}
                         selected={selectedJob?.id === job.id}
                         shortlisted={shortlistedJobIds.has(job.id)}
-                        aside={showMatchPercent(job) ? <span className={styles.listCardMatch}>{job.matchPercentage}%</span> : undefined}
+                        tag={showMatchPercent(job) ? `${job.matchPercentage}% match` : undefined}
                       />
                     ))}
                   </div>
@@ -473,11 +461,11 @@ export default function RecommendedJobsPage() {
                           rel="noopener noreferrer"
                           className={styles.detailLocation}
                         >
-                          <Ico name="map-pin" size={16} /> {selectedJob.fullLocation?.addressLine1
-                            ? `${selectedJob.fullLocation.addressLine1}, ${selectedJob.fullLocation.city} ${selectedJob.fullLocation.postcode}`
-                            : [selectedJob.location, selectedJob.area].filter(Boolean).join(', ')}
+                          <Ico name="map-pin" size={16} /> {formatJobAddress(selectedJob)}
                         </a>
-                        <p className={styles.detailSalary}>{formatSalaryFull(selectedJob)}</p>
+                        {/* The shared pay text (design 17): no pay line at all
+                            when there is no pay, never "£0 - £0 per year". */}
+                        {jobPay(selectedJob) && <p className={styles.detailSalary}>{jobPayText(jobPay(selectedJob))}</p>}
                         <div className={styles.detailBadges}>
                           {Array.isArray(selectedJob.employmentType)
                             ? selectedJob.employmentType.map((type, i) => (
@@ -527,7 +515,7 @@ export default function RecommendedJobsPage() {
                         <div className={styles.detailGrid}>
                           <div className={styles.detailGridItem}>
                             <span className={styles.detailGridLabel}>Pay</span>
-                            <span className={styles.detailGridValue}>{formatSalaryFull(selectedJob)}</span>
+                            <span className={styles.detailGridValue}>{jobPay(selectedJob) ? jobPayText(jobPay(selectedJob)) : 'Not stated'}</span>
                           </div>
                           <div className={styles.detailGridItem}>
                             <span className={styles.detailGridLabel}>Job type</span>

@@ -887,13 +887,6 @@
    with nothing scrolling sideways there is no reason for a card to stop short
    of the edge and imply there is more to the right. */
 .jobCardItem { width: 100%; max-width: none; text-decoration: none; }
-/* The shared BrandedJobFallback paints a top-left Thrive lockup (mark + "Thrive"
-   wordmark + slogan) to brand candidate-facing job cards. On the employer's OWN
-   compact Active Jobs cards that lockup (a) doesn't belong and (b) lands in the
-   same top-left corner as the company chip, so the two stack. Hide it here — the
-   navy panel + ghost company initial remain. Scoped to .jobCardItem, so /jobs and
-   FeaturedJobs are untouched. */
-.jobCardItem :global([class*='BrandedJobFallback_brand']) { display: none; }
 
 /* The shared job card is 16/11; at the dashboard's compact width that's too short
    for a 3-line role title, so its bottom-anchored content overflows upward and

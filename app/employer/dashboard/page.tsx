@@ -225,7 +225,8 @@ function ActiveJobsScroller({ jobs, styles }: { jobs: any[]; styles: Record<stri
             job={job}
             href={`/post-job?edit=${job.id}`}
             className={styles.jobCardItem}
-            footerNote={`${job.application_count || 0} apps · ${job.views || 0} views`}
+            // Design 26: "applicants" written in full, not "apps".
+            footerNote={`${job.application_count || 0} applicant${(job.application_count || 0) === 1 ? '' : 's'} · ${job.views || 0} view${(job.views || 0) === 1 ? '' : 's'}`}
           />
         ))}
       </div>
