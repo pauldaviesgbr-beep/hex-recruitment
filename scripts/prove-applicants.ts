@@ -94,8 +94,8 @@ check('the toast lives OUTSIDE both panes and is fixed above the phone bar and t
     }
   }, { afterBothPanes: true, once: true, fixed: true, clearsBar: true })
 
-check('the controls column can shrink below the select\'s longest option (minmax(0, 1fr))',
-  () => /\.controls\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)/.test(css), true)
+check('the controls column and the card column can shrink below their content (minmax(0, 1fr))',
+  () => [/\.controls\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)/.test(css), /\.cards\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)/.test(css)], [true, true])
 
 // Paul, 15 Nov 2026: while the toast shows, the page gets room at the bottom
 // so the last card's buttons stay visible and tappable; a long advert title

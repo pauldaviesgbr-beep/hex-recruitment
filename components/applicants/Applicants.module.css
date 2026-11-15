@@ -191,11 +191,16 @@
 .chip[aria-pressed='true'] .chipCount { color: #FFE500; }
 
 /* ── Cards ── */
+/* minmax(0, 1fr) for the same reason as .controls: an auto grid column grows
+   to its items' minimum width, and a card title that does not wrap (it ends
+   in "…") has a minimum width of the WHOLE title — 770px at 320 on the first
+   try, the card running off the screen instead of cutting. */
 .cards {
   list-style: none;
   margin: 0;
   padding: 0;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 12px;
 }
 
